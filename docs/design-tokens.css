@@ -1,0 +1,113 @@
+/*
+ * SlideVault curated external-team design contract — 2026-09-29.
+ * Namespaced tokens for the SlideVault interface.
+ * See DESIGN_SYSTEM.md for usage and accessibility requirements.
+ * This file defines tokens only; it is not a global reset or component library.
+ */
+
+.slidevault {
+  color-scheme: light;
+
+  --sv-brand: #ff3f0a;
+  --sv-brand-strong: #d93407;
+  --sv-brand-tint: #ffe6dc;
+  --sv-bg: #f3f4f6;
+  --sv-surface: #ffffff;
+  --sv-surface-sunken: #eceef1;
+  --sv-surface-muted: #e4e7eb;
+  --sv-text: #1a1a1a;
+  --sv-text-secondary: #6b6b6b;
+  --sv-border: rgba(20, 20, 20, 0.12);
+  --sv-border-strong: rgba(20, 20, 20, 0.20);
+  --sv-action-bg: #1a1a1a;
+  --sv-action-fg: #ffffff;
+  --sv-success: #1f9d63;
+  --sv-warning: #c9930c;
+  --sv-danger: #d14b3c;
+
+  /* Functional colors: assess contrast in each actual context. */
+  --sv-placeholder: #6b6b6b;
+  --sv-link: #b92d09;
+  --sv-focus: #d93407;
+  --sv-control-border: #777777;
+
+  --sv-font-sans: "Helvetica Neue", "Helvetica", "Arimo", Arial, system-ui, -apple-system, sans-serif;
+  --sv-font-display: "Bebas Neue", "Arimo", system-ui, sans-serif;
+  --sv-text-body: 14.5px;
+  --sv-text-small: 13px;
+  --sv-text-meta: 12.5px;
+  --sv-text-heading: 32px;
+  --sv-text-section: 23px;
+  --sv-text-subheading: 18px;
+  --sv-leading-body: 1.55;
+  --sv-leading-heading: 1.3;
+
+  --sv-space-1: 4px;
+  --sv-space-2: 8px;
+  --sv-space-3: 12px;
+  --sv-space-4: 16px;
+  --sv-space-5: 20px;
+  --sv-space-6: 24px;
+  --sv-space-8: 32px;
+  --sv-space-10: 40px;
+  --sv-space-12: 48px;
+  --sv-space-14: 56px;
+  --sv-space-16: 64px;
+
+  --sv-radius-control: 11px;
+  --sv-radius-card: 16px;
+  --sv-radius-composer: 18px;
+  --sv-radius-panel: 24px;
+  --sv-radius-pill: 999px;
+
+  --sv-shadow-card: 0 1px 2px rgba(20, 20, 28, 0.06), 0 10px 28px -22px rgba(20, 20, 28, 0.30);
+  --sv-shadow-panel: 0 30px 70px -30px rgba(20, 20, 28, 0.26), 0 6px 18px -12px rgba(20, 20, 28, 0.08);
+  --sv-shadow-popover: 0 12px 30px -10px rgba(20, 20, 28, 0.18);
+
+  --sv-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --sv-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --sv-duration-fast: 150ms;
+  --sv-duration: 220ms;
+  --sv-duration-slow: 320ms;
+}
+
+/* Explicit local selection wins over the project's .dark ancestor convention. */
+.dark .slidevault:not([data-theme="light"]),
+.slidevault[data-theme="dark"] {
+  color-scheme: dark;
+
+  --sv-brand: #ff5a2c;
+  --sv-brand-strong: #ff7048;
+  --sv-brand-tint: rgba(255, 63, 10, 0.16);
+  --sv-bg: #0b0c0f;
+  --sv-surface: #191a1e;
+  --sv-surface-sunken: rgba(255, 255, 255, 0.08);
+  --sv-surface-muted: rgba(255, 255, 255, 0.12);
+  --sv-text: #f4f4f4;
+  --sv-text-secondary: #a9a9ac;
+  --sv-border: rgba(255, 255, 255, 0.14);
+  --sv-border-strong: rgba(255, 255, 255, 0.23);
+  --sv-action-bg: #fafafa;
+  --sv-action-fg: #0b0b0d;
+  --sv-success: #34c77d;
+  --sv-warning: #e0a33c;
+  --sv-danger: #f0685a;
+
+  --sv-placeholder: #a9a9ac;
+  --sv-link: #ff8a67;
+  --sv-focus: #ff7048;
+  --sv-control-border: #83848a;
+
+  --sv-shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 30px -20px rgba(0, 0, 0, 0.90);
+  --sv-shadow-panel: 0 30px 70px -30px rgba(0, 0, 0, 0.65), 0 6px 18px -12px rgba(0, 0, 0, 0.40);
+  --sv-shadow-popover: 0 12px 30px -10px rgba(0, 0, 0, 0.60);
+}
+
+/* Components must separately suppress looping motion and smooth scrolling. */
+@media (prefers-reduced-motion: reduce) {
+  .slidevault {
+    --sv-duration-fast: 0ms;
+    --sv-duration: 0ms;
+    --sv-duration-slow: 0ms;
+  }
+}
