@@ -31,4 +31,6 @@ next-env.d.ts
 
 # Local Python environment for scripts/fixtures
 .venv/
+
+# Local working folder of a developer browser-automation tool (gstack); never commit
 .gstack/
