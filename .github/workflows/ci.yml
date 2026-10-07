@@ -1,0 +1,31 @@
+# Checks required before merge (docs/DELIVERY_PLAN.md: "Keep main releasable … with CI required before merge").
+# Deterministic: runs on the synthetic fixtures only; no secrets, no client material.
+name: CI
+
+on:
+  push:
+    branches: [main, schiffon, khushali, vincent]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Export acceptance checks
+        run: npm run test:export
+      - name: Production build
+        run: npm run build
