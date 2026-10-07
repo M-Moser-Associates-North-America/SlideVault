@@ -24,3 +24,11 @@ test-results/
 uploads/
 exports/
 tmp/
+
+# Next.js
+next-env.d.ts
+*.pem
+
+# Generated from reference/ by `npm run ingest` (derived client content; regenerate locally)
+public/generated/
+features/slide-vault/data/slides.json
