@@ -71,7 +71,7 @@ The workspace never calls `fetch`, reads `window.location` or uses the Next.js r
 ## Checks before every pull request
 
 ```bash
-npm run typecheck && npm run lint && npm run test:export && npm run build
+npm run typecheck && npm run lint && npm run test:export && npm run build && npm run test:a11y
 ```
 
-CI runs the same checks on every push and pull request. Exports also need a manual open in PowerPoint (and Keynote) for anything that touches `export-pptx.ts`.
+CI runs the same checks on every push and pull request. UI changes also need the manual screen-reader pass in `docs/foundry/ACCESSIBILITY.md`. Exports also need a manual open in PowerPoint (and Keynote) for anything that touches `export-pptx.ts`.

@@ -228,7 +228,8 @@
 .link:focus-visible,
 .icon:focus-visible,
 .thumbButton:focus-visible,
-.input:focus-visible {
+.input:focus-visible,
+.slideText:focus-visible {
   outline: 2px solid var(--sv-focus);
   outline-offset: 2px;
 }

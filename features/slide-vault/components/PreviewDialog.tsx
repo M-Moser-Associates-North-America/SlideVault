@@ -101,8 +101,13 @@ export function PreviewDialog({ runtime, slideId, isSelected, onToggle, onClose 
               <dt>Last reviewed</dt>
               <dd>{slide.provenance.reviewedAt ?? unknown}</dd>
             </dl>
-            <h3 className={styles.label}>Slide text</h3>
-            <div className={styles.slideText}>{slide.text || 'This slide has no text.'}</div>
+            <h3 id="sv-preview-text" className={styles.label}>
+              Slide text
+            </h3>
+            {/* Scrollable, so it must be reachable by keyboard (WCAG 2.1.1): focusable region with a name. */}
+            <div className={styles.slideText} tabIndex={0} role="region" aria-labelledby="sv-preview-text">
+              {slide.text || 'This slide has no text.'}
+            </div>
             <button type="button" className={isSelected ? styles.secondary : styles.primary} onClick={() => onToggle(slide)}>
               {isSelected ? 'Remove from selection' : 'Add to selection'}
             </button>

@@ -24,6 +24,7 @@ After re-running `npm run ingest`, restart `npm run dev` to see the new slide li
 
 ```bash
 npm run test:export   # 29 checks on the exported PowerPoint itself
+npm run test:a11y     # accessibility (axe-core + keyboard), needs `npm run ingest` and `npm run build` first
 npm run typecheck     # TypeScript, strict
 npm run lint
 npm run build

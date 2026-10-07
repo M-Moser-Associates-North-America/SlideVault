@@ -29,3 +29,32 @@ jobs:
         run: npm run test:export
       - name: Production build
         run: npm run build
+
+  browser-tests:
+    # Accessibility acceptance (docs/DESIGN_SYSTEM.md) against a production build of the synthetic library.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install LibreOffice and poppler (slide previews)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libreoffice-impress poppler-utils fonts-liberation
+      - run: npm ci
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Build the library index from the synthetic fixtures
+        run: npm run ingest
+      - name: Production build
+        run: npm run build
+      - name: Accessibility tests (axe-core, WCAG 2.2 AA + keyboard)
+        run: npm run test:a11y
+      - name: Keep the trace on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
