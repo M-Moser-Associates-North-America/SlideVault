@@ -72,3 +72,119 @@ Revisit trigger:
 ```
 
 Do not fill the owner/reviewer/date fields with invented approvals. Supersede past records rather than erase the reason a choice was made.
+
+## Prototype decision records (The Foundry)
+
+Shortcuts taken in the prototype build, recorded so none of them is mistaken for the target design. All are **proposed**: none has been reviewed or approved by the product owner. Owner, reviewer and decision-date fields stay empty until a real decision is made. Proposed on 7 October 2026 by The Foundry.
+
+```text
+Decision ID and title: FD-01 No sign-in in the prototype
+Status: proposed
+Decision date: (pending)
+Decision owner/reviewer: (pending: product owner + technical reviewer)
+Context and evidence: The prototype runs locally on synthetic fixtures. Identity provider and access model are open (D-02, D-07).
+Options considered: (a) no sign-in, local only; (b) a temporary shared password; (c) the selected identity provider behind the auth adapter.
+Chosen outcome: (a). The shell supplies a fixed session scope ("local-dev") and the capabilities library.read, collection.write, export.create. GET /session reports the same set.
+Consequences for scope, cost, security and integration: Must not be hosted with real content. PR-09 (server-side denial) is not met. Capability checks in the UI are display hints only.
+Acceptance evidence / affected PR criteria: PR-09 open.
+Documents/contracts changed: none (runtime contract unchanged).
+Revisit trigger: Before any hosted preview, and at Gate 1 identity/access adapters.
+```
+
+```text
+Decision ID and title: FD-02 File-backed library index instead of PostgreSQL
+Status: proposed
+Decision date: (pending)
+Decision owner/reviewer: (pending: technical lead + technical reviewer)
+Context and evidence: No database is provisioned yet (D-07). The prototype needs stable IDs and immutable versions to match the domain model.
+Options considered: (a) JSON index written by `npm run ingest`; (b) local PostgreSQL now.
+Chosen outcome: (a). `.data/library.json` (gitignored) holds sources, immutable versions (ID from the SHA-256 of the original bytes) and slides with opaque IDs, mirroring the Source deck / Source version / Slide entities in DATA_AND_API.md.
+Consequences for scope, cost, security and integration: No concurrent writes, no review state, no memberships. Index reloads require an app restart.
+Acceptance evidence / affected PR criteria: PR-01 (durable ingestion) and PR-05 open.
+Documents/contracts changed: none.
+Revisit trigger: Real upload (build step 5) / Gate 1 schema and migrations.
+```
+
+```text
+Decision ID and title: FD-03 Synchronous export instead of 202 + job
+Status: proposed
+Decision date: (pending)
+Decision owner/reviewer: (pending: technical lead)
+Context and evidence: DATA_AND_API.md specifies POST /exports → 202 with a durable job. Fixture exports finish in well under a second.
+Options considered: (a) build the file in the request and return it; (b) job queue + worker now.
+Chosen outcome: (a). POST /api/slide-vault/v1/exports returns the .pptx directly with the standard error envelope on failure.
+Consequences for scope, cost, security and integration: No progress, retry, cancellation or export manifest. Large or slow exports would block a request.
+Acceptance evidence / affected PR criteria: PR-08 open. Covered by `npm run test:export`.
+Documents/contracts changed: none.
+Revisit trigger: Before Gate 3, or when exports exceed a few seconds.
+```
+
+```text
+Decision ID and title: FD-04 Runtime contract addition: assetUrl(path)
+Status: proposed
+Decision date: (pending)
+Decision owner/reviewer: (pending: technical reviewer)
+Context and evidence: Slide previews are <img> elements, which cannot be loaded through runtime.request(). INTEGRATION_CONTRACT.md publishes a sketch to be finalized as compilable types.
+Options considered: (a) add assetUrl(path) so the host resolves media URLs; (b) fetch every preview through request() into object URLs.
+Chosen outcome: (a). `features/slide-vault/contracts/runtime.ts` adds assetUrl(path: string): string. The standalone shell maps it to the API root and rejects absolute or traversing paths.
+Consequences for scope, cost, security and integration: A host must implement one more function. Previews stay behind the API (no public files), so access can be enforced there once sign-in exists.
+Acceptance evidence / affected PR criteria: PR-03 previews.
+Documents/contracts changed: features/slide-vault/contracts/runtime.ts (compilable contract v0.1); pointer added in docs/INTEGRATION_CONTRACT.md.
+Revisit trigger: Gate 1 contract publication.
+```
+
+```text
+Decision ID and title: FD-05 One source deck per export; each slide once
+Status: proposed
+Decision date: (pending)
+Decision owner/reviewer: (pending: technical lead + proposal reviewer)
+Context and evidence: The export engine copies the source package and removes unselected parts, which preserves masters, layouts and fidelity for one deck. Gate 0 requires slides from multiple decks.
+Options considered: (a) single-deck exports now, multi-deck next; (b) delay all exports until multi-deck assembly exists.
+Chosen outcome: (a). Mixed-deck requests return 422 UNSUPPORTED_SELECTION with a clear message; duplicates return 400.
+Consequences for scope, cost, security and integration: Gate 0 is not yet met. Repeated use of a slide (allowed by the data contract) is not yet supported.
+Acceptance evidence / affected PR criteria: PR-07 (single deck) passing in `npm run test:export`; multi-deck open.
+Documents/contracts changed: none.
+Revisit trigger: Next build milestone (multi-deck export).
+```
+
+```text
+Decision ID and title: FD-06 Selection stored in the browser
+Status: proposed
+Decision date: (pending)
+Decision owner/reviewer: (pending: product owner)
+Context and evidence: PR-06 requires saved, reloadable selections on the server. No database yet (FD-02).
+Options considered: (a) localStorage, keyed by sessionScopeKey; (b) in-memory only.
+Chosen outcome: (a). Survives reload in one browser; cleared per session scope; never shared.
+Consequences for scope, cost, security and integration: Not authoritative; not shareable; lost with browser data.
+Acceptance evidence / affected PR criteria: PR-06 open.
+Documents/contracts changed: none.
+Revisit trigger: When collections are persisted (with FD-02).
+```
+
+```text
+Decision ID and title: FD-07 Export defaults: what leaves the source
+Status: proposed
+Decision date: (pending)
+Decision owner/reviewer: (pending: proposal reviewer, see D-04)
+Context and evidence: Exports are client-facing. DATA_AND_API.md: keep internal provenance out of client-facing output without an explicit policy.
+Options considered: Keep or remove speaker notes, review comments, document properties, cover thumbnail; keep or show hidden slides.
+Chosen outcome: Remove unselected slides and their media, speaker notes, comments and comment authors, the source cover thumbnail, and source author/title/slide-title properties. A hidden source slide becomes visible when deliberately selected.
+Consequences for scope, cost, security and integration: Notes cannot be exported until the owner asks for them (questionnaire item 12).
+Acceptance evidence / affected PR criteria: PR-07; `npm run test:export`.
+Documents/contracts changed: none.
+Revisit trigger: D-04 support-matrix decision.
+```
+
+```text
+Decision ID and title: FD-08 Preview rendering with LibreOffice and poppler
+Status: proposed
+Decision date: (pending)
+Decision owner/reviewer: (pending: technical lead + technical reviewer, see D-05)
+Context and evidence: Previews must show real slides. No renderer is selected (D-05).
+Options considered: LibreOffice headless + pdftoppm; a commercial renderer; Keynote/PowerPoint automation (not portable).
+Chosen outcome: LibreOffice (MPL-2.0) + poppler (GPL, used as a separate command-line tool). For previews only, brand fonts the renderer cannot use are mapped to Arial / Arial Narrow.
+Consequences for scope, cost, security and integration: Previews can differ slightly from PowerPoint (fonts, line breaks). Both tools must be installed wherever ingestion runs and belong in the dependency/license inventory.
+Acceptance evidence / affected PR criteria: PR-01 / PR-03 previews.
+Documents/contracts changed: none.
+Revisit trigger: Gate 0 renderer comparison.
+```
