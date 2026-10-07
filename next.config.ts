@@ -1,9 +1,20 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+
+  // The library and data folders are read at runtime from configurable paths
+  // (SLIDEVAULT_LIBRARY_DIR / SLIDEVAULT_DATA_DIR), so the bundler can't know which files they
+  // need and would otherwise trace the whole project into a deployment. Keep client reference
+  // material, fixtures, generated data and tooling out of every server bundle; deployments
+  // provide the library and data folders themselves.
+  outputFileTracingExcludes: {
+    '/*': ['reference/**/*', 'tests/**/*', '.data/**/*', '.venv/**/*', 'docs/**/*', 'scripts/**/*'],
+  },
+  turbopack: {
+    ignoreIssue: [{ path: '**/features/slide-vault/server/config.ts', title: /Dynamic filesystem access/ }],
+  },
 };
 
 export default nextConfig;

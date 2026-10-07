@@ -5,6 +5,9 @@
 import type { ApiError, ApiOk, ApiPage, ExportRequest, SlideDetail, SlideSummary } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
+/** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
+export type Transport = Pick<SlideVaultRuntime, 'request' | 'onSessionExpired'>;
+
 /** A failed call, carrying the server's safe message for display. */
 export class ApiCallError extends Error {
   constructor(
@@ -16,13 +19,13 @@ export class ApiCallError extends Error {
   }
 }
 
-async function failure(runtime: SlideVaultRuntime, res: Response): Promise<never> {
+async function failure(runtime: Transport, res: Response): Promise<never> {
   if (res.status === 401) runtime.onSessionExpired();
   const body = (await res.json().catch(() => null)) as ApiError | null;
   throw new ApiCallError(body?.error.message ?? `Request failed (${res.status}).`, res.status, body?.error.retryable ?? res.status >= 500);
 }
 
-export async function searchSlides(runtime: SlideVaultRuntime, query: string, signal?: AbortSignal): Promise<SlideSummary[]> {
+export async function searchSlides(runtime: Transport, query: string, signal?: AbortSignal): Promise<SlideSummary[]> {
   const params = new URLSearchParams({ kind: 'slide', limit: '100' });
   if (query.trim()) params.set('q', query.trim());
   const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
@@ -30,14 +33,14 @@ export async function searchSlides(runtime: SlideVaultRuntime, query: string, si
   return ((await res.json()) as ApiPage<SlideSummary>).data;
 }
 
-export async function getSlide(runtime: SlideVaultRuntime, slideId: string, signal?: AbortSignal): Promise<SlideDetail> {
+export async function getSlide(runtime: Transport, slideId: string, signal?: AbortSignal): Promise<SlideDetail> {
   const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<SlideDetail>).data;
 }
 
 /** Returns the .pptx as a Blob; the caller decides how to save it. */
-export async function exportPptx(runtime: SlideVaultRuntime, slides: SlideSummary[]): Promise<Blob> {
+export async function exportPptx(runtime: Transport, slides: SlideSummary[]): Promise<Blob> {
   const body: ExportRequest = {
     format: 'pptx',
     fidelityPolicy: 'preserve-source',

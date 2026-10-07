@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { searchSlides } from '../client/api';
 import { useSelection } from '../client/selection-store';
 import type { SlideSummary } from '../contracts/dto';
@@ -16,6 +16,8 @@ const SEARCH_DELAY_MS = 200;
 /** Slide-level search, results, preview and the ordered selection ("Pages" in the mockup). */
 export function PagesView({ runtime, previewSlideId }: { runtime: SlideVaultRuntime; previewSlideId?: string }) {
   const [query, setQuery] = useState('');
+  const { request, onSessionExpired } = runtime;
+  const transport = useMemo(() => ({ request, onSessionExpired }), [request, onSessionExpired]);
   const [results, setResults] = useState<Results>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0); // bump to retry after an error
   const [selection, updateSelection] = useSelection(runtime.sessionScopeKey);
@@ -24,7 +26,7 @@ export function PagesView({ runtime, previewSlideId }: { runtime: SlideVaultRunt
   useEffect(() => {
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      searchSlides(runtime, query, controller.signal)
+      searchSlides(transport, query, controller.signal)
         .then((slides) => setResults({ status: 'ready', slides }))
         .catch((e: Error) => {
           if (e.name !== 'AbortError') setResults({ status: 'error', message: e.message });
@@ -34,7 +36,7 @@ export function PagesView({ runtime, previewSlideId }: { runtime: SlideVaultRunt
       clearTimeout(timer);
       controller.abort();
     };
-  }, [runtime, query, attempt]);
+  }, [transport, query, attempt]);
 
   const isSelected = (id: string) => selection.some((s) => s.id === id);
   const toggle = ({ id, title, hiddenInSource, previewPath, provenance }: SlideSummary) =>

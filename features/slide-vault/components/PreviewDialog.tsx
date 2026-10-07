@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getSlide } from '../client/api';
 import type { SlideDetail, SlideSummary } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
@@ -24,6 +24,8 @@ const APPROVAL_LABEL = { approved: 'Approved', in_review: 'In review', draft: 'D
  * Escape closes it, focus stays inside while open and returns afterwards.
  */
 export function PreviewDialog({ runtime, slideId, isSelected, onToggle, onClose }: Props) {
+  const { request, onSessionExpired } = runtime;
+  const transport = useMemo(() => ({ request, onSessionExpired }), [request, onSessionExpired]);
   const ref = useRef<HTMLDialogElement>(null);
   const [loaded, setLoaded] = useState<Loaded>({ status: 'loading' });
 
@@ -37,14 +39,14 @@ export function PreviewDialog({ runtime, slideId, isSelected, onToggle, onClose 
   useEffect(() => {
     if (!slideId) return;
     const controller = new AbortController();
-    getSlide(runtime, slideId, controller.signal)
+    getSlide(transport, slideId, controller.signal)
       .then((slide) => setLoaded({ status: 'ready', slide }))
       .catch((e: Error) => e.name !== 'AbortError' && setLoaded({ status: 'error', message: e.message }));
     return () => {
       controller.abort();
       setLoaded({ status: 'loading' });
     };
-  }, [runtime, slideId]);
+  }, [transport, slideId]);
 
   const slide = loaded.status === 'ready' ? loaded.slide : null;
   const unknown = <span className={styles.unknown}>Unknown</span>;

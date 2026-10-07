@@ -31,3 +31,4 @@ next-env.d.ts
 
 # Local Python environment for scripts/fixtures
 .venv/
+.gstack/
