@@ -1,128 +1,171 @@
 /**
- * Export acceptance checks (client acceptance PR-07), run against the real reference deck.
+ * Export acceptance checks (client acceptance PR-07), run against the synthetic fixtures.
  *
  *   npm run test:export
  *
- * Verifies, by inspecting the generated package itself:
- *  - only the selected slides are present, in the selected order
- *  - text stays native, editable text (not pictures of slides)
- *  - unselected slides, comments, notes and the source thumbnail are physically gone
- *  - source-identifying document properties are replaced
- *  - a hidden source slide becomes visible when selected
- *  - invalid requests are rejected with a clear message
- *  - the source file is byte-for-byte unchanged
+ * Inspects the generated packages themselves:
+ *  - only the selected slides, in the selected order; nothing else physically remains
+ *  - text, tables and charts stay native and editable (never pictures of slides)
+ *  - speaker notes, comments, source thumbnail and source-identifying properties are removed
+ *  - slide size is preserved (4:3 stays 4:3); hidden source slides become visible when selected
+ *  - no broken internal references (PowerPoint would offer to "repair" the file)
+ *  - invalid, stale, unknown and mixed-deck requests are rejected with clear messages
+ *  - source files are byte-for-byte unchanged
  */
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import JSZip from 'jszip';
 import { exportSelectedSlides, ExportValidationError, listSlides } from '../features/slide-vault/server/export-pptx';
-import { SOURCE_DECK } from '../features/slide-vault/server/source-deck';
+import { readConfig } from '../features/slide-vault/server/config';
+import type { LibraryIndex } from '../features/slide-vault/server/library-repository';
+import { ServiceError } from '../features/slide-vault/server/http';
+import { exportSlides } from '../features/slide-vault/server/services/export';
 
+const FIXTURES = path.resolve(import.meta.dirname, '../tests/fixtures');
 let failures = 0;
-const check = (ok: boolean, label: string, detail = '') => {
+function check(ok: boolean, label: string, detail = '') {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? ` — ${detail}` : ''}`);
   if (!ok) failures++;
-};
-
+}
 const sha = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
-const source = new Uint8Array(readFileSync(SOURCE_DECK.path));
-const sourceHash = sha(source);
-const slides = await listSlides(source);
+const load = (name: string) => new Uint8Array(readFileSync(path.join(FIXTURES, name)));
 
-async function slideTexts(pkg: Uint8Array) {
+async function slideXmls(pkg: Uint8Array) {
   const zip = await JSZip.loadAsync(pkg);
-  const ordered = await listSlides(pkg);
-  return Promise.all(
-    ordered.map(async (s) => {
-      const xml = await zip.file(s.part)!.async('string');
-      return {
-        ...s,
-        text: (xml.match(/<a:t>([^<]*)<\/a:t>/g) ?? []).map((t) => t.slice(5, -6)).join(' '),
-        textRuns: (xml.match(/<a:t>/g) ?? []).length,
-        hasTable: xml.includes('<a:tbl>'),
-      };
-    }),
-  );
+  return Promise.all((await listSlides(pkg)).map(async (s) => ({ ...s, xml: await zip.file(s.part)!.async('string') })));
 }
-const sourceTexts = await slideTexts(source);
+const textOf = (xml: string) => (xml.match(/<a:t>([^<]*)<\/a:t>/g) ?? []).map((t) => t.slice(5, -6)).join(' ');
 
-// --- the 8-step test selection: slides 9, 14, 1 -------------------------------------------
-const pick = [9, 14, 1];
-const out = await exportSelectedSlides(source, pick);
-const zip = await JSZip.loadAsync(out);
-const got = await slideTexts(out);
-const names = Object.keys(zip.files);
-
-check(got.length === 3, 'exported deck lists exactly the 3 selected slides', `${got.length} listed`);
-check(
-  got.every((s, i) => s.text === sourceTexts[pick[i] - 1].text),
-  'slides appear in the selected order (9 → 14 → 1)',
-);
-check(names.filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n)).length === 3, 'package physically contains only 3 slide parts');
-check(got.every((s) => s.textRuns > 0), 'every exported slide keeps native text runs (editable, not flattened)');
-check(got[0].hasTable, 'slide 9 keeps its native PowerPoint table');
-
-const leaked = sourceTexts.filter((s) => !pick.includes(s.number) && s.text.length > 40 && !sourceTexts.filter((t) => pick.includes(t.number)).some((t) => t.text.includes(s.text)));
-const allXml = (await Promise.all(names.filter((n) => n.endsWith('.xml')).map((n) => zip.file(n)!.async('string')))).join('\n');
-check(
-  leaked.every((s) => !allXml.includes(s.text.slice(0, 60))),
-  'no text from unselected slides remains anywhere in the package',
-);
-check(!names.some((n) => n.startsWith('ppt/notesSlides/')), 'speaker notes removed (default)');
-check(!names.some((n) => /comment|authors\.xml/i.test(n)), 'reviewer comments and comment authors removed');
-check(!names.includes('docProps/thumbnail.jpeg'), 'source deck cover thumbnail removed');
-const core = await zip.file('docProps/core.xml')!.async('string');
-check(!/M Moser|Alegria/i.test(core) && core.includes('<dc:creator>SlideVault</dc:creator>'), 'author fields replaced with "SlideVault"');
-const app = await zip.file('docProps/app.xml')!.async('string');
-check(!app.includes('Slide Titles') && app.includes('<Slides>3</Slides>'), 'properties no longer list the source deck\'s slide titles');
-
-// Every relationship target must exist (otherwise PowerPoint offers to "repair" the file).
-let dangling = 0;
-for (const relsName of names.filter((n) => n.endsWith('.rels'))) {
-  const owner = relsName.replace(/_rels\/([^/]+)\.rels$/, '$1').replace(/^_rels\/\.rels$/, '');
-  const base = owner.includes('/') ? owner.slice(0, owner.lastIndexOf('/') + 1) : '';
-  const xml = await zip.file(relsName)!.async('string');
-  for (const m of xml.matchAll(/<Relationship\b[^>]*>/g)) {
-    if (/TargetMode="External"/.test(m[0])) continue;
-    const target = m[0].match(/Target="([^"]+)"/)![1];
-    const parts: string[] = [];
-    for (const seg of (target.startsWith('/') ? target.slice(1) : base + target).split('/')) {
-      if (seg === '..') parts.pop();
-      else if (seg && seg !== '.') parts.push(seg);
+async function brokenReferences(zip: JSZip) {
+  let broken = 0;
+  for (const relsName of Object.keys(zip.files).filter((n) => n.endsWith('.rels'))) {
+    const owner = relsName === '_rels/.rels' ? '' : relsName.replace(/_rels\/([^/]+)\.rels$/, '$1');
+    const base = owner.includes('/') ? owner.slice(0, owner.lastIndexOf('/') + 1) : '';
+    for (const m of (await zip.file(relsName)!.async('string')).matchAll(/<Relationship\b[^>]*>/g)) {
+      if (/TargetMode="External"/.test(m[0])) continue;
+      const target = m[0].match(/Target="([^"]+)"/)![1];
+      const parts: string[] = [];
+      for (const seg of (target.startsWith('/') ? target.slice(1) : base + target).split('/')) {
+        if (seg === '..') parts.pop();
+        else if (seg && seg !== '.') parts.push(seg);
+      }
+      if (!zip.file(parts.join('/'))) broken++;
     }
-    if (!zip.file(parts.join('/'))) dangling++;
   }
+  const ct = await zip.file('[Content_Types].xml')!.async('string');
+  for (const m of ct.matchAll(/PartName="\/([^"]+)"/g)) if (!zip.file(m[1])) broken++;
+  return broken;
 }
-check(dangling === 0, 'no broken internal references (no "repair" prompt)', `${dangling} dangling`);
-const ct = await zip.file('[Content_Types].xml')!.async('string');
-check(
-  [...ct.matchAll(/PartName="\/([^"]+)"/g)].every((m) => !!zip.file(m[1])),
-  'content-type list matches the parts that remain',
-);
-console.log(`      size: ${(out.length / 1024).toFixed(0)} KB for 3 slides (source ${(source.length / 1024 / 1024).toFixed(1)} MB)`);
 
-// --- hidden slide selected becomes visible ----------------------------------------------------
-const hiddenNumber = slides.find((s) => s.hidden)!.number;
-const hiddenOut = await listSlides(await exportSelectedSlides(source, [hiddenNumber]));
-check(hiddenOut.length === 1 && !hiddenOut[0].hidden, `hidden source slide ${hiddenNumber} is visible when selected`);
+const before = Object.fromEntries(readdirSync(FIXTURES).filter((f) => f.endsWith('.pptx')).map((f) => [f, sha(load(f))]));
 
-// --- validation ---------------------------------------------------------------------------------
+// --- 1. text, picture, table, shapes: slides 4, 6, 1 of the capabilities deck -------------------------
+{
+  const source = load('northwind-capabilities.pptx');
+  const src = await slideXmls(source);
+  const pick = [4, 6, 1];
+  const out = await exportSelectedSlides(source, pick);
+  const zip = await JSZip.loadAsync(out);
+  const got = await slideXmls(out);
+  const names = Object.keys(zip.files);
+  const allXml = (await Promise.all(names.filter((n) => n.endsWith('.xml')).map((n) => zip.file(n)!.async('string')))).join('\n');
+
+  check(got.length === 3, 'lists exactly the 3 selected slides');
+  check(got.every((s, i) => textOf(s.xml) === textOf(src[pick[i] - 1].xml)), 'slides appear in the selected order (4 → 6 → 1)');
+  check(names.filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n)).length === 3, 'package physically contains only 3 slides');
+  check(got.every((s) => /<a:t>/.test(s.xml)), 'every slide keeps native, editable text');
+  check(got[0].xml.includes('<a:tbl>'), 'the table stays a native PowerPoint table');
+  check(got[1].xml.includes('prstGeom prst="roundRect"'), 'shapes stay native shapes');
+  check(!allXml.includes('pricing guidance') && !allXml.includes('never export'), 'the unselected hidden slide and its notes are not in the file');
+  check(!names.some((n) => n.startsWith('ppt/notesSlides/')), 'speaker notes removed');
+  check(!names.some((n) => /comment|authors\.xml/i.test(n)), 'comments and comment authors removed');
+  check(!names.includes('docProps/thumbnail.jpeg'), 'source cover thumbnail removed');
+  const core = await zip.file('docProps/core.xml')!.async('string');
+  check(core.includes('<dc:creator>SlideVault</dc:creator>') && !core.includes('fixtures'), 'author and title replaced with neutral values');
+  const app = await zip.file('docProps/app.xml')!.async('string');
+  check(app.includes('<Slides>3</Slides>') && !app.includes('Slide Titles'), 'properties no longer list the source slide titles');
+  check((await brokenReferences(zip)) === 0, 'no broken internal references');
+}
+
+// --- 2. native chart -----------------------------------------------------------------------------------
+{
+  const out = await exportSelectedSlides(load('harbor-bank-proposal.pptx'), [3]);
+  const zip = await JSZip.loadAsync(out);
+  const [slide] = await slideXmls(out);
+  const chartParts = Object.keys(zip.files).filter((n) => /^ppt\/charts\/chart\d+\.xml$/.test(n));
+  check(slide.xml.includes('<c:chart ') && chartParts.length === 1, 'the chart stays a native, editable chart');
+  check(Object.keys(zip.files).some((n) => n.startsWith('ppt/embeddings/')), "the chart's data workbook is kept (data stays editable)");
+  check((await brokenReferences(zip)) === 0, 'chart export has no broken references');
+}
+
+// --- 3. slide size and hidden slides ------------------------------------------------------------------
+{
+  const out = await exportSelectedSlides(load('legacy-case-study-4x3.pptx'), [2, 1]);
+  const pres = await (await JSZip.loadAsync(out)).file('ppt/presentation.xml')!.async('string');
+  check(pres.includes('cx="9144000" cy="6858000"'), '4:3 slides keep their 4:3 size (no stretching)');
+
+  const hidden = await listSlides(await exportSelectedSlides(load('northwind-capabilities.pptx'), [5]));
+  check(hidden.length === 1 && !hidden[0].hidden, 'a hidden source slide is visible when deliberately selected');
+}
+
+// --- 4. engine validation -----------------------------------------------------------------------------
 for (const [bad, label] of [
   [[], 'empty selection'],
   [[0], 'slide 0'],
   [[99], 'slide 99'],
-  [[1.5], 'non-integer'],
-  [[1, 1], 'duplicate slide'],
+  [[1.5], 'a non-whole number'],
+  [[1, 1], 'the same slide twice'],
 ] as const) {
   try {
-    await exportSelectedSlides(source, [...bad]);
+    await exportSelectedSlides(load('northwind-capabilities.pptx'), [...bad]);
     check(false, `rejects ${label}`);
   } catch (e) {
-    check(e instanceof ExportValidationError, `rejects ${label} with a clear message`, (e as Error).message);
+    check(e instanceof ExportValidationError, `rejects ${label}`, (e as Error).message);
   }
 }
 
-check(sha(new Uint8Array(readFileSync(SOURCE_DECK.path))) === sourceHash, 'source deck unchanged (SHA-256 identical)');
+// --- 5. service rules (IDs and versions) --------------------------------------------------------------
+{
+  check(readConfig({}).libraryDir === FIXTURES, 'default library is the synthetic fixtures');
+  const indexFor = async (fileName: string) => {
+    const bytes = load(fileName);
+    const versionId = `ver_${sha(bytes).slice(0, 16)}`;
+    return {
+      id: `src_${fileName}`,
+      title: fileName,
+      fileName,
+      versionId,
+      sha256: sha(bytes),
+      slides: (await listSlides(bytes)).map((s) => ({ id: `${fileName}#${s.number}`, number: s.number, title: `Slide ${s.number}`, text: '', hidden: s.hidden })),
+    };
+  };
+  const index: LibraryIndex = {
+    generatedAt: new Date().toISOString(),
+    sources: [await indexFor('northwind-capabilities.pptx'), await indexFor('harbor-bank-proposal.pptx')],
+  };
+  const [nw, hb] = index.sources;
+  const item = (s: (typeof index.sources)[number], n: number) => ({ slideId: `${s.fileName}#${n}`, sourceVersionId: s.versionId });
+  const request = (items: ReturnType<typeof item>[]) => ({ format: 'pptx' as const, fidelityPolicy: 'preserve-source' as const, items });
+
+  const ok = await exportSlides(index, request([item(nw, 3), item(nw, 2)]));
+  check((await listSlides(ok)).length === 2, 'service exports a valid ID-based request');
+
+  const expectError = async (label: string, items: ReturnType<typeof item>[], status: number) => {
+    try {
+      await exportSlides(index, request(items));
+      check(false, label);
+    } catch (e) {
+      check(e instanceof ServiceError && e.status === status, label, (e as Error).message);
+    }
+  };
+  await expectError('rejects slides from two decks (422, until multi-deck export)', [item(nw, 1), item(hb, 1)], 422);
+  await expectError('rejects an outdated version (400)', [{ slideId: `${nw.fileName}#1`, sourceVersionId: 'ver_outdated' }], 400);
+  await expectError('rejects an unknown slide (400)', [{ slideId: 'sld_unknown', sourceVersionId: nw.versionId }], 400);
+}
+
+// --- 6. sources untouched -----------------------------------------------------------------------------
+check(Object.entries(before).every(([f, h]) => sha(load(f)) === h), 'all source decks unchanged (SHA-256 identical)');
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll export checks passed');
 process.exit(failures ? 1 : 0);

@@ -14,8 +14,8 @@ Then, from the repo folder:
 
 ```bash
 npm ci            # install exact dependency versions (first time, or after pulling changes)
-npm run ingest    # read the reference deck → thumbnails + slide list (first time, or when the deck changes)
-npm run dev       # start the app → open http://localhost:3000
+npm run ingest    # read the library decks → .data/ (first time, or when decks change)
+npm run dev       # start the app → open http://localhost:3000/slide-vault
 ```
 
 After re-running `npm run ingest`, restart `npm run dev` to see the new slide list.
@@ -23,7 +23,7 @@ After re-running `npm run ingest`, restart `npm run dev` to see the new slide li
 ## Checks to run before opening a pull request
 
 ```bash
-npm run test:export   # 20 checks on the exported PowerPoint itself
+npm run test:export   # 29 checks on the exported PowerPoint itself
 npm run typecheck     # TypeScript, strict
 npm run lint
 npm run build
@@ -31,7 +31,7 @@ npm run build
 
 ## What it does
 
-1. **Library**: every slide of `reference/SlideVault_Presentation1_Aug5.pptx` with a real thumbnail, including the 2 slides hidden in the source.
+1. **Library**: every slide of every deck in the library folder (by default the synthetic decks in `tests/fixtures/`) with a real thumbnail, including slides hidden in the source.
 2. **Search**: every word must appear in the slide's title or text ("content canonical" finds slides with both words). Clear empty state.
 3. **Preview**: large slide, source deck and slide number, trust fields (owner / approval / review date shown as "Unknown" until curation exists), full slide text. Escape or clicking outside closes it.
 4. **Selection**: select / remove, reorder with labeled ↑ ↓ buttons, clear. Kept across reloads in your browser.
@@ -55,22 +55,25 @@ npm run build
 
 ## Known limits (next steps)
 
-- **One source deck.** Combining slides from several decks into one export is the client's first proof test (Gate 0) and the next big piece of work.
+- **One deck per export.** The library holds several decks, but an export must come from one of them (clear message otherwise). Combining decks is the client's first proof test (Gate 0) and the next big piece of work.
 - **Each slide once per export.** Repeating a slide is rejected with a message for now.
-- **No upload yet.** The library is built from the reference deck by `npm run ingest`.
+- **No upload yet.** The library is built by `npm run ingest` from `SLIDEVAULT_LIBRARY_DIR` (default `tests/fixtures`). Real client decks are only used for an approved export-quality check and never committed.
 - **No login.** Run it locally; don't host it publicly with client content.
-- **Thumbnail fonts.** The deck's brand fonts (Untitled Sans, Bebas Neue) aren't installed, so thumbnails use Arial / Arial Narrow. Exported files keep the original fonts.
+- **Thumbnail fonts.** Brand fonts that LibreOffice can't use (e.g. Untitled Sans, Bebas Neue) are mapped to Arial / Arial Narrow for thumbnails only. Exported files keep the original fonts.
 - **Selection is per browser.** Saved, shareable selections need a database (client criterion PR-06).
 - Verified in Keynote and LibreOffice; please also open an export in Microsoft PowerPoint.
 
 ## Where things are
 
 ```text
-app/library/page.tsx                         the page (application shell)
-app/api/export/route.ts                      export endpoint (thin)
+app/slide-vault/                             standalone shell: routes, runtime bridge (navigation, API, theme)
+app/api/slide-vault/v1/                      HTTP API (thin handlers)
+features/slide-vault/contracts/              runtime contract + API data shapes (shared)
 features/slide-vault/components/             the workspace UI (browser)
-features/slide-vault/server/export-pptx.ts   builds the export (server only)
-features/slide-vault/server/library.ts       loads the ingested slide list
-scripts/ingest.mts                           builds thumbnails + slide list from the deck
+features/slide-vault/client/                 API calls via the runtime, selection store
+features/slide-vault/server/                 export engine, library index, services (server only)
+workers/slide-vault/processors/              slide text extraction, preview rendering
+scripts/ingest.mts                           builds .data/ from the library decks
 scripts/test-export.mts                      export acceptance checks
+tests/fixtures/                              synthetic decks (see its README)
 ```

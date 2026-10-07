@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
+import { UI_BASE } from './slide-vault/shell-config';
 
 export default function Home() {
-  redirect('/library');
+  redirect(UI_BASE);
 }

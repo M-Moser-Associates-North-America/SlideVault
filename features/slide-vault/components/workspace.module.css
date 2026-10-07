@@ -412,6 +412,11 @@
   background: rgba(15, 15, 20, 0.55);
 }
 
+.dialogStatus {
+  padding: var(--sv-space-8);
+  font-size: var(--sv-text-small);
+}
+
 .dialogInner {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

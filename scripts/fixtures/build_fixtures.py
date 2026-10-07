@@ -209,13 +209,13 @@ def main() -> None:
     photo = OUT / "_synthetic-photo.png"
     photo.write_bytes(png(480, 300, seed=3))
     decks = {
-        "northwind-capabilities.pptx": northwind_capabilities(photo),
-        "harbor-bank-proposal.pptx": harbor_bank_proposal(photo),
-        "legacy-case-study-4x3.pptx": legacy_case_study(photo),
+        "northwind-capabilities.pptx": ("Northwind Studio capabilities", northwind_capabilities(photo)),
+        "harbor-bank-proposal.pptx": ("Harbor Bank HQ proposal", harbor_bank_proposal(photo)),
+        "legacy-case-study-4x3.pptx": ("Juniper Labs case study (4:3)", legacy_case_study(photo)),
     }
-    for name, prs in decks.items():
+    for name, (deck_title, prs) in decks.items():
         prs.core_properties.author = "SlideVault fixtures"
-        prs.core_properties.title = name.removesuffix(".pptx")
+        prs.core_properties.title = deck_title
         prs.save(OUT / name)
         print(f"wrote tests/fixtures/{name}: {len(prs.slides)} slides")
     photo.unlink()
