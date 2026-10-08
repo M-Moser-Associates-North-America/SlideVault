@@ -36,7 +36,7 @@
 
 .heading {
   margin: 0;
-  font-size: 30px;
+  font-size: var(--sv-text-heading);
   font-weight: 600;
   line-height: 1.2;
 }
@@ -133,7 +133,7 @@
   border-radius: var(--sv-radius-pill);
   background: var(--sv-text);
   color: var(--sv-surface);
-  font-size: 12px;
+  font-size: var(--sv-text-meta);
   font-weight: 600;
 }
 
@@ -292,7 +292,7 @@
   border-radius: var(--sv-radius-pill);
   background: var(--sv-text);
   color: var(--sv-surface);
-  font-size: 13px;
+  font-size: var(--sv-text-small);
   text-align: center;
 }
 
@@ -410,6 +410,7 @@
 }
 
 .dialog::backdrop {
+  /* No backdrop token exists in docs/design-tokens.css; neutral dim matching --sv-text. */
   background: rgba(15, 15, 20, 0.55);
 }
 
@@ -457,7 +458,7 @@
 
 .dialogTitle {
   margin: 0;
-  font-size: 22px;
+  font-size: var(--sv-text-section);
   font-weight: 600;
   line-height: 1.25;
 }
