@@ -24,3 +24,6 @@ test-results/
 uploads/
 exports/
 tmp/
+
+# Local notes
+NOTES.md
