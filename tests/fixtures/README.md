@@ -48,3 +48,7 @@ Notes:
 - The default ingest reads only the top level of `tests/fixtures/`, so this folder doesn't change the existing library, export checks or accessibility tests. Point `SLIDEVAULT_LIBRARY_DIR` at it once ingest reads subfolders.
 - Decks under `Best of the Best/<category>/` have no year in their path, so year should come back unknown from folder metadata.
 - The same deck appears in both folders on purpose, as a test case for duplicate grouping.
+
+### Search test queries
+
+`search_queries.csv` holds 22 test searches in three styles: `keyword` (words that appear on the slide), `natural` (how people ask, e.g. "team slide from the Halcyon project in 2024") and `meaning` (different words, e.g. "who we are" for About us). Each row says what a correct result looks like (client, year, category, slide type or title words), checked against `answer_key.csv`. `npm run score:search` reports how many find a correct slide in the top 10. Baseline with keyword search on Oct 11: 3 of 22 (keyword 3 of 3, natural 0 of 13, meaning 0 of 6). Swap in the business development team's real queries when they arrive.
