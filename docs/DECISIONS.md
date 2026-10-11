@@ -135,7 +135,7 @@ Revisit trigger: Gate 1 contract publication.
 
 ```text
 Decision ID and title: FD-05 One source deck per export; each slide once
-Status: proposed
+Status: superseded in part by FD-09 (multi-deck selections); the each-slide-once rule still applies
 Decision date: (pending)
 Decision owner/reviewer: (pending: technical lead + proposal reviewer)
 Context and evidence: The export engine copies the source package and removes unselected parts, which preserves masters, layouts and fidelity for one deck. Gate 0 requires slides from multiple decks.
@@ -145,6 +145,20 @@ Consequences for scope, cost, security and integration: Gate 0 is not yet met. R
 Acceptance evidence / affected PR criteria: PR-07 (single deck) passing in `npm run test:export`; multi-deck open.
 Documents/contracts changed: none.
 Revisit trigger: Next build milestone (multi-deck export).
+```
+
+```text
+Decision ID and title: FD-09 Multi-deck selections download as a zip of one .pptx per deck
+Status: proposed
+Decision date: (pending)
+Decision owner/reviewer: (pending: technical lead + proposal reviewer)
+Context and evidence: PRD v2.1, Journey 5 (P0): "Slides from the same deck come as one editable .pptx. Slides from different decks come as separate editable files in one zip." Merging decks into one .pptx is P1 in the same PRD. FD-05 rejected mixed-deck selections with 422.
+Options considered: (a) zip of one .pptx per deck, each built by the existing single-deck engine; (b) merge all decks into one .pptx now; (c) keep rejecting mixed selections.
+Chosen outcome: (a). One deck still returns SlideVault-export.pptx. Several decks return SlideVault-export.zip; files are numbered in the order their decks first appear in the selection and named "<n> - <deck title> (slides a, b).pptx". Each file keeps the selected order of its own slides. Each slide is still allowed once per export (FD-05).
+Consequences for scope, cost, security and integration: No change to the export engine or its fidelity rules (FD-07 applies to every file). The overall cross-deck order is visible only through the file numbering. Gate 0's single-file multi-deck assembly stays open (PRD P1 merge).
+Acceptance evidence / affected PR criteria: PR-07 for each file; `npm run test:export` (zip contents, per-deck order, no broken references) and an API check returning application/zip.
+Documents/contracts changed: features/slide-vault/server/services/export.ts, server/export-bundle.ts (new), client/api.ts (exportPptx returns the file name), components/SelectionPanel.tsx, app/api/slide-vault/v1/exports/route.ts, scripts/test-export.mts, docs/foundry/RUNNING.md.
+Revisit trigger: When the P1 merge into one .pptx is built.
 ```
 
 ```text

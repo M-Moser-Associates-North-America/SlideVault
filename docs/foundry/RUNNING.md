@@ -36,7 +36,7 @@ npm run build
 2. **Search**: every word must appear in the slide's title or text ("content canonical" finds slides with both words). Clear empty state.
 3. **Preview**: large slide, source deck and slide number, trust fields (owner / approval / review date shown as "Unknown" until curation exists), full slide text. Escape or clicking outside closes it.
 4. **Selection**: select / remove, reorder with labeled ↑ ↓ buttons, clear. Kept across reloads in your browser.
-5. **Export**: downloads `SlideVault-export.pptx` containing **only** the selected slides, in the selected order, as editable PowerPoint.
+5. **Export**: downloads `SlideVault-export.pptx` containing **only** the selected slides, in the selected order, as editable PowerPoint. Slides from more than one deck download as `SlideVault-export.zip`, with one editable .pptx per deck (decision FD-09).
 
 ## What changed from the first proof of concept
 
@@ -56,7 +56,7 @@ npm run build
 
 ## Known limits (next steps)
 
-- **One deck per export.** The library holds several decks, but an export must come from one of them (clear message otherwise). Combining decks is the client's first proof test (Gate 0) and the next big piece of work.
+- **One file per deck.** Slides from several decks download as a .zip with one .pptx per deck (FD-09). Merging them into a single .pptx is still open: it's the client's first proof test (Gate 0) and a P1 item in our PRD.
 - **Each slide once per export.** Repeating a slide is rejected with a message for now.
 - **No upload yet.** The library is built by `npm run ingest` from `SLIDEVAULT_LIBRARY_DIR` (default `tests/fixtures`). Real client decks are only used for an approved export-quality check and never committed.
 - **No login.** Run it locally; don't host it publicly with client content.

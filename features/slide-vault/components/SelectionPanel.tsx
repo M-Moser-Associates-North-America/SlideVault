@@ -6,7 +6,7 @@ import type { SlideSummary } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 import styles from './workspace.module.css';
 
-type ExportState = { kind: 'idle' } | { kind: 'busy' } | { kind: 'error'; message: string } | { kind: 'done'; count: number };
+type ExportState = { kind: 'idle' } | { kind: 'busy' } | { kind: 'error'; message: string } | { kind: 'done'; count: number; fileName: string };
 
 type Props = {
   runtime: SlideVaultRuntime;
@@ -31,14 +31,14 @@ export function SelectionPanel({ runtime, selection, updateSelection }: Props) {
   async function runExport() {
     setState({ kind: 'busy' });
     try {
-      const blob = await exportPptx(runtime, selection);
+      const { blob, fileName } = await exportPptx(runtime, selection);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'SlideVault-export.pptx';
+      link.download = fileName;
       link.click();
       URL.revokeObjectURL(url);
-      setState({ kind: 'done', count: selection.length });
+      setState({ kind: 'done', count: selection.length, fileName });
     } catch (e) {
       const offline = e instanceof TypeError; // fetch rejects with TypeError when the network fails
       setState({ kind: 'error', message: offline ? 'Could not reach the server. Check your connection and try again.' : (e as Error).message });
@@ -103,7 +103,7 @@ export function SelectionPanel({ runtime, selection, updateSelection }: Props) {
       <div aria-live="polite">
         {state.kind === 'done' && (
           <p className={styles.success}>
-            Downloaded SlideVault-export.pptx with {state.count} {state.count === 1 ? 'slide' : 'slides'}.
+            Downloaded {state.fileName} with {state.count} {state.count === 1 ? 'slide' : 'slides'}.
           </p>
         )}
       </div>
@@ -113,7 +113,8 @@ export function SelectionPanel({ runtime, selection, updateSelection }: Props) {
         </p>
       )}
       <p className={styles.note}>
-        The file contains only the slides listed here, in this order, as editable PowerPoint. Source decks are never changed.
+        The file contains only the slides listed here, in this order, as editable PowerPoint. Slides from more than one deck
+        download as a .zip with one PowerPoint per deck. Source decks are never changed.
         Speaker notes and review comments are left out.
       </p>
     </aside>
