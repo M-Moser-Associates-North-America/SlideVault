@@ -13,6 +13,7 @@
     "test:a11y": "playwright test"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
     "@xmldom/xmldom": "^0.9.12",
     "jszip": "^3.10.2",
     "next": "16.4.0",

@@ -19,3 +19,19 @@ export function readConfig(env: Record<string, string | undefined> = process.env
     dataDir: path.resolve(root, env.SLIDEVAULT_DATA_DIR || '.data'),
   };
 }
+
+/**
+ * Supabase (Postgres + storage), used by the upload path (supabase/migrations).
+ * Validated lazily, only when a route actually needs it, so the existing fixture/JSON
+ * path keeps working on a checkout that hasn't set these up yet.
+ */
+export type SupabaseConfig = { url: string; serviceRoleKey: string };
+
+export function readSupabaseConfig(env: Record<string, string | undefined> = process.env): SupabaseConfig {
+  const url = env.SUPABASE_URL;
+  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceRoleKey) {
+    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for this operation. See env.example.');
+  }
+  return { url, serviceRoleKey };
+}
