@@ -21,7 +21,8 @@ import { exportSelectedSlides, ExportValidationError, listSlides } from '../feat
 import { readConfig } from '../features/slide-vault/server/config';
 import type { LibraryIndex } from '../features/slide-vault/server/library-repository';
 import { ServiceError } from '../features/slide-vault/server/http';
-import { exportSlides } from '../features/slide-vault/server/services/export';
+import { exportSlides, type UploadedDecks } from '../features/slide-vault/server/services/export';
+import type { ExportableSlide } from '../features/slide-vault/server/pg-repository';
 
 const FIXTURES = path.resolve(import.meta.dirname, '../tests/fixtures');
 let failures = 0;
@@ -184,6 +185,57 @@ for (const [bad, label] of [
   await expectError('rejects the same slide twice across a mixed selection (400)', [item(nw, 1), item(hb, 1), item(nw, 1)], 400);
   await expectError('rejects an outdated version (400)', [{ slideId: `${nw.fileName}#1`, sourceVersionId: 'ver_outdated' }], 400);
   await expectError('rejects an unknown slide (400)', [{ slideId: 'sld_unknown', sourceVersionId: nw.versionId }], 400);
+}
+
+// --- 5b. uploaded decks (Postgres + storage), using a fake store instead of a real Supabase project ---
+{
+  const northwindBytes = load('northwind-capabilities.pptx');
+  const deckId = '11111111-1111-4111-8111-111111111111';
+  const up = (n: number, extra: Partial<ExportableSlide> = {}): ExportableSlide => ({
+    slideId: `00000000-0000-4000-8000-00000000000${n}`, slideNumber: n, title: `Uploaded slide ${n}`, deckId,
+    deckTitle: 'Uploaded Northwind', deckVersionId: 'hash_uploaded', originalStorageKey: `${deckId}/original.pptx`, deckReady: true, ...extra,
+  });
+  const store: ExportableSlide[] = [up(1), up(2), up(3)];
+  const loaded: string[] = [];
+  const fake: UploadedDecks = {
+    findSlides: async (ids) => store.filter((s) => ids.includes(s.slideId)),
+    loadOriginal: async (key) => { loaded.push(key); return northwindBytes; },
+  };
+  const req = (items: { slideId: string; sourceVersionId: string }[]) => ({ format: 'pptx' as const, fidelityPolicy: 'preserve-source' as const, items });
+  const pick = (s: ExportableSlide) => ({ slideId: s.slideId, sourceVersionId: s.deckVersionId });
+
+  const one = await exportSlides(null, req([pick(store[2]), pick(store[0])]), fake);
+  const srcXml = await slideXmls(northwindBytes);
+  const gotXml = await slideXmls(one.bytes);
+  check(one.fileName === 'SlideVault-export.pptx' && gotXml.length === 2 && textOf(gotXml[0].xml) === textOf(srcXml[2].xml),
+    'uploaded deck: slides 3 and 1 download as one .pptx in the selected order, with no fixture index at all');
+  check(loaded.length === 1 && loaded[0] === `${deckId}/original.pptx`, 'uploaded deck: the original is loaded once, from its storage key');
+
+  // a fixture slide and an uploaded slide together -> a zip of two files
+  const fixtureIndex: LibraryIndex = {
+    generatedAt: new Date().toISOString(),
+    sources: [{ id: 'src_hb', title: 'Harbor Bank', fileName: 'harbor-bank-proposal.pptx', versionId: 'ver_hb', sha256: '',
+      slides: [{ id: 'hb#1', number: 1, title: 'Slide 1', text: '', hidden: false }] }],
+  } as LibraryIndex;
+  const both = await exportSlides(fixtureIndex, req([{ slideId: 'hb#1', sourceVersionId: 'ver_hb' }, pick(store[1])]), fake);
+  const bothZip = await JSZip.loadAsync(both.bytes);
+  check(both.fileName === 'SlideVault-export.zip' && Object.keys(bothZip.files).length === 2,
+    'a fixture slide plus an uploaded slide download as a zip of two files', Object.keys(bothZip.files).join(' | '));
+
+  const expectUploadError = async (label: string, items: { slideId: string; sourceVersionId: string }[], status: number, store2 = fake) => {
+    try {
+      await exportSlides(null, req(items), store2);
+      check(false, label);
+    } catch (e) {
+      check(e instanceof ServiceError && e.status === status, label, (e as Error).message);
+    }
+  };
+  await expectUploadError('uploaded deck: rejects an outdated version (400)', [{ slideId: store[0].slideId, sourceVersionId: 'old_hash' }], 400);
+  await expectUploadError('uploaded deck: rejects a slide from a deck that is still processing (400)', [pick(store[0])], 400,
+    { ...fake, findSlides: async () => [up(1, { deckReady: false })] });
+  await expectUploadError('uploaded deck: rejects an unknown slide (400)', [{ slideId: '99999999-9999-4999-8999-999999999999', sourceVersionId: 'x' }], 400);
+  await expectUploadError('uploaded deck: storage outage gives a clear try-again error (503)', [pick(store[0])], 503,
+    { ...fake, loadOriginal: async () => { throw new Error('storage down'); } });
 }
 
 // --- 6. sources untouched -----------------------------------------------------------------------------

@@ -11,8 +11,9 @@ export async function POST(request: Request) {
     return fail(400, 'BAD_REQUEST', 'Send a JSON export request.');
   }
 
+  // Slides can come from the fixture index, uploaded decks, or both. With no fixture index
+  // (ingest not run), uploaded slides still export; unknown slides get a clear 400.
   const index = await loadLibraryIndex();
-  if (!index) return fail(503, 'LIBRARY_NOT_READY', 'The library is empty. Run `npm run ingest`, then restart the app.', true);
 
   try {
     const result = await exportSlides(index, body);

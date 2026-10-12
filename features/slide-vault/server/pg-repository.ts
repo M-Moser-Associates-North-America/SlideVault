@@ -163,3 +163,36 @@ export async function searchSlidesPg(query: string, limit: number): Promise<Slid
   if (error) throw new Error(`Search failed: ${error.message}`);
   return ((data ?? []) as unknown as SlideWithDeck[]).map(toSlideSummary);
 }
+
+/** What the export needs to know about an uploaded slide and its deck. */
+export type ExportableSlide = {
+  slideId: string;
+  slideNumber: number;
+  title: string;
+  deckId: string;
+  deckTitle: string;
+  /** Same value search hands out as provenance.sourceVersionId */
+  deckVersionId: string;
+  originalStorageKey: string;
+  deckReady: boolean;
+};
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Look up uploaded slides by id. Ids that aren't uploaded-slide ids (e.g. fixture ids) are skipped, not errors. */
+export async function getSlidesForExport(slideIds: string[]): Promise<ExportableSlide[]> {
+  const ids = [...new Set(slideIds.filter((id) => UUID.test(id)))];
+  if (ids.length === 0) return [];
+  const { data, error } = await supabaseAdmin().from('slides').select('*, decks!inner(*)').in('id', ids);
+  if (error) throw new Error(`Could not load the selected slides: ${error.message}`);
+  return ((data ?? []) as unknown as SlideWithDeck[]).map((row) => ({
+    slideId: row.id,
+    slideNumber: row.slide_number,
+    title: row.title || `Slide ${row.slide_number}`,
+    deckId: row.decks.id,
+    deckTitle: row.decks.title,
+    deckVersionId: row.decks.file_hash,
+    originalStorageKey: row.decks.file_path,
+    deckReady: row.decks.status === 'ready',
+  }));
+}
