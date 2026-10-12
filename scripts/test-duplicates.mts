@@ -14,7 +14,9 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
+import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import { groupDuplicates, type SlideText } from '../features/slide-vault/server/duplicates';
+import { withDuplicateBadges } from '../features/slide-vault/server/services/duplicate-badges';
 import { extractSlides } from '../workers/slide-vault/processors/extract-text';
 
 const LIBRARY = path.resolve(import.meta.dirname, '../tests/fixtures/sharepoint-library');
@@ -88,6 +90,29 @@ check(JSON.stringify(groupDuplicates(slides).map((g) => g.id)) === JSON.stringif
 check(new Set(groups.flatMap((g) => g.slideIds)).size === groups.reduce((n, g) => n + g.slideIds.length, 0), 'each slide is in at most one group');
 check(slides.length === typeOf.size, 'grouping removes nothing from the library');
 
+// --- "Also in N decks" on search results ---
+const summary = (s: SlideText): SlideSummary => ({
+  id: s.id, title: s.title, hiddenInSource: false, previewPath: '',
+  provenance: { sourceId: s.sourceId, sourceVersionId: 'v', sourceTitle: s.sourceId, sourceFileName: s.sourceId, slideNumber: Number(s.id.split('#')[1]),
+    owner: null, approvalStatus: null, reviewedAt: null },
+});
+const slideDeck = new Map(slides.map((s) => [s.id, s.sourceId]));
+const allCards = withDuplicateBadges(slides.map(summary), groups, slideDeck);
+check(allCards.length === slides.length - grouped0() + groups.length, `a search over everything shows one card per group (${allCards.length} cards for ${slides.length} slides)`);
+const valuesCard = allCards.find((c) => typeOf.get(c.id) === 'Values');
+check(valuesCard?.alsoIn?.otherDeckCount === (valueGroup?.deckCount ?? 0) - 1 && valuesCard?.alsoIn?.match === 'identical',
+  `the "Our values" card says it's also in ${(valueGroup?.deckCount ?? 0) - 1} other decks`, JSON.stringify(valuesCard?.alsoIn));
+const loner = slides.find((s) => !groupOf.get(s.id))!;
+check(allCards.find((c) => c.id === loner.id)?.alsoIn === null, 'a slide with no copies has no badge');
+// One result from a group: the badge still counts the whole library, not just the results
+const oneCopy = withDuplicateBadges([summary(values[2])], groups, slideDeck);
+check(oneCopy.length === 1 && oneCopy[0].alsoIn?.otherDeckCount === (valueGroup?.deckCount ?? 0) - 1,
+  'a single search hit still shows how many other decks have it');
+// The first result from a group is the one kept
+const order = withDuplicateBadges([summary(values[3]), summary(values[0])], groups, slideDeck);
+check(order.length === 1 && order[0].id === values[3].id, 'when several copies match, the first result is the card shown');
+
+function grouped0() { return groups.reduce((n, g) => n + g.slideIds.length, 0); }
 const grouped = groups.reduce((n, g) => n + g.slideIds.length, 0);
 console.log(`\n${groups.length} groups covering ${grouped} of ${slides.length} slides; search would show ${slides.length - grouped + groups.length} cards`);
 console.log(failures ? `${failures} check(s) failed` : 'All duplicate checks passed');

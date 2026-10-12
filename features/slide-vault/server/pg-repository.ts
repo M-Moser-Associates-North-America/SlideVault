@@ -1,5 +1,6 @@
 import 'server-only';
 import type { SlideSummary } from '../contracts/dto';
+import type { SlideText } from './duplicates';
 import { supabaseAdmin } from './supabase';
 
 /**
@@ -195,4 +196,22 @@ export async function getSlidesForExport(slideIds: string[]): Promise<Exportable
     originalStorageKey: row.decks.file_path,
     deckReady: row.decks.status === 'ready',
   }));
+}
+
+/** Title and text of every slide in a ready deck, for duplicate grouping. Pages through Supabase's 1000-row cap. */
+export async function listSlideTextsPg(): Promise<SlideText[]> {
+  const out: SlideText[] = [];
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabaseAdmin()
+      .from('slides')
+      .select('id, deck_id, title, text, decks!inner(status)')
+      .eq('decks.status', 'ready')
+      .order('id')
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(`Could not load slide text: ${error.message}`);
+    const rows = (data ?? []) as unknown as { id: string; deck_id: string; title: string | null; text: string | null }[];
+    out.push(...rows.map((r) => ({ id: r.id, sourceId: r.deck_id, title: r.title ?? '', text: r.text ?? '' })));
+    if (rows.length < PAGE) return out;
+  }
 }

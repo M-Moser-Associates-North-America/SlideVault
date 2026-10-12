@@ -42,6 +42,16 @@ export type Provenance = {
   reviewedAt: string | null;
 };
 
+/** The same (or nearly the same) slide also appears in other decks (duplicate grouping, PRD P1). */
+export type AlsoIn = {
+  /** Stable duplicate-group id */
+  groupId: string;
+  /** How many other decks have this slide, not counting this card's own deck */
+  otherDeckCount: number;
+  /** identical = same words; near = nearly the same words (e.g. one number changed) */
+  match: 'identical' | 'near';
+};
+
 export type SlideSummary = {
   id: string;
   title: string;
@@ -49,6 +59,8 @@ export type SlideSummary = {
   /** Path relative to the API root, resolved with runtime.assetUrl() */
   previewPath: string;
   provenance: Provenance;
+  /** Set by search when this slide is also in other decks; absent or null otherwise */
+  alsoIn?: AlsoIn | null;
 };
 
 export type SlideDetail = SlideSummary & { text: string };

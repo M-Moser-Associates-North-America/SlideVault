@@ -1,4 +1,16 @@
-import { DEFAULT_LIMIT, fail, loadLibraryIndex, ok, searchSlides, searchSlidesPg } from '@/features/slide-vault/server';
+import {
+  DEFAULT_LIMIT,
+  fail,
+  fixtureSlideTexts,
+  groupDuplicates,
+  listSlideTextsPg,
+  loadLibraryIndex,
+  ok,
+  searchSlides,
+  searchSlidesPg,
+  type SlideText,
+  withDuplicateBadges,
+} from '@/features/slide-vault/server';
 
 // GET /search?q=&kind=slide&cursor=&limit= (docs/DATA_AND_API.md)
 //
@@ -30,5 +42,18 @@ export async function GET(request: Request) {
     return fail(503, 'LIBRARY_NOT_READY', 'The library is empty. Run `npm run ingest` or upload a deck.', true);
   }
 
-  return ok([...uploadedItems, ...fixtureResult.items], { page: { nextCursor: fixtureResult.nextCursor } });
+  // Duplicate grouping (PRD P1): one card per group, marked "also in N decks". Groups are
+  // worked out over the whole library each time, which is fine at prototype size (a few
+  // thousand slides); a stored group table is the follow-up for the full archive.
+  let texts: SlideText[] = fixtureSlideTexts(index);
+  try {
+    texts = [...texts, ...(await listSlideTextsPg())];
+  } catch (e) {
+    console.error('Postgres slide text unavailable, grouping fixture slides only', e);
+  }
+  const groups = groupDuplicates(texts);
+  const slideDeck = new Map(texts.map((t) => [t.id, t.sourceId]));
+  const items = withDuplicateBadges([...uploadedItems, ...fixtureResult.items], groups, slideDeck);
+
+  return ok(items, { page: { nextCursor: fixtureResult.nextCursor } });
 }
