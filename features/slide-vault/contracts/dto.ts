@@ -13,7 +13,10 @@ export type ApiErrorCode =
   | 'INVALID_SELECTION'
   | 'UNSUPPORTED_SELECTION'
   | 'EXPORT_FAILED'
-  | 'LIBRARY_NOT_READY';
+  | 'LIBRARY_NOT_READY'
+  | 'UNSUPPORTED_FILE_TYPE'
+  | 'DUPLICATE_DECK'
+  | 'UPLOAD_FAILED';
 
 /** Error envelope: { error: { code, message, retryable }, requestId } */
 export type ApiError = {
@@ -55,4 +58,21 @@ export type ExportRequest = {
   format: 'pptx';
   fidelityPolicy: 'preserve-source';
   items: { slideId: string; sourceVersionId: string }[];
+};
+
+/** POST /uploads form fields (docs/foundry/SLIDE_RECORD.md: deck fields from the folder path). */
+export type UploadDeckMeta = {
+  clientName: string | null;
+  deckYear: number | null;
+  category: string | null;
+  folderPath: string | null;
+  bestOfTheBest: boolean;
+};
+
+export type DeckSummary = {
+  id: string;
+  title: string;
+  status: 'queued' | 'processing' | 'ready' | 'failed';
+  error: string | null;
+  slideCount: number;
 };

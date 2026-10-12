@@ -290,8 +290,8 @@
   margin-left: var(--sv-space-1);
   padding: 0 var(--sv-space-2);
   border-radius: var(--sv-radius-pill);
-  background: var(--sv-text);
-  color: var(--sv-surface);
+  background: var(--sv-brand-strong);
+  color: var(--sv-action-fg);
   font-size: var(--sv-text-small);
   text-align: center;
 }
