@@ -6,7 +6,8 @@
  *   npm run upload:library -- "<library folder>" [base URL]
  *
  * Needs the app running (npm run dev) with Supabase set up in .env.local.
- * Safe to run twice: decks already uploaded come back as "already uploaded" and are skipped.
+ * Safe to run twice: a file already uploaded is skipped, or, when it sits in a second folder (a Best of the
+ * Best copy of a submittal), the existing deck gets that folder's details added (FD-11).
  * Never point this at real client decks unless that's been approved (env.example).
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -28,7 +29,7 @@ const walk = (dir: string): string[] =>
 
 const decks = walk(root);
 console.log(`Uploading ${decks.length} decks from ${root}\n`);
-const tally = { uploaded: 0, skipped: 0, failed: 0 };
+const tally = { uploaded: 0, updated: 0, skipped: 0, failed: 0 };
 
 for (const file of decks) {
   const rel = path.relative(root, file).split(path.sep).join('/');
@@ -44,10 +45,13 @@ for (const file of decks) {
   const label = `${rel}  [${info.deckYear ?? 'no year'} · ${info.clientName ?? 'no client'} · ${info.category ?? 'no category'}${info.bestOfTheBest ? ' · Best of the Best' : ''}]`;
   try {
     const res = await fetch(API, { method: 'POST', body: form });
-    const body = (await res.json()) as { data?: { slideCount: number; status: string }; error?: { code: string; message: string } };
+    const body = (await res.json()) as { data?: { slideCount: number; status: string; alreadyUploaded?: boolean; addedDetails?: string[] }; error?: { code: string; message: string } };
     if (body.error?.code === 'DUPLICATE_DECK') {
       tally.skipped++;
       console.log(`SKIP    ${label}\n        ${body.error.message}`);
+    } else if (body.data?.alreadyUploaded) {
+      tally.updated++;
+      console.log(`UPDATE  ${label}\n        Same file as a deck already uploaded. Added: ${body.data.addedDetails?.join(', ')}`);
     } else if (body.error || body.data?.status !== 'ready') {
       tally.failed++;
       console.log(`FAIL    ${label}\n        ${body.error?.message ?? `status ${body.data?.status}`}`);
@@ -61,5 +65,5 @@ for (const file of decks) {
   }
 }
 
-console.log(`\n${tally.uploaded} uploaded, ${tally.skipped} already there, ${tally.failed} failed`);
+console.log(`\n${tally.uploaded} uploaded, ${tally.updated} filled in from a second copy, ${tally.skipped} already there, ${tally.failed} failed`);
 process.exit(tally.failed ? 1 : 0);

@@ -87,6 +87,10 @@ export type DeckSummary = {
   status: 'queued' | 'processing' | 'ready' | 'failed';
   error: string | null;
   slideCount: number;
+  /** True when this exact file was already in the library; nothing new was stored (FD-11) */
+  alreadyUploaded?: boolean;
+  /** What the second copy's folder added to the existing deck, e.g. ["Best of the Best", "year 2024"] */
+  addedDetails?: string[];
 };
 
 /** GET /library: every ready deck and slide, for screens that browse and filter in the browser (V3 prototype). */

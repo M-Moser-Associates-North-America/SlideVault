@@ -1,5 +1,6 @@
 import 'server-only';
 import type { LibraryDeck, LibrarySlide, SlideSummary } from '../contracts/dto';
+import type { DetailChanges } from './deck-details';
 import type { SlideText } from './duplicates';
 import { supabaseAdmin } from './supabase';
 
@@ -53,10 +54,47 @@ export type NewSlideInput = {
 };
 
 /** Duplicate detection by content hash (docs/foundry/SLIDE_RECORD.md: file_hash is unique). */
-export async function findDeckByHash(fileHash: string): Promise<{ id: string; title: string } | null> {
-  const { data, error } = await supabaseAdmin().from('decks').select('id, title').eq('file_hash', fileHash).maybeSingle();
+export type ExistingDeck = {
+  id: string;
+  title: string;
+  status: DeckRow['status'];
+  slideCount: number;
+  client: string | null;
+  year: number | null;
+  category: string | null;
+  bestOfTheBest: boolean;
+};
+
+export async function findDeckByHash(fileHash: string): Promise<ExistingDeck | null> {
+  const { data, error } = await supabaseAdmin()
+    .from('decks')
+    .select('id, title, status, slide_count, client, year, category, best_of_the_best')
+    .eq('file_hash', fileHash)
+    .maybeSingle();
   if (error) throw new Error(`Could not check for a duplicate deck: ${error.message}`);
-  return data;
+  if (!data) return null;
+  return {
+    id: data.id,
+    title: data.title,
+    status: data.status,
+    slideCount: data.slide_count,
+    client: data.client,
+    year: data.year,
+    category: data.category,
+    bestOfTheBest: data.best_of_the_best,
+  };
+}
+
+/** Fill in deck details from a second copy of the same file (deck-details.ts, FD-11). */
+export async function updateDeckDetails(deckId: string, changes: DetailChanges): Promise<void> {
+  const row: Record<string, unknown> = {};
+  if (changes.bestOfTheBest !== undefined) row.best_of_the_best = changes.bestOfTheBest;
+  if (changes.year !== undefined) row.year = changes.year;
+  if (changes.client !== undefined) row.client = changes.client;
+  if (changes.category !== undefined) row.category = changes.category;
+  if (Object.keys(row).length === 0) return;
+  const { error } = await supabaseAdmin().from('decks').update(row).eq('id', deckId);
+  if (error) throw new Error(`Could not update the deck details: ${error.message}`);
 }
 
 export async function createDeck(input: NewDeckInput): Promise<string> {

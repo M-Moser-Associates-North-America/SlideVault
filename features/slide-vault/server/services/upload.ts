@@ -7,7 +7,8 @@ import { extractSlides } from '../../../../workers/slide-vault/processors/extrac
 import { renderPreviews } from '../../../../workers/slide-vault/processors/render-previews';
 import type { DeckSummary, UploadDeckMeta } from '../../contracts/dto';
 import { ServiceError } from '../http';
-import { createDeck, findDeckByHash, insertSlides, markDeckFailed, markDeckReady } from '../pg-repository';
+import { describeChanges, detailsToAdd } from '../deck-details';
+import { createDeck, findDeckByHash, insertSlides, markDeckFailed, markDeckReady, updateDeckDetails } from '../pg-repository';
 import { readSlideSize } from '../slide-size';
 import { uploadOriginal, uploadPreview } from '../storage';
 
@@ -29,7 +30,28 @@ export async function processUpload(fileName: string, bytes: Uint8Array, meta: U
 
   const fileHash = sha256(bytes);
   const existing = await findDeckByHash(fileHash);
-  if (existing) throw new ServiceError(409, 'DUPLICATE_DECK', `This file was already uploaded as "${existing.title}".`);
+  if (existing) {
+    // Same file from another folder (e.g. a Best of the Best copy of a past submittal): keep one
+    // deck and add whatever this folder knows that the first one didn't (deck-details.ts, FD-11).
+    const changes = detailsToAdd(existing, {
+      client: meta.clientName,
+      year: meta.deckYear,
+      category: meta.category,
+      bestOfTheBest: meta.bestOfTheBest,
+    });
+    const added = describeChanges(changes);
+    if (added.length === 0) throw new ServiceError(409, 'DUPLICATE_DECK', `This file was already uploaded as "${existing.title}".`);
+    await updateDeckDetails(existing.id, changes);
+    return {
+      id: existing.id,
+      title: existing.title,
+      status: existing.status,
+      error: null,
+      slideCount: existing.slideCount,
+      alreadyUploaded: true,
+      addedDetails: added,
+    };
+  }
 
   const title = fileName.replace(/\.pptx$/i, '');
   const deckId = randomUUID();
