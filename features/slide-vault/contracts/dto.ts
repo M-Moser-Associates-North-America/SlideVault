@@ -87,4 +87,38 @@ export type DeckSummary = {
   status: 'queued' | 'processing' | 'ready' | 'failed';
   error: string | null;
   slideCount: number;
+  /** True when this exact file was already in the library; nothing new was stored (FD-11) */
+  alreadyUploaded?: boolean;
+  /** What the second copy's folder added to the existing deck, e.g. ["Best of the Best", "year 2024"] */
+  addedDetails?: string[];
 };
+
+/** GET /library: every ready deck and slide, for screens that browse and filter in the browser (V3 prototype). */
+export type LibraryDeck = {
+  id: string;
+  title: string;
+  client: string | null;
+  year: number | null;
+  category: string | null;
+  bestOfTheBest: boolean;
+  /** "16:9", "4:3" or null when unknown */
+  slideSize: string | null;
+  /** Same value as provenance.sourceVersionId, needed to download */
+  versionId: string;
+  uploadedAt: string | null;
+  source: 'upload' | 'fixture';
+};
+
+export type LibrarySlide = {
+  id: string;
+  deckId: string;
+  slideNumber: number;
+  title: string;
+  text: string;
+  hiddenInSource: boolean;
+  previewPath: string;
+  /** Duplicate group id, shared by copies of the same slide in other decks; null when it has none */
+  duplicateGroupId: string | null;
+};
+
+export type LibraryData = { decks: LibraryDeck[]; slides: LibrarySlide[] };

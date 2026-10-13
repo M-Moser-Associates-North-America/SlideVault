@@ -1,5 +1,6 @@
 import 'server-only';
-import type { SlideSummary } from '../contracts/dto';
+import type { LibraryDeck, LibrarySlide, SlideSummary } from '../contracts/dto';
+import type { DetailChanges } from './deck-details';
 import type { SlideText } from './duplicates';
 import { supabaseAdmin } from './supabase';
 
@@ -53,10 +54,47 @@ export type NewSlideInput = {
 };
 
 /** Duplicate detection by content hash (docs/foundry/SLIDE_RECORD.md: file_hash is unique). */
-export async function findDeckByHash(fileHash: string): Promise<{ id: string; title: string } | null> {
-  const { data, error } = await supabaseAdmin().from('decks').select('id, title').eq('file_hash', fileHash).maybeSingle();
+export type ExistingDeck = {
+  id: string;
+  title: string;
+  status: DeckRow['status'];
+  slideCount: number;
+  client: string | null;
+  year: number | null;
+  category: string | null;
+  bestOfTheBest: boolean;
+};
+
+export async function findDeckByHash(fileHash: string): Promise<ExistingDeck | null> {
+  const { data, error } = await supabaseAdmin()
+    .from('decks')
+    .select('id, title, status, slide_count, client, year, category, best_of_the_best')
+    .eq('file_hash', fileHash)
+    .maybeSingle();
   if (error) throw new Error(`Could not check for a duplicate deck: ${error.message}`);
-  return data;
+  if (!data) return null;
+  return {
+    id: data.id,
+    title: data.title,
+    status: data.status,
+    slideCount: data.slide_count,
+    client: data.client,
+    year: data.year,
+    category: data.category,
+    bestOfTheBest: data.best_of_the_best,
+  };
+}
+
+/** Fill in deck details from a second copy of the same file (deck-details.ts, FD-11). */
+export async function updateDeckDetails(deckId: string, changes: DetailChanges): Promise<void> {
+  const row: Record<string, unknown> = {};
+  if (changes.bestOfTheBest !== undefined) row.best_of_the_best = changes.bestOfTheBest;
+  if (changes.year !== undefined) row.year = changes.year;
+  if (changes.client !== undefined) row.client = changes.client;
+  if (changes.category !== undefined) row.category = changes.category;
+  if (Object.keys(row).length === 0) return;
+  const { error } = await supabaseAdmin().from('decks').update(row).eq('id', deckId);
+  if (error) throw new Error(`Could not update the deck details: ${error.message}`);
 }
 
 export async function createDeck(input: NewDeckInput): Promise<string> {
@@ -214,4 +252,50 @@ export async function listSlideTextsPg(): Promise<SlideText[]> {
     out.push(...rows.map((r) => ({ id: r.id, sourceId: r.deck_id, title: r.title ?? '', text: r.text ?? '' })));
     if (rows.length < PAGE) return out;
   }
+}
+
+/** Every ready uploaded deck and its slides (GET /library). Pages through Supabase's 1000-row cap. */
+export async function listLibraryPg(): Promise<{ decks: LibraryDeck[]; slides: Omit<LibrarySlide, 'duplicateGroupId'>[] }> {
+  const { data: deckRows, error } = await supabaseAdmin().from('decks').select('*').eq('status', 'ready').order('uploaded_at', { ascending: false });
+  if (error) throw new Error(`Could not load decks: ${error.message}`);
+  const decks: LibraryDeck[] = ((deckRows ?? []) as (DeckRow & { uploaded_at: string | null })[]).map((d) => ({
+    id: d.id,
+    title: d.title,
+    client: d.client && d.client !== 'Unknown client' ? d.client : null,
+    year: d.year,
+    category: d.category,
+    bestOfTheBest: d.best_of_the_best,
+    slideSize: d.slide_size,
+    versionId: d.file_hash,
+    uploadedAt: d.uploaded_at,
+    source: 'upload',
+  }));
+  const ready = new Set(decks.map((d) => d.id));
+
+  const slides: Omit<LibrarySlide, 'duplicateGroupId'>[] = [];
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error: e } = await supabaseAdmin()
+      .from('slides')
+      .select('id, deck_id, slide_number, title, text, is_hidden_in_source')
+      .order('deck_id')
+      .order('slide_number')
+      .range(from, from + PAGE - 1);
+    if (e) throw new Error(`Could not load slides: ${e.message}`);
+    const rows = (data ?? []) as { id: string; deck_id: string; slide_number: number; title: string | null; text: string | null; is_hidden_in_source: boolean }[];
+    for (const r of rows) {
+      if (!ready.has(r.deck_id)) continue;
+      slides.push({
+        id: r.id,
+        deckId: r.deck_id,
+        slideNumber: r.slide_number,
+        title: r.title || `Slide ${r.slide_number}`,
+        text: r.text ?? '',
+        hiddenInSource: r.is_hidden_in_source,
+        previewPath: `/slides/${r.id}/preview`,
+      });
+    }
+    if (rows.length < PAGE) break;
+  }
+  return { decks, slides };
 }
