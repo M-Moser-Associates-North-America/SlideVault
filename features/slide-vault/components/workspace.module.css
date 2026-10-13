@@ -55,6 +55,13 @@
   max-width: 420px;
 }
 
+/* A single labeled form field, label stacked above its control (used by Upload). */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sv-space-1);
+}
+
 .label {
   margin: 0;
   font-size: var(--sv-text-meta);

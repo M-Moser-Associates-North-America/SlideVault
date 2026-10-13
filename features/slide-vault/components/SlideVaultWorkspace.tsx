@@ -2,6 +2,7 @@
 
 import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
 import { PagesView } from './PagesView';
+import { UploadView } from './UploadView';
 import styles from './workspace.module.css';
 
 /**
@@ -17,6 +18,10 @@ export function SlideVaultWorkspace({ runtime }: SlideVaultWorkspaceProps) {
   if (view === 'pages' || view === 'slide') {
     // The slide view opens as a preview over the results, so deep links and Back both work.
     return <PagesView key={runtime.sessionScopeKey} runtime={runtime} previewSlideId={view === 'slide' ? id : undefined} />;
+  }
+
+  if (view === 'upload') {
+    return <UploadView key={runtime.sessionScopeKey} runtime={runtime} />;
   }
 
   return (

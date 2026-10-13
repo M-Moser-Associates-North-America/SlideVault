@@ -33,8 +33,8 @@ export type RuntimeRequest = {
   /** Relative to the configured SlideVault API v1 root, e.g. "/search?q=chart" */
   path: string;
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
-  /** JSON only; binary uploads use a separate typed method */
-  body?: unknown;
+  /** JSON for ordinary requests; FormData passes through untouched for file uploads. */
+  body?: unknown | FormData;
   headers?: Record<string, string>;
   signal?: AbortSignal;
 };
