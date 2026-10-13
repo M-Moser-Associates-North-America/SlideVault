@@ -1,5 +1,5 @@
 import 'server-only';
-import type { SlideSummary } from '../contracts/dto';
+import type { LibraryDeck, LibrarySlide, SlideSummary } from '../contracts/dto';
 import type { SlideText } from './duplicates';
 import { supabaseAdmin } from './supabase';
 
@@ -214,4 +214,50 @@ export async function listSlideTextsPg(): Promise<SlideText[]> {
     out.push(...rows.map((r) => ({ id: r.id, sourceId: r.deck_id, title: r.title ?? '', text: r.text ?? '' })));
     if (rows.length < PAGE) return out;
   }
+}
+
+/** Every ready uploaded deck and its slides (GET /library). Pages through Supabase's 1000-row cap. */
+export async function listLibraryPg(): Promise<{ decks: LibraryDeck[]; slides: Omit<LibrarySlide, 'duplicateGroupId'>[] }> {
+  const { data: deckRows, error } = await supabaseAdmin().from('decks').select('*').eq('status', 'ready').order('uploaded_at', { ascending: false });
+  if (error) throw new Error(`Could not load decks: ${error.message}`);
+  const decks: LibraryDeck[] = ((deckRows ?? []) as (DeckRow & { uploaded_at: string | null })[]).map((d) => ({
+    id: d.id,
+    title: d.title,
+    client: d.client && d.client !== 'Unknown client' ? d.client : null,
+    year: d.year,
+    category: d.category,
+    bestOfTheBest: d.best_of_the_best,
+    slideSize: d.slide_size,
+    versionId: d.file_hash,
+    uploadedAt: d.uploaded_at,
+    source: 'upload',
+  }));
+  const ready = new Set(decks.map((d) => d.id));
+
+  const slides: Omit<LibrarySlide, 'duplicateGroupId'>[] = [];
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error: e } = await supabaseAdmin()
+      .from('slides')
+      .select('id, deck_id, slide_number, title, text, is_hidden_in_source')
+      .order('deck_id')
+      .order('slide_number')
+      .range(from, from + PAGE - 1);
+    if (e) throw new Error(`Could not load slides: ${e.message}`);
+    const rows = (data ?? []) as { id: string; deck_id: string; slide_number: number; title: string | null; text: string | null; is_hidden_in_source: boolean }[];
+    for (const r of rows) {
+      if (!ready.has(r.deck_id)) continue;
+      slides.push({
+        id: r.id,
+        deckId: r.deck_id,
+        slideNumber: r.slide_number,
+        title: r.title || `Slide ${r.slide_number}`,
+        text: r.text ?? '',
+        hiddenInSource: r.is_hidden_in_source,
+        previewPath: `/slides/${r.id}/preview`,
+      });
+    }
+    if (rows.length < PAGE) break;
+  }
+  return { decks, slides };
 }
