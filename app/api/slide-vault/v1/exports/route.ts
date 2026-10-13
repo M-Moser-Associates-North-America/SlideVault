@@ -1,7 +1,7 @@
 import type { ExportRequest } from '@/features/slide-vault/contracts/dto';
 import { exportSlides, fail, file, loadLibraryIndex, ServiceError, toResponse } from '@/features/slide-vault/server';
 
-// POST /exports: build an editable .pptx from an ordered selection.
+// POST /exports: build an editable .pptx from an ordered selection (a .zip of one .pptx per deck when it spans decks).
 // Prototype: returns the file directly instead of 202 + job (decision FD-03).
 export async function POST(request: Request) {
   let body: ExportRequest;
@@ -11,12 +11,13 @@ export async function POST(request: Request) {
     return fail(400, 'BAD_REQUEST', 'Send a JSON export request.');
   }
 
+  // Slides can come from the fixture index, uploaded decks, or both. With no fixture index
+  // (ingest not run), uploaded slides still export; unknown slides get a clear 400.
   const index = await loadLibraryIndex();
-  if (!index) return fail(503, 'LIBRARY_NOT_READY', 'The library is empty. Run `npm run ingest`, then restart the app.', true);
 
   try {
-    const pptx = await exportSlides(index, body);
-    return file(pptx, 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'SlideVault-export.pptx');
+    const result = await exportSlides(index, body);
+    return file(result.bytes, result.contentType, result.fileName);
   } catch (e) {
     if (e instanceof ServiceError) return toResponse(e);
     console.error('Export failed', e);

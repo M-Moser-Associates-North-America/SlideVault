@@ -32,3 +32,10 @@ export async function downloadPreview(storageKey: string): Promise<Uint8Array> {
   if (error || !data) throw new Error(`Could not load the preview: ${error?.message ?? 'not found'}`);
   return new Uint8Array(await data.arrayBuffer());
 }
+
+/** The untouched original deck, for building a download (the export only ever reads it). */
+export async function downloadOriginal(storageKey: string): Promise<Uint8Array> {
+  const { data, error } = await supabaseAdmin().storage.from('slide-originals').download(storageKey);
+  if (error || !data) throw new Error(`Could not load the original deck: ${error?.message ?? 'not found'}`);
+  return new Uint8Array(await data.arrayBuffer());
+}

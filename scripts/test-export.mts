@@ -9,7 +9,8 @@
  *  - speaker notes, comments, source thumbnail and source-identifying properties are removed
  *  - slide size is preserved (4:3 stays 4:3); hidden source slides become visible when selected
  *  - no broken internal references (PowerPoint would offer to "repair" the file)
- *  - invalid, stale, unknown and mixed-deck requests are rejected with clear messages
+ *  - slides from several decks come back as a .zip with one valid .pptx per deck (FD-09)
+ *  - invalid, stale and unknown requests are rejected with clear messages
  *  - source files are byte-for-byte unchanged
  */
 import { createHash } from 'node:crypto';
@@ -20,7 +21,8 @@ import { exportSelectedSlides, ExportValidationError, listSlides } from '../feat
 import { readConfig } from '../features/slide-vault/server/config';
 import type { LibraryIndex } from '../features/slide-vault/server/library-repository';
 import { ServiceError } from '../features/slide-vault/server/http';
-import { exportSlides } from '../features/slide-vault/server/services/export';
+import { exportSlides, type UploadedDecks } from '../features/slide-vault/server/services/export';
+import type { ExportableSlide } from '../features/slide-vault/server/pg-repository';
 
 const FIXTURES = path.resolve(import.meta.dirname, '../tests/fixtures');
 let failures = 0;
@@ -149,7 +151,28 @@ for (const [bad, label] of [
   const request = (items: ReturnType<typeof item>[]) => ({ format: 'pptx' as const, fidelityPolicy: 'preserve-source' as const, items });
 
   const ok = await exportSlides(index, request([item(nw, 3), item(nw, 2)]));
-  check((await listSlides(ok)).length === 2, 'service exports a valid ID-based request');
+  check((await listSlides(ok.bytes)).length === 2, 'service exports a valid ID-based request');
+  check(ok.fileName === 'SlideVault-export.pptx' && ok.contentType.endsWith('presentationml.presentation') && ok.deckCount === 1,
+    'one deck downloads as SlideVault-export.pptx');
+
+  // Slides from two decks, interleaved: one .pptx per deck in a .zip, each keeping its own selected order
+  const mixed = await exportSlides(index, request([item(hb, 2), item(nw, 4), item(hb, 1), item(nw, 1)]));
+  check(mixed.fileName === 'SlideVault-export.zip' && mixed.contentType === 'application/zip' && mixed.deckCount === 2,
+    'slides from two decks download as SlideVault-export.zip');
+  const bundle = await JSZip.loadAsync(mixed.bytes);
+  const entries = Object.keys(bundle.files).sort();
+  check(entries.length === 2 && entries[0].startsWith('1 - ') && entries[1].startsWith('2 - ') && entries.every((n) => n.endsWith('.pptx')),
+    'the zip holds two .pptx files, numbered in the order their decks were first selected', entries.join(' | '));
+  check(entries[0].includes('(slides 2, 1)') && entries[1].includes('(slides 4, 1)'), 'file names list each deck\'s slide numbers', entries.join(' | '));
+  const hbOut = await bundle.file(entries[0])!.async('uint8array');
+  const nwOut = await bundle.file(entries[1])!.async('uint8array');
+  check((await listSlides(hbOut)).length === 2 && (await listSlides(nwOut)).length === 2, 'each file holds only its deck\'s selected slides');
+  const [hbSrc, nwSrc] = [await slideXmls(load('harbor-bank-proposal.pptx')), await slideXmls(load('northwind-capabilities.pptx'))];
+  const [hbGot, nwGot] = [await slideXmls(hbOut), await slideXmls(nwOut)];
+  check(textOf(hbGot[0].xml) === textOf(hbSrc[1].xml) && textOf(nwGot[0].xml) === textOf(nwSrc[3].xml),
+    'each file keeps the selected order of its own slides (2 → 1, 4 → 1)');
+  check((await brokenReferences(await JSZip.loadAsync(hbOut))) === 0 && (await brokenReferences(await JSZip.loadAsync(nwOut))) === 0,
+    'files inside the zip have no broken internal references');
 
   const expectError = async (label: string, items: ReturnType<typeof item>[], status: number) => {
     try {
@@ -159,9 +182,60 @@ for (const [bad, label] of [
       check(e instanceof ServiceError && e.status === status, label, (e as Error).message);
     }
   };
-  await expectError('rejects slides from two decks (422, until multi-deck export)', [item(nw, 1), item(hb, 1)], 422);
+  await expectError('rejects the same slide twice across a mixed selection (400)', [item(nw, 1), item(hb, 1), item(nw, 1)], 400);
   await expectError('rejects an outdated version (400)', [{ slideId: `${nw.fileName}#1`, sourceVersionId: 'ver_outdated' }], 400);
   await expectError('rejects an unknown slide (400)', [{ slideId: 'sld_unknown', sourceVersionId: nw.versionId }], 400);
+}
+
+// --- 5b. uploaded decks (Postgres + storage), using a fake store instead of a real Supabase project ---
+{
+  const northwindBytes = load('northwind-capabilities.pptx');
+  const deckId = '11111111-1111-4111-8111-111111111111';
+  const up = (n: number, extra: Partial<ExportableSlide> = {}): ExportableSlide => ({
+    slideId: `00000000-0000-4000-8000-00000000000${n}`, slideNumber: n, title: `Uploaded slide ${n}`, deckId,
+    deckTitle: 'Uploaded Northwind', deckVersionId: 'hash_uploaded', originalStorageKey: `${deckId}/original.pptx`, deckReady: true, ...extra,
+  });
+  const store: ExportableSlide[] = [up(1), up(2), up(3)];
+  const loaded: string[] = [];
+  const fake: UploadedDecks = {
+    findSlides: async (ids) => store.filter((s) => ids.includes(s.slideId)),
+    loadOriginal: async (key) => { loaded.push(key); return northwindBytes; },
+  };
+  const req = (items: { slideId: string; sourceVersionId: string }[]) => ({ format: 'pptx' as const, fidelityPolicy: 'preserve-source' as const, items });
+  const pick = (s: ExportableSlide) => ({ slideId: s.slideId, sourceVersionId: s.deckVersionId });
+
+  const one = await exportSlides(null, req([pick(store[2]), pick(store[0])]), fake);
+  const srcXml = await slideXmls(northwindBytes);
+  const gotXml = await slideXmls(one.bytes);
+  check(one.fileName === 'SlideVault-export.pptx' && gotXml.length === 2 && textOf(gotXml[0].xml) === textOf(srcXml[2].xml),
+    'uploaded deck: slides 3 and 1 download as one .pptx in the selected order, with no fixture index at all');
+  check(loaded.length === 1 && loaded[0] === `${deckId}/original.pptx`, 'uploaded deck: the original is loaded once, from its storage key');
+
+  // a fixture slide and an uploaded slide together -> a zip of two files
+  const fixtureIndex: LibraryIndex = {
+    generatedAt: new Date().toISOString(),
+    sources: [{ id: 'src_hb', title: 'Harbor Bank', fileName: 'harbor-bank-proposal.pptx', versionId: 'ver_hb', sha256: '',
+      slides: [{ id: 'hb#1', number: 1, title: 'Slide 1', text: '', hidden: false }] }],
+  } as LibraryIndex;
+  const both = await exportSlides(fixtureIndex, req([{ slideId: 'hb#1', sourceVersionId: 'ver_hb' }, pick(store[1])]), fake);
+  const bothZip = await JSZip.loadAsync(both.bytes);
+  check(both.fileName === 'SlideVault-export.zip' && Object.keys(bothZip.files).length === 2,
+    'a fixture slide plus an uploaded slide download as a zip of two files', Object.keys(bothZip.files).join(' | '));
+
+  const expectUploadError = async (label: string, items: { slideId: string; sourceVersionId: string }[], status: number, store2 = fake) => {
+    try {
+      await exportSlides(null, req(items), store2);
+      check(false, label);
+    } catch (e) {
+      check(e instanceof ServiceError && e.status === status, label, (e as Error).message);
+    }
+  };
+  await expectUploadError('uploaded deck: rejects an outdated version (400)', [{ slideId: store[0].slideId, sourceVersionId: 'old_hash' }], 400);
+  await expectUploadError('uploaded deck: rejects a slide from a deck that is still processing (400)', [pick(store[0])], 400,
+    { ...fake, findSlides: async () => [up(1, { deckReady: false })] });
+  await expectUploadError('uploaded deck: rejects an unknown slide (400)', [{ slideId: '99999999-9999-4999-8999-999999999999', sourceVersionId: 'x' }], 400);
+  await expectUploadError('uploaded deck: storage outage gives a clear try-again error (503)', [pick(store[0])], 503,
+    { ...fake, loadOriginal: async () => { throw new Error('storage down'); } });
 }
 
 // --- 6. sources untouched -----------------------------------------------------------------------------

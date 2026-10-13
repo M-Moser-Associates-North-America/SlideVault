@@ -122,6 +122,11 @@ export function PagesView({ runtime, previewSlideId }: { runtime: SlideVaultRunt
                     {s.provenance.sourceTitle} · slide {s.provenance.slideNumber}
                   </p>
                   <h2 className={styles.cardTitle}>{s.title}</h2>
+                  {s.alsoIn && (
+                    <p className={styles.alsoIn} title={s.alsoIn.match === 'near' ? 'A nearly identical slide is in other decks' : 'The same slide is in other decks'}>
+                      Also in {s.alsoIn.otherDeckCount} {s.alsoIn.otherDeckCount === 1 ? 'other deck' : 'other decks'}
+                    </p>
+                  )}
                   <div className={styles.actions}>
                     <button type="button" className={styles.secondary} onClick={() => openPreview(s.id)}>
                       Preview

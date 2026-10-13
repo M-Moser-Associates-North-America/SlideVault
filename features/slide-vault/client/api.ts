@@ -39,8 +39,17 @@ export async function getSlide(runtime: Transport, slideId: string, signal?: Abo
   return ((await res.json()) as ApiOk<SlideDetail>).data;
 }
 
-/** Returns the .pptx as a Blob; the caller decides how to save it. */
-export async function exportPptx(runtime: Transport, slides: SlideSummary[]): Promise<Blob> {
+export type ExportDownload = { blob: Blob; fileName: string };
+
+/** File name from Content-Disposition, e.g. attachment; filename="SlideVault-export.zip". */
+const downloadName = (res: Response, fallback: string) =>
+  /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? fallback;
+
+/**
+ * Returns the export as a Blob plus its file name; the caller decides how to save it.
+ * One deck gives a .pptx; slides from several decks give a .zip with one .pptx per deck.
+ */
+export async function exportPptx(runtime: Transport, slides: SlideSummary[]): Promise<ExportDownload> {
   const body: ExportRequest = {
     format: 'pptx',
     fidelityPolicy: 'preserve-source',
@@ -48,5 +57,5 @@ export async function exportPptx(runtime: Transport, slides: SlideSummary[]): Pr
   };
   const res = await runtime.request({ path: '/exports', method: 'POST', body });
   if (!res.ok) return failure(runtime, res);
-  return res.blob();
+  return { blob: await res.blob(), fileName: downloadName(res, 'SlideVault-export.pptx') };
 }
