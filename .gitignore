@@ -19,11 +19,29 @@ test-results/
 .supabase/
 
 # Private processing data; approved synthetic fixtures belong in tests/fixtures/
+# Anchored to the repo root (/…) so they don't also hide source folders with the same name,
+# e.g. the API route app/api/slide-vault/v1/exports/.
 .data/
 .cache/
-uploads/
-exports/
-tmp/
+/uploads/
+/exports/
+/tmp/
+
+# Next.js
+next-env.d.ts
+*.pem
+
+# Local Python environment for scripts/fixtures
+.venv/
+
+# Local working folder of a developer browser-automation tool (gstack); never commit
+.gstack/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 
 # Local notes
 NOTES.md
