@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, ExportRequest, SlideDetail, SlideSummary } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, UploadDeckMeta } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -58,4 +58,19 @@ export async function exportPptx(runtime: Transport, slides: SlideSummary[]): Pr
   const res = await runtime.request({ path: '/exports', method: 'POST', body });
   if (!res.ok) return failure(runtime, res);
   return { blob: await res.blob(), fileName: downloadName(res, 'SlideVault-export.pptx') };
+}
+
+/** POST /uploads (multipart/form-data). Throws ApiCallError on failure, including duplicates (409). */
+export async function uploadDeck(runtime: Transport, file: File, meta: UploadDeckMeta): Promise<DeckSummary> {
+  const form = new FormData();
+  form.set('file', file);
+  if (meta.clientName) form.set('clientName', meta.clientName);
+  if (meta.deckYear !== null) form.set('deckYear', String(meta.deckYear));
+  if (meta.category) form.set('category', meta.category);
+  if (meta.folderPath) form.set('folderPath', meta.folderPath);
+  form.set('bestOfTheBest', String(meta.bestOfTheBest));
+
+  const res = await runtime.request({ path: '/uploads', method: 'POST', body: form });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<DeckSummary>).data;
 }

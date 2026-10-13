@@ -5,9 +5,9 @@ import { useMemo } from 'react';
 import { CONTRACT_VERSION, SlideVaultWorkspace, type Capability, type RuntimeRequest, type SlideVaultRuntime } from '@/features/slide-vault';
 import { API_ROOT, locationFromSegments, pathFromLocation, UI_BASE } from './shell-config';
 
-// Prototype (decision FD-01): no sign-in yet. One fixed session scope and the read/export capabilities.
+// Prototype (decision FD-01): no sign-in yet. One fixed session scope and the read/export/upload capabilities.
 const SESSION_SCOPE = 'local-dev';
-const CAPABILITIES: ReadonlySet<Capability> = new Set(['library.read', 'collection.write', 'export.create']);
+const CAPABILITIES: ReadonlySet<Capability> = new Set(['library.read', 'collection.write', 'export.create', 'source.upload']);
 
 /** Only relative, same-API paths: no schemes, no host, no path traversal (docs/INTEGRATION_CONTRACT.md). */
 function assertFeaturePath(path: string) {
@@ -31,11 +31,14 @@ export function StandaloneWorkspace() {
       navigate: ((next, options) => (options?.replace ? router.replace : router.push)(pathFromLocation(next), { scroll: false })) satisfies SlideVaultRuntime['navigate'],
       request: (({ path, method, body, headers, signal }: RuntimeRequest) => {
         assertFeaturePath(path);
+        // FormData passes through untouched (decision FD-10): the browser sets its own
+        // multipart boundary, and JSON.stringify would corrupt the file bytes.
+        const isFormData = body instanceof FormData;
         return fetch(`${API_ROOT}${path}`, {
           method,
           signal,
-          headers: body === undefined ? headers : { 'Content-Type': 'application/json', ...headers },
-          body: body === undefined ? undefined : JSON.stringify(body),
+          headers: body === undefined || isFormData ? headers : { 'Content-Type': 'application/json', ...headers },
+          body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
           credentials: 'same-origin',
         });
       }) satisfies SlideVaultRuntime['request'],

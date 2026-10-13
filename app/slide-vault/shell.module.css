@@ -26,6 +26,30 @@
   color: #c9c9cc;
 }
 
+.nav {
+  display: flex;
+  gap: 16px;
+  margin-left: auto;
+}
+
+.navLink {
+  color: #c9c9cc;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 4px 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.navLink:hover,
+.navLink:focus-visible {
+  color: #ffffff;
+}
+
+.navLinkActive {
+  color: #ffffff;
+  border-bottom-color: #ff5a2c;
+}
+
 .loading {
   margin: 40px 20px;
   font-size: 14.5px;
