@@ -8,6 +8,8 @@
  *  2. Thumbnails: real slide previews instead of V3's drawn placeholders.
  *  3. "Also in N other decks": real duplicate groups (server/duplicates.ts).
  *  4. Download in the cart: the real export (one .pptx, or a .zip of one .pptx per deck).
+ *  5. Upload: a real .pptx picked on the Upload screen posts to POST /uploads; on success the
+ *     live library is re-fetched so the new deck appears immediately, no reload needed.
  *
  * Everything the backend doesn't have yet (approval status, content class, usage counts,
  * slide types, AI search) keeps V3's simple defaults or simulated behaviour, which V3 already
@@ -61,6 +63,9 @@ const LOADER = `<script>
     });
     return { decks: decks, slides: slides, dupg: dupg };
   }
+  /* Exposed so a real upload (inside V3's own script, a separate scope) can re-run the
+     same conversion after POST /uploads succeeds, instead of duplicating this logic. */
+  window.SV_TO_V3 = toV3;
   var params = new URLSearchParams(location.search);
   if (params.get('data') === 'sample') { start(); note('Sample data'); return; }
   fetch(API + '/library' + (params.get('data') === 'all' ? '' : '?source=upload'), { headers: { Accept: 'application/json' } })
@@ -112,6 +117,51 @@ function liveDownload(ids) {
 }
 `;
 
+/**
+ * Inside V3's own script: a real upload, which replaces the simulated "pick a sample" flow
+ * when live data is on. Re-uses the Upload screen's existing queue UI (UP_STAGES, queueHTML,
+ * S.uploads) -- only how an item gets added and finished changes.
+ */
+const LIVE_UPLOAD = `/* LIVE DATA: real upload (features/slide-vault/v3/live.ts) */
+function viewUploadLive() {
+  if (!can('upload')) return '<div class="sv-wrap">' + stateBlock('lock', 'Only Editors and Curators can upload', 'Switch Access in the top right to try it.', '<a class="btn" href="#/">Back to Home</a>') + '</div>';
+  return '<div class="sv-wrap upload-wrap"><h1 class="h1" tabindex="-1">Upload</h1><p class="lede muted" style="margin-top:4px">Add a deck. SlideVault stores it unchanged, splits it into slides and makes thumbnails. AI-suggested labels come once a provider is approved.</p>' +
+    '<div class="dropzone" style="margin-top:14px"><label for="sv-live-file" style="cursor:pointer;display:block">' + ic('upload', 'ic-big') + '<p style="margin:8px 0 4px"><strong>Click to choose a .pptx file</strong></p><p class="meta">This uploads for real.</p></label><input type="file" id="sv-live-file" accept=".pptx" style="margin-top:10px" onchange="if (this.files[0]) liveUploadFile(this.files[0]); this.value = &#39;&#39;;"></div>' +
+    '<h2 class="h2" style="margin:24px 0 10px">Queue</h2><ul class="queue" id="queue">' + queueHTML() + '</ul></div>';
+}
+/* Inline onchange runs in global scope, not this closure -- expose it so the handler can find it. */
+window.liveUploadFile = liveUploadFile;
+function liveUploadFile(file) {
+  var u = { id: 'up' + (++S.uploadN), name: file.name.replace(/\\.pptx$/i, ''), step: 0, done: false };
+  S.uploads.push(u);
+  var q = $('#queue'); if (q) q.innerHTML = queueHTML();
+  var t = setInterval(function () { if (u.step < UP_STAGES.length - 1) { u.step++; var q2 = $('#queue'); if (q2) q2.innerHTML = queueHTML(); } }, 500);
+  var form = new FormData(); form.append('file', file);
+  fetch('${API}/uploads', { method: 'POST', body: form })
+    .then(function (res) { return res.json().then(function (body) {
+      if (!res.ok) throw new Error(body && body.error ? body.error.message : 'The upload could not be processed. Please try again.');
+      return body.data;
+    }); })
+    .then(function (deck) {
+      return fetch('${API}/library?source=upload', { headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('Library request failed (' + r.status + ')')); })
+        .then(function (body) {
+          var live = window.SV_TO_V3(body.data);
+          DECKS = live.decks; SLIDES = live.slides; DUPG = live.dupg; reindex();
+          clearInterval(t); u.done = true; u.step = UP_STAGES.length; u.deckId = deck.id; u.n = deck.slideCount;
+          var q3 = $('#queue'); if (q3) q3.innerHTML = queueHTML();
+          var noteEl = document.querySelector('.sv-live-note'); if (noteEl) noteEl.textContent = 'Live data: ' + DECKS.length + ' decks, ' + SLIDES.length + ' slides';
+          toast('Upload finished. ' + plural(u.n, 'slide') + ' added.', { label: 'Open deck', href: '#/deck/' + deck.id });
+        });
+    })
+    .catch(function (e) {
+      clearInterval(t); u.done = true; u.error = e.message;
+      var q4 = $('#queue'); if (q4) q4.innerHTML = queueHTML();
+      toast(e.message);
+    });
+}
+`;
+
 type Patch = { name: string; find: string | RegExp; replace: (match: string) => string };
 
 const PATCHES: Patch[] = [
@@ -139,6 +189,18 @@ const PATCHES: Patch[] = [
     name: 'download dialog says what was saved',
     find: `'<p class="meta" style="margin-top:10px">Simulated: no file is created. Real files hold only the slides you picked.</p>'`,
     replace: (m) => `(DLG.live ? '<p class="meta" style="margin-top:10px">Saved <strong>' + esc(DLG.fileName) + '</strong> to your Downloads. It holds only the slides you picked, and they stay editable.</p>' : ${m})`,
+  },
+  {
+    name: 'real upload',
+    find: 'function viewUpload() {\n',
+    replace: (m) => LIVE_UPLOAD + m + '  if (window.SV_LIVE) return viewUploadLive();\n',
+  },
+  {
+    name: 'upload queue shows a real error',
+    // A chained ternary ("cond1 ? a : cond2 ? b : c" === "cond1 ? a : (cond2 ? b : c)"), not a
+    // wrapped one -- needs no closing paren the single-anchor replace can't reach further down.
+    find: `(u.done ? '<p class="meta" style="margin-top:8px">'`,
+    replace: (m) => `(u.error ? '<p class="meta" style="margin-top:8px;color:var(--sv-danger)">' + esc(u.error) + '</p>' : ${m.slice(1)}`,
   },
   { name: 'loader and styles', find: '</body>', replace: (m) => STYLE + '\n' + LOADER + '\n' + m },
 ];
