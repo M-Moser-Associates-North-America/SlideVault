@@ -140,6 +140,10 @@ function toSlideSummary(row: SlideWithDeck): SlideSummary {
       owner: null,
       approvalStatus: null,
       reviewedAt: null,
+      clientName: row.decks.client,
+      deckYear: row.decks.year,
+      category: row.decks.category,
+      bestOfTheBest: row.decks.best_of_the_best,
     },
   };
 }

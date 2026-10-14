@@ -1,5 +1,6 @@
 import 'server-only';
 import type { SlideSummary } from '../../contracts/dto';
+import { folderInfo } from '../folder-path';
 import type { IndexedSlide, IndexedSource, LibraryIndex } from '../library-repository';
 
 /**
@@ -12,6 +13,8 @@ export const DEFAULT_LIMIT = 24;
 export const MAX_LIMIT = 100;
 
 export function toSummary(source: IndexedSource, slide: IndexedSlide): SlideSummary {
+  // The file-backed index keeps only the file name, so only what the name says ("Client - Category") is known.
+  const deck = folderInfo(source.fileName);
   return {
     id: slide.id,
     title: slide.title,
@@ -27,6 +30,10 @@ export function toSummary(source: IndexedSource, slide: IndexedSlide): SlideSumm
       owner: null,
       approvalStatus: null,
       reviewedAt: null,
+      clientName: deck.clientName,
+      deckYear: deck.deckYear,
+      category: deck.category,
+      bestOfTheBest: deck.bestOfTheBest,
     },
   };
 }

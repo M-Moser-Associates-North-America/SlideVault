@@ -25,12 +25,36 @@ async function failure(runtime: Transport, res: Response): Promise<never> {
   throw new ApiCallError(body?.error.message ?? `Request failed (${res.status}).`, res.status, body?.error.retryable ?? res.status >= 500);
 }
 
+/** Search results: one card per group of near-identical slides, marked "also in N decks". */
 export async function searchSlides(runtime: Transport, query: string, signal?: AbortSignal): Promise<SlideSummary[]> {
   const params = new URLSearchParams({ kind: 'slide', limit: '100' });
   if (query.trim()) params.set('q', query.trim());
   const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiPage<SlideSummary>).data;
+}
+
+const MAX_LIBRARY_PAGES = 30;
+
+/**
+ * Every slide in the library, every copy kept (duplicates=all), so decks can be listed in full.
+ * Follows the cursor until the server says there are no more pages. Slides can repeat across pages
+ * (uploaded decks are returned on every page for now), so they are de-duplicated by id.
+ */
+export async function listLibrary(runtime: Transport, signal?: AbortSignal): Promise<SlideSummary[]> {
+  const byId = new Map<string, SlideSummary>();
+  let cursor: string | null = null;
+  for (let page = 0; page < MAX_LIBRARY_PAGES; page++) {
+    const params = new URLSearchParams({ kind: 'slide', limit: '1000', duplicates: 'all' });
+    if (cursor) params.set('cursor', cursor);
+    const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
+    if (!res.ok) return failure(runtime, res);
+    const body = (await res.json()) as ApiPage<SlideSummary>;
+    for (const s of body.data) byId.set(s.id, s);
+    cursor = body.page.nextCursor;
+    if (!cursor) break;
+  }
+  return [...byId.values()];
 }
 
 export async function getSlide(runtime: Transport, slideId: string, signal?: AbortSignal): Promise<SlideDetail> {

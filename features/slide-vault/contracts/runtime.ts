@@ -21,7 +21,8 @@ export type Capability =
   | 'export.create'
   | 'library.manage';
 
-export type View = 'home' | 'library' | 'pages' | 'upload' | 'deck' | 'slide';
+/** 'pages' is the Home screen (library rows and search). 'browse' (id = row key) and 'create' were added for the v3 design (FD-13). */
+export type View = 'home' | 'library' | 'pages' | 'browse' | 'create' | 'upload' | 'deck' | 'slide';
 
 export type Location = {
   view: View;
@@ -50,6 +51,8 @@ export interface SlideVaultRuntime {
   request(input: RuntimeRequest): Promise<Response>;
   /** Resolve an API-relative media path (e.g. "/slides/sld_1/preview") to a URL for <img src>. */
   assetUrl(path: string): string;
+  /** Optional: the host's URL for a location, so links can open in a new tab. Falls back to "#". */
+  hrefFor?(location: Location): string;
   onSessionExpired(): void;
   requestFullscreen?: (enabled: boolean) => void;
   projectContext?: { id: string; label: string };
