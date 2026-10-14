@@ -138,7 +138,7 @@ export function DownloadDialog() {
       <div className="dlg-head">
         <div>
           <h2 id="sv-dl-title">Download {plural(slides.length, 'slide')}</h2>
-          <p className="meta">You get {planSummary(plan)}. Slides stay editable.</p>
+          <p className="meta">You get {planSummary(plan)}. Slides stay editable.{plan.zip ? ' One combined file is planned for a later phase.' : ''}</p>
         </div>
         <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closeDownload}>
           <Icon name="x" />

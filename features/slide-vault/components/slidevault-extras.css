@@ -35,3 +35,8 @@
 .slidevault .ci { grid-template-columns: 24px 24px 44px minmax(0, 1fr) 28px; gap: 4px; }
 .slidevault .grip { width: 24px; height: 28px; }
 .slidevault .ci input { width: 24px; height: 24px; }
+
+/* Cart: note shown when the selection spans several decks (downloads as a zip) */
+.slidevault .cart-zip { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0 0 8px; }
+.slidevault .cart-zip .meta { margin: 0; }
+.slidevault .cart-zip .btn { gap: 4px 6px; flex-wrap: wrap; height: auto; min-height: 32px; max-width: 100%; justify-content: flex-start; }

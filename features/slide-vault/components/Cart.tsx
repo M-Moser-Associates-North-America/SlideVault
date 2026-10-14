@@ -202,6 +202,19 @@ export function Cart() {
           in the download
           {included.length ? ` · ${plural(plan.files.length, 'deck')}. Downloads as ${planSummary(plan)}.` : '.'}
         </p>
+        {plan.zip && (
+          <div className="cart-zip">
+            <p className="meta">These slides are from {plan.files.length} different decks, so each deck downloads as its own file in a zip. This keeps every slide&apos;s original formatting.</p>
+            <button type="button" className="btn btn-sm" aria-disabled="true" aria-describedby="cart-combine-note" onClick={(e) => e.preventDefault()}>
+              <Icon name="layers" />
+              <span>Combine into one deck</span>
+              <span className="badge">Coming later</span>
+            </button>
+            <span id="cart-combine-note" className="sr-only">
+              Not available yet. Combining slides from different decks into one file is planned for a later phase.
+            </span>
+          </div>
+        )}
         <div className="cart-acts">
           <button type="button" className="btn btn-sm" disabled={none} title={none ? 'Tick at least one slide in the cart.' : undefined} onClick={() => openPreview(included, 0)}>
             <Icon name="eye" />
