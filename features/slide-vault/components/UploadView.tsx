@@ -1,25 +1,37 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { uploadDeck } from '../client/api';
 import type { DeckSummary, UploadDeckMeta } from '../contracts/dto';
-import type { SlideVaultRuntime } from '../contracts/runtime';
-import styles from './workspace.module.css';
+import { Icon } from './icons';
+import { Link } from './parts';
+import { useWorkspace } from './state';
 
 type UploadState = { kind: 'idle' } | { kind: 'uploading' } | { kind: 'error'; message: string } | { kind: 'done'; deck: DeckSummary };
 
-/** Upload screen (docs/foundry/SLIDE_RECORD.md): a .pptx goes in, gets split into slides, and shows up in the library. */
-export function UploadView({ runtime }: { runtime: SlideVaultRuntime }) {
+/**
+ * Upload screen (docs/foundry/SLIDE_RECORD.md): a .pptx goes in unchanged, gets split into slides,
+ * and shows up in the library. Uses the real POST /uploads; the library reloads when it succeeds.
+ */
+export function UploadView() {
+  const { runtime, reloadLibrary, announce } = useWorkspace();
   const [file, setFile] = useState<File | null>(null);
   const [clientName, setClientName] = useState('');
   const [deckYear, setDeckYear] = useState('');
   const [category, setCategory] = useState('');
   const [bestOfTheBest, setBestOfTheBest] = useState(false);
   const [state, setState] = useState<UploadState>({ kind: 'idle' });
+  const [over, setOver] = useState(false);
   const fieldId = useId();
   const canUpload = runtime.capabilities.has('source.upload');
+  const busy = state.kind === 'uploading';
 
-  async function submit(e: React.FormEvent) {
+  const pick = (f: File | null) => {
+    setFile(f);
+    if (state.kind !== 'uploading') setState({ kind: 'idle' });
+  };
+
+  async function submit(e: FormEvent) {
     e.preventDefault();
     if (!file) return;
     setState({ kind: 'uploading' });
@@ -33,11 +45,13 @@ export function UploadView({ runtime }: { runtime: SlideVaultRuntime }) {
     try {
       const deck = await uploadDeck(runtime, file, meta);
       setState({ kind: 'done', deck });
+      announce(`Uploaded ${deck.title}, ${deck.slideCount} slides`);
       setFile(null);
       setClientName('');
       setDeckYear('');
       setCategory('');
       setBestOfTheBest(false);
+      reloadLibrary();
     } catch (err) {
       setState({ kind: 'error', message: (err as Error).message });
     }
@@ -45,110 +59,98 @@ export function UploadView({ runtime }: { runtime: SlideVaultRuntime }) {
 
   if (!canUpload) {
     return (
-      <div className={styles.workspace}>
-        <main className={styles.main}>
-          <h1 className={styles.heading}>Upload</h1>
-          <p className={styles.lead}>You don&apos;t have permission to upload decks.</p>
-        </main>
+      <div className="sv-wrap upload-wrap">
+        <h1 className="h1" tabIndex={-1}>
+          Upload
+        </h1>
+        <p className="lede muted" style={{ marginTop: 4 }}>
+          You don&apos;t have permission to upload decks.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className={styles.workspace}>
-      <main className={styles.main}>
-        <div className={styles.intro}>
-          <div>
-            <h1 className={styles.heading}>Upload a deck</h1>
-            <p className={styles.lead}>A .pptx goes in unchanged, gets split into slides with thumbnails, and shows up in the library.</p>
-          </div>
-        </div>
+    <div className="sv-wrap upload-wrap">
+      <h1 className="h1" tabIndex={-1}>
+        Upload a deck
+      </h1>
+      <p className="lede muted" style={{ marginTop: 4 }}>
+        A .pptx goes in unchanged, gets split into slides with thumbnails, and shows up in the library.
+      </p>
 
-        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sv-space-5)', maxWidth: 480 }}>
-          <div className={styles.field}>
-            <label htmlFor={`${fieldId}-file`} className={styles.label}>
-              PowerPoint file (.pptx)
-            </label>
-            <input
-              id={`${fieldId}-file`}
-              type="file"
-              accept=".pptx"
-              className={styles.input}
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              required
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor={`${fieldId}-client`} className={styles.label}>
-              Client
-            </label>
-            <input
-              id={`${fieldId}-client`}
-              type="text"
-              className={styles.input}
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              placeholder="e.g. Harbor Bank"
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor={`${fieldId}-year`} className={styles.label}>
-              Year
-            </label>
-            <input
-              id={`${fieldId}-year`}
-              type="number"
-              className={styles.input}
-              value={deckYear}
-              onChange={(e) => setDeckYear(e.target.value)}
-              placeholder="e.g. 2026"
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor={`${fieldId}-category`} className={styles.label}>
-              Category
-            </label>
-            <input
-              id={`${fieldId}-category`}
-              type="text"
-              className={styles.input}
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g. Business Proposal"
-            />
-          </div>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--sv-space-2)', fontSize: 'var(--sv-text-small)' }}>
-            <input type="checkbox" checked={bestOfTheBest} onChange={(e) => setBestOfTheBest(e.target.checked)} />
-            This is from the Best of the Best folder
-          </label>
-
-          <button type="submit" className={styles.primary} disabled={!file || state.kind === 'uploading'} aria-busy={state.kind === 'uploading'}>
-            {state.kind === 'uploading' ? 'Uploading…' : 'Upload deck'}
-          </button>
-        </form>
-
-        <div aria-live="polite">
-          {state.kind === 'done' && (
-            <div className={styles.success} style={{ marginTop: 'var(--sv-space-5)' }}>
-              <p>
-                &ldquo;{state.deck.title}&rdquo; uploaded — {state.deck.slideCount} {state.deck.slideCount === 1 ? 'slide' : 'slides'} ready.
-              </p>
-              <button type="button" className={styles.secondary} onClick={() => runtime.navigate({ view: 'pages', query: state.deck.title })}>
-                Go to the library
-              </button>
-            </div>
-          )}
-        </div>
-        {state.kind === 'error' && (
-          <p className={styles.error} role="alert" style={{ marginTop: 'var(--sv-space-5)' }}>
-            {state.message}
+      <form onSubmit={submit} style={{ marginTop: 14 }}>
+        <div
+          className={`dropzone${over ? ' over' : ''}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setOver(true);
+          }}
+          onDragLeave={() => setOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setOver(false);
+            const f = e.dataTransfer.files?.[0];
+            if (f) pick(f);
+          }}
+        >
+          <Icon name="upload" className="ic-big" />
+          <p style={{ margin: '8px 0 12px' }}>
+            <strong>{file ? file.name : 'Drop a .pptx here, or choose one'}</strong>
           </p>
+          <label htmlFor={`${fieldId}-file`} className="btn btn-sm">
+            Choose file
+          </label>
+          <input id={`${fieldId}-file`} className="sr-only" type="file" accept=".pptx" onChange={(e) => pick(e.target.files?.[0] ?? null)} />
+        </div>
+
+        <div className="form-grid" style={{ marginTop: 14 }}>
+          <div className="field">
+            <label htmlFor={`${fieldId}-client`}>Client</label>
+            <input id={`${fieldId}-client`} type="text" className="input" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="e.g. Harbor Bank" />
+          </div>
+          <div className="field">
+            <label htmlFor={`${fieldId}-year`}>Year</label>
+            <input id={`${fieldId}-year`} type="number" className="input" value={deckYear} onChange={(e) => setDeckYear(e.target.value)} placeholder="e.g. 2026" />
+          </div>
+          <div className="field full">
+            <label htmlFor={`${fieldId}-category`}>Category</label>
+            <input id={`${fieldId}-category`} type="text" className="input" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Business Proposal" />
+          </div>
+          <div className="radio-row full">
+            <label>
+              <input type="checkbox" checked={bestOfTheBest} onChange={(e) => setBestOfTheBest(e.target.checked)} />
+              This is from the Best of the Best folder
+            </label>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <button type="submit" className="btn btn-primary" disabled={!file || busy} aria-busy={busy}>
+            {busy ? 'Uploading…' : 'Upload deck'}
+          </button>
+        </div>
+      </form>
+
+      <div aria-live="polite">
+        {state.kind === 'done' && (
+          <div className="notice info" style={{ marginTop: 14 }}>
+            <Icon name="info" />
+            <span>
+              {state.deck.alreadyUploaded ? `“${state.deck.title}” was already in the library` : `“${state.deck.title}” uploaded`}, {state.deck.slideCount}{' '}
+              {state.deck.slideCount === 1 ? 'slide' : 'slides'} ready.
+              {state.deck.addedDetails?.length ? ` Added: ${state.deck.addedDetails.join(', ')}.` : ''}{' '}
+              <Link to={{ view: 'deck', id: state.deck.id }}>Open the deck</Link>
+            </span>
+          </div>
         )}
-      </main>
+      </div>
+      {state.kind === 'error' && (
+        <div className="notice danger" role="alert" style={{ marginTop: 14 }}>
+          <Icon name="info" />
+          <span>{state.message}</span>
+        </div>
+      )}
     </div>
   );
 }

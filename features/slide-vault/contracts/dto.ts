@@ -40,6 +40,14 @@ export type Provenance = {
   owner: string | null;
   approvalStatus: 'approved' | 'in_review' | 'draft' | null;
   reviewedAt: string | null;
+  /**
+   * Deck details read from the folder path (docs/foundry/SLIDE_RECORD.md). Optional and null when
+   * unknown, never guessed. Added so the library can group by client, year and category (FD-13).
+   */
+  clientName?: string | null;
+  deckYear?: number | null;
+  category?: string | null;
+  bestOfTheBest?: boolean;
 };
 
 /** The same (or nearly the same) slide also appears in other decks (duplicate grouping, PRD P1). */

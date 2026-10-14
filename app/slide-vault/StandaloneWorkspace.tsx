@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { CONTRACT_VERSION, SlideVaultWorkspace, type Capability, type RuntimeRequest, type SlideVaultRuntime } from '@/features/slide-vault';
 import { API_ROOT, locationFromSegments, pathFromLocation, UI_BASE } from './shell-config';
+import { useTheme } from './theme';
 
 // Prototype (decision FD-01): no sign-in yet. One fixed session scope and the read/export/upload capabilities.
 const SESSION_SCOPE = 'local-dev';
@@ -46,21 +47,23 @@ export function StandaloneWorkspace() {
         assertFeaturePath(path);
         return `${API_ROOT}${path}`;
       }) satisfies SlideVaultRuntime['assetUrl'],
+      hrefFor: pathFromLocation satisfies SlideVaultRuntime['hrefFor'],
       onSessionExpired: () => router.refresh(),
     }),
     [router],
   );
 
+  const { theme } = useTheme();
   const runtime = useMemo<SlideVaultRuntime>(
     () => ({
       contractVersion: CONTRACT_VERSION,
       sessionScopeKey: SESSION_SCOPE,
       capabilities: CAPABILITIES,
-      theme: 'light',
+      theme,
       location: locationFromSegments(segments),
       ...services,
     }),
-    [segments, services],
+    [segments, services, theme],
   );
 
   // The shell owns theme: the workspace renders inside the .slidevault token scope.
