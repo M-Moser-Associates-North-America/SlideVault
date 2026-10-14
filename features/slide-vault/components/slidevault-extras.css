@@ -1,0 +1,42 @@
+/*
+ * Additions to the v3 prototype styles for the real app. Still scoped to .slidevault.
+ * Prototype-only tokens (readable status text, tints) and states the prototype did not need.
+ */
+.slidevault {
+  --svp-danger-text: #b3261e;
+  --svp-warning-tint: #fff4d6;
+  --svp-danger-tint: #fde8e6;
+  --svp-success-tint: #e3f5ec;
+  --sv-frame: #eceef1;
+}
+.slidevault[data-theme="dark"], .dark .slidevault:not([data-theme="light"]) {
+  --svp-danger-text: #ff9a8f;
+  --svp-warning-tint: rgba(224, 163, 60, 0.16);
+  --svp-danger-tint: rgba(240, 104, 90, 0.16);
+  --svp-success-tint: rgba(52, 199, 125, 0.14);
+  --sv-frame: #26272c;
+}
+
+.slidevault .btn:disabled { opacity: .45; cursor: not-allowed; }
+.slidevault .also.static { cursor: default; }
+.slidevault .also.static:hover { background: var(--sv-surface); }
+.slidevault .thumb img { transition: transform var(--sv-duration) var(--sv-ease-out); }
+
+/* Example-search chips are buttons here (the prototype used links). */
+.slidevault button.try-chip { display: inline-flex; align-items: center; padding: 5px 9px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--sv-brand) 65%, transparent); background: var(--sv-surface); color: var(--sv-text); font-size: 12.25px; line-height: 1.35; cursor: pointer; }
+.slidevault button.try-chip:hover { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 10%, var(--sv-surface)); }
+.slidevault button.try-chip[aria-current="true"] { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); font-weight: 600; }
+
+/* The filter group list used inside the rail's second block. */
+.slidevault .rail > div { min-width: 0; }
+.slidevault .dropzone[aria-disabled="true"] { opacity: .8; }
+
+/* Cart rows: every control is at least 24×24 (WCAG 2.2 target size), the prototype's grip and tick were smaller. */
+.slidevault .ci { grid-template-columns: 24px 24px 44px minmax(0, 1fr) 28px; gap: 4px; }
+.slidevault .grip { width: 24px; height: 28px; }
+.slidevault .ci input { width: 24px; height: 24px; }
+
+/* Cart: note shown when the selection spans several decks (downloads as a zip) */
+.slidevault .cart-zip { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0 0 8px; }
+.slidevault .cart-zip .meta { margin: 0; }
+.slidevault .cart-zip .btn { gap: 4px 6px; flex-wrap: wrap; height: auto; min-height: 32px; max-width: 100%; justify-content: flex-start; }

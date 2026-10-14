@@ -18,7 +18,13 @@ export const fixtureSlideTexts = (index: LibraryIndex | null): SlideText[] =>
  *  - otherDeckCount counts decks across the whole library, not just this page of results,
  *    so it stays the same whatever the search was.
  */
-export function withDuplicateBadges(items: SlideSummary[], groups: DuplicateGroup[], slideDeck: Map<string, string>): SlideSummary[] {
+export function withDuplicateBadges(
+  items: SlideSummary[],
+  groups: DuplicateGroup[],
+  slideDeck: Map<string, string>,
+  /** false keeps every copy (for listing a whole deck) and only adds the badge; default is one card per group */
+  collapse = true,
+): SlideSummary[] {
   const groupOf = new Map<string, DuplicateGroup>();
   for (const g of groups) for (const id of g.slideIds) groupOf.set(id, g);
 
@@ -30,7 +36,7 @@ export function withDuplicateBadges(items: SlideSummary[], groups: DuplicateGrou
       out.push({ ...item, alsoIn: null });
       continue;
     }
-    if (shown.has(group.id)) continue;
+    if (collapse && shown.has(group.id)) continue;
     shown.add(group.id);
     const ownDeck = slideDeck.get(item.id) ?? item.provenance.sourceId;
     const otherDecks = new Set(group.slideIds.map((id) => slideDeck.get(id)).filter((d) => d && d !== ownDeck));

@@ -53,7 +53,9 @@ export async function GET(request: Request) {
   }
   const groups = groupDuplicates(texts);
   const slideDeck = new Map(texts.map((t) => [t.id, t.sourceId]));
-  const items = withDuplicateBadges([...uploadedItems, ...fixtureResult.items], groups, slideDeck);
+  // duplicates=all keeps every copy so a deck's page can list all its slides; the badge is still added.
+  const collapse = url.searchParams.get('duplicates') !== 'all';
+  const items = withDuplicateBadges([...uploadedItems, ...fixtureResult.items], groups, slideDeck, collapse);
 
   return ok(items, { page: { nextCursor: fixtureResult.nextCursor } });
 }
