@@ -5,12 +5,31 @@
   font-family: "Helvetica Neue", "Helvetica", "Arimo", Arial, system-ui, -apple-system, sans-serif;
 }
 
+.skip {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #1a1a1a;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 2px solid #ffffff;
+}
+
+.skip:focus {
+  top: 12px;
+}
+
 .header {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 12px 20px;
   background: #1a1a1a;
   color: #ffffff;
 }
@@ -22,17 +41,100 @@
   text-transform: uppercase;
 }
 
-.themeButton {
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
-  min-height: 32px;
-  padding: 0 12px;
+}
+
+.themeButton {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border: 1px solid #6b6b6b;
   border-radius: 11px;
   background: transparent;
   color: #ffffff;
-  font: inherit;
-  font-size: 13px;
   cursor: pointer;
+}
+
+.access {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border: 1px solid #6b6b6b;
+  border-radius: 11px;
+  color: #ffffff;
+}
+
+.access:focus-within {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.accessLabel {
+  padding-left: 12px;
+  font-size: 13px;
+  color: #c9c9cc;
+}
+
+.accessSelect {
+  height: 34px;
+  padding: 0 6px 0 8px;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+}
+
+.accessSelect option {
+  color: #1a1a1a;
+  background: #ffffff;
+}
+
+.accessInfo {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid #6b6b6b;
+  border-radius: 0 10px 10px 0;
+  background: transparent;
+  color: #c9c9cc;
+  cursor: pointer;
+}
+
+.accessInfo:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.accessInfo:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: -2px;
+}
+
+@media (max-width: 480px) {
+  .accessLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .accessSelect {
+    padding-left: 10px;
+  }
 }
 
 .themeButton:hover {
