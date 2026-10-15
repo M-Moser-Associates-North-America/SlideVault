@@ -20,13 +20,14 @@ import {
   yearOf,
   type Deck,
 } from './library';
-import { DeckCard, Link, SkeletonGrid, SlideCard, StateBlock, Thumb, useCartToggle } from './parts';
+import { DeckCard, Link, SimFlag, SkeletonGrid, SlideCard, StateBlock, StatusBadge, Thumb, useCartToggle } from './parts';
+import { simParse, simSearch, simTags, simTier, simUsed, stripFromQuery, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
 
 const ROW_LIMIT = 12;
 
 /** One horizontally scrolling row of cards, with "See all". */
-function Row({ id, title, sub, seeAll, total, children }: { id: string; title: string; sub?: string; seeAll?: string; total?: number; children: ReactNode }) {
+function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; title: string; sub?: string; seeAll?: string; total?: number; sim?: boolean; children: ReactNode }) {
   const ref = useRef<HTMLUListElement>(null);
   const [atEnd, setAtEnd] = useState(false);
   const measure = () => {
@@ -38,12 +39,19 @@ function Row({ id, title, sub, seeAll, total, children }: { id: string; title: s
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   });
-  const scroll = (dir: -1 | 1) => ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.85, behavior: 'smooth' });
+  const scroll = (dir: -1 | 1) =>
+    ref.current?.scrollBy({
+      left: dir * ref.current.clientWidth * 0.85,
+      behavior: 'smooth',
+    });
   return (
     <section className="row" aria-labelledby={`row-${id}`}>
       <div className="row-head">
         <div>
-          <h2 id={`row-${id}`}>{title}</h2>
+          <h2 id={`row-${id}`}>
+            {title}
+            {sim && <SimFlag />}
+          </h2>
           {sub && <div className="sub">{sub}</div>}
         </div>
         <div className="acts">
@@ -109,7 +117,9 @@ function useReadyLibrary(): { slides: SlideSummary[]; decks: Deck[] } | { blocke
     };
   }
   if (library.slides.length === 0) {
-    return { blocker: <StateBlock icon="library" title="The library is empty" text="No decks have been added yet." /> };
+    return {
+      blocker: <StateBlock icon="library" title="The library is empty" text="No decks have been added yet." />,
+    };
   }
   return { slides: library.slides, decks: library.decks };
 }
@@ -131,6 +141,9 @@ function LibraryView() {
 
   const best = browseSlides('best', slides);
   const recent = browseSlides('recent', slides);
+  const popular = browseSlides('popular', slides);
+  const suggested = browseSlides('suggested', slides);
+  const retired = browseSlides('retired', slides);
   const tileCounts = (pick: (s: SlideSummary) => string | number | null) => {
     const slideN = countBy(slides, pick);
     const deckN = new Map<string, Set<string>>();
@@ -162,6 +175,10 @@ function LibraryView() {
             Home
           </h1>
           <p className="lede">Browse trusted slides, or use the search box. Tick slides to add them to your cart.</p>
+          <p className="sim-legend">
+            <SimFlag />
+            Orange marks show a simulated preview: approval status, AI labels, download counts and smart search are not connected to real data yet.
+          </p>
         </div>
       </div>
       {!ready ? (
@@ -187,11 +204,38 @@ function LibraryView() {
               ))}
             </Row>
           )}
+          {popular.length > 0 && (
+            <Row id="popular" title="Most downloaded" sub="Sample counts for now." seeAll="popular" total={popular.length} sim>
+              {popular.slice(0, ROW_LIMIT).map((s) => (
+                <li key={s.id}>
+                  <SlideCard slide={s} list={popular.slice(0, ROW_LIMIT)} note={`Downloaded ${simUsed(s)} times (sample)`} />
+                </li>
+              ))}
+            </Row>
+          )}
+          {suggested.length > 0 && (
+            <Row id="suggested" title="Suggested for review" sub="Added or labelled by AI. A person has not checked them yet." seeAll="suggested" total={suggested.length} sim>
+              {suggested.slice(0, ROW_LIMIT).map((s) => (
+                <li key={s.id}>
+                  <SlideCard slide={s} list={suggested.slice(0, ROW_LIMIT)} />
+                </li>
+              ))}
+            </Row>
+          )}
           {decks.length > 0 && (
             <Row id="decks" title="Decks" sub="Arranged by client and year. Folder names TBD.">
               {decks.slice(0, 24).map((d) => (
                 <li key={d.id}>
                   <DeckCard deck={d} />
+                </li>
+              ))}
+            </Row>
+          )}
+          {retired.length > 0 && (
+            <Row id="retired" title="Retired" sub="Kept for records. Curators only. Can’t be downloaded." seeAll="retired" total={retired.length} sim>
+              {retired.slice(0, ROW_LIMIT).map((s) => (
+                <li key={s.id}>
+                  <SlideCard slide={s} list={retired.slice(0, ROW_LIMIT)} />
                 </li>
               ))}
             </Row>
@@ -264,8 +308,9 @@ export function BrowseView({ id }: { id: string }) {
   );
 }
 
-function SelectAll({ slides }: { slides: SlideSummary[] }) {
+function SelectAll({ slides: every }: { slides: SlideSummary[] }) {
   const { selection, updateSelection, announce } = useWorkspace();
+  const slides = every.filter((s) => simTier(s) !== 'Retired'); // retired slides can't be downloaded
   const all = slides.length > 0 && slides.every((s) => selection.some((x) => x.id === s.id));
   const click = () => {
     updateSelection((cur) => (all ? cur.filter((c) => !slides.some((s) => s.id === c.id)) : [...cur, ...slides.filter((s) => !cur.some((c) => c.id === s.id))]));
@@ -311,7 +356,7 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
       <FilterNote />
       <div className="grid" style={{ marginTop: 8 }}>
         {ids.map((s) => (
-          <SlideCard key={s.id} slide={s} list={ids} />
+          <SlideCard key={s.id} slide={s} list={ids} note={id === 'popular' ? `Downloaded ${simUsed(s)} times (sample)` : undefined} />
         ))}
       </div>
     </>
@@ -321,15 +366,39 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 /* --------------------------------------------------------------- Search */
 
 export function ResultsView() {
-  const { query, search, filters, retrySearch, setQuery } = useWorkspace();
-  const [sort, setSort] = useState<'best' | 'newest'>('best');
+  const { query, search, library, filters, retrySearch, setQuery } = useWorkspace();
+  const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
   const q = query.trim();
-  const shown = useMemo(() => {
-    if (search.status !== 'ready') return [];
-    const f = search.slides.filter((s) => slideMatches(s, filters));
-    return sort === 'newest' ? sortNewest(f) : f;
-  }, [search, filters, sort]);
-  const deckCount = new Set(shown.map((s) => s.provenance.sourceId)).size;
+
+  /* Simulated smart search (FD-14): reads the sentence, scores every slide, and says why it fits.
+     Real keyword hits from the server count for extra, so plain words still behave as before. */
+  const smart = useMemo(() => {
+    if (search.status !== 'ready' || library.status !== 'ready') return null;
+    const clients = [...new Set(library.slides.map((s) => s.provenance.clientName).filter((c): c is string => !!c))];
+    const parsed = simParse(q, clients);
+    const real = new Set(search.slides.map((s) => s.id));
+    const scored = simSearch(parsed, library.slides, real).filter((r) => slideMatches(r.slide, filters));
+    const seen = new Set<string>();
+    const ranked = scored.sort((a, b) => b.score - a.score);
+    const shown = ranked.filter((r) => {
+      const g = r.slide.alsoIn?.groupId;
+      if (!g) return true;
+      if (seen.has(g)) return false;
+      seen.add(g);
+      return true;
+    });
+    const sorted =
+      sort === 'popular'
+        ? [...shown].sort((a, b) => simUsed(b.slide) - simUsed(a.slide))
+        : sort === 'newest'
+          ? [...shown].sort((a, b) => (yearOf(b.slide) ?? -1) - (yearOf(a.slide) ?? -1) || b.score - a.score)
+          : shown;
+    return { parsed, shown: sorted, hidden: scored.length - shown.length };
+  }, [search, library, filters, q, sort]);
+
+  const shown = smart?.shown ?? [];
+  const slides = shown.map((r) => r.slide);
+  const deckCount = new Set(slides.map((s) => s.provenance.sourceId)).size;
 
   return (
     <div className="sv-wrap">
@@ -345,31 +414,51 @@ export function ResultsView() {
           </button>
         </StateBlock>
       )}
-      {(search.status === 'loading' || search.status === 'idle') && (
+      {(search.status === 'loading' || search.status === 'idle' || (search.status === 'ready' && !smart)) && (
         <div role="status" aria-live="polite">
           <p className="thinking">
             <Icon name="spinner" className="spin" />
-            Searching…
+            Reading your request, matching slides, checking why each one fits…
           </p>
           <SkeletonGrid count={4} />
         </div>
       )}
-      {search.status === 'ready' && (
+      {smart && (
         <>
+          <div className="interp">
+            <span className="meta" title="Simulated for now. The real build uses an AI model.">
+              <Icon name="sparkle" className="ic-sm" />
+              We read this as:
+              <SimFlag />
+            </span>
+            {smart.parsed.chips.map((c) => (
+              <button key={c.key} type="button" className="chip-x" aria-label={`Remove ${c.kind}: ${c.label}`} onClick={() => setQuery(stripFromQuery(q, c))}>
+                <span className="k">{c.kind}:</span> {c.label}
+                <Icon name="x" />
+              </button>
+            ))}
+            {smart.parsed.tokens.length > 0 && <span className="meta">and the words {smart.parsed.tokens.map((t) => `“${t}”`).join(', ')}</span>}
+            {!smart.parsed.chips.length && !smart.parsed.tokens.length && <span className="meta">no specific topic, showing what fits your filters</span>}
+          </div>
           <div className="refine">
             <label>
               Sort
-              <select className="select select-sm" value={sort} onChange={(e) => setSort(e.target.value as 'best' | 'newest')}>
+              <select className="select select-sm" value={sort} onChange={(e) => setSort(e.target.value as 'best' | 'popular' | 'newest')}>
                 <option value="best">Best match</option>
+                <option value="popular">Most downloaded (sample)</option>
                 <option value="newest">Newest first</option>
               </select>
             </label>
             <span className="spacer" />
-            {shown.length > 0 && <SelectAll slides={shown} />}
+            {slides.length > 0 && <SelectAll slides={slides} />}
           </div>
           <FilterNote />
           {shown.length === 0 ? (
-            <StateBlock icon="search" title="No slides match that yet" text="Every word you type must appear in a slide’s title or text. Try fewer or different words, or clear the filters on the left.">
+            <StateBlock
+              icon="search"
+              title="No slides match that yet"
+              text="Try fewer words, remove a chip above, or clear the filters on the left. Slides may also be hidden at your access level."
+            >
               <button type="button" className="btn" onClick={() => setQuery('')}>
                 Clear search
               </button>
@@ -377,15 +466,29 @@ export function ResultsView() {
           ) : (
             <>
               <p className="summary" aria-live="polite">
-                <strong>{plural(shown.length, 'slide')}</strong> from {plural(deckCount, 'deck')}. Near-identical copies are grouped under “Also in…”.
+                <strong>{plural(shown.length, 'slide')}</strong> from {plural(deckCount, 'deck')}. Best matches first.
+                {smart.hidden > 0 ? ` ${plural(smart.hidden, 'near-identical copy', 'near-identical copies')} grouped under “Also in…”.` : ''}
               </p>
               <div className="grid">
-                {shown.map((s) => (
-                  <SlideCard key={s.id} slide={s} list={shown} />
+                {shown.map((r) => (
+                  <SlideCard key={r.slide.id} slide={r.slide} list={slides} why={r.why} note={sort === 'popular' ? `Downloaded ${simUsed(r.slide)} times (sample)` : undefined} />
                 ))}
               </div>
             </>
           )}
+          <details className="how">
+            <summary>
+              How does this search work? <SimFlag />
+            </summary>
+            <ol>
+              <li>Your request is read and turned into filters (client, year) and topics.</li>
+              <li>Slides are matched on those filters, then on meaning. The real build uses text search plus embeddings in Postgres.</li>
+              <li>Each result says why it fits. Near-identical slides are grouped, never deleted.</li>
+            </ol>
+            <p className="meta" style={{ marginTop: 8 }}>
+              Steps 1 and 2 are simulated here. The words you type are also checked against the real slide text.
+            </p>
+          </details>
         </>
       )}
     </div>
@@ -429,7 +532,7 @@ export function DeckView({ id }: { id: string }) {
         </div>
         <div className="row-flex">
           <SelectAll slides={deck.slides} />
-          <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload(deck.slides)}>
+          <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload(deck.slides.filter((s) => simTier(s) !== 'Retired'))}>
             <Icon name="download" />
             <span>Download whole deck</span>
           </button>
@@ -493,9 +596,14 @@ export function SlideView({ id }: { id: string }) {
   const i = sibs.findIndex((s) => s.id === id);
   const sel = isSelected(id);
   const p = slide.provenance;
+  const tier = simTier(slide);
+  const tags = simTags(slide);
+  const retired = tier === 'Retired';
   const text = detail && detail.id === id ? ('slide' in detail ? detail.slide.text : null) : undefined;
   const textError = detail && detail.id === id && 'error' in detail ? detail.error : null;
-  const more = (library.status === 'ready' ? library.slides : []).filter((s) => s.id !== id && s.provenance.sourceId !== p.sourceId && clientOf(s) === clientOf(slide) && clientOf(s) !== UNKNOWN_CLIENT).slice(0, 10);
+  const more = (library.status === 'ready' ? library.slides : [])
+    .filter((s) => s.id !== id && s.provenance.sourceId !== p.sourceId && clientOf(s) === clientOf(slide) && clientOf(s) !== UNKNOWN_CLIENT)
+    .slice(0, 10);
 
   return (
     <div className="sv-wrap">
@@ -504,7 +612,24 @@ export function SlideView({ id }: { id: string }) {
           <h1 className="h1" tabIndex={-1} style={{ marginBottom: 12 }}>
             {slide.title}
           </h1>
-          <button type="button" className="big-preview" style={{ display: 'block', width: '100%', padding: 0, cursor: 'zoom-in', background: 'none' }} aria-label="Open a larger preview" onClick={() => openPreview(sibs, i)}>
+          {tier !== 'Approved' && (
+            <div className="badges" style={{ marginBottom: 12 }}>
+              <StatusBadge tier={tier} />
+            </div>
+          )}
+          <button
+            type="button"
+            className="big-preview"
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: 0,
+              cursor: 'zoom-in',
+              background: 'none',
+            }}
+            aria-label="Open a larger preview"
+            onClick={() => openPreview(sibs, i)}
+          >
             <div style={{ aspectRatio: '16 / 9' }}>
               <Thumb slide={slide} />
             </div>
@@ -546,11 +671,11 @@ export function SlideView({ id }: { id: string }) {
           <section className="panel">
             <h2>Use this slide</h2>
             <div className="row-flex">
-              <button type="button" className="btn btn-sm" aria-pressed={sel} onClick={() => set(slide, !sel)}>
+              <button type="button" className="btn btn-sm" aria-pressed={sel} disabled={retired} onClick={() => set(slide, !sel)}>
                 <Icon name="check" />
                 <span>{sel ? 'Selected' : 'Select'}</span>
               </button>
-              <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload([slide])}>
+              <button type="button" className="btn btn-sm btn-primary" disabled={retired} onClick={() => openDownload([slide])}>
                 <Icon name="download" />
                 <span>Download only this slide</span>
               </button>
@@ -558,6 +683,11 @@ export function SlideView({ id }: { id: string }) {
                 Open deck
               </Link>
             </div>
+            {retired && (
+              <p className="meta" style={{ marginTop: 8 }}>
+                {TIER_TEXT.Retired}
+              </p>
+            )}
           </section>
           <section className="panel">
             <h2>Details</h2>
@@ -592,16 +722,40 @@ export function SlideView({ id }: { id: string }) {
                 {slide.hiddenInSource ? ', hidden in the source deck' : ''}
               </dd>
             </dl>
+          </section>
+          <section className="panel sim-panel">
+            <h2>
+              Status and labels <SimFlag />
+            </h2>
+            <div className="badges">
+              <StatusBadge tier={tier} />
+            </div>
             <p className="meta" style={{ marginTop: 8 }}>
-              Slide type and topic labels from AI are planned. Owner and approval show once review exists.
+              {TIER_TEXT[tier]}
+            </p>
+            <h3 className="h3" style={{ marginTop: 12 }}>
+              Labels suggested by AI
+            </h3>
+            {tags.length ? (
+              <div className="tags" style={{ marginTop: 6 }}>
+                {tags.map((t) => (
+                  <span key={t} className="tag sim">
+                    <Icon name="sparkle" className="ic-sm" />
+                    {t}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="meta">No labels suggested for this slide.</p>
+            )}
+            <p className="meta" style={{ marginTop: 8 }}>
+              Simulated: worked out from the slide title and deck name. The real build reads the whole slide and a person checks the labels before they count.
             </p>
           </section>
           {slide.alsoIn && (
             <section className="panel">
               <h2>Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</h2>
-              <p className="meta">
-                {slide.alsoIn.match === 'near' ? 'Nearly identical slides' : 'The same slide'} appear in other decks. Nothing is deleted.
-              </p>
+              <p className="meta">{slide.alsoIn.match === 'near' ? 'Nearly identical slides' : 'The same slide'} appear in other decks. Nothing is deleted.</p>
             </section>
           )}
         </div>

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
 import { Cart } from './Cart';
-import { DownloadDialog, Lightbox } from './Dialogs';
+import { AlsoDialog, DownloadDialog, Lightbox } from './Dialogs';
 import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
 import { Crumbs, Link, type Crumb } from './parts';
@@ -28,10 +28,30 @@ export function SlideVaultWorkspace({ runtime }: SlideVaultWorkspaceProps) {
   );
 }
 
-const TABS: { view: 'pages' | 'create' | 'upload'; label: string; icon: IconName; tip: string }[] = [
-  { view: 'pages', label: 'Home', icon: 'library', tip: 'Browse and search every slide' },
-  { view: 'create', label: 'Create', icon: 'layers', tip: 'Build and My decks will live here later' },
-  { view: 'upload', label: 'Upload', icon: 'upload', tip: 'Add decks to the library' },
+const TABS: {
+  view: 'pages' | 'create' | 'upload';
+  label: string;
+  icon: IconName;
+  tip: string;
+}[] = [
+  {
+    view: 'pages',
+    label: 'Home',
+    icon: 'library',
+    tip: 'Browse and search every slide',
+  },
+  {
+    view: 'create',
+    label: 'Create',
+    icon: 'layers',
+    tip: 'Build and My decks will live here later',
+  },
+  {
+    view: 'upload',
+    label: 'Upload',
+    icon: 'upload',
+    tip: 'Add decks to the library',
+  },
 ];
 
 function Workspace() {
@@ -65,7 +85,14 @@ function Workspace() {
     const slide = view === 'slide' && library.status === 'ready' ? library.slides.find((s) => s.id === loc.id) : undefined;
     crumbs.push({ label: 'Home', to: { view: 'pages' } });
     if (view === 'deck') crumbs.push({ label: deck?.title ?? 'Deck' });
-    else crumbs.push({ label: deck?.title ?? 'Deck', to: deck ? { view: 'deck', id: deck.id } : undefined }, { label: slide ? `Slide ${slide.provenance.slideNumber}` : 'Slide' });
+    else
+      crumbs.push(
+        {
+          label: deck?.title ?? 'Deck',
+          to: deck ? { view: 'deck', id: deck.id } : undefined,
+        },
+        { label: slide ? `Slide ${slide.provenance.slideNumber}` : 'Slide' },
+      );
   }
   const showBack = deep && query.trim() !== '';
 
@@ -79,7 +106,7 @@ function Workspace() {
           <div className="sv-brandrow">
             <nav className="sv-nav" aria-label="Main">
               <ul>
-                {TABS.map((t) => (
+                {TABS.filter((t) => t.view !== 'upload' || runtime.capabilities.has('source.upload')).map((t) => (
                   <li key={t.view}>
                     <Link to={{ view: t.view }} aria-current={view === t.view || (t.view === 'pages' && (view === 'browse' || deep)) ? 'page' : undefined} title={t.tip}>
                       <Icon name={t.icon} />
@@ -149,6 +176,7 @@ function Workspace() {
       </div>
       <Lightbox />
       <DownloadDialog />
+      <AlsoDialog />
     </div>
   );
 }

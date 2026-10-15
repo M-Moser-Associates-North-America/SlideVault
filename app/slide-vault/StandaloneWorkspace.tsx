@@ -4,11 +4,18 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { CONTRACT_VERSION, SlideVaultWorkspace, type Capability, type RuntimeRequest, type SlideVaultRuntime } from '@/features/slide-vault';
 import { API_ROOT, locationFromSegments, pathFromLocation, UI_BASE } from './shell-config';
+import { useAccess } from './access';
 import { useTheme } from './theme';
 
-// Prototype (decision FD-01): no sign-in yet. One fixed session scope and the read/export/upload capabilities.
+// Prototype (decision FD-01): no sign-in yet. One fixed session scope; the Access switch in the header
+// stands in for login and decides whether upload is allowed.
 const SESSION_SCOPE = 'local-dev';
-const CAPABILITIES: ReadonlySet<Capability> = new Set(['library.read', 'collection.write', 'export.create', 'source.upload']);
+const READ_EXPORT: Capability[] = ['library.read', 'collection.write', 'export.create'];
+const CAPABILITIES: Record<'viewer' | 'editor' | 'curator', ReadonlySet<Capability>> = {
+  viewer: new Set(READ_EXPORT),
+  editor: new Set([...READ_EXPORT, 'source.upload', 'metadata.edit']),
+  curator: new Set([...READ_EXPORT, 'source.upload', 'metadata.edit', 'content.review', 'content.retire']),
+};
 
 /** Only relative, same-API paths: no schemes, no host, no path traversal (docs/INTEGRATION_CONTRACT.md). */
 function assertFeaturePath(path: string) {
@@ -54,16 +61,17 @@ export function StandaloneWorkspace() {
   );
 
   const { theme } = useTheme();
+  const { access } = useAccess();
   const runtime = useMemo<SlideVaultRuntime>(
     () => ({
       contractVersion: CONTRACT_VERSION,
       sessionScopeKey: SESSION_SCOPE,
-      capabilities: CAPABILITIES,
+      capabilities: CAPABILITIES[access],
       theme,
       location: locationFromSegments(segments),
       ...services,
     }),
-    [segments, services, theme],
+    [segments, services, theme, access],
   );
 
   // The shell owns theme: the workspace renders inside the .slidevault token scope.

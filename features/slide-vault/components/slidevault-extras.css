@@ -18,8 +18,6 @@
 }
 
 .slidevault .btn:disabled { opacity: .45; cursor: not-allowed; }
-.slidevault .also.static { cursor: default; }
-.slidevault .also.static:hover { background: var(--sv-surface); }
 .slidevault .thumb img { transition: transform var(--sv-duration) var(--sv-ease-out); }
 
 /* Example-search chips are buttons here (the prototype used links). */
@@ -40,3 +38,23 @@
 .slidevault .cart-zip { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0 0 8px; }
 .slidevault .cart-zip .meta { margin: 0; }
 .slidevault .cart-zip .btn { gap: 4px 6px; flex-wrap: wrap; height: auto; min-height: 32px; max-width: 100%; justify-content: flex-start; }
+
+/* Simulated features (FD-14): everything that is front end only carries the brand orange. */
+.slidevault .sim-flag { display: inline-flex; align-items: center; margin-left: 8px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; vertical-align: middle; white-space: nowrap; }
+.slidevault .sim-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; margin: 8px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .sim-legend .sim-flag { margin: 0 8px 0 0; }
+.slidevault .badge.sim { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 10%, var(--sv-surface)); }
+.slidevault .thumb-badge { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.slidevault .tag.sim { display: inline-flex; align-items: center; gap: 4px; border: 1px dashed var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); }
+.slidevault .tag.sim .ic { color: var(--sv-brand-strong); }
+.slidevault .sim-note { display: flex; align-items: center; gap: 6px; font-size: var(--sv-text-meta); color: var(--sv-text); }
+.slidevault .sim-note .ic { color: var(--sv-brand-strong); }
+.slidevault .matched b .sim-flag { margin-left: auto; }
+.slidevault .sim-panel { border-left: 3px solid var(--sv-brand); }
+.slidevault .sim-group > legend { display: flex; align-items: center; gap: 6px; }
+.slidevault .sim-group .sim-flag { margin-left: 0; }
+.slidevault .qsteps span.sim-step { color: var(--sv-brand-strong); }
+.slidevault .qsteps span.sim-step.done .ic { color: var(--sv-brand-strong); }
+.slidevault .row-head h2 .sim-flag { margin-left: 10px; }
+.slidevault .also-list .t { display: block; }
+.slidevault .how summary .sim-flag { margin-left: 6px; }
