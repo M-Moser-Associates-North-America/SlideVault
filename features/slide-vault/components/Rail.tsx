@@ -3,13 +3,15 @@
 import { useId, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from 'react';
 import { Icon } from './icons';
 import { categoryOf, clientOf, countBy, filterCount, yearsOf, type Deck } from './library';
+import { visibleTiers, type Tier } from './simulation';
+import { SimFlag } from './parts';
 import { useWorkspace } from './state';
 
 /**
- * Example searches shown under the box. Plain words that the keyword search can answer;
- * smarter, sentence-style suggestions need the AI search layer, which is not built yet.
+ * Example searches shown under the box. The sentence-style ones are read by the simulated smart
+ * search (FD-14); the single words also work with the real keyword search.
  */
-const TRY_QUERIES = ['team', 'services', 'cost', 'values'];
+const TRY_QUERIES = ['team intro for a law firm pitch', 'cost and fees', 'about us and values', 'recent logistics work', 'process and timeline 2025'];
 
 /** Wide screens always show the filters; narrow ones fold them away behind the heading. */
 const WIDE = '(min-width: 961px)';
@@ -18,7 +20,12 @@ const subscribeWide = (cb: () => void) => {
   m.addEventListener('change', cb);
   return () => m.removeEventListener('change', cb);
 };
-const useIsWide = () => useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches, () => true);
+const useIsWide = () =>
+  useSyncExternalStore(
+    subscribeWide,
+    () => window.matchMedia(WIDE).matches,
+    () => true,
+  );
 
 const norm = (s: string) => s.toLowerCase().replace(/[’']/g, '');
 
@@ -175,7 +182,17 @@ function ClientCombo({ options, picked, onPick, onRemove }: { options: [string, 
         <ul id={`${id}-list`} className="combo-list" role="listbox" aria-label="Clients" hidden={!open}>
           {shown.length ? (
             shown.map(([v, n], i) => (
-              <li key={v} id={`${id}-o${i}`} role="option" aria-selected={i === active} className={i === active ? 'act' : undefined} onMouseDown={(e) => { e.preventDefault(); pick(v); }}>
+              <li
+                key={v}
+                id={`${id}-o${i}`}
+                role="option"
+                aria-selected={i === active}
+                className={i === active ? 'act' : undefined}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  pick(v);
+                }}
+              >
                 <span>{v}</span>
                 <span className="meta">{n}</span>
               </li>
@@ -208,7 +225,8 @@ const PRESETS: [number, string][] = [
 ];
 
 export function FilterPanel({ decks, slidesAll }: { decks: Deck[]; slidesAll: import('../contracts/dto').SlideSummary[] }) {
-  const { filters, patchFilters, clearFilters } = useWorkspace();
+  const { runtime, filters, patchFilters, clearFilters } = useWorkspace();
+  const tiers = visibleTiers(runtime.capabilities);
   const nowYear = new Date().getFullYear();
   const n = filterCount(filters);
   const wide = useIsWide();
@@ -231,7 +249,14 @@ export function FilterPanel({ decks, slidesAll }: { decks: Deck[]; slidesAll: im
       <summary onClick={(e) => wide && e.preventDefault()}>
         <h2 className="f-title">Filters{n ? ` · ${n}` : ''}</h2>
         {n > 0 && (
-          <button type="button" className="btn-link f-clear" onClick={(e) => { e.preventDefault(); clearFilters(); }}>
+          <button
+            type="button"
+            className="btn-link f-clear"
+            onClick={(e) => {
+              e.preventDefault();
+              clearFilters();
+            }}
+          >
             Clear all
           </button>
         )}
@@ -248,6 +273,31 @@ export function FilterPanel({ decks, slidesAll }: { decks: Deck[]; slidesAll: im
             </div>
           </fieldset>
         )}
+        {tiers.length > 1 && (
+          <fieldset className="fg sim-group">
+            <legend>
+              Status
+              {filters.status.length > 0 && <span className="n">{filters.status.length}</span>}
+              <SimFlag />
+            </legend>
+            <div className="fchips">
+              {tiers.map((t) => (
+                <label key={t} className="fchip">
+                  <input
+                    type="checkbox"
+                    checked={filters.status.includes(t)}
+                    onChange={() =>
+                      patchFilters({
+                        status: toggle(filters.status, t) as Tier[],
+                      })
+                    }
+                  />
+                  <span>{t}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
         {categories.length > 0 && (
           <Chips label="Category" values={categories} picked={filters.category} count={categoryCounts} onToggle={(v) => patchFilters({ category: toggle(filters.category, v) })} />
         )}
@@ -261,7 +311,13 @@ export function FilterPanel({ decks, slidesAll }: { decks: Deck[]; slidesAll: im
               {PRESETS.map(([k, label]) => {
                 const on = filters.yfrom === nowYear - k + 1 && filters.yto === null;
                 return (
-                  <button key={k} type="button" className="pchip" aria-pressed={on} onClick={() => patchFilters(on ? { yfrom: null, yto: null } : { yfrom: nowYear - k + 1, yto: null })}>
+                  <button
+                    key={k}
+                    type="button"
+                    className="pchip"
+                    aria-pressed={on}
+                    onClick={() => patchFilters(on ? { yfrom: null, yto: null } : { yfrom: nowYear - k + 1, yto: null })}
+                  >
                     {label}
                   </button>
                 );
@@ -275,7 +331,16 @@ export function FilterPanel({ decks, slidesAll }: { decks: Deck[]; slidesAll: im
                 <label className="sr-only" htmlFor="sv-y-from">
                   From year
                 </label>
-                <select id="sv-y-from" className="select select-sm" value={filters.yfrom ?? ''} onChange={(e) => patchFilters({ yfrom: e.target.value ? Number(e.target.value) : null })}>
+                <select
+                  id="sv-y-from"
+                  className="select select-sm"
+                  value={filters.yfrom ?? ''}
+                  onChange={(e) =>
+                    patchFilters({
+                      yfrom: e.target.value ? Number(e.target.value) : null,
+                    })
+                  }
+                >
                   <option value="">From</option>
                   {years.map((y) => (
                     <option key={y} value={y}>
@@ -289,7 +354,16 @@ export function FilterPanel({ decks, slidesAll }: { decks: Deck[]; slidesAll: im
                 <label className="sr-only" htmlFor="sv-y-to">
                   To year
                 </label>
-                <select id="sv-y-to" className="select select-sm" value={filters.yto ?? ''} onChange={(e) => patchFilters({ yto: e.target.value ? Number(e.target.value) : null })}>
+                <select
+                  id="sv-y-to"
+                  className="select select-sm"
+                  value={filters.yto ?? ''}
+                  onChange={(e) =>
+                    patchFilters({
+                      yto: e.target.value ? Number(e.target.value) : null,
+                    })
+                  }
+                >
                   <option value="">To</option>
                   {years.map((y) => (
                     <option key={y} value={y}>
@@ -302,7 +376,12 @@ export function FilterPanel({ decks, slidesAll }: { decks: Deck[]; slidesAll: im
           </fieldset>
         )}
         {clients.length > 0 && (
-          <ClientCombo options={clients} picked={filters.client} onPick={(v) => patchFilters({ client: [...filters.client, v] })} onRemove={(v) => patchFilters({ client: filters.client.filter((x) => x !== v) })} />
+          <ClientCombo
+            options={clients}
+            picked={filters.client}
+            onPick={(v) => patchFilters({ client: [...filters.client, v] })}
+            onRemove={(v) => patchFilters({ client: filters.client.filter((x) => x !== v) })}
+          />
         )}
         {categories.length === 0 && years.length === 0 && clients.length === 0 && !hasBest && (
           <p className="f-note">Filters appear once decks have a client, year or category from their folder.</p>

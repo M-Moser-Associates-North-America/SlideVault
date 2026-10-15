@@ -5,6 +5,7 @@ import type { SlideSummary } from '../contracts/dto';
 import type { Location } from '../contracts/runtime';
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, plural, yearOf, type Deck, folderLabel } from './library';
+import { simTier, TIER_TEXT, type Tier } from './simulation';
 import { useWorkspace } from './state';
 
 /** A link that goes through the host's navigation (runtime.navigate), keeping real hrefs for new tabs. */
@@ -50,9 +51,7 @@ export function Crumbs({ items }: { items: Crumb[] }) {
       <nav aria-label="Breadcrumb">
         <ol>
           {items.map((it, i) => (
-            <li key={i}>
-              {i === items.length - 1 || !it.to ? <span aria-current="page">{it.label}</span> : <Link to={it.to}>{it.label}</Link>}
-            </li>
+            <li key={i}>{i === items.length - 1 || !it.to ? <span aria-current="page">{it.label}</span> : <Link to={it.to}>{it.label}</Link>}</li>
           ))}
         </ol>
       </nav>
@@ -85,7 +84,20 @@ export function SkeletonGrid({ count = 6 }: { count?: number }) {
 export function Thumb({ slide }: { slide: SlideSummary }) {
   const { runtime } = useWorkspace();
   // eslint-disable-next-line @next/next/no-img-element -- previews come from the injected API, not next/image
-  return <img src={runtime.assetUrl(slide.previewPath)} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />;
+  return (
+    <img
+      src={runtime.assetUrl(slide.previewPath)}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      style={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        display: 'block',
+      }}
+    />
+  );
 }
 
 /** Add to or remove from the cart. */
@@ -104,9 +116,26 @@ export function useCartToggle() {
   return { isSelected, set };
 }
 
+/** Orange mark for anything simulated on the front end only (FD-14). */
+export function SimFlag({ children = 'Simulated' }: { children?: ReactNode }) {
+  return <span className="sim-flag">{children}</span>;
+}
+
+/** Approval status (simulated): Approved, Suggested or Retired. */
+export function StatusBadge({ tier }: { tier: Tier }) {
+  return (
+    <span className="badge sim" title={`${TIER_TEXT[tier]} (Simulated)`}>
+      <span className="sr-only">Status: </span>
+      <span className={`dot dot-${tier.toLowerCase()}`} aria-hidden="true" />
+      {tier}
+    </span>
+  );
+}
+
 /** Slide card: preview, tick-to-add, where it came from, "also in N other decks". */
-export function SlideCard({ slide, list }: { slide: SlideSummary; list: SlideSummary[] }) {
-  const { openPreview } = useWorkspace();
+export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; list: SlideSummary[]; why?: string; note?: string }) {
+  const { openPreview, openAlso } = useWorkspace();
+  const tier = simTier(slide);
   const { isSelected, set } = useCartToggle();
   const sel = isSelected(slide.id);
   const p = slide.provenance;
@@ -118,22 +147,33 @@ export function SlideCard({ slide, list }: { slide: SlideSummary; list: SlideSum
           type="button"
           className="thumb"
           aria-label={`Preview: ${slide.title}`}
-          onClick={() => openPreview(list, Math.max(0, list.findIndex((s) => s.id === slide.id)))}
+          onClick={() =>
+            openPreview(
+              list,
+              Math.max(
+                0,
+                list.findIndex((s) => s.id === slide.id),
+              ),
+            )
+          }
         >
           <Thumb slide={slide} />
           <span className="zoom" aria-hidden="true">
             <Icon name="expand" className="ic-sm" />
           </span>
         </button>
-        <label className="pick" title="Select this slide to download">
-          <input type="checkbox" checked={sel} onChange={(e) => set(slide, e.target.checked)} aria-label={`Select: ${slide.title}`} />
-          <span className="box" aria-hidden="true">
-            <Icon name="check" />
-          </span>
-        </label>
-        {slide.hiddenInSource && (
+        {tier !== 'Retired' && (
+          <label className="pick" title="Select this slide to download">
+            <input type="checkbox" checked={sel} onChange={(e) => set(slide, e.target.checked)} aria-label={`Select: ${slide.title}`} />
+            <span className="box" aria-hidden="true">
+              <Icon name="check" />
+            </span>
+          </label>
+        )}
+        {(tier !== 'Approved' || slide.hiddenInSource) && (
           <span className="thumb-badge">
-            <span className="badge">Hidden in source</span>
+            {tier !== 'Approved' && <StatusBadge tier={tier} />}
+            {slide.hiddenInSource && <span className="badge">Hidden in source</span>}
           </span>
         )}
       </div>
@@ -141,18 +181,35 @@ export function SlideCard({ slide, list }: { slide: SlideSummary; list: SlideSum
         <Link className="card-title" to={{ view: 'slide', id: slide.id }}>
           {slide.title}
         </Link>
-        <div className="meta clip">{meta}</div>
-        <div className="meta clip" title={p.sourceTitle}>
-          Slide {p.slideNumber} of {p.sourceTitle}
+        <div className="meta clip" title={`Slide ${p.slideNumber} of ${p.sourceTitle}`}>
+          {meta || p.sourceTitle}
         </div>
         {slide.alsoIn && (
-          <span
-            className="also static"
+          <button
+            type="button"
+            className="also"
             title={slide.alsoIn.match === 'near' ? 'A nearly identical slide is in other decks' : 'The same slide is in other decks'}
+            onClick={() => openAlso(slide)}
           >
             <Icon name="copy" className="ic-sm" />
             Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}
-          </span>
+          </button>
+        )}
+        {note && (
+          <div className="sim-note">
+            <Icon name="download" className="ic-sm" />
+            {note}
+          </div>
+        )}
+        {why && (
+          <div className="matched">
+            <b>
+              <Icon name="sparkle" className="ic-sm" />
+              Why it fits
+              <SimFlag />
+            </b>
+            {why}
+          </div>
         )}
       </div>
     </article>
@@ -167,7 +224,15 @@ export function DeckCard({ deck }: { deck: Deck }) {
     <article className="card vcard" data-deck={deck.id}>
       <Link to={{ view: 'deck', id: deck.id }} tabIndex={-1} ariaHidden>
         <div className="mosaic" aria-hidden="true">
-          {cells.map((s, i) => (s ? <div key={s.id}><Thumb slide={s} /></div> : <div key={`e${i}`} className="ph" />))}
+          {cells.map((s, i) =>
+            s ? (
+              <div key={s.id}>
+                <Thumb slide={s} />
+              </div>
+            ) : (
+              <div key={`e${i}`} className="ph" />
+            ),
+          )}
         </div>
       </Link>
       <div className="card-body">

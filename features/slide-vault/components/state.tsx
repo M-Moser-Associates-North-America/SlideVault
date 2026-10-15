@@ -6,17 +6,11 @@ import { useSelection } from '../client/selection-store';
 import type { SlideSummary } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 import { groupDecks, NO_FILTERS, type Deck, type Filters } from './library';
+import { canSeeTier, simTier } from './simulation';
 
-export type LibraryState =
-  | { status: 'loading' }
-  | { status: 'ready'; slides: SlideSummary[]; decks: Deck[] }
-  | { status: 'error'; message: string };
+export type LibraryState = { status: 'loading' } | { status: 'ready'; slides: SlideSummary[]; decks: Deck[] } | { status: 'error'; message: string };
 
-export type SearchState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'ready'; slides: SlideSummary[] }
-  | { status: 'error'; message: string };
+export type SearchState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; slides: SlideSummary[] } | { status: 'error'; message: string };
 
 export type Toast = { id: number; message: string };
 
@@ -52,6 +46,10 @@ type Workspace = {
   downloadSlides: SlideSummary[] | null;
   openDownload: (slides: SlideSummary[]) => void;
   closeDownload: () => void;
+  /** The slide whose "Also in other decks" list is open, or null when it is closed */
+  alsoFor: SlideSummary | null;
+  openAlso: (slide: SlideSummary) => void;
+  closeAlso: () => void;
 };
 
 const Ctx = createContext<Workspace | null>(null);
@@ -70,7 +68,9 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
   const transport = useMemo(() => ({ request, onSessionExpired }), [request, onSessionExpired]);
 
   /* The whole library: one request, then filtered and grouped in the browser. */
-  const [library, setLibrary] = useState<LibraryState>({ status: 'loading' });
+  const [rawLibrary, setLibrary] = useState<LibraryState>({
+    status: 'loading',
+  });
   const [libraryTry, setLibraryTry] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
@@ -86,7 +86,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
 
   /* Search text lives in memory, not in the URL (docs/INTEGRATION_CONTRACT.md). */
   const [query, setQueryRaw] = useState('');
-  const [search, setSearch] = useState<SearchState>({ status: 'idle' });
+  const [rawSearch, setSearch] = useState<SearchState>({ status: 'idle' });
   const [searchTry, setSearchTry] = useState(0);
   const setQuery = useCallback((q: string) => {
     setQueryRaw(q);
@@ -110,6 +110,24 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
       controller.abort();
     };
   }, [transport, query, searchTry]);
+
+  /* Simulated approval tiers (FD-14): what the signed-in access may see. The server has no tiers yet. */
+  const caps = runtime.capabilities;
+  const library = useMemo<LibraryState>(() => {
+    if (rawLibrary.status !== 'ready') return rawLibrary;
+    const slides = rawLibrary.slides.filter((s) => canSeeTier(simTier(s), caps));
+    return { status: 'ready', slides, decks: groupDecks(slides) };
+  }, [rawLibrary, caps]);
+  const search = useMemo<SearchState>(
+    () =>
+      rawSearch.status === 'ready'
+        ? {
+            status: 'ready',
+            slides: rawSearch.slides.filter((s) => canSeeTier(simTier(s), caps)),
+          }
+        : rawSearch,
+    [rawSearch, caps],
+  );
 
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);
@@ -150,17 +168,21 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     setTimeout(() => setAnnouncement(message), 40);
   }, []);
 
-  const [preview, setPreview] = useState<{ list: SlideSummary[]; index: number } | null>(null);
+  const [preview, setPreview] = useState<{
+    list: SlideSummary[];
+    index: number;
+  } | null>(null);
   const openPreview = useCallback((list: SlideSummary[], index: number) => setPreview({ list, index }), []);
   const closePreview = useCallback(() => setPreview(null), []);
-  const movePreview = useCallback(
-    (delta: -1 | 1) => setPreview((p) => (p && p.list.length > 1 ? { ...p, index: (p.index + delta + p.list.length) % p.list.length } : p)),
-    [],
-  );
+  const movePreview = useCallback((delta: -1 | 1) => setPreview((p) => (p && p.list.length > 1 ? { ...p, index: (p.index + delta + p.list.length) % p.list.length } : p)), []);
 
   const [downloadSlides, setDownloadSlides] = useState<SlideSummary[] | null>(null);
   const openDownload = useCallback((slides: SlideSummary[]) => setDownloadSlides(slides), []);
   const closeDownload = useCallback(() => setDownloadSlides(null), []);
+
+  const [alsoFor, setAlsoFor] = useState<SlideSummary | null>(null);
+  const openAlso = useCallback((slide: SlideSummary) => setAlsoFor(slide), []);
+  const closeAlso = useCallback(() => setAlsoFor(null), []);
 
   const value: Workspace = {
     runtime,
@@ -191,6 +213,9 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     downloadSlides,
     openDownload,
     closeDownload,
+    alsoFor,
+    openAlso,
+    closeAlso,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

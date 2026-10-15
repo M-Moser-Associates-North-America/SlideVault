@@ -46,7 +46,11 @@ export function Cart() {
       const b = items[i].getBoundingClientRect();
       if (y < b.top + b.height / 2) return { index: i, id: items[i].dataset.id ?? null, after: false };
     }
-    return { index: items.length, id: items[items.length - 1]?.dataset.id ?? null, after: true };
+    return {
+      index: items.length,
+      id: items[items.length - 1]?.dataset.id ?? null,
+      after: true,
+    };
   };
 
   const onDragOver = (e: DragEvent) => {
@@ -93,7 +97,12 @@ export function Cart() {
         <span className="mini-t">Cart</span>
       </button>
       {included.length > 0 && (
-        <button type="button" className="btn btn-primary btn-icon btn-sm" aria-label={`Download ${plural(included.length, 'slide')} as pptx`} onClick={() => openDownload(included)}>
+        <button
+          type="button"
+          className="btn btn-primary btn-icon btn-sm"
+          aria-label={`Download ${plural(included.length, 'slide')} as pptx`}
+          onClick={() => openDownload(included)}
+        >
           <Icon name="download" />
         </button>
       )}
@@ -187,7 +196,12 @@ export function Cart() {
                   <Link to={{ view: 'slide', id: s.id }}>{s.title}</Link>
                   <span className="meta">{s.provenance.sourceTitle}</span>
                 </div>
-                <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Remove from cart: ${s.title}`} onClick={() => updateSelection((cur) => cur.filter((x) => x.id !== s.id))}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-icon btn-sm"
+                  aria-label={`Remove from cart: ${s.title}`}
+                  onClick={() => updateSelection((cur) => cur.filter((x) => x.id !== s.id))}
+                >
                   <Icon name="x" />
                 </button>
               </li>
@@ -204,12 +218,15 @@ export function Cart() {
         </p>
         {plan.zip && (
           <div className="cart-zip">
-            <p className="meta">These slides are from {plan.files.length} different decks, so each deck downloads as its own file in a zip. This keeps every slide&apos;s original formatting.</p>
-            <button type="button" className="btn btn-sm" aria-disabled="true" aria-describedby="cart-combine-note" onClick={(e) => e.preventDefault()}>
-              <Icon name="layers" />
-              <span>Combine into one deck</span>
-              <span className="badge">Coming later</span>
-            </button>
+            <span className="tipw">
+              <button type="button" className="btn btn-sm" aria-disabled="true" aria-describedby="cart-combine-note" onClick={(e) => e.preventDefault()}>
+                <Icon name="layers" />
+                <span>Combine into one deck</span>
+              </button>
+              <span className="tip tip-start" aria-hidden="true">
+                Coming later
+              </span>
+            </span>
             <span id="cart-combine-note" className="sr-only">
               Not available yet. Combining slides from different decks into one file is planned for a later phase.
             </span>
@@ -220,7 +237,13 @@ export function Cart() {
             <Icon name="eye" />
             <span>Preview</span>
           </button>
-          <button type="button" className="btn btn-sm btn-primary" disabled={none} title={none ? 'Tick at least one slide in the cart.' : undefined} onClick={() => openDownload(included)}>
+          <button
+            type="button"
+            className="btn btn-sm btn-primary"
+            disabled={none}
+            title={none ? 'Tick at least one slide in the cart.' : undefined}
+            onClick={() => openDownload(included)}
+          >
             <Icon name="download" />
             <span>Download as pptx</span>
           </button>

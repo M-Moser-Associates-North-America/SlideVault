@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 're
 import { exportPptx } from '../client/api';
 import type { SlideSummary } from '../contracts/dto';
 import { Icon } from './icons';
-import { downloadPlan, plural, planSummary } from './library';
-import { Link, useCartToggle } from './parts';
+import { categoryOf, clientOf, downloadPlan, plural, planSummary, yearOf } from './library';
+import { Link, Thumb, useCartToggle } from './parts';
 import { useWorkspace } from './state';
 
 /** Open and close a native <dialog> from React state. Escape closes it (via the dialog's own close event). */
@@ -62,7 +62,16 @@ export function Lightbox() {
           <div className="dlg-body">
             <div className="lb-stage">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={runtime.assetUrl(slide.previewPath)} alt={slide.title} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+              <img
+                src={runtime.assetUrl(slide.previewPath)}
+                alt={slide.title}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
               {many && (
                 <>
                   <button type="button" className="btn btn-icon lb-nav lb-prev" aria-label="Previous slide" onClick={() => movePreview(-1)}>
@@ -83,7 +92,14 @@ export function Lightbox() {
                   <Icon name="check" />
                   <span>{isSelected(slide.id) ? 'In cart' : 'Add to cart'}</span>
                 </button>
-                <button type="button" className="btn btn-sm btn-primary" onClick={() => { closePreview(); openDownload([slide]); }}>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={() => {
+                    closePreview();
+                    openDownload([slide]);
+                  }}
+                >
                   <Icon name="download" />
                   <span>Download only this slide</span>
                 </button>
@@ -105,7 +121,10 @@ type Run = { kind: 'idle' } | { kind: 'busy' } | { kind: 'done'; fileName: strin
 export function DownloadDialog() {
   const { runtime, downloadSlides, closeDownload, toast } = useWorkspace();
   // The result belongs to the slides it was started for, so opening the dialog again starts fresh.
-  const [result, setResult] = useState<{ for: SlideSummary[] | null; run: Run }>({ for: null, run: { kind: 'idle' } });
+  const [result, setResult] = useState<{
+    for: SlideSummary[] | null;
+    run: Run;
+  }>({ for: null, run: { kind: 'idle' } });
   const run: Run = result.for === downloadSlides ? result.run : { kind: 'idle' };
   const setRun = (r: Run) => setResult({ for: downloadSlides, run: r });
   const ref = useRef<HTMLDialogElement>(null);
@@ -129,7 +148,10 @@ export function DownloadDialog() {
       toast(`Downloaded ${fileName}`);
     } catch (e) {
       const offline = e instanceof TypeError; // fetch rejects with TypeError when the network fails
-      setRun({ kind: 'error', message: offline ? 'Could not reach the server. Check your connection and try again.' : (e as Error).message });
+      setRun({
+        kind: 'error',
+        message: offline ? 'Could not reach the server. Check your connection and try again.' : (e as Error).message,
+      });
     }
   }
 
@@ -138,7 +160,10 @@ export function DownloadDialog() {
       <div className="dlg-head">
         <div>
           <h2 id="sv-dl-title">Download {plural(slides.length, 'slide')}</h2>
-          <p className="meta">You get {planSummary(plan)}. Slides stay editable.{plan.zip ? ' One combined file is planned for a later phase.' : ''}</p>
+          <p className="meta">
+            You get {planSummary(plan)}. Slides stay editable.
+            {plan.zip ? ' One combined file is planned for a later phase.' : ''}
+          </p>
         </div>
         <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closeDownload}>
           <Icon name="x" />
@@ -191,4 +216,51 @@ export function DownloadDialog() {
   );
 }
 
+/** Every other deck that holds this slide, or one almost identical to it. Nothing is deleted. */
+export function AlsoDialog() {
+  const { runtime, library, alsoFor, closeAlso } = useWorkspace();
+  const ref = useRef<HTMLDialogElement>(null);
+  useDialogOpen(ref, !!alsoFor);
+  const group = alsoFor?.alsoIn?.groupId;
+  const copies = alsoFor && group && library.status === 'ready' ? [alsoFor, ...library.slides.filter((s) => s.alsoIn?.groupId === group && s.id !== alsoFor.id)] : [];
+  const others = Math.max(0, copies.length - 1);
 
+  return (
+    <dialog ref={ref} className="slidevault sv-dialog" data-theme={runtime.theme} aria-labelledby="sv-also-title" onClose={closeAlso} onClick={backdropClose(closeAlso)}>
+      <div className="dlg-head">
+        <div>
+          <h2 id="sv-also-title">Also in {plural(others || alsoFor?.alsoIn?.otherDeckCount || 0, 'other deck')}</h2>
+          <p className="meta">This slide, or one almost identical, appears in other decks. Nothing is deleted.</p>
+        </div>
+        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closeAlso}>
+          <Icon name="x" />
+        </button>
+      </div>
+      <div className="dlg-body">
+        <ul className="also-list">
+          {copies.map((c, i) => (
+            <li key={c.id}>
+              <Link className="t" to={{ view: 'slide', id: c.id }} tabIndex={-1} ariaHidden onNavigate={closeAlso}>
+                <Thumb slide={c} />
+              </Link>
+              <div>
+                <Link to={{ view: 'slide', id: c.id }} onNavigate={closeAlso}>
+                  {c.provenance.sourceTitle}
+                </Link>
+                <div className="meta">
+                  {[clientOf(c), yearOf(c), categoryOf(c)].filter((x) => x !== null).join(' · ')} · slide {c.provenance.slideNumber}
+                  {i === 0 ? ' (this one)' : ''}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="dlg-foot">
+        <button type="button" className="btn" onClick={closeAlso}>
+          Close
+        </button>
+      </div>
+    </dialog>
+  );
+}

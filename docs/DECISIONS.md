@@ -230,3 +230,17 @@ Acceptance evidence / affected PR criteria: tests/e2e/accessibility.spec.ts rewr
 Documents/contracts changed: contracts/dto.ts (Provenance), contracts/runtime.ts (View, hrefFor), GET /search (duplicates=all), docs/DECISIONS.md. After merging the schiffon branch: /slide-vault now renders these v3 components, Schiffon's real upload (POST /uploads) is restyled into the v3 Upload screen, and her shell menu is replaced by the workspace tab bar. The /v3 page (features/slide-vault/v3) is untouched.
 Revisit trigger: When the Postgres read path replaces the file index, when a /decks endpoint exists, and when review tiers and AI labels are built.
 ```
+
+```text
+Decision ID and title: FD-14 Simulated approval tiers, AI labels and smart search in the real front end (front end only)
+Status: proposed
+Decision date: (pending)
+Decision owner/reviewer: (pending: UX lead + technical lead)
+Context and evidence: FD-13 left the v3 approval tiers, Access switch, AI "why it fits" lines, AI labels, most-downloaded rows and the upload label queue out of /slide-vault because the backend has no data for them. The client demo needs to show the intended experience.
+Options considered: (a) show them in the real screens, simulated in the browser and marked clearly; (b) leave them in /v3 only; (c) add backend fields now.
+Chosen outcome: (a). components/simulation.ts derives status (Approved, Suggested, Retired), sample download counts, suggested labels and a "smart search" reading (topics, client, year, "why it fits") from each slide's id, title, deck name and folder details. Real server keyword hits still count in the ranking. Everything simulated carries the orange "Simulated" mark. The shell's Access switch (Viewer, Editor, Curator) stands in for sign-in and changes the capabilities passed to the workspace: Editor adds metadata.edit (sees Suggested, can upload), Curator adds content.review and content.retire (also sees Retired). No contract type changes.
+Consequences for scope, cost, security and integration: No data is saved, sent or read from a model. Statuses are not real approvals and must never be presented as such. Visibility by tier is a display filter only; authoritative authorization stays on the server (AGENTS.md). Replace simulation.ts with real review state, labels and AI search when D-03 and D-12 are decided.
+Acceptance evidence / affected PR criteria: axe checks clean in light and dark on Home, results, deck dialog, slide, Upload and Create. Typecheck and lint pass. Not a PR-05 implementation.
+Documents/contracts changed: components/simulation.ts, Access switch in app/slide-vault, docs/DECISIONS.md.
+Revisit trigger: When review tiers, AI labels or an AI provider are approved (D-03, D-12), or when the Postgres read path lands.
+```
