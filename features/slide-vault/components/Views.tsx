@@ -23,6 +23,7 @@ import {
 import { DeckCard, Link, SimFlag, SkeletonGrid, SlideCard, StateBlock, StatusBadge, Thumb, useCartToggle } from './parts';
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
+import { useTipSeen } from '../client/tip-store';
 import { simParse, simSearch, simTags, simTier, simUsed, stripFromQuery, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
 
@@ -205,6 +206,26 @@ function useTypewriter(phrases: string[], active: boolean): string {
   return text;
 }
 
+/** One-line first-visit hint. Goes away when dismissed, or as soon as the person adds a slide. */
+function FirstVisitTip() {
+  const { seen, dismiss } = useTipSeen('select');
+  const { selection } = useWorkspace();
+  const added = selection.length > 0;
+  useEffect(() => {
+    if (added) dismiss();
+  }, [added, dismiss]);
+  if (seen || added) return null;
+  return (
+    <p className="first-tip" role="note">
+      <Icon name="info" className="ic-sm" />
+      <span>Tick slides, then download them together.</span>
+      <button type="button" className="btn-link" onClick={dismiss}>
+        Got it
+      </button>
+    </p>
+  );
+}
+
 /** The "Try" example searches, shown under the search and filter card. */
 function HomeTry() {
   const { query, setQuery } = useWorkspace();
@@ -222,6 +243,7 @@ function HomeTry() {
           ))}
         </ul>
       </div>
+      <FirstVisitTip />
     </div>
   );
 }
