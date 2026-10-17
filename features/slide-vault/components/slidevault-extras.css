@@ -66,7 +66,7 @@
  * padding, 44px controls), mapped onto the real app's --sv-* tokens instead of the
  * reference's unprefixed ones. Sits above Khushali's existing rows, which are untouched.
  */
-.slidevault .home-hero { padding: 48px 0 0; max-width: 760px; }
+.slidevault .home-hero { padding: 24px 0 0; max-width: 760px; }
 .slidevault .home-try { max-width: 760px; }
 .slidevault .home-hero-caret {
   display: inline-block;
@@ -88,12 +88,9 @@
   gap: 12px;
   background: var(--sv-surface);
   border: 1px solid var(--sv-border-strong);
-  border-radius: var(--sv-radius-composer);
-  border-bottom-color: transparent;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  box-shadow: var(--sv-shadow-card);
-  padding: 10px 10px 10px 20px;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(20, 20, 28, 0.08);
+  padding: 4px 6px 4px 24px;
 }
 .slidevault .home-hero-prefix { flex: none; font-size: 16px; font-weight: 300; color: var(--sv-text-secondary); white-space: nowrap; margin-right: -4px; }
 .slidevault .home-hero-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
@@ -104,7 +101,7 @@
 .slidevault .home-hero-search input {
   flex: 1;
   min-width: 0;
-  height: 44px;
+  height: 42px;
   border: none;
   background: transparent;
   font-family: var(--sv-font-sans);
@@ -113,21 +110,18 @@
 }
 .slidevault .home-hero-btn {
   flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 22px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   border: none;
   background: var(--sv-action-bg);
   color: var(--sv-action-fg);
-  border-radius: var(--sv-radius-control);
-  font-family: var(--sv-font-sans);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  border-radius: 50%;
   cursor: pointer;
 }
+.slidevault .home-hero-btn .ic { color: inherit; width: 18px; height: 18px; }
 .slidevault .home-hero-btn:hover { opacity: .88; }
 .slidevault .home-hero-try { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-top: 14px; }
 .slidevault .home-hero-try > span { font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
@@ -313,24 +307,19 @@
 
 
 /* ---- Filter row under the Home search box (FilterBar.tsx) ---- */
-.slidevault .fbar { position: sticky; z-index: 25; margin: 0; padding: 0 0 6px; background: var(--sv-bg); transition: transform 0.2s ease; }
+.slidevault .fbar { position: sticky; z-index: 25; margin: 0; padding: 12px 0 4px; background: var(--sv-bg); transition: transform 0.2s ease; }
 .slidevault .fbar.is-hidden { transform: translateY(calc(-100% - 12px)); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .slidevault .fbar { transition: none; } }
-.slidevault .fbar-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.slidevault .fbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: 760px; }
 .slidevault .fb-item { position: relative; }
-.slidevault .fbar-row { gap: 0; max-width: 760px; border: 1px solid var(--sv-border-strong); border-top: 1px solid var(--sv-border); border-radius: 0 0 var(--sv-radius-composer) var(--sv-radius-composer); background: var(--sv-surface); box-shadow: var(--sv-shadow-card); }
-.slidevault .fb-item { flex: 1 1 130px; }
-.slidevault .fb-item + .fb-item { border-left: 1px solid var(--sv-border); }
-.slidevault .fb-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 38px; padding: 0 12px; border: 0; border-radius: 0; background: transparent; color: var(--sv-text-secondary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-.slidevault .fb-item:first-child .fb-btn { border-bottom-left-radius: calc(var(--sv-radius-composer) - 1px); }
-.slidevault .fb-item:last-of-type .fb-btn { border-bottom-right-radius: calc(var(--sv-radius-composer) - 1px); }
-.slidevault .fb-btn:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
-.slidevault .fb-btn[aria-expanded="true"] { background: var(--sv-surface-sunken); box-shadow: inset 0 -3px 0 var(--sv-brand); }
-.slidevault .fb-btn.on { background: var(--sv-brand-tint); color: var(--sv-text); }
-.slidevault .fb-btn .ic { width: 18px; height: 18px; color: var(--sv-text-secondary); }
+.slidevault .fb-btn { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.slidevault .fb-btn:hover { border-color: var(--sv-text-secondary); color: var(--sv-text); }
+.slidevault .fb-btn[aria-expanded="true"] { border-color: var(--sv-text); color: var(--sv-text); }
+.slidevault .fb-btn.on { background: var(--sv-brand-tint); border-color: var(--sv-brand); color: var(--sv-text); }
+.slidevault .fb-btn .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
 .slidevault .fb-btn.on .ic, .slidevault .fb-btn[aria-expanded="true"] .ic { color: var(--sv-brand); }
-.slidevault .fb-n-on { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 6px; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
-.slidevault .fb-clear { margin: 0 14px; font-size: var(--sv-text-small); }
+.slidevault .fb-n-on { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 6px; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
+.slidevault .fb-clear { margin: 0 6px; font-size: var(--sv-text-small); }
 .slidevault .fb-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 35; width: 280px; max-width: calc(100vw - 32px); padding: 14px; border: 1px solid var(--sv-border); border-radius: 16px; background: var(--sv-surface); box-shadow: var(--sv-shadow-panel); }
 .slidevault .fb-pop-wide { width: 320px; }
 .slidevault .fb-picker + .fb-picker, .slidevault .fb-more > * + * { margin-top: 14px; }
@@ -351,3 +340,8 @@
 .slidevault .fb-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; }
 /* The whole search card shows the focus (orange border), so the input itself needs no second ring. */
 .slidevault .home-hero-field input:focus-visible { outline: none; }
+/* Home "Try" suggestions: quiet grey pills instead of orange outlines. */
+.slidevault .home-hero-try { margin-top: 10px; }
+.slidevault .home-hero-try button.try-chip { border: 0; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); font-size: 12.5px; }
+.slidevault .home-hero-try button.try-chip:hover { background: var(--sv-brand-tint); color: var(--sv-text); }
+.slidevault .home-hero-try button.try-chip[aria-current="true"] { background: var(--sv-brand-tint); color: var(--sv-text); font-weight: 600; }

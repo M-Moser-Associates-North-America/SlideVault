@@ -237,7 +237,6 @@ function HomeHeader() {
   return (
     <div className="home-hero">
       <form className="home-hero-search" role="search" onSubmit={submit}>
-        <Icon name="search" className="ic" />
         <label htmlFor="sv-hero-q" className="home-hero-prefix">
           I&rsquo;m looking for
           <span className="sr-only"> (search slides)</span>
@@ -251,9 +250,8 @@ function HomeHeader() {
           )}
           <input id="sv-hero-q" type="search" autoComplete="off" enterKeyHint="search" value={query} onChange={(e) => setQuery(e.target.value)} />
         </span>
-        <button type="submit" className="home-hero-btn">
-          Search
-          <Icon name="right" className="ic-sm" />
+        <button type="submit" className="home-hero-btn" aria-label="Search">
+          <Icon name="search" />
         </button>
       </form>
     </div>
