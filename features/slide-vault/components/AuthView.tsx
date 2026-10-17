@@ -40,7 +40,7 @@ export function LoginView() {
     <div className="auth-screen">
       <div className="auth-col">
         <div className="auth-brand">
-          <Icon name="library" className="ic" />
+          <Icon name="logoFill" className="ic" />
           <span className="auth-wordmark">SLIDEVAULT</span>
         </div>
         <div className="auth-card">
@@ -125,7 +125,7 @@ export function PickProfileView() {
     <div className="auth-screen">
       <div className="auth-col auth-col-wide">
         <div className="auth-brand">
-          <Icon name="library" className="ic" />
+          <Icon name="logoFill" className="ic" />
           <span className="auth-wordmark">SLIDEVAULT</span>
         </div>
         <h1 className="auth-pick-h" tabIndex={-1}>
