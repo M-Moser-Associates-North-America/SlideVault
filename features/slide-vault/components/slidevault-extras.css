@@ -92,10 +92,12 @@
   box-shadow: 0 1px 3px rgba(20, 20, 28, 0.08);
   padding: 4px 6px 4px 24px;
 }
-.slidevault .home-hero-prefix { flex: none; font-size: 16px; font-weight: 300; color: var(--sv-text-secondary); white-space: nowrap; margin-right: -4px; }
-.slidevault .home-hero-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
-.slidevault .home-hero-field input { width: 100%; font-weight: 500; }
-.slidevault .home-hero-anim { position: absolute; left: 0; top: 50%; transform: translateY(-50%); font-size: 16px; font-weight: 500; color: var(--sv-text); pointer-events: none; white-space: nowrap; }
+.slidevault .home-hero-prefix { flex: none; font-size: 16px; font-weight: 500; color: var(--sv-text); white-space: nowrap; }
+/* The part you type in sits in its own soft grey field, so it reads as editable. */
+.slidevault .home-hero-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; height: 38px; padding: 0 16px; border-radius: 999px; background: var(--sv-surface-sunken); }
+.slidevault .home-hero-field:focus-within { background: var(--sv-surface); box-shadow: inset 0 0 0 1px var(--sv-border-strong); }
+.slidevault .home-hero-field input { width: 100%; height: 36px; font-weight: 400; }
+.slidevault .home-hero-anim { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 16px; font-weight: 400; color: var(--sv-text-secondary); pointer-events: none; white-space: nowrap; }
 .slidevault .home-hero-search:focus-within { border-color: var(--sv-brand); }
 .slidevault .home-hero-search .ic { flex: none; color: var(--sv-text-secondary); }
 .slidevault .home-hero-search input {
