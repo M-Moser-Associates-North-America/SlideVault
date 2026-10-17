@@ -166,10 +166,11 @@ function useReadyLibrary(): { slides: SlideSummary[]; decks: Deck[] } | { blocke
  */
 const TYPEWRITER_PHRASES = ['proposals', 'case studies', 'pricing decks'];
 
-function useTypewriter(phrases: string[]): string {
+function useTypewriter(phrases: string[], active: boolean): string {
   const [text, setText] = useState('');
   const reduceMotion = useRef(false);
   useEffect(() => {
+    if (!active) return;
     reduceMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduceMotion.current) {
       setText(phrases[0]);
@@ -200,7 +201,7 @@ function useTypewriter(phrases: string[]): string {
     };
     tick();
     return () => clearTimeout(timer);
-  }, [phrases]);
+  }, [phrases, active]);
   return text;
 }
 
@@ -228,30 +229,28 @@ function HomeTry() {
 /** The original reference HTML's hero search, styled to match it exactly, wired to real search. */
 function HomeHeader() {
   const { query, setQuery } = useWorkspace();
-  const tw = useTypewriter(TYPEWRITER_PHRASES);
+  const typing = query !== '';
+  const tw = useTypewriter(TYPEWRITER_PHRASES, !typing);
   const submit = (e: FormEvent) => {
     e.preventDefault();
   };
   return (
     <div className="home-hero">
-      <p className="home-hero-h">
-        I&rsquo;m looking for <b>{tw}</b>
-        <span className="home-hero-caret" aria-hidden="true" />
-      </p>
       <form className="home-hero-search" role="search" onSubmit={submit}>
         <Icon name="search" className="ic" />
-        <label htmlFor="sv-hero-q" className="sr-only">
-          Search slides
+        <label htmlFor="sv-hero-q" className="home-hero-prefix">
+          I&rsquo;m looking for
+          <span className="sr-only"> (search slides)</span>
         </label>
-        <input
-          id="sv-hero-q"
-          type="search"
-          autoComplete="off"
-          enterKeyHint="search"
-          placeholder="Search proposals, slides, clients or intent…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <span className="home-hero-field">
+          {!typing && (
+            <span className="home-hero-anim" aria-hidden="true">
+              {tw}
+              <span className="home-hero-caret" />
+            </span>
+          )}
+          <input id="sv-hero-q" type="search" autoComplete="off" enterKeyHint="search" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </span>
         <button type="submit" className="home-hero-btn">
           Search
           <Icon name="right" className="ic-sm" />

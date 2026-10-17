@@ -68,21 +68,12 @@
  */
 .slidevault .home-hero { padding: 48px 0 0; max-width: 760px; }
 .slidevault .home-try { max-width: 760px; }
-.slidevault .home-hero-h {
-  margin: 0 0 20px;
-  font-size: 34px;
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  color: var(--sv-text-secondary);
-}
-.slidevault .home-hero-h b { font-weight: 400; color: var(--sv-text); }
 .slidevault .home-hero-caret {
   display: inline-block;
   width: 3px;
-  height: 30px;
+  height: 20px;
   margin-left: 3px;
-  vertical-align: -4px;
+  vertical-align: -3px;
   border-radius: 1px;
   background: var(--sv-brand);
   animation: svHeroCaret 1.1s step-end infinite;
@@ -104,6 +95,10 @@
   box-shadow: var(--sv-shadow-card);
   padding: 10px 10px 10px 20px;
 }
+.slidevault .home-hero-prefix { flex: none; font-size: 16px; font-weight: 300; color: var(--sv-text-secondary); white-space: nowrap; margin-right: -4px; }
+.slidevault .home-hero-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
+.slidevault .home-hero-field input { width: 100%; font-weight: 500; }
+.slidevault .home-hero-anim { position: absolute; left: 0; top: 50%; transform: translateY(-50%); font-size: 16px; font-weight: 500; color: var(--sv-text); pointer-events: none; white-space: nowrap; }
 .slidevault .home-hero-search:focus-within { border-color: var(--sv-brand); }
 .slidevault .home-hero-search .ic { flex: none; color: var(--sv-text-secondary); }
 .slidevault .home-hero-search input {
@@ -354,3 +349,5 @@
 .slidevault .fb-range input { margin-top: 4px; }
 .slidevault .fb-check { display: flex; align-items: center; gap: 10px; font-size: var(--sv-text-small); cursor: pointer; }
 .slidevault .fb-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; }
+/* The whole search card shows the focus (orange border), so the input itself needs no second ring. */
+.slidevault .home-hero-field input:focus-visible { outline: none; }
