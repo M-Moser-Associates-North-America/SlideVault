@@ -250,10 +250,10 @@ function HomeHeader() {
             </span>
           )}
           <input id="sv-hero-q" type="search" autoComplete="off" enterKeyHint="search" value={query} onChange={(e) => setQuery(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
+          <button type="submit" className="home-hero-btn" aria-label="Search">
+            <Icon name="search" />
+          </button>
         </span>
-        <button type="submit" className="home-hero-btn" aria-label="Search">
-          <Icon name="search" />
-        </button>
       </form>
     </div>
   );
