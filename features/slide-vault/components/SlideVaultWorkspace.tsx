@@ -46,7 +46,7 @@ const TABS: {
     view: 'create',
     label: 'Create',
     icon: 'layers',
-    tip: 'Build and My decks will live here later',
+    tip: 'Build a new deck from your slides (coming later)',
   },
   {
     view: 'upload',
@@ -123,9 +123,9 @@ function Workspace() {
                   </li>
                 ))}
                 <li>
-                  <Link to={{ view: 'profile' }} aria-current={view === 'profile' ? 'page' : undefined} title="Your saved slides and activity">
-                    <Icon name="user" />
-                    Profile
+                  <Link to={{ view: 'profile' }} aria-current={view === 'profile' ? 'page' : undefined} title="Your saved slides and working drafts">
+                    <Icon name="folder" />
+                    My decks
                   </Link>
                 </li>
               </ul>

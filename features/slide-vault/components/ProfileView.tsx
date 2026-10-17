@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Icon } from './icons';
 import { SlideCard } from './parts';
-import { profileInitials, useWorkspace } from './state';
+import { useWorkspace } from './state';
 
 const RELATIVE = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 function timeAgo(at: number): string {
@@ -21,28 +22,29 @@ function timeAgo(at: number): string {
  */
 export function ProfileView() {
   const { profile, savedIds, activity, library, signOut } = useWorkspace();
+  /* Arriving from the account menu's "Saved" item: scroll to the Saved section once the page is up. */
+  useEffect(() => {
+    if (window.location.hash !== '#saved') return;
+    const t = setTimeout(() => document.getElementById('saved')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+    return () => clearTimeout(t);
+  }, []);
   const saved = library.status === 'ready' ? library.slides.filter((s) => savedIds.has(s.id)) : [];
 
   return (
     <div className="sv-wrap profile-wrap">
       <div className="page-head">
-        <div className="profile-id">
-          <span className="profile-avatar" aria-hidden="true">
-            {profileInitials(profile ?? '')}
-          </span>
-          <div>
-            <h1 className="h1" tabIndex={-1}>
-              {profile}
-            </h1>
-            <p className="lede">Saved slides and recent activity for this profile.</p>
-          </div>
+        <div>
+          <h1 className="h1" tabIndex={-1}>
+            My decks
+          </h1>
+          <p className="lede">Your saved slides and working drafts. Signed in as {profile}.</p>
         </div>
         <button type="button" className="btn btn-sm" onClick={signOut}>
           Switch profile
         </button>
       </div>
 
-      <section className="row">
+      <section className="row" id="saved">
         <div className="row-head">
           <h2 className="h2">Saved</h2>
         </div>
@@ -57,6 +59,13 @@ export function ProfileView() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="row" id="drafts">
+        <div className="row-head">
+          <h2 className="h2">Working drafts</h2>
+        </div>
+        <p className="meta">No drafts yet. Decks you start building from your selected slides will be saved here. Coming later.</p>
       </section>
 
       <section className="row">
