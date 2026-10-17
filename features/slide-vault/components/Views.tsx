@@ -25,6 +25,7 @@ import { DeckCard, Link, SimFlag, SkeletonGrid, SkeletonRows, SlideCard, StateBl
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { useTipSeen } from '../client/tip-store';
+import { setHeroOut } from '../client/hero-visibility';
 import { simParse, simSearch, simTags, simTier, simUsed, stripFromQuery, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
 
@@ -271,9 +272,21 @@ function HomeHeader() {
   const submit = (e: FormEvent) => {
     e.preventDefault();
   };
+  /* Tell the header when this bar has scrolled up out of sight, so it can show a slim search shortcut. */
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    const el = formRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setHeroOut(!entry.isIntersecting), { rootMargin: '-110px 0px 0px 0px' });
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      setHeroOut(false);
+    };
+  }, []);
   return (
     <div className="home-hero">
-      <form className="home-hero-search" role="search" onSubmit={submit}>
+      <form className="home-hero-search" role="search" onSubmit={submit} ref={formRef}>
         <label htmlFor="sv-hero-q" className="home-hero-prefix">
           I&rsquo;m looking for
           <span className="sr-only"> (search slides)</span>

@@ -7,6 +7,7 @@ import { AlsoDialog, DownloadDialog, Lightbox } from './Dialogs';
 import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
 import { Crumbs, Link, type Crumb } from './parts';
+import { CompactSearch } from './CompactSearch';
 import { FilterPanel, SearchForm, TryAsking } from './Rail';
 import { WorkspaceProvider, useWorkspace } from './state';
 import { LoginView, PickProfileView } from './AuthView';
@@ -130,6 +131,7 @@ function Workspace() {
                 </li>
               </ul>
             </nav>
+            {view === 'pages' && <CompactSearch />}
           </div>
         </div>
       </div>

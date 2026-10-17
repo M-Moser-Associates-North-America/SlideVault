@@ -404,3 +404,13 @@
 .slidevault .row-info:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
 .slidevault .row-info .ic { width: 15px; height: 15px; }
 .slidevault .row-info[data-tip]::after { white-space: normal; width: 230px; font-weight: 500; line-height: 1.4; text-align: left; }
+
+/* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
+.slidevault .sv-brandrow { justify-content: space-between; flex-wrap: nowrap; }
+.slidevault .compact-search { display: inline-flex; align-items: center; gap: 8px; width: min(320px, 40vw); height: 34px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13.5px; cursor: text; text-align: left; animation: svFade 0.18s ease-out; }
+.slidevault .compact-search:hover { border-color: var(--sv-text-secondary); }
+.slidevault .compact-search .ic { width: 16px; height: 16px; flex: none; }
+.slidevault .compact-search span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .compact-search .cs-q { color: var(--sv-text); }
+@keyframes svFade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .slidevault .compact-search { animation: none; } }
