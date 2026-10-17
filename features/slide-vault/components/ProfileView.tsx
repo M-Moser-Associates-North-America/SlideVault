@@ -47,7 +47,7 @@ export function ProfileView() {
           <h2 className="h2">Saved</h2>
         </div>
         {saved.length === 0 ? (
-          <p className="meta">Nothing saved yet. Tap the heart on any slide to keep it here.</p>
+          <p className="meta">Nothing saved yet. Tap the heart on any slide to keep it here for later.</p>
         ) : (
           <ul className="row-scroller">
             {saved.map((s) => (

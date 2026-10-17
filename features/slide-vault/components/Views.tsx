@@ -13,6 +13,7 @@ import {
   deckMatches,
   filterCount,
   folderLabel,
+  removeHint,
   plural,
   slideMatches,
   sortNewest,
@@ -20,7 +21,7 @@ import {
   yearOf,
   type Deck,
 } from './library';
-import { DeckCard, Link, SimFlag, SkeletonGrid, SlideCard, StateBlock, StatusBadge, Thumb, useCartToggle } from './parts';
+import { DeckCard, Link, SimFlag, SkeletonGrid, SkeletonRows, SlideCard, StateBlock, StatusBadge, Thumb, useCartToggle } from './parts';
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { useTipSeen } from '../client/tip-store';
@@ -57,12 +58,19 @@ function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; tit
   return (
     <section className="row" aria-labelledby={`row-${id}`}>
       <div className="row-head">
-        <div>
-          <h2 id={`row-${id}`}>
-            {title}
-            {sim && <SimFlag />}
-          </h2>
-          {sub && <div className="sub">{sub}</div>}
+        <div className="row-title">
+          <h2 id={`row-${id}`}>{title}</h2>
+          {(sub || sim) && (
+            <button
+              type="button"
+              className="row-info"
+              data-tip={[sub, sim ? 'Simulated for now: not connected to real data yet.' : ''].filter(Boolean).join(' ')}
+              data-tip-pos="start"
+              aria-label={`About ${title}`}
+            >
+              <Icon name="info" />
+            </button>
+          )}
         </div>
         <div className="acts">
           {seeAll && (
@@ -128,11 +136,8 @@ function useReadyLibrary(): { slides: SlideSummary[]; decks: Deck[] } | { blocke
     return {
       blocker: (
         <div role="status" aria-live="polite">
-          <p className="thinking">
-            <Icon name="spinner" className="spin" />
-            Loading the library…
-          </p>
-          <SkeletonGrid />
+          <span className="sr-only">Loading the library…</span>
+          <SkeletonRows />
         </div>
       ),
     };
@@ -150,7 +155,13 @@ function useReadyLibrary(): { slides: SlideSummary[]; decks: Deck[] } | { blocke
   }
   if (library.slides.length === 0) {
     return {
-      blocker: <StateBlock icon="library" title="The library is empty" text="No decks have been added yet." />,
+      blocker: (
+        <StateBlock icon="library" title="Your library is empty" text="No decks have been added yet. Upload a deck to see its slides here.">
+          <Link className="btn" to={{ view: 'upload' }}>
+            Go to Upload
+          </Link>
+        </StateBlock>
+      ),
     };
   }
   return { slides: library.slides, decks: library.decks };
@@ -489,9 +500,9 @@ function LibraryView() {
             </section>
           )}
           {slides.length === 0 && (
-            <StateBlock icon="search" title="No slides match these filters" text="Try removing one, or clear them all.">
+            <StateBlock icon="search" title="No slides match" text={removeHint(filters) || 'Try a different filter.'}>
               <button type="button" className="btn" onClick={clearFilters}>
-                Clear filters
+                Clear all filters
               </button>
             </StateBlock>
           )}
@@ -554,7 +565,7 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
   const ids = browseSlides(id, slides);
   if (!ids.length) {
     return (
-      <StateBlock icon="search" title="Nothing here" text="No slides match this row with your filters.">
+      <StateBlock icon="search" title="No slides in this row yet" text="Nothing here matches your filters. Try removing one, or head back to Home.">
         <Link className="btn" to={{ view: 'pages' }}>
           Back to Home
         </Link>
@@ -583,7 +594,7 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 /* --------------------------------------------------------------- Search */
 
 export function ResultsView() {
-  const { query, search, library, filters, retrySearch, setQuery } = useWorkspace();
+  const { query, search, library, filters, clearFilters, retrySearch, setQuery } = useWorkspace();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
   const q = query.trim();
 
@@ -673,9 +684,14 @@ export function ResultsView() {
           {shown.length === 0 ? (
             <StateBlock
               icon="search"
-              title="No slides match that yet"
-              text="Try fewer words, remove a chip above, or clear the filters on the left. Slides may also be hidden at your access level."
+              title={`No slides match “${q}”`}
+              text={filterCount(filters) > 0 ? removeHint(filters) : 'Try fewer words, or say it a different way. For example, “team intro” instead of “introduction to our team”.'}
             >
+              {filterCount(filters) > 0 && (
+                <button type="button" className="btn" onClick={clearFilters}>
+                  Clear all filters
+                </button>
+              )}
               <button type="button" className="btn" onClick={() => setQuery('')}>
                 Clear search
               </button>

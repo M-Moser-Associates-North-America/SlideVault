@@ -81,6 +81,24 @@ export function SkeletonGrid({ count = 6 }: { count?: number }) {
   );
 }
 
+/** Placeholder rows while the library loads: grey shapes where each row's title and cards will appear. */
+export function SkeletonRows({ rows = 2 }: { rows?: number }) {
+  return (
+    <div className="skel-rows" aria-hidden="true">
+      {Array.from({ length: rows }, (_, r) => (
+        <div key={r} className="skel-row">
+          <div className="skel skel-title" />
+          <div className="skel-cards">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="skel skel-card" />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function Thumb({ slide }: { slide: SlideSummary }) {
   const { runtime } = useWorkspace();
   // eslint-disable-next-line @next/next/no-img-element -- previews come from the injected API, not next/image

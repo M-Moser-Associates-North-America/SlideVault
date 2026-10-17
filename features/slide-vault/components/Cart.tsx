@@ -122,7 +122,7 @@ export function Cart() {
               <Icon name="cart" />
             </span>
             <p className="ce-t">Your slide selection is empty</p>
-            <p className="meta">Tick the box on any slide to add it. Download them together from here.</p>
+            <p className="meta">Hover over any slide and click + Add. You can download them together from here.</p>
           </div>
         </div>
         {mini}

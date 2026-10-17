@@ -81,6 +81,28 @@ export function filterCount(f: Filters): number {
   return f.category.length + f.client.length + f.status.length + f.slideType.length + f.uploader.length + f.contributor.length + (f.bestOnly ? 1 : 0) + (f.yfrom !== null || f.yto !== null ? 1 : 0);
 }
 
+/** The names of the filters that are on, in the order the filter row shows them. */
+export function filterKinds(f: Filters): string[] {
+  return [
+    ...(f.yfrom !== null || f.yto !== null ? ['Year'] : []),
+    ...(f.client.length ? ['Client'] : []),
+    ...(f.category.length ? ['Project type'] : []),
+    ...(f.slideType.length ? ['Slide type'] : []),
+    ...(f.uploader.length ? ['Uploaded by'] : []),
+    ...(f.contributor.length ? ['Contributed by'] : []),
+    ...(f.status.length ? ['Status'] : []),
+    ...(f.bestOnly ? ['Best of the Best'] : []),
+  ];
+}
+
+/** A friendly next step when filters leave nothing: name the filter to remove. */
+export function removeHint(f: Filters): string {
+  const kinds = filterKinds(f);
+  if (kinds.length === 0) return '';
+  if (kinds.length === 1) return `Try removing ${kinds[0]}.`;
+  return `Try removing ${kinds[kinds.length - 1]}, or clear all filters.`;
+}
+
 export function slideMatches(s: SlideSummary, f: Filters): boolean {
   const year = yearOf(s);
   if (f.yfrom !== null && (year === null || year < f.yfrom)) return false;

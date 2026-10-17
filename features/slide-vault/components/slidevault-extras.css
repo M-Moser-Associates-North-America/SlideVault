@@ -389,3 +389,18 @@
 .slidevault .ca-btn:focus-visible { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
 .slidevault .first-tip { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
 .slidevault .first-tip .ic-sm { color: var(--sv-brand); }
+
+/* ---- Loading placeholders shaped like the rows ---- */
+.slidevault .skel-rows { display: grid; gap: 36px; margin-top: 8px; }
+.slidevault .skel-title { width: 220px; height: 22px; margin-bottom: 16px; }
+.slidevault .skel-cards { display: flex; gap: 18px; overflow: hidden; }
+.slidevault .skel-cards .skel-card { flex: 0 0 260px; height: 250px; }
+
+/* ---- Calmer row headings: plain title, details tucked behind a small info icon ---- */
+.slidevault .row-head h2::before { display: none; }
+.slidevault .row-head h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0; }
+.slidevault .row-title { display: flex; align-items: center; gap: 8px; }
+.slidevault .row-info { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: help; }
+.slidevault .row-info:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
+.slidevault .row-info .ic { width: 15px; height: 15px; }
+.slidevault .row-info[data-tip]::after { white-space: normal; width: 230px; font-weight: 500; line-height: 1.4; text-align: left; }
