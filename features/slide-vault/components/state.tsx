@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { listLibrary, searchSlides } from '../client/api';
-import { useActivity, useProfile, useSaved, type ActivityEntry } from '../client/profile-store';
+import { useActivity, useDrafts, useProfile, useSaved, type ActivityEntry, type Draft } from '../client/profile-store';
 import { useSelection } from '../client/selection-store';
 import type { SlideSummary } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
@@ -17,7 +17,7 @@ export type Toast = { id: number; message: string };
 
 /** Local design prototype: fake sign-in, five demo profiles, no real accounts (not pushed). */
 export const DEMO_PROFILES = ['Anna Wintour', 'Charlie Chocolate Factory', 'Grease Lightning', 'Charlie Moser', 'Two and a Half Men'];
-export type { ActivityEntry };
+export type { ActivityEntry, Draft };
 
 /** First letter of the first and last word, e.g. "Two and a Half Men" -> "TM". */
 export function profileInitials(name: string): string {
@@ -72,6 +72,12 @@ type Workspace = {
   toggleSaved: (slide: SlideSummary) => void;
   activity: ActivityEntry[];
   logActivity: (kind: ActivityEntry['kind'], label: string, slideId?: string) => void;
+  /** Working drafts: named sets of slides saved from the draft deck, kept under My decks. */
+  drafts: Draft[];
+  saveDraft: (name: string, slides: SlideSummary[]) => void;
+  deleteDraft: (id: string) => void;
+  /** Replace the draft deck with a saved draft's slides. Returns how many slides were found. */
+  loadDraft: (draft: Draft) => number;
 };
 
 const Ctx = createContext<Workspace | null>(null);
@@ -229,6 +235,17 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
      shows a different person's stuff. */
   const { ids: savedIds, toggle: toggleSaved } = useSaved(profile);
   const { entries: activity, log: logActivity } = useActivity(profile);
+  const { drafts, save: saveDraftStore, remove: deleteDraft } = useDrafts(profile);
+  const saveDraft = useCallback((name: string, slides: SlideSummary[]) => saveDraftStore(name, slides.map((s) => s.id)), [saveDraftStore]);
+  const loadDraft = useCallback(
+    (draft: Draft) => {
+      const all = library.status === 'ready' ? library.slides : [];
+      const found = draft.slideIds.map((id) => all.find((s) => s.id === id)).filter((s): s is SlideSummary => s !== undefined);
+      updateSelection(() => found);
+      return found.length;
+    },
+    [library, updateSelection],
+  );
 
   const value: Workspace = {
     runtime,
@@ -271,6 +288,10 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     toggleSaved,
     activity,
     logActivity,
+    drafts,
+    saveDraft,
+    deleteDraft,
+    loadDraft,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

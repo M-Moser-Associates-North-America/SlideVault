@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from './icons';
 import { SlideCard } from './parts';
 import { useWorkspace } from './state';
@@ -21,7 +21,8 @@ function timeAgo(at: number): string {
  * for a few hundred people needs this to be simple, not a second app (not pushed, not real auth).
  */
 export function ProfileView() {
-  const { profile, savedIds, activity, library, signOut } = useWorkspace();
+  const { profile, savedIds, activity, library, signOut, drafts, loadDraft, deleteDraft, selection, toast } = useWorkspace();
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   /* Arriving from the account menu's "Saved" item: scroll to the Saved section once the page is up. */
   useEffect(() => {
     if (window.location.hash !== '#saved') return;
@@ -65,7 +66,62 @@ export function ProfileView() {
         <div className="row-head">
           <h2 className="h2">Working drafts</h2>
         </div>
-        <p className="meta">No drafts yet. Decks you start building from your selected slides will be saved here. Coming later.</p>
+        {drafts.length === 0 ? (
+          <p className="meta">No drafts yet. In your draft deck, choose Save as draft to keep a set of slides here.</p>
+        ) : (
+          <ul className="draft-list">
+            {drafts.map((d) => (
+              <li key={d.id} className="draft-item">
+                <span className="draft-ic" aria-hidden="true">
+                  <Icon name="folder" />
+                </span>
+                <div className="draft-txt">
+                  <strong>{d.name}</strong>
+                  <span className="meta">
+                    {d.slideIds.length === 1 ? '1 slide' : `${d.slideIds.length} slides`} · saved {timeAgo(d.savedAt)}
+                  </span>
+                </div>
+                {confirmDelete === d.id ? (
+                  <div className="cart-confirm" role="group" aria-label={`Confirm deleting ${d.name}`}>
+                    <span className="cc-q">Are you sure?</span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-icon cc-yes"
+                      aria-label={`Yes, delete ${d.name}`}
+                      onClick={() => {
+                        deleteDraft(d.id);
+                        setConfirmDelete(null);
+                        toast(`Deleted “${d.name}”`);
+                      }}
+                    >
+                      <Icon name="check" />
+                    </button>
+                    <button type="button" className="btn btn-sm btn-icon" aria-label="No, keep it" onClick={() => setConfirmDelete(null)}>
+                      <Icon name="x" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="draft-acts">
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      title={selection.length ? 'Replaces what is in your draft deck now' : undefined}
+                      onClick={() => {
+                        const found = loadDraft(d);
+                        toast(found === d.slideIds.length ? `Opened “${d.name}” in your draft deck` : `Opened “${d.name}”. ${d.slideIds.length - found} slide(s) are no longer in the library.`);
+                      }}
+                    >
+                      Open in draft deck
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(d.id)}>
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="row">

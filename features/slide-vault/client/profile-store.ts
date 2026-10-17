@@ -109,3 +109,42 @@ export function useActivity(profile: string | null) {
   );
   return { entries, log };
 }
+
+/** A named set of slides kept under "My decks" -> Working drafts. */
+export type Draft = { id: string; name: string; slideIds: string[]; savedAt: number };
+const draftsKey = (profile: string) => `slidevault:${profile}:drafts`;
+
+function parseDrafts(raw: string | null): Draft[] {
+  try {
+    const value: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(value) ? (value as Draft[]).filter((d) => d && typeof d.id === 'string' && Array.isArray(d.slideIds)) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function useDrafts(profile: string | null) {
+  const key = profile ? draftsKey(profile) : null;
+  const raw = useSyncExternalStore(
+    subscribe,
+    () => (key ? read(key) : null),
+    () => null,
+  );
+  const drafts = key ? parseDrafts(raw) : [];
+  const save = useCallback(
+    (name: string, slideIds: string[]) => {
+      if (!key) return;
+      const draft: Draft = { id: `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name, slideIds, savedAt: Date.now() };
+      write(key, JSON.stringify([draft, ...parseDrafts(read(key))]));
+    },
+    [key],
+  );
+  const remove = useCallback(
+    (id: string) => {
+      if (!key) return;
+      write(key, JSON.stringify(parseDrafts(read(key)).filter((d) => d.id !== id)));
+    },
+    [key],
+  );
+  return { drafts, save, remove };
+}

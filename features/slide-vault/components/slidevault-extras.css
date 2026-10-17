@@ -435,3 +435,20 @@
 /* ---- Upload tab when you don't have permission: still there, greyed, with the reason on hover ---- */
 .slidevault .sv-nav a.is-locked { opacity: 0.6; cursor: not-allowed; }
 .slidevault .sv-nav a.is-locked .ic { color: var(--sv-text-secondary); }
+
+/* ---- Draft deck: Clear and Save as draft sit under the list; Clear asks first ---- */
+.slidevault .cart-list-acts { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; }
+.slidevault .cart-list-acts .btn .ic { width: 15px; height: 15px; }
+.slidevault .cart-confirm { display: flex; align-items: center; gap: 8px; }
+.slidevault .cart-confirm .cc-q { font-size: var(--sv-text-small); font-weight: 600; margin-right: 2px; }
+.slidevault .cc-yes { background: var(--sv-action-bg); color: var(--sv-action-fg); border-color: transparent; }
+.slidevault .save-name { display: grid; gap: 6px; font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .save-name input { height: 42px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 12px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: 15px; font-weight: 400; }
+.slidevault .save-name input:focus { outline: none; border-color: var(--sv-brand); }
+
+/* ---- Working drafts list on My decks ---- */
+.slidevault .draft-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.slidevault .draft-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
+.slidevault .draft-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); flex: none; }
+.slidevault .draft-txt { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.slidevault .draft-acts { display: flex; gap: 6px; flex: none; }

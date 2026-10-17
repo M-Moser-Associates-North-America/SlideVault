@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, type DragEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { Icon } from './icons';
 import { downloadPlan, plural, planSummary } from './library';
 import { Link, Thumb } from './parts';
@@ -11,10 +11,40 @@ import { useWorkspace } from './state';
  * Collapsed to a thin rail by default; opens by itself the first time a slide is added.
  */
 export function Cart() {
-  const { selection, updateSelection, excluded, setIncluded, setCartMin, openDownload, openPreview, announce } = useWorkspace();
+  const { selection, updateSelection, excluded, setIncluded, setCartMin, openDownload, openPreview, announce, saveDraft, toast, runtime } = useWorkspace();
   const n = selection.length;
   const included = selection.filter((s) => !excluded.has(s.id));
   const plan = downloadPlan(included);
+
+  /* "Clear" asks "Are you sure?" first. The question belongs to the current list of slides, so any
+     change to the list (adding or removing a slide) quietly cancels it. */
+  const signature = selection.map((s) => s.id).join(',');
+  const [confirmFor, setConfirmFor] = useState<string | null>(null);
+  const confirming = confirmFor === signature && n > 0;
+
+  /* "Save as draft" asks for a name in a small dialog. */
+  const saveRef = useRef<HTMLDialogElement>(null);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const nameId = useId();
+  const openSave = () => {
+    setDraftName('');
+    setSaveOpen(true);
+    saveRef.current?.showModal();
+  };
+  const closeSave = () => {
+    saveRef.current?.close();
+    setSaveOpen(false);
+  };
+  const submitSave = (e: FormEvent) => {
+    e.preventDefault();
+    const name = draftName.trim();
+    if (!name) return;
+    saveDraft(name, selection);
+    toast(`Saved “${name}” to My decks`);
+    announce(`Saved ${name} as a draft in My decks`);
+    closeSave();
+  };
 
   const listRef = useRef<HTMLUListElement>(null);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -138,12 +168,7 @@ export function Cart() {
           <h2 className="cart-h">
             Draft deck<span className="count">{n}</span>
           </h2>
-          <span className="cart-tools">
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => updateSelection(() => [])}>
-              Clear
-            </button>
-            {toggleButton}
-          </span>
+          <span className="cart-tools">{toggleButton}</span>
         </div>
         <ul
           ref={listRef}
@@ -204,6 +229,40 @@ export function Cart() {
           })}
         </ul>
         {n > 1 && <p className="ci-hint">Drag to reorder. Slides download in this order.</p>}
+        <div className="cart-list-acts">
+          {confirming ? (
+            <div className="cart-confirm" role="group" aria-label="Confirm clearing the draft deck">
+              <span className="cc-q">Are you sure?</span>
+              <button
+                type="button"
+                className="btn btn-sm btn-icon cc-yes"
+                aria-label="Yes, clear the draft deck"
+                title="Yes, clear it"
+                onClick={() => {
+                  updateSelection(() => []);
+                  setConfirmFor(null);
+                  announce('Draft deck cleared');
+                }}
+              >
+                <Icon name="check" />
+              </button>
+              <button type="button" className="btn btn-sm btn-icon" aria-label="No, keep my slides" title="No, keep them" onClick={() => setConfirmFor(null)} autoFocus>
+                <Icon name="x" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmFor(signature)}>
+                <Icon name="trash" />
+                <span>Clear</span>
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={openSave}>
+                <Icon name="folder" />
+                <span>Save as draft</span>
+              </button>
+            </>
+          )}
+        </div>
         <p className="txt">
           <strong>
             {included.length} of {plural(n, 'slide')}
@@ -238,6 +297,45 @@ export function Cart() {
           </button>
         </div>
       </div>
+      <dialog
+        ref={saveRef}
+        className="slidevault sv-dialog"
+        data-theme={runtime.theme}
+        aria-labelledby={`${nameId}-t`}
+        onClose={() => setSaveOpen(false)}
+        onClick={(e) => e.target === e.currentTarget && closeSave()}
+      >
+        {saveOpen && (
+          <form onSubmit={submitSave}>
+            <div className="dlg-head">
+              <div>
+                <h2 id={`${nameId}-t`}>Save as a draft</h2>
+                <p className="meta">It will appear under Working drafts in My decks.</p>
+              </div>
+              <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closeSave}>
+                <Icon name="x" />
+              </button>
+            </div>
+            <div className="dlg-body">
+              <label className="save-name" htmlFor={nameId}>
+                <span>Name this draft</span>
+                <input id={nameId} type="text" value={draftName} onChange={(e) => setDraftName(e.target.value)} maxLength={80} placeholder="For example, Harbor Bank pitch" autoFocus autoComplete="off" />
+              </label>
+              <p className="meta" style={{ marginTop: 10 }}>
+                {plural(n, 'slide')} will be saved. Your draft deck stays as it is.
+              </p>
+            </div>
+            <div className="dlg-foot">
+              <button type="button" className="btn" onClick={closeSave}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={!draftName.trim()}>
+                Save draft
+              </button>
+            </div>
+          </form>
+        )}
+      </dialog>
       {mini}
     </>
   );
