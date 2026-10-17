@@ -364,3 +364,14 @@
   .slidevault .sv-shell { padding: 0 var(--sv-side); --gut: max(var(--sv-side), calc((100vw - 1560px) / 2 + var(--sv-side))); }
 }
 .slidevault .home-try { margin-bottom: 64px; }
+
+/* ---- Slide selection column: slimmer, and flush with the right edge (no extra side gutter inside it) ---- */
+@media (min-width: 1101px) {
+  .slidevault .sv-shell { padding: 0 0 0 var(--sv-side); grid-template-columns: 272px minmax(0, 1fr) 264px; }
+  .slidevault .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
+  .slidevault .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 264px; }
+  .slidevault .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; }
+  .slidevault .cart-col { margin-right: calc(-1 * max(0px, (100vw - 1560px) / 2)); padding: 24px 16px 24px 22px; }
+  .slidevault .cart-min .cart-col { padding: 24px 4px; }
+  .slidevault .cart-min .mini-t { font-size: 10px; letter-spacing: 0.04em; text-align: center; }
+}
