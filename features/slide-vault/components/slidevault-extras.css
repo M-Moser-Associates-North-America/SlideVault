@@ -355,9 +355,12 @@
 .slidevault .sv-nav a .ic { color: var(--sv-text-secondary); }
 .slidevault .sv-nav a[aria-current="page"] .ic { color: var(--sv-brand); }
 
-/* ---- More room at the sides and under the Try chips (the mockup uses 40px side padding) ---- */
+/* ---- Room at the sides and under the Try chips (the mockup centres its content, so on a laptop its side margin is well over 40px) ---- */
+.slidevault { --sv-side: 40px; }
+@media (min-width: 1101px) { .slidevault { --sv-side: 56px; } }
+@media (min-width: 1360px) { .slidevault { --sv-side: 80px; } }
 @media (min-width: 1101px) {
-  .slidevault .sv-top .sv-wrap { padding: 0 40px; }
-  .slidevault .sv-shell { padding: 0 40px; --gut: max(40px, calc((100vw - 1560px) / 2 + 40px)); }
+  .slidevault .sv-top .sv-wrap { padding: 0 var(--sv-side); }
+  .slidevault .sv-shell { padding: 0 var(--sv-side); --gut: max(var(--sv-side), calc((100vw - 1560px) / 2 + var(--sv-side))); }
 }
-.slidevault .home-try { margin-bottom: 36px; }
+.slidevault .home-try { margin-bottom: 64px; }
