@@ -319,17 +319,17 @@
 @media (prefers-reduced-motion: reduce) { .slidevault .fbar { transition: none; } }
 .slidevault .fbar-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .slidevault .fb-item { position: relative; }
-.slidevault .fbar-row { gap: 0; max-width: 760px; border: 1px solid var(--sv-border); border-radius: 18px; background: var(--sv-surface); box-shadow: 0 1px 3px rgba(20, 20, 28, 0.08); }
+.slidevault .fbar-row { gap: 0; max-width: 760px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); box-shadow: 0 1px 3px rgba(20, 20, 28, 0.08); }
 .slidevault .fb-item { flex: 1 1 130px; }
 .slidevault .fb-item + .fb-item { border-left: 1px solid var(--sv-border); }
-.slidevault .fb-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 52px; padding: 0 12px; border: 0; border-radius: 0; background: transparent; color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); font-weight: 700; cursor: pointer; }
-.slidevault .fb-item:first-child .fb-btn { border-radius: 17px 0 0 17px; }
-.slidevault .fb-item:last-of-type .fb-btn { border-radius: 0 17px 17px 0; }
+.slidevault .fb-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 38px; padding: 0 12px; border: 0; border-radius: 0; background: transparent; color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); font-weight: 700; cursor: pointer; }
+.slidevault .fb-item:first-child .fb-btn { border-radius: 13px 0 0 13px; }
+.slidevault .fb-item:last-of-type .fb-btn { border-radius: 0 13px 13px 0; }
 .slidevault .fb-btn:hover { background: var(--sv-surface-sunken); }
 .slidevault .fb-btn[aria-expanded="true"] { background: var(--sv-surface-sunken); box-shadow: inset 0 -3px 0 var(--sv-brand); }
 .slidevault .fb-btn.on { background: var(--sv-brand-tint); }
-.slidevault .fb-btn .ic { width: 20px; height: 20px; color: var(--sv-brand); }
-.slidevault .fb-n-on { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
+.slidevault .fb-btn .ic { width: 18px; height: 18px; color: var(--sv-brand); }
+.slidevault .fb-n-on { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 6px; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
 .slidevault .fb-clear { margin: 0 14px; font-size: var(--sv-text-small); }
 .slidevault .fb-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 35; width: 280px; max-width: calc(100vw - 32px); padding: 14px; border: 1px solid var(--sv-border); border-radius: 16px; background: var(--sv-surface); box-shadow: var(--sv-shadow-panel); }
 .slidevault .fb-pop-wide { width: 320px; }
@@ -349,3 +349,5 @@
 .slidevault .fb-range input { margin-top: 4px; }
 .slidevault .fb-check { display: flex; align-items: center; gap: 10px; font-size: var(--sv-text-small); cursor: pointer; }
 .slidevault .fb-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; }
+.slidevault .fb-or { display: flex; align-items: center; gap: 12px; max-width: 760px; margin: 18px 0 0; color: var(--sv-text-secondary); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.slidevault .fb-or::before, .slidevault .fb-or::after { content: ''; flex: 1; height: 1px; background: var(--sv-border); }

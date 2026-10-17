@@ -263,6 +263,7 @@ export function HomeView() {
         </h1>
       )}
       <HomeHeader />
+      <p className="fb-or">or filter by</p>
       <FilterBar />
       {searching ? <ResultsView /> : <LibraryView />}
     </>
