@@ -90,7 +90,7 @@ export function Lightbox() {
               <span className="row-flex">
                 <button type="button" className="btn btn-sm" aria-pressed={isSelected(slide.id)} onClick={() => set(slide, !isSelected(slide.id))}>
                   <Icon name="check" />
-                  <span>{isSelected(slide.id) ? 'In slide selection' : 'Add to slide selection'}</span>
+                  <span>{isSelected(slide.id) ? 'In draft deck' : 'Add to draft deck'}</span>
                 </button>
                 <button
                   type="button"
@@ -186,7 +186,7 @@ export function DownloadDialog() {
         {run.kind === 'error' && (
           <div className="notice danger" role="alert">
             <Icon name="alert" />
-            <span>{run.message} Your slide selection is unchanged.</span>
+            <span>{run.message} Your draft deck is unchanged.</span>
           </div>
         )}
         {run.kind === 'done' && (

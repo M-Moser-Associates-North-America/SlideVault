@@ -240,7 +240,11 @@ function FirstVisitTip() {
 
 /** The "Try" example searches, shown under the search and filter card. */
 function HomeTry() {
-  const { query, setQuery } = useWorkspace();
+  const { query, setQuery, runtime } = useWorkspace();
+  const search = (q: string) => {
+    setQuery(q);
+    if (runtime.location.view !== 'pages') runtime.navigate({ view: 'pages' });
+  };
   return (
     <div className="home-try">
       <div className="home-hero-try">
@@ -248,7 +252,7 @@ function HomeTry() {
         <ul>
           {TRY_QUERIES.map((q) => (
             <li key={q}>
-              <button type="button" className="try-chip" aria-current={query.trim() === q ? 'true' : undefined} onClick={() => setQuery(q)}>
+              <button type="button" className="try-chip" aria-current={query.trim() === q ? 'true' : undefined} onClick={() => search(q)}>
                 {q}
               </button>
             </li>
@@ -265,7 +269,7 @@ function HomeTry() {
 let heroTouched = false;
 
 function HomeHeader() {
-  const { query, setQuery } = useWorkspace();
+  const { query, setQuery, runtime } = useWorkspace();
   const [touched, setTouched] = useState(heroTouched);
   const showHint = query === '' && !touched;
   const tw = useTypewriter(TYPEWRITER_PHRASES, showHint);
@@ -298,7 +302,12 @@ function HomeHeader() {
               <span className="home-hero-caret" />
             </span>
           )}
-          <input id="sv-hero-q" type="search" autoComplete="off" enterKeyHint="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={touched ? 'Slides, clients or topics' : undefined} onFocus={() => {
+          <input id="sv-hero-q" type="search" autoComplete="off" enterKeyHint="search" value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              /* Typing on a page that can't show results (a client or year list) takes you to Home's results. */
+              if (e.target.value && runtime.location.view !== 'pages') runtime.navigate({ view: 'pages' });
+            }} placeholder={touched ? 'Slides, clients or topics' : undefined} onFocus={() => {
               heroTouched = true;
               setTouched(true);
             }} />
@@ -308,6 +317,17 @@ function HomeHeader() {
         </span>
       </form>
     </div>
+  );
+}
+
+/** The search bar, filter row and example searches: the top of Home and of the browse lists. */
+function SearchHeader() {
+  return (
+    <>
+      <HomeHeader />
+      <FilterBar />
+      <HomeTry />
+    </>
   );
 }
 
@@ -321,9 +341,7 @@ export function HomeView() {
           Home
         </h1>
       )}
-      <HomeHeader />
-      <FilterBar />
-      <HomeTry />
+      <SearchHeader />
       {searching ? <ResultsView /> : <LibraryView />}
     </>
   );
@@ -371,7 +389,7 @@ function LibraryView() {
       ? `The slides ${profile} opens most.`
       : picked.length > 0
         ? `Based on what ${profile} looks at most.`
-        : 'Most added to a slide selection.';
+        : 'Most added to a draft deck.';
 
   const firstSaved = slides.find((s) => savedIds.has(s.id));
   const becauseCategory = firstSaved ? categoryOf(firstSaved) : null;
@@ -528,6 +546,15 @@ function LibraryView() {
 /* ---------------------------------------------------------------- Browse */
 
 export function BrowseView({ id }: { id: string }) {
+  return (
+    <>
+      <SearchHeader />
+      <BrowsePage id={id} />
+    </>
+  );
+}
+
+function BrowsePage({ id }: { id: string }) {
   const { filters } = useWorkspace();
   const lib = useReadyLibrary();
   const title = browseTitle(id);
@@ -555,7 +582,7 @@ function SelectAll({ slides: every }: { slides: SlideSummary[] }) {
   const all = slides.length > 0 && slides.every((s) => selection.some((x) => x.id === s.id));
   const click = () => {
     updateSelection((cur) => (all ? cur.filter((c) => !slides.some((s) => s.id === c.id)) : [...cur, ...slides.filter((s) => !cur.some((c) => c.id === s.id))]));
-    announce(all ? 'Selection cleared' : `${plural(slides.length, 'slide')} added to slide selection`);
+    announce(all ? 'Selection cleared' : `${plural(slides.length, 'slide')} added to draft deck`);
   };
   return (
     <button type="button" className="btn btn-sm" onClick={click}>

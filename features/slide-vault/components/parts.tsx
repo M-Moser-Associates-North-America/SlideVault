@@ -130,7 +130,7 @@ export function useCartToggle() {
       if (!on && has) return cur.filter((s) => s.id !== slide.id);
       return cur;
     });
-    announce(on ? `Added to slide selection: ${slide.title}` : `Removed from slide selection: ${slide.title}`);
+    announce(on ? `Added to draft deck: ${slide.title}` : `Removed from draft deck: ${slide.title}`);
   };
   return { isSelected, set };
 }

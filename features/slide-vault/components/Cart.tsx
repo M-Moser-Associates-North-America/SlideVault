@@ -81,20 +81,20 @@ export function Cart() {
   };
 
   const toggleButton = (
-    <button type="button" className="btn btn-ghost btn-icon btn-sm cart-tg" aria-label="Collapse slide selection to a thin rail" onClick={() => setCartMin(true)}>
+    <button type="button" className="btn btn-ghost btn-icon btn-sm cart-tg" aria-label="Collapse draft deck to a thin rail" onClick={() => setCartMin(true)}>
       <Icon name="right" />
     </button>
   );
 
   const mini = (
     <div className="cart-mini">
-      <button type="button" className="mini-open" aria-label={`Expand slide selection, ${plural(n, 'slide')}`} onClick={() => setCartMin(false)}>
+      <button type="button" className="mini-open" aria-label={`Expand draft deck, ${plural(n, 'slide')}`} onClick={() => setCartMin(false)}>
         <Icon name="left" />
         <span className="mini-ic" aria-hidden="true">
-          <Icon name="cart" />
+          <Icon name="layers" />
           {n > 0 && <span className="mini-n">{n}</span>}
         </span>
-        <span className="mini-t">Slide selection</span>
+        <span className="mini-t">Draft deck</span>
       </button>
       {included.length > 0 && (
         <button
@@ -114,14 +114,14 @@ export function Cart() {
       <>
         <div className="cart cart-empty">
           <div className="cart-top">
-            <h2 className="cart-h">Slide selection</h2>
+            <h2 className="cart-h">Draft deck</h2>
             <span className="cart-tools">{toggleButton}</span>
           </div>
           <div className="cart-empty-body">
             <span className="ce-ic" aria-hidden="true">
-              <Icon name="cart" />
+              <Icon name="layers" />
             </span>
-            <p className="ce-t">Your slide selection is empty</p>
+            <p className="ce-t">Your draft deck is empty</p>
             <p className="meta">Hover over any slide and click + Add. You can download them together from here.</p>
           </div>
         </div>
@@ -133,10 +133,10 @@ export function Cart() {
   const none = included.length === 0;
   return (
     <>
-      <div className="cart" role="region" aria-label="Slide selection">
+      <div className="cart" role="region" aria-label="Draft deck">
         <div className="cart-top">
           <h2 className="cart-h">
-            Slide selection<span className="count">{n}</span>
+            Draft deck<span className="count">{n}</span>
           </h2>
           <span className="cart-tools">
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => updateSelection(() => [])}>
@@ -196,7 +196,7 @@ export function Cart() {
                   <Link to={{ view: 'slide', id: s.id }}>{s.title}</Link>
                   <span className="meta">{s.provenance.sourceTitle}</span>
                 </div>
-                <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Remove from slide selection: ${s.title}`} onClick={() => updateSelection((cur) => cur.filter((x) => x.id !== s.id))}>
+                <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Remove from draft deck: ${s.title}`} onClick={() => updateSelection((cur) => cur.filter((x) => x.id !== s.id))}>
                   <Icon name="x" />
                 </button>
               </li>
@@ -228,11 +228,11 @@ export function Cart() {
           </div>
         )}
         <div className="cart-acts">
-          <button type="button" className="btn btn-sm" disabled={none} title={none ? 'Tick at least one slide in your slide selection.' : undefined} onClick={() => openPreview(included, 0)}>
+          <button type="button" className="btn btn-sm" disabled={none} title={none ? 'Tick at least one slide in your draft deck.' : undefined} onClick={() => openPreview(included, 0)}>
             <Icon name="eye" />
             <span>Preview</span>
           </button>
-          <button type="button" className="btn btn-sm btn-primary" disabled={none} title={none ? 'Tick at least one slide in your slide selection.' : undefined} onClick={() => openDownload(included)}>
+          <button type="button" className="btn btn-sm btn-primary" disabled={none} title={none ? 'Tick at least one slide in your draft deck.' : undefined} onClick={() => openDownload(included)}>
             <Icon name="download" />
             <span>Download as pptx</span>
           </button>

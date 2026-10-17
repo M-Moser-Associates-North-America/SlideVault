@@ -8,7 +8,7 @@ import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
 import { Crumbs, Link, type Crumb } from './parts';
 import { CompactSearch } from './CompactSearch';
-import { FilterPanel, SearchForm, TryAsking } from './Rail';
+import { SearchForm } from './Rail';
 import { WorkspaceProvider, useWorkspace } from './state';
 import { LoginView, PickProfileView } from './AuthView';
 import { ProfileView } from './ProfileView';
@@ -46,7 +46,7 @@ const TABS: {
   {
     view: 'create',
     label: 'Create',
-    icon: 'layers',
+    icon: 'pencil',
     tip: 'Build a new deck from your slides (coming later)',
   },
   {
@@ -66,7 +66,7 @@ function Workspace() {
      favor of the original reference HTML's hero search (Views.tsx HomeHeader), which stays
      mounted across that transition so typing never loses focus mid-word. Browse is untouched
      until reviewed separately. Not pushed, not changing Khushali's build. */
-  const noRail = view !== 'browse';
+  const noRail = true; // the search bar and filter row now sit at the top of Home and the browse lists
   const narrow = view === 'create' || view === 'upload' || view === 'profile';
 
   /* New page: scroll to the top and move focus to its heading, like a page load would. */
@@ -131,20 +131,11 @@ function Workspace() {
                 </li>
               </ul>
             </nav>
-            {view === 'pages' && <CompactSearch />}
+            {(view === 'pages' || view === 'browse') && <CompactSearch />}
           </div>
         </div>
       </div>
       <div className={`sv-shell${cartMin ? ' cart-min' : ''}${noRail ? ' no-rail' : ''}${narrow ? ' narrow' : ''}`}>
-        {!noRail && (
-          <aside className="rail" aria-label="Search and filters">
-            <SearchForm onSubmit={toHome} />
-            <div>
-              <TryAsking />
-              <FilterPanel decks={decksAll} slidesAll={slidesAll} />
-            </div>
-          </aside>
-        )}
         <div className="center">
           {deep && (
             <div className="deep-search">
@@ -174,7 +165,7 @@ function Workspace() {
             {view === 'profile' && <ProfileView />}
           </main>
         </div>
-        <aside className="cart-col" aria-label="Slide selection">
+        <aside className="cart-col" aria-label="Draft deck">
           <Cart />
         </aside>
       </div>
