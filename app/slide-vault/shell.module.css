@@ -29,13 +29,13 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  padding: 12px 20px;
+  padding: 5px 20px;
   background: #1a1a1a;
   color: #ffffff;
 }
 
 .brand {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -51,8 +51,8 @@
 .themeButton {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border: 1px solid #6b6b6b;
   border-radius: 11px;
@@ -64,7 +64,7 @@
 .access {
   display: flex;
   align-items: center;
-  height: 36px;
+  height: 30px;
   border: 1px solid #6b6b6b;
   border-radius: 11px;
   color: #ffffff;
@@ -82,7 +82,7 @@
 }
 
 .accessSelect {
-  height: 34px;
+  height: 28px;
   padding: 0 6px 0 8px;
   border: 0;
   background: transparent;
@@ -102,8 +102,8 @@
 .accessInfo {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
   border-left: 1px solid #6b6b6b;
@@ -158,6 +158,6 @@
 
 @media (min-width: 768px) {
   .header {
-    padding: 16px 40px;
+    padding: 5px 40px;
   }
 }

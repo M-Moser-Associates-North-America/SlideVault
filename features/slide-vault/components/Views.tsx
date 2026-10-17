@@ -204,6 +204,27 @@ function useTypewriter(phrases: string[]): string {
   return text;
 }
 
+/** The "Try" example searches, shown under the search and filter card. */
+function HomeTry() {
+  const { query, setQuery } = useWorkspace();
+  return (
+    <div className="home-try">
+      <div className="home-hero-try">
+        <span>Try</span>
+        <ul>
+          {TRY_QUERIES.map((q) => (
+            <li key={q}>
+              <button type="button" className="try-chip" aria-current={query.trim() === q ? 'true' : undefined} onClick={() => setQuery(q)}>
+                {q}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 /** The original reference HTML's hero search, styled to match it exactly, wired to real search. */
 function HomeHeader() {
   const { query, setQuery } = useWorkspace();
@@ -236,18 +257,6 @@ function HomeHeader() {
           <Icon name="right" className="ic-sm" />
         </button>
       </form>
-      <div className="home-hero-try">
-        <span>Try</span>
-        <ul>
-          {TRY_QUERIES.map((q) => (
-            <li key={q}>
-              <button type="button" className="try-chip" aria-current={query.trim() === q ? 'true' : undefined} onClick={() => setQuery(q)}>
-                {q}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
     </div>
   );
 }
@@ -263,8 +272,8 @@ export function HomeView() {
         </h1>
       )}
       <HomeHeader />
-      <p className="fb-or">or filter by</p>
       <FilterBar />
+      <HomeTry />
       {searching ? <ResultsView /> : <LibraryView />}
     </>
   );
