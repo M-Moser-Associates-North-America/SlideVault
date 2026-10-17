@@ -227,10 +227,13 @@ function HomeTry() {
 }
 
 /** The original reference HTML's hero search, styled to match it exactly, wired to real search. */
+/* Once the person has clicked into the search box, the typing animation stays off for the rest of the visit. */
+let heroTouched = false;
+
 function HomeHeader() {
   const { query, setQuery } = useWorkspace();
-  const [focused, setFocused] = useState(false);
-  const showHint = query === '' && !focused;
+  const [touched, setTouched] = useState(heroTouched);
+  const showHint = query === '' && !touched;
   const tw = useTypewriter(TYPEWRITER_PHRASES, showHint);
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -249,7 +252,10 @@ function HomeHeader() {
               <span className="home-hero-caret" />
             </span>
           )}
-          <input id="sv-hero-q" type="search" autoComplete="off" enterKeyHint="search" value={query} onChange={(e) => setQuery(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
+          <input id="sv-hero-q" type="search" autoComplete="off" enterKeyHint="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={touched ? 'Slides, clients or topics' : undefined} onFocus={() => {
+              heroTouched = true;
+              setTouched(true);
+            }} />
           <button type="submit" className="home-hero-btn" aria-label="Search">
             <Icon name="search" />
           </button>
