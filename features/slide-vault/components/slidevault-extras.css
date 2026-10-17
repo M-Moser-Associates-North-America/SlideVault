@@ -414,3 +414,8 @@
 .slidevault .compact-search .cs-q { color: var(--sv-text); }
 @keyframes svFade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .slidevault .compact-search { animation: none; } }
+
+/* ---- Filter choices read from the typed sentence ---- */
+.slidevault .chip-x.from-search { border-style: dashed; }
+.slidevault .chip-x.from-search .ic-sm { color: var(--sv-brand); width: 13px; height: 13px; }
+.slidevault .fb-note { margin: 0 0 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }

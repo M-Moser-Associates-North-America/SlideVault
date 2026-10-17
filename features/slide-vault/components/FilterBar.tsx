@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
-import { categoryOf, clientOf, countBy, filterCount } from './library';
+import { categoryOf, clientOf, countBy, filterCount, UNKNOWN_CLIENT } from './library';
 import { SimFlag } from './parts';
-import { SIM_PEOPLE, SLIDE_TYPES, simContributor, simHasSlideType, simUploader, visibleTiers, type Tier } from './simulation';
+import { SIM_PEOPLE, SLIDE_TYPES, simContributor, simHasSlideType, simParse, simUploader, slideTypeForChip, stripFromQuery, visibleTiers, type Chip, type Tier } from './simulation';
 import { useWorkspace } from './state';
 
 /**
@@ -111,7 +111,7 @@ function Picker({
 }
 
 export function FilterBar() {
-  const { library, filters, patchFilters, clearFilters, runtime } = useWorkspace();
+  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery } = useWorkspace();
   const [open, setOpen] = useState<Key | null>(null);
   const closeOnHide = useCallback(() => setOpen(null), []);
   const hidden = useHideOnScrollDown(closeOnHide);
@@ -128,6 +128,22 @@ export function FilterBar() {
   const clients = useMemo(() => [...clientCounts.keys()].sort((a, b) => a.localeCompare(b)), [clientCounts]);
   const categories = useMemo(() => [...categoryCounts.keys()].sort((a, b) => a.localeCompare(b)), [categoryCounts]);
   const tiers = visibleTiers(runtime.capabilities);
+
+  /* What the typed sentence already says (client, year, kind of slide), so the row can show it too. */
+  const clientNames = useMemo(() => clients.filter((c) => c !== UNKNOWN_CLIENT), [clients]);
+  const parsed = useMemo(() => (query.trim() ? simParse(query, clientNames) : null), [query, clientNames]);
+  const pClient = parsed?.chips.find((c) => c.key === 'client') ?? null;
+  const pYear = parsed?.chips.find((c) => c.key === 'year') ?? null;
+  const pTypes: { chip: Chip; label: string }[] = parsed
+    ? parsed.chips.flatMap((chip) => {
+        const label = slideTypeForChip(parsed, chip);
+        return label ? [{ chip, label }] : [];
+      })
+    : [];
+  const fromClient = pClient && !filters.client.includes(pClient.label) ? pClient : null;
+  const fromYear = pYear && filters.yfrom === null && filters.yto === null ? pYear : null;
+  const fromTypes = pTypes.filter((t) => !filters.slideType.includes(t.label));
+  const removeFromSearch = (chip: Chip) => setQuery(stripFromQuery(query, chip));
 
   const close = useCallback((returnFocus: boolean) => {
     setOpen((cur) => {
@@ -156,10 +172,10 @@ export function FilterBar() {
   const yearOn = filters.yfrom !== null || filters.yto !== null;
   const moreCount = filters.uploader.length + filters.contributor.length + filters.status.length + (filters.bestOnly ? 1 : 0);
   const items: { key: Key; label: string; icon: IconName; active: number }[] = [
-    { key: 'year', label: 'Year', icon: 'calendarFill', active: yearOn ? 1 : 0 },
-    { key: 'client', label: 'Client', icon: 'buildingFill', active: filters.client.length },
+    { key: 'year', label: 'Year', icon: 'calendarFill', active: yearOn || fromYear ? 1 : 0 },
+    { key: 'client', label: 'Client', icon: 'buildingFill', active: filters.client.length + (fromClient ? 1 : 0) },
     { key: 'category', label: 'Project type', icon: 'folderFill', active: filters.category.length },
-    { key: 'slideType', label: 'Slide type', icon: 'layersFill', active: filters.slideType.length },
+    { key: 'slideType', label: 'Slide type', icon: 'layersFill', active: filters.slideType.length + fromTypes.length },
     { key: 'more', label: 'More', icon: 'slidersFill', active: moreCount },
   ];
 
@@ -168,7 +184,7 @@ export function FilterBar() {
     filters.yfrom !== null && filters.yto === null && YEAR_PRESETS.some(([k]) => filters.yfrom === nowYear - k + 1)
       ? (YEAR_PRESETS.find(([k]) => filters.yfrom === nowYear - k + 1) as [number, string])[1]
       : `${filters.yfrom ?? 'Any'} to ${filters.yto ?? 'now'}`;
-  const chips: { id: string; kind: string; text: string; remove: () => void }[] = [
+  const chips: { id: string; kind: string; text: string; remove: () => void; fromSearch?: boolean }[] = [
     ...(yearOn ? [{ id: 'year', kind: 'Year', text: yearText, remove: () => patchFilters({ yfrom: null, yto: null }) }] : []),
     ...filters.client.map((v) => ({ id: `c-${v}`, kind: 'Client', text: v, remove: () => patchFilters({ client: filters.client.filter((x) => x !== v) }) })),
     ...filters.category.map((v) => ({ id: `p-${v}`, kind: 'Project type', text: v, remove: () => patchFilters({ category: filters.category.filter((x) => x !== v) }) })),
@@ -177,6 +193,9 @@ export function FilterBar() {
     ...filters.contributor.map((v) => ({ id: `k-${v}`, kind: 'Contributed by', text: v, remove: () => patchFilters({ contributor: filters.contributor.filter((x) => x !== v) }) })),
     ...filters.status.map((v) => ({ id: `s-${v}`, kind: 'Status', text: v, remove: () => patchFilters({ status: filters.status.filter((x) => x !== v) }) })),
     ...(filters.bestOnly ? [{ id: 'best', kind: 'Collection', text: 'Best of the Best', remove: () => patchFilters({ bestOnly: false }) }] : []),
+    ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
+    ...(fromClient ? [{ id: 'sc', kind: 'Client', text: fromClient.label, remove: () => removeFromSearch(fromClient), fromSearch: true }] : []),
+    ...fromTypes.map((t) => ({ id: `st-${t.label}`, kind: 'Slide type', text: t.label, remove: () => removeFromSearch(t.chip), fromSearch: true })),
   ];
 
   const panel = (key: Key) => {
@@ -186,6 +205,14 @@ export function FilterBar() {
           <div className="fb-picker-h">
             <span>Year</span>
           </div>
+          {fromYear && (
+            <p className="fb-note">
+              From your search: <strong>{fromYear.label}</strong>{' '}
+              <button type="button" className="btn-link" onClick={() => removeFromSearch(fromYear)}>
+                Remove
+              </button>
+            </p>
+          )}
           <div className="fb-presets">
             {YEAR_PRESETS.map(([k, label]) => {
               const on = filters.yfrom === nowYear - k + 1 && filters.yto === null;
@@ -224,7 +251,16 @@ export function FilterBar() {
           </div>
         </div>
       );
-    if (key === 'client') return <Picker label="Client" options={clients} picked={filters.client} counts={clientCounts} onToggle={(v) => patchFilters({ client: toggle(filters.client, v) })} />;
+    if (key === 'client')
+      return (
+        <Picker
+          label="Client"
+          options={clients}
+          picked={fromClient ? [...filters.client, fromClient.label] : filters.client}
+          counts={clientCounts}
+          onToggle={(v) => (fromClient && v === fromClient.label ? removeFromSearch(fromClient) : patchFilters({ client: toggle(filters.client, v) }))}
+        />
+      );
     if (key === 'category')
       return <Picker label="Project type" options={categories} picked={filters.category} counts={categoryCounts} onToggle={(v) => patchFilters({ category: toggle(filters.category, v) })} />;
     if (key === 'slideType')
@@ -232,10 +268,14 @@ export function FilterBar() {
         <Picker
           label="Slide type"
           options={SLIDE_TYPES.map((t) => t.label)}
-          picked={filters.slideType}
+          picked={[...filters.slideType, ...fromTypes.map((t) => t.label)]}
           counts={typeCounts}
           simulated
-          onToggle={(v) => patchFilters({ slideType: toggle(filters.slideType, v) })}
+          onToggle={(v) => {
+            const fromSearchType = fromTypes.find((t) => t.label === v);
+            if (fromSearchType) removeFromSearch(fromSearchType.chip);
+            else patchFilters({ slideType: toggle(filters.slideType, v) });
+          }}
         />
       );
     return (
@@ -301,7 +341,14 @@ export function FilterBar() {
         <ul className="fb-chips" aria-label="Filters on">
           {chips.map((c) => (
             <li key={c.id}>
-              <button type="button" className="chip-x" aria-label={`Remove ${c.kind}: ${c.text}`} onClick={c.remove}>
+              <button
+                type="button"
+                className={`chip-x${c.fromSearch ? ' from-search' : ''}`}
+                aria-label={`Remove ${c.kind}: ${c.text}${c.fromSearch ? ' (read from your search)' : ''}`}
+                title={c.fromSearch ? 'Read from your search' : undefined}
+                onClick={c.remove}
+              >
+                {c.fromSearch && <Icon name="sparkle" className="ic-sm" />}
                 <span className="k">{c.kind}:</span> {c.text}
                 <Icon name="x" />
               </button>

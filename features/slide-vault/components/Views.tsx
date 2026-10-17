@@ -26,7 +26,7 @@ import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { useTipSeen } from '../client/tip-store';
 import { setHeroOut } from '../client/hero-visibility';
-import { simParse, simSearch, simTags, simTier, simUsed, stripFromQuery, TIER_TEXT } from './simulation';
+import { chipShownInFilterRow, simParse, simSearch, simTags, simTier, simUsed, stripFromQuery, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
 
 const ROW_LIMIT = 12;
@@ -672,13 +672,15 @@ export function ResultsView() {
               We read this as:
               <SimFlag />
             </span>
-            {smart.parsed.chips.map((c) => (
-              <button key={c.key} type="button" className="chip-x" aria-label={`Remove ${c.kind}: ${c.label}`} onClick={() => setQuery(stripFromQuery(q, c))}>
-                <span className="k">{c.kind}:</span> {c.label}
-                <Icon name="x" />
-              </button>
-            ))}
-            {smart.parsed.tokens.length > 0 && <span className="meta">and the words {smart.parsed.tokens.map((t) => `“${t}”`).join(', ')}</span>}
+            {smart.parsed.chips
+              .filter((c) => !chipShownInFilterRow(smart.parsed, c))
+              .map((c) => (
+                <button key={c.key} type="button" className="chip-x" aria-label={`Remove ${c.kind}: ${c.label}`} onClick={() => setQuery(stripFromQuery(q, c))}>
+                  <span className="k">{c.kind}:</span> {c.label}
+                  <Icon name="x" />
+                </button>
+              ))}
+            {smart.parsed.tokens.length > 0 && <span className="meta">{smart.parsed.chips.some((c) => !chipShownInFilterRow(smart.parsed, c)) ? 'and the words' : 'the words'} {smart.parsed.tokens.map((t) => `“${t}”`).join(', ')}</span>}
             {!smart.parsed.chips.length && !smart.parsed.tokens.length && <span className="meta">no specific topic, showing what fits your filters</span>}
           </div>
           <div className="refine">
