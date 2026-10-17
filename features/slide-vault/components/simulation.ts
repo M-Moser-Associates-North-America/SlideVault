@@ -41,6 +41,43 @@ export function canSeeTier(tier: Tier, caps: ReadonlySet<string>): boolean {
 
 export const visibleTiers = (caps: ReadonlySet<string>): Tier[] => (['Approved', 'Suggested', 'Retired'] as Tier[]).filter((t) => canSeeTier(t, caps));
 
+/* ------------------------------------------------------- Slide types and people */
+
+/**
+ * Fixed list of slide types for the filter bar for now (the label the AI would suggest, matched to
+ * the labels worked out below). When real decks are uploaded, this list grows from the tags added
+ * to each upload.
+ */
+export const SLIDE_TYPES: { label: string; tag: string }[] = [
+  { label: 'About us', tag: 'about us' },
+  { label: 'Services', tag: 'services' },
+  { label: 'Vision and values', tag: 'values' },
+  { label: 'Team', tag: 'team' },
+  { label: 'Cost and fees', tag: 'cost' },
+  { label: 'Process and timeline', tag: 'process' },
+  { label: 'Case study', tag: 'case study' },
+  { label: 'Problem', tag: 'problem' },
+  { label: 'Options', tag: 'options' },
+  { label: 'Concept and solution', tag: 'concept' },
+  { label: 'Next steps', tag: 'next steps' },
+  { label: 'Scope and brief', tag: 'scope' },
+  { label: 'Cover', tag: 'cover' },
+  { label: 'Frameworks and diagrams', tag: 'framework' },
+  { label: 'Portfolio', tag: 'portfolio' },
+];
+
+/** Does this slide carry the given slide-type label (simulated AI label)? */
+export function simHasSlideType(s: SlideSummary, label: string): boolean {
+  const tag = SLIDE_TYPES.find((t) => t.label === label)?.tag;
+  return !!tag && simTags(s).includes(tag);
+}
+
+/** Sample names for "Uploaded by" and "Contributed by". Real names come from sign-in later. */
+export const SIM_PEOPLE = ['Person A', 'Person B', 'Person C', 'Person D'];
+
+export const simUploader = (s: SlideSummary) => SIM_PEOPLE[hash(`up:${s.provenance.sourceId}`) % SIM_PEOPLE.length];
+export const simContributor = (s: SlideSummary) => SIM_PEOPLE[hash(`con:${s.provenance.sourceId}`) % SIM_PEOPLE.length];
+
 /* ------------------------------------------------------------ Smart search */
 
 type Concept = { id: string; label: string; words: string[]; tags: string[] };

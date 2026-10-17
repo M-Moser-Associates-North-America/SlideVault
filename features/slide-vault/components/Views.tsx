@@ -22,6 +22,7 @@ import {
 } from './library';
 import { DeckCard, Link, SimFlag, SkeletonGrid, SlideCard, StateBlock, StatusBadge, Thumb, useCartToggle } from './parts';
 import { TRY_QUERIES } from './Rail';
+import { FilterBar } from './FilterBar';
 import { simParse, simSearch, simTags, simTier, simUsed, stripFromQuery, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
 
@@ -262,6 +263,7 @@ export function HomeView() {
         </h1>
       )}
       <HomeHeader />
+      <FilterBar />
       {searching ? <ResultsView /> : <LibraryView />}
     </>
   );

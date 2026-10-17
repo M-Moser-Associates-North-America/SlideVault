@@ -1,5 +1,5 @@
 import type { SlideSummary } from '../contracts/dto';
-import { simTier, simUsed, type Tier } from './simulation';
+import { simContributor, simHasSlideType, simTier, simUploader, simUsed, type Tier } from './simulation';
 
 /**
  * Pure helpers over the slides the API returns. Decks, clients, years and categories are all
@@ -28,9 +28,14 @@ export type Filters = {
   status: Tier[];
   yfrom: number | null;
   yto: number | null;
+  /** Simulated slide type labels, such as "About us" (FD-14) */
+  slideType: string[];
+  /** Simulated sample names (FD-14) */
+  uploader: string[];
+  contributor: string[];
 };
 
-export const NO_FILTERS: Filters = { category: [], client: [], bestOnly: false, status: [], yfrom: null, yto: null };
+export const NO_FILTERS: Filters = { category: [], client: [], bestOnly: false, status: [], yfrom: null, yto: null, slideType: [], uploader: [], contributor: [] };
 
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -73,7 +78,7 @@ export function folderLabel(d: Pick<Deck, 'bestOfTheBest' | 'year' | 'clientName
 export const yearsOf = (decks: Deck[]) => [...new Set(decks.map((d) => d.year).filter((y): y is number => y !== null))].sort((a, b) => b - a);
 
 export function filterCount(f: Filters): number {
-  return f.category.length + f.client.length + f.status.length + (f.bestOnly ? 1 : 0) + (f.yfrom !== null || f.yto !== null ? 1 : 0);
+  return f.category.length + f.client.length + f.status.length + f.slideType.length + f.uploader.length + f.contributor.length + (f.bestOnly ? 1 : 0) + (f.yfrom !== null || f.yto !== null ? 1 : 0);
 }
 
 export function slideMatches(s: SlideSummary, f: Filters): boolean {
@@ -84,6 +89,9 @@ export function slideMatches(s: SlideSummary, f: Filters): boolean {
   if (f.client.length && !f.client.includes(clientOf(s))) return false;
   if (f.status.length && !f.status.includes(simTier(s))) return false;
   if (f.category.length && !f.category.includes(categoryOf(s) ?? '')) return false;
+  if (f.slideType.length && !f.slideType.some((t) => simHasSlideType(s, t))) return false;
+  if (f.uploader.length && !f.uploader.includes(simUploader(s))) return false;
+  if (f.contributor.length && !f.contributor.includes(simContributor(s))) return false;
   return true;
 }
 
