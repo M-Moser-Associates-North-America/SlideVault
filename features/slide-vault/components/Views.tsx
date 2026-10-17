@@ -229,8 +229,9 @@ function HomeTry() {
 /** The original reference HTML's hero search, styled to match it exactly, wired to real search. */
 function HomeHeader() {
   const { query, setQuery } = useWorkspace();
-  const typing = query !== '';
-  const tw = useTypewriter(TYPEWRITER_PHRASES, !typing);
+  const [focused, setFocused] = useState(false);
+  const showHint = query === '' && !focused;
+  const tw = useTypewriter(TYPEWRITER_PHRASES, showHint);
   const submit = (e: FormEvent) => {
     e.preventDefault();
   };
@@ -242,13 +243,13 @@ function HomeHeader() {
           <span className="sr-only"> (search slides)</span>
         </label>
         <span className="home-hero-field">
-          {!typing && (
+          {showHint && (
             <span className="home-hero-anim" aria-hidden="true">
               {tw}
               <span className="home-hero-caret" />
             </span>
           )}
-          <input id="sv-hero-q" type="search" autoComplete="off" enterKeyHint="search" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input id="sv-hero-q" type="search" autoComplete="off" enterKeyHint="search" value={query} onChange={(e) => setQuery(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
         </span>
         <button type="submit" className="home-hero-btn" aria-label="Search">
           <Icon name="search" />
