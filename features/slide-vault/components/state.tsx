@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { listLibrary, searchSlides } from '../client/api';
+import { useActivity, useProfile, useSaved, type ActivityEntry } from '../client/profile-store';
 import { useSelection } from '../client/selection-store';
 import type { SlideSummary } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
@@ -13,6 +14,16 @@ export type LibraryState = { status: 'loading' } | { status: 'ready'; slides: Sl
 export type SearchState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; slides: SlideSummary[] } | { status: 'error'; message: string };
 
 export type Toast = { id: number; message: string };
+
+/** Local design prototype: fake sign-in, five demo profiles, no real accounts (not pushed). */
+export const DEMO_PROFILES = ['Anna Wintour', 'Charlie Chocolate Factory', 'Grease Lightning', 'Charlie Moser', 'Two and a Half Men'];
+export type { ActivityEntry };
+
+/** First letter of the first and last word, e.g. "Two and a Half Men" -> "TM". */
+export function profileInitials(name: string): string {
+  const words = name.trim().split(/\s+/);
+  return (words[0]?.[0] ?? '') + (words.length > 1 ? (words[words.length - 1]?.[0] ?? '') : '');
+}
 
 type Workspace = {
   runtime: SlideVaultRuntime;
@@ -50,6 +61,17 @@ type Workspace = {
   alsoFor: SlideSummary | null;
   openAlso: (slide: SlideSummary) => void;
   closeAlso: () => void;
+  /** Local design prototype: fake sign-in (docs/DECISIONS.md FD-01 is still the real default --
+      this is a mockup for the pitch, not a real auth system). */
+  profile: string | null;
+  authStage: 'login' | 'pick';
+  submitLogin: () => void;
+  pickProfile: (name: string) => void;
+  signOut: () => void;
+  savedIds: ReadonlySet<string>;
+  toggleSaved: (slide: SlideSummary) => void;
+  activity: ActivityEntry[];
+  logActivity: (kind: ActivityEntry['kind'], label: string, slideId?: string) => void;
 };
 
 const Ctx = createContext<Workspace | null>(null);
@@ -184,6 +206,30 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
   const openAlso = useCallback((slide: SlideSummary) => setAlsoFor(slide), []);
   const closeAlso = useCallback(() => setAlsoFor(null), []);
 
+  /* Fake sign-in: no server, no password check. `profile` persists across reloads so a demo
+     doesn't have to log in again; clearing localStorage (as the test suite does) logs out. */
+  const { profile, signIn, signOut: signOutStore } = useProfile();
+  const [authStage, setAuthStage] = useState<'login' | 'pick'>('login');
+  const submitLogin = useCallback(() => setAuthStage('pick'), []);
+  const pickProfile = useCallback(
+    (name: string) => {
+      signIn(name);
+      setAuthStage('login');
+    },
+    [signIn],
+  );
+  /* "Switch profile" (on the profile page) skips straight to the picker; signing out fully
+     (not currently reachable in the UI, kept for completeness) goes back to the login form. */
+  const signOut = useCallback(() => {
+    signOutStore();
+    setAuthStage('pick');
+  }, [signOutStore]);
+
+  /* Saved slides and recent activity, scoped per demo profile so switching profiles actually
+     shows a different person's stuff. */
+  const { ids: savedIds, toggle: toggleSaved } = useSaved(profile);
+  const { entries: activity, log: logActivity } = useActivity(profile);
+
   const value: Workspace = {
     runtime,
     library,
@@ -216,6 +262,15 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     alsoFor,
     openAlso,
     closeAlso,
+    profile,
+    authStage,
+    submitLogin,
+    pickProfile,
+    signOut,
+    savedIds,
+    toggleSaved,
+    activity,
+    logActivity,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

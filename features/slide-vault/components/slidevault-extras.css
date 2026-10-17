@@ -58,3 +58,253 @@
 .slidevault .row-head h2 .sim-flag { margin-left: 10px; }
 .slidevault .also-list .t { display: block; }
 .slidevault .how summary .sim-flag { margin-left: 6px; }
+
+/*
+ * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
+ * The bare Home hero: the original reference HTML's search (reference/SlideVault.html),
+ * values copied from it directly (34px/500/-0.02em headline, 10px 10px 10px 20px search
+ * padding, 44px controls), mapped onto the real app's --sv-* tokens instead of the
+ * reference's unprefixed ones. Sits above Khushali's existing rows, which are untouched.
+ */
+.slidevault .home-hero { padding: 48px 0 8px; max-width: 760px; }
+.slidevault .home-hero-h {
+  margin: 0 0 20px;
+  font-size: 34px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--sv-text);
+}
+.slidevault .home-hero-h b { font-weight: 700; }
+.slidevault .home-hero-caret {
+  display: inline-block;
+  width: 3px;
+  height: 30px;
+  margin-left: 3px;
+  vertical-align: -4px;
+  border-radius: 1px;
+  background: var(--sv-brand);
+  animation: svHeroCaret 1.1s step-end infinite;
+}
+@keyframes svHeroCaret { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .slidevault .home-hero-caret { animation: none; opacity: 1; }
+}
+.slidevault .home-hero-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--sv-surface);
+  border: 1px solid var(--sv-border-strong);
+  border-radius: var(--sv-radius-composer);
+  box-shadow: var(--sv-shadow-card);
+  padding: 10px 10px 10px 20px;
+}
+.slidevault .home-hero-search:focus-within { border-color: var(--sv-brand); }
+.slidevault .home-hero-search .ic { flex: none; color: var(--sv-text-secondary); }
+.slidevault .home-hero-search input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: none;
+  background: transparent;
+  font-family: var(--sv-font-sans);
+  font-size: 16px;
+  color: var(--sv-text);
+}
+.slidevault .home-hero-btn {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border: none;
+  background: var(--sv-action-bg);
+  color: var(--sv-action-fg);
+  border-radius: var(--sv-radius-control);
+  font-family: var(--sv-font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+}
+.slidevault .home-hero-btn:hover { opacity: .88; }
+.slidevault .home-hero-try { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-top: 14px; }
+.slidevault .home-hero-try > span { font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .home-hero-try ul { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+
+/*
+ * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
+ * Netflix-style bottom tab bar, standing in for Home/Create/Upload on both desktop and phone
+ * for this mockup pass (see SlideVaultWorkspace.tsx). Values match the validated nav-placement
+ * comparison: white bar, black icons, orange ring on the active tab, label always visible.
+ */
+.slidevault .sv-app-bottomnav .sv-shell { padding-bottom: 88px; }
+.slidevault .bottom-tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  background: var(--sv-surface);
+  border-top: 1px solid var(--sv-border);
+  padding: 8px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+}
+.slidevault .bottom-tabs-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-decoration: none;
+  color: var(--sv-text-secondary);
+  min-width: 48px;
+}
+.slidevault .bottom-tabs-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.slidevault .bottom-tabs-ic .ic { width: 20px; height: 20px; }
+.slidevault .bottom-tabs-link[aria-current="page"] { color: var(--sv-text); }
+.slidevault .bottom-tabs-link[aria-current="page"] .bottom-tabs-ic { box-shadow: 0 0 0 2px var(--sv-brand); }
+.slidevault .bottom-tabs-lbl { font-size: 11px; font-weight: 600; }
+
+/*
+ * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
+ * On phones, slidevault.css pins the floating slide-selection panel (`.cart-col`) to
+ * `bottom: 12px`, which was written before this bottom tab bar existed. The tab bar is
+ * also fixed to the viewport bottom with a higher z-index, so without this the bar sits
+ * on top of the panel and the Download/Preview buttons become untappable. 88px matches
+ * the clearance `.sv-app-bottomnav .sv-shell`'s padding-bottom already uses for this bar.
+ */
+@media (max-width: 960px) {
+  .slidevault .sv-app-bottomnav .cart-col { bottom: calc(88px + 12px); }
+}
+
+/*
+ * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
+ * Fake sign-in + profile pick, pulled pixel-for-pixel from reference/SlideVault.html's own
+ * login card (its doSignIn doesn't check a password either -- this matches that, not a shortcut).
+ */
+.slidevault .auth-screen {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: radial-gradient(120% 140% at 50% -10%, color-mix(in srgb, var(--sv-brand) 10%, var(--sv-bg)) 0%, var(--sv-bg) 60%);
+}
+.slidevault .auth-col { width: 100%; max-width: 412px; display: flex; flex-direction: column; align-items: center; }
+.slidevault .auth-col-wide { max-width: 560px; }
+.slidevault .auth-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 30px; }
+.slidevault .auth-brand .ic { width: 30px; height: 30px; color: var(--sv-text); }
+.slidevault .auth-wordmark { font-family: var(--sv-font-sans); font-size: 30px; line-height: 1; letter-spacing: 0.01em; font-weight: 700; color: var(--sv-text); }
+.slidevault .auth-card { width: 100%; background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: var(--sv-radius-panel); box-shadow: var(--sv-shadow-panel); padding: 40px 40px 34px; }
+.slidevault .auth-head { text-align: center; margin-bottom: 28px; }
+.slidevault .auth-eyebrow { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .auth-title { margin: 10px 0 6px; font-size: 23px; font-weight: 600; letter-spacing: -0.02em; color: var(--sv-text); }
+.slidevault .auth-sub { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--sv-text-secondary); }
+.slidevault .auth-form { display: flex; flex-direction: column; gap: 16px; }
+.slidevault .auth-field { display: flex; flex-direction: column; gap: 7px; }
+.slidevault .auth-field > span { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .auth-field input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--sv-border-strong);
+  background: var(--sv-surface);
+  border-radius: var(--sv-radius-control);
+  padding: 0 14px;
+  font-family: var(--sv-font-sans);
+  font-size: 14px;
+  color: var(--sv-text);
+  outline: none;
+}
+.slidevault .auth-field input:focus-visible { border-color: var(--sv-brand); }
+.slidevault .auth-pw { position: relative; }
+.slidevault .auth-pw input { padding-right: 44px; }
+.slidevault .auth-pw-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--sv-text-secondary); cursor: pointer; border-radius: 8px; }
+.slidevault .auth-pw-toggle:hover { color: var(--sv-text); }
+.slidevault .auth-pw-toggle .ic { width: 18px; height: 18px; }
+.slidevault .auth-submit { width: 100%; justify-content: center; height: 46px; font-size: 14.5px; margin-top: 4px; }
+.slidevault .auth-switch { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--sv-border); text-align: center; font-size: 13px; color: var(--sv-text-secondary); }
+.slidevault .auth-switch-cta { border: none; background: transparent; color: var(--sv-link); font-weight: 600; cursor: pointer; font-family: var(--sv-font-sans); font-size: 13px; padding: 0; }
+.slidevault .auth-foot { margin-top: 22px; display: flex; gap: 26px; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
+
+.slidevault .auth-pick-h { margin: 0 0 6px; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; color: var(--sv-text); text-align: center; }
+.slidevault .auth-pick-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; list-style: none; margin: 28px 0 0; padding: 0; }
+.slidevault .auth-pick-tile { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 128px; border: none; background: transparent; cursor: pointer; padding: 6px; border-radius: var(--sv-radius-card); }
+.slidevault .auth-pick-tile:hover .auth-pick-avatar, .slidevault .auth-pick-tile:focus-visible .auth-pick-avatar { box-shadow: 0 0 0 3px var(--sv-brand); }
+.slidevault .auth-pick-avatar { width: 84px; height: 84px; border-radius: var(--sv-radius-card); background: var(--sv-action-bg); color: var(--sv-action-fg); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.slidevault .auth-pick-name { font-size: 13.5px; font-weight: 600; color: var(--sv-text); text-align: center; }
+
+/*
+ * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
+ * Save-to-profile: one heart toggle per slide, mirroring the existing cart checkbox's
+ * hover-reveal pattern and corner position (top-right instead of top-left).
+ */
+.slidevault .save-tg {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 2px solid #fff;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--sv-duration-fast);
+}
+.slidevault .save-tg .ic { width: 15px; height: 15px; fill: none; }
+.slidevault .vcard:hover .save-tg, .slidevault .save-tg:focus-visible, .slidevault .save-tg.is-saved { opacity: 1; }
+@media (hover: none) { .slidevault .save-tg { opacity: 1; } }
+.slidevault .save-tg.is-saved { background: var(--sv-brand); border-color: var(--sv-brand); }
+.slidevault .save-tg.is-saved .ic { fill: currentColor; }
+.slidevault .save-tg:focus-visible { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
+
+/*
+ * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
+ * Profile dashboard (saved row + simple activity record) and the avatar nav tab that reaches it.
+ */
+.slidevault .bottom-tabs-avatar { background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 11px; font-weight: 700; }
+.slidevault .profile-wrap .page-head { align-items: center; }
+.slidevault .profile-id { display: flex; align-items: center; gap: 14px; }
+.slidevault .profile-avatar { width: 48px; height: 48px; border-radius: var(--sv-radius-card); background: var(--sv-action-bg); color: var(--sv-action-fg); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex: none; }
+.slidevault .activity-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-width: 70ch; }
+.slidevault .activity-list li { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--sv-border); color: var(--sv-text-secondary); }
+.slidevault .activity-list .ic-sm { flex: none; color: var(--sv-text-secondary); }
+.slidevault .activity-label { flex: 1; min-width: 0; font-size: 14px; color: var(--sv-text); }
+.slidevault .activity-label strong { font-weight: 600; }
+.slidevault .activity-time { font-size: 12.5px; color: var(--sv-text-secondary); flex: none; }
+
+/*
+ * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
+ * "Today's Top 10"-style giant outlined rank numbers, from the Netflix reference video.
+ */
+.slidevault .top10-item { display: flex; align-items: flex-end; }
+.slidevault .top10-num {
+  flex: none;
+  font-size: 108px;
+  font-weight: 800;
+  line-height: 0.75;
+  font-family: var(--sv-font-sans);
+  color: transparent;
+  -webkit-text-stroke: 2px var(--sv-text);
+  margin-right: -26px;
+  margin-bottom: 4px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+@media (max-width: 600px) { .slidevault .top10-num { font-size: 72px; margin-right: -16px; } }

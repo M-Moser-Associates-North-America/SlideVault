@@ -81,20 +81,20 @@ export function Cart() {
   };
 
   const toggleButton = (
-    <button type="button" className="btn btn-ghost btn-icon btn-sm cart-tg" aria-label="Collapse cart to a thin rail" onClick={() => setCartMin(true)}>
+    <button type="button" className="btn btn-ghost btn-icon btn-sm cart-tg" aria-label="Collapse slide selection to a thin rail" onClick={() => setCartMin(true)}>
       <Icon name="right" />
     </button>
   );
 
   const mini = (
     <div className="cart-mini">
-      <button type="button" className="mini-open" aria-label={`Expand cart, ${plural(n, 'slide')}`} onClick={() => setCartMin(false)}>
+      <button type="button" className="mini-open" aria-label={`Expand slide selection, ${plural(n, 'slide')}`} onClick={() => setCartMin(false)}>
         <Icon name="left" />
         <span className="mini-ic" aria-hidden="true">
           <Icon name="cart" />
           {n > 0 && <span className="mini-n">{n}</span>}
         </span>
-        <span className="mini-t">Cart</span>
+        <span className="mini-t">Slide selection</span>
       </button>
       {included.length > 0 && (
         <button
@@ -114,14 +114,14 @@ export function Cart() {
       <>
         <div className="cart cart-empty">
           <div className="cart-top">
-            <h2 className="cart-h">Cart</h2>
+            <h2 className="cart-h">Slide selection</h2>
             <span className="cart-tools">{toggleButton}</span>
           </div>
           <div className="cart-empty-body">
             <span className="ce-ic" aria-hidden="true">
               <Icon name="cart" />
             </span>
-            <p className="ce-t">Your cart is empty</p>
+            <p className="ce-t">Your slide selection is empty</p>
             <p className="meta">Tick the box on any slide to add it. Download them together from here.</p>
           </div>
         </div>
@@ -133,10 +133,10 @@ export function Cart() {
   const none = included.length === 0;
   return (
     <>
-      <div className="cart" role="region" aria-label="Cart">
+      <div className="cart" role="region" aria-label="Slide selection">
         <div className="cart-top">
           <h2 className="cart-h">
-            Cart<span className="count">{n}</span>
+            Slide selection<span className="count">{n}</span>
           </h2>
           <span className="cart-tools">
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => updateSelection(() => [])}>
@@ -196,12 +196,7 @@ export function Cart() {
                   <Link to={{ view: 'slide', id: s.id }}>{s.title}</Link>
                   <span className="meta">{s.provenance.sourceTitle}</span>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-icon btn-sm"
-                  aria-label={`Remove from cart: ${s.title}`}
-                  onClick={() => updateSelection((cur) => cur.filter((x) => x.id !== s.id))}
-                >
+                <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Remove from slide selection: ${s.title}`} onClick={() => updateSelection((cur) => cur.filter((x) => x.id !== s.id))}>
                   <Icon name="x" />
                 </button>
               </li>
@@ -233,17 +228,11 @@ export function Cart() {
           </div>
         )}
         <div className="cart-acts">
-          <button type="button" className="btn btn-sm" disabled={none} title={none ? 'Tick at least one slide in the cart.' : undefined} onClick={() => openPreview(included, 0)}>
+          <button type="button" className="btn btn-sm" disabled={none} title={none ? 'Tick at least one slide in your slide selection.' : undefined} onClick={() => openPreview(included, 0)}>
             <Icon name="eye" />
             <span>Preview</span>
           </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
-            disabled={none}
-            title={none ? 'Tick at least one slide in the cart.' : undefined}
-            onClick={() => openDownload(included)}
-          >
+          <button type="button" className="btn btn-sm btn-primary" disabled={none} title={none ? 'Tick at least one slide in your slide selection.' : undefined} onClick={() => openDownload(included)}>
             <Icon name="download" />
             <span>Download as pptx</span>
           </button>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { getSlide } from '../client/api';
 import type { SlideDetail, SlideSummary } from '../contracts/dto';
 import { Icon } from './icons';
@@ -21,10 +21,18 @@ import {
   type Deck,
 } from './library';
 import { DeckCard, Link, SimFlag, SkeletonGrid, SlideCard, StateBlock, StatusBadge, Thumb, useCartToggle } from './parts';
+import { TRY_QUERIES } from './Rail';
 import { simParse, simSearch, simTags, simTier, simUsed, stripFromQuery, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
 
 const ROW_LIMIT = 12;
+
+/** Small, deterministic string hash -- picks the same "lane" for the same profile every time. */
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h << 5) - h + s.charCodeAt(i);
+  return h;
+}
 
 /** One horizontally scrolling row of cards, with "See all". */
 function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; title: string; sub?: string; seeAll?: string; total?: number; sim?: boolean; children: ReactNode }) {
@@ -72,6 +80,28 @@ function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; tit
         {children}
       </ul>
     </section>
+  );
+}
+
+/**
+ * Local design prototype: "Today's Top 10"-style row, with the big outlined rank numbers from
+ * the Netflix reference video, rather than the small corner ribbon the rest of the app uses
+ * (not pushed, not part of Khushali's approved build).
+ */
+function TopTenRow({ slides, sub }: { slides: SlideSummary[]; sub: string }) {
+  const top = slides.slice(0, 10);
+  if (top.length === 0) return null;
+  return (
+    <Row id="top10" title="Your Top 10" sub={sub}>
+      {top.map((s, i) => (
+        <li key={s.id} className="top10-item">
+          <span className="top10-num" aria-hidden="true">
+            {i + 1}
+          </span>
+          <SlideCard slide={s} list={top} />
+        </li>
+      ))}
+    </Row>
   );
 }
 
@@ -126,14 +156,119 @@ function useReadyLibrary(): { slides: SlideSummary[]; decks: Deck[] } | { blocke
 
 /* ------------------------------------------------------------------ Home */
 
+/**
+ * Local-only design prototype (not pushed, not touching Khushali's build): the original
+ * reference HTML's typewriter headline, timing copied exactly from reference/SlideVault.html
+ * (85ms per typed character, 45ms per deleted character, 1500ms pause on a complete phrase),
+ * reimplemented as a hook instead of the reference's class-component state. Honors
+ * prefers-reduced-motion by showing the first phrase complete and static, no animation.
+ */
+const TYPEWRITER_PHRASES = ['proposals', 'case studies', 'pricing decks'];
+
+function useTypewriter(phrases: string[]): string {
+  const [text, setText] = useState('');
+  const reduceMotion = useRef(false);
+  useEffect(() => {
+    reduceMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion.current) {
+      setText(phrases[0]);
+      return;
+    }
+    let idx = 0;
+    let deleting = false;
+    let current = '';
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      const target = phrases[idx % phrases.length];
+      if (!deleting && current === target) {
+        timer = setTimeout(() => {
+          deleting = true;
+          tick();
+        }, 1500);
+        return;
+      }
+      if (deleting && current === '') {
+        deleting = false;
+        idx += 1;
+        tick();
+        return;
+      }
+      current = deleting ? target.slice(0, current.length - 1) : target.slice(0, current.length + 1);
+      setText(current);
+      timer = setTimeout(tick, deleting ? 45 : 85);
+    };
+    tick();
+    return () => clearTimeout(timer);
+  }, [phrases]);
+  return text;
+}
+
+/** The original reference HTML's hero search, styled to match it exactly, wired to real search. */
+function HomeHeader() {
+  const { query, setQuery } = useWorkspace();
+  const tw = useTypewriter(TYPEWRITER_PHRASES);
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+  };
+  return (
+    <div className="home-hero">
+      <p className="home-hero-h">
+        I&rsquo;m looking for <b>{tw}</b>
+        <span className="home-hero-caret" aria-hidden="true" />
+      </p>
+      <form className="home-hero-search" role="search" onSubmit={submit}>
+        <Icon name="search" className="ic" />
+        <label htmlFor="sv-hero-q" className="sr-only">
+          Search slides
+        </label>
+        <input
+          id="sv-hero-q"
+          type="search"
+          autoComplete="off"
+          enterKeyHint="search"
+          placeholder="Search proposals, slides, clients or intent…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button type="submit" className="home-hero-btn">
+          Search
+          <Icon name="right" className="ic-sm" />
+        </button>
+      </form>
+      <div className="home-hero-try">
+        <span>Try</span>
+        <ul>
+          {TRY_QUERIES.map((q) => (
+            <li key={q}>
+              <button type="button" className="try-chip" aria-current={query.trim() === q ? 'true' : undefined} onClick={() => setQuery(q)}>
+                {q}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 export function HomeView() {
   const { query } = useWorkspace();
-  if (query.trim()) return <ResultsView />;
-  return <LibraryView />;
+  const searching = query.trim() !== '';
+  return (
+    <>
+      {!searching && (
+        <h1 className="sr-only" tabIndex={-1}>
+          Home
+        </h1>
+      )}
+      <HomeHeader />
+      {searching ? <ResultsView /> : <LibraryView />}
+    </>
+  );
 }
 
 function LibraryView() {
-  const { filters, clearFilters } = useWorkspace();
+  const { filters, clearFilters, profile, savedIds, activity } = useWorkspace();
   const lib = useReadyLibrary();
   const ready = 'slides' in lib;
   const slides = useMemo(() => (ready ? lib.slides.filter((s) => slideMatches(s, filters)) : []), [ready, lib, filters]);
@@ -144,6 +279,41 @@ function LibraryView() {
   const popular = browseSlides('popular', slides);
   const suggested = browseSlides('suggested', slides);
   const retired = browseSlides('retired', slides);
+
+  /* Local design prototype: a personalized row (profile -> one real category, deterministically
+     so the same profile always sees the same lane) and a "because you saved" row keyed off the
+     first saved slide's category -- the right-sized stand-in for real recommendations discussed
+     with Schiffon, not real ML (not pushed, not part of Khushali's approved build). */
+  const categoryList = useMemo(() => [...new Set(slides.map(categoryOf).filter((c): c is string => c !== null))].sort(), [slides]);
+  const pickedCategory = profile && categoryList.length > 0 ? categoryList[Math.abs(hashString(profile)) % categoryList.length] : null;
+  const picked = pickedCategory ? slides.filter((s) => categoryOf(s) === pickedCategory) : [];
+
+  /* Top 10: actual per-profile usage frequency (how often this profile has opened each slide),
+     not category membership -- two people can share a category and still rely on very different
+     individual slides, per Schiffon. Falls back to the category lane, then to the site-wide best,
+     only so a freshly-reset demo profile with no view history isn't left with an empty row. */
+  const usageRanked = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of activity) {
+      if (a.kind === 'viewed' && a.slideId) counts.set(a.slideId, (counts.get(a.slideId) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => slides.find((s) => s.id === id))
+      .filter((s): s is SlideSummary => s !== undefined)
+      .slice(0, 10);
+  }, [activity, slides]);
+  const top10 = usageRanked.length > 0 ? usageRanked : picked.length > 0 ? [...picked].reverse() : best;
+  const top10Sub =
+    usageRanked.length > 0
+      ? `The slides ${profile} opens most.`
+      : picked.length > 0
+        ? `Based on what ${profile} looks at most.`
+        : 'Most added to a slide selection.';
+
+  const firstSaved = slides.find((s) => savedIds.has(s.id));
+  const becauseCategory = firstSaved ? categoryOf(firstSaved) : null;
+  const because = firstSaved && becauseCategory ? slides.filter((s) => s.id !== firstSaved.id && categoryOf(s) === becauseCategory) : [];
   const tileCounts = (pick: (s: SlideSummary) => string | number | null) => {
     const slideN = countBy(slides, pick);
     const deckN = new Map<string, Set<string>>();
@@ -169,23 +339,28 @@ function LibraryView() {
 
   return (
     <div className="sv-wrap">
-      <div className="page-head">
-        <div>
-          <h1 className="h1" tabIndex={-1}>
-            Home
-          </h1>
-          <p className="lede">Browse trusted slides, or use the search box. Tick slides to add them to your cart.</p>
-          <p className="sim-legend">
-            <SimFlag />
-            Orange marks show a simulated preview: approval status, AI labels, download counts and smart search are not connected to real data yet.
-          </p>
-        </div>
-      </div>
+      {/* No page-head h1 here: HomeView's hero search provides the page's real (sr-only when
+          searching) h1 so there's exactly one, not a duplicate "Home" heading. The simulated-data
+          legend still belongs here since it explains every orange mark on this page. */}
+      <p className="sim-legend">
+        <SimFlag />
+        Orange marks show a simulated preview: approval status, AI labels, download counts and smart search are not connected to real data yet.
+      </p>
       {!ready ? (
         <div style={{ marginTop: 20 }}>{lib.blocker}</div>
       ) : (
         <>
           <FilterNote />
+          {picked.length > 0 && (
+            <Row id="picked" title={`Picked for ${profile}`} sub="Based on what this profile looks at most.">
+              {picked.slice(0, ROW_LIMIT).map((s) => (
+                <li key={s.id}>
+                  <SlideCard slide={s} list={picked.slice(0, ROW_LIMIT)} />
+                </li>
+              ))}
+            </Row>
+          )}
+          <TopTenRow slides={top10} sub={top10Sub} />
           {best.length > 0 && (
             <Row id="best" title="Best of the Best" sub="Hand-picked slides. Row names TBD." seeAll="best" total={best.length}>
               {best.slice(0, ROW_LIMIT).map((s) => (
@@ -218,6 +393,15 @@ function LibraryView() {
               {suggested.slice(0, ROW_LIMIT).map((s) => (
                 <li key={s.id}>
                   <SlideCard slide={s} list={suggested.slice(0, ROW_LIMIT)} />
+                </li>
+              ))}
+            </Row>
+          )}
+          {because.length > 0 && firstSaved && (
+            <Row id="because" title={`Because you saved ${firstSaved.title}`} sub="Same category, more to look at.">
+              {because.slice(0, ROW_LIMIT).map((s) => (
+                <li key={s.id}>
+                  <SlideCard slide={s} list={because.slice(0, ROW_LIMIT)} />
                 </li>
               ))}
             </Row>
@@ -314,7 +498,7 @@ function SelectAll({ slides: every }: { slides: SlideSummary[] }) {
   const all = slides.length > 0 && slides.every((s) => selection.some((x) => x.id === s.id));
   const click = () => {
     updateSelection((cur) => (all ? cur.filter((c) => !slides.some((s) => s.id === c.id)) : [...cur, ...slides.filter((s) => !cur.some((c) => c.id === s.id))]));
-    announce(all ? 'Selection cleared' : `${plural(slides.length, 'slide')} added to cart`);
+    announce(all ? 'Selection cleared' : `${plural(slides.length, 'slide')} added to slide selection`);
   };
   return (
     <button type="button" className="btn btn-sm" onClick={click}>
@@ -563,7 +747,7 @@ function FromFolder() {
 }
 
 export function SlideView({ id }: { id: string }) {
-  const { runtime, library, openPreview, openDownload } = useWorkspace();
+  const { runtime, library, openPreview, openDownload, logActivity } = useWorkspace();
   const { isSelected, set } = useCartToggle();
   const lib = useReadyLibrary();
   const slide = library.status === 'ready' ? library.slides.find((s) => s.id === id) : undefined;
@@ -578,6 +762,13 @@ export function SlideView({ id }: { id: string }) {
       .catch((e: Error) => e.name !== 'AbortError' && setDetail({ id, error: e.message }));
     return () => controller.abort();
   }, [request, onSessionExpired, id]);
+  /* Local design prototype: record a visit to this slide on the signed-in profile's activity log.
+     Views.tsx's TopTenRow counts these per slide to rank "what this profile actually uses most,"
+     per Schiffon: two people in the same category can still have very different real usage. */
+  useEffect(() => {
+    if (slide) logActivity('viewed', slide.title, slide.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   if ('blocker' in lib) return <div className="sv-wrap">{lib.blocker}</div>;
   if (!slide || !deck) {

@@ -38,7 +38,7 @@ These colors define SlideVault's interface palette. The stylesheet contains the 
 
 | Role | Light | Dark |
 | --- | --- | --- |
-| Brand accent | `#FF3F0A` | `#FF5A2C` |
+| Brand accent | `#EC672C` | `#FF5A2C` |
 | Strong brand accent | `#D93407` | `#FF7048` |
 | Application background | `#F3F4F6` | `#0B0C0F` |
 | Panel surface | `#FFFFFF` | `#191A1E` |
@@ -56,7 +56,7 @@ These colors define SlideVault's interface palette. The stylesheet contains the 
 
 The stylesheet includes separate tokens for secondary/placeholder text, readable links, a solid focus outline and a stronger control boundary. Use these for functional UI. Decorative borders and status accents alone do not guarantee accessible contrast.
 
-Use `--sv-text-secondary` for labels, hints, metadata and placeholders on the standard background or panel surface. On tinted or muted surfaces, check contrast and use `--sv-text` when needed. Orange `#FF3F0A` on white is approximately 3.52:1, so it is unsuitable for normal-sized text. Use `--sv-link` for text links and underline links in prose. Keep status copy in `--sv-text`; accompany any color with a label or icon. Measure actual foreground/background combinations, including hover, selected and translucent states.
+Use `--sv-text-secondary` for labels, hints, metadata and placeholders on the standard background or panel surface. On tinted or muted surfaces, check contrast and use `--sv-text` when needed. Orange `#EC672C` on white is approximately 3.21:1, so it clears the 3:1 non-text minimum (borders, icons, focus rings) but is still unsuitable for normal-sized text; use `--sv-brand-strong` for text. Use `--sv-link` for text links and underline links in prose. Keep status copy in `--sv-text`; accompany any color with a label or icon. Measure actual foreground/background combinations, including hover, selected and translucent states.
 
 ### Typography
 

@@ -90,7 +90,7 @@ export function Lightbox() {
               <span className="row-flex">
                 <button type="button" className="btn btn-sm" aria-pressed={isSelected(slide.id)} onClick={() => set(slide, !isSelected(slide.id))}>
                   <Icon name="check" />
-                  <span>{isSelected(slide.id) ? 'In cart' : 'Add to cart'}</span>
+                  <span>{isSelected(slide.id) ? 'In slide selection' : 'Add to slide selection'}</span>
                 </button>
                 <button
                   type="button"
@@ -119,7 +119,7 @@ type Run = { kind: 'idle' } | { kind: 'busy' } | { kind: 'done'; fileName: strin
 
 /** What you are about to download, then the real export. */
 export function DownloadDialog() {
-  const { runtime, downloadSlides, closeDownload, toast } = useWorkspace();
+  const { runtime, downloadSlides, closeDownload, toast, logActivity } = useWorkspace();
   // The result belongs to the slides it was started for, so opening the dialog again starts fresh.
   const [result, setResult] = useState<{
     for: SlideSummary[] | null;
@@ -146,6 +146,7 @@ export function DownloadDialog() {
       URL.revokeObjectURL(url);
       setRun({ kind: 'done', fileName });
       toast(`Downloaded ${fileName}`);
+      logActivity('downloaded', fileName);
     } catch (e) {
       const offline = e instanceof TypeError; // fetch rejects with TypeError when the network fails
       setRun({
@@ -185,7 +186,7 @@ export function DownloadDialog() {
         {run.kind === 'error' && (
           <div className="notice danger" role="alert">
             <Icon name="alert" />
-            <span>{run.message} Your cart is unchanged.</span>
+            <span>{run.message} Your slide selection is unchanged.</span>
           </div>
         )}
         {run.kind === 'done' && (

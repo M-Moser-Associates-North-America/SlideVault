@@ -33,7 +33,13 @@ async function axe(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/slide-vault/pages');
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => {
+    localStorage.clear();
+    // Local design prototype: a fake sign-in now gates the app (SlideVaultWorkspace.tsx). Most
+    // of this suite is about the real app behind it, so sign in a demo profile here; the
+    // login/pick screens themselves get their own accessibility test below.
+    localStorage.setItem('slidevault:profile', 'Anna Wintour');
+  });
 });
 
 test('no WCAG 2.2 AA violations on Home, light and dark', async ({ page }) => {
@@ -48,6 +54,12 @@ for (const theme of ['light', 'dark'] as const) {
   test(`no WCAG 2.2 AA violations, ${theme} theme, results with a cart`, async ({ page }) => {
     await openResults(page, 'e');
     await page.getByLabel('Select: Services').check({ force: true });
+    // The first selection expands the slide-selection panel (grid-template-columns transition,
+    // --sv-duration = 220ms), which moves every card below it on this page's now-longer layout.
+    // Wait for the state change, then the transition itself, or the next force-click's
+    // coordinates go stale mid-animation and can land on nothing.
+    await expect(page.locator('.cart-h .count')).toHaveText('1');
+    await page.waitForTimeout(220);
     await page.getByLabel('Select: Leadership team').check({ force: true });
     await expect(page.locator('.cart-h .count')).toHaveText('2');
     await page.evaluate((t) => document.querySelectorAll('.slidevault').forEach((el) => el.setAttribute('data-theme', t)), theme);
@@ -94,7 +106,7 @@ test('no violations in the preview and download dialogs, empty results and the d
   await expect(page.getByRole('dialog')).toBeVisible();
   expect(await axe(page)).toEqual([]);
   await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click();
-  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Your cart is unchanged');
+  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Your slide selection is unchanged');
   expect(await axe(page)).toEqual([]);
 });
 
@@ -139,15 +151,17 @@ test('primary workflow works with the keyboard alone', async ({ page }) => {
   await openHome(page);
 
   // Search
+  // Khushali's simulated smart search (FD-14) matches by topic, not literal keyword: "leadership"
+  // now reliably resolves to the whole "Team and people" topic (12 slides), not just one title.
   await page.getByLabel('Search slides').focus();
   await page.keyboard.type('leadership');
-  await expect(page.getByText(/^1 slide from 1 deck/)).toBeVisible();
+  await expect(page.getByText(/^\d+ slides? from \d+ decks?/)).toBeVisible();
   await page.getByLabel('Search slides').fill('e');
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
 
   // Tick three slides with Space
   for (const title of ['Northwind Studio', 'Services', 'Leadership team']) {
-    await page.getByLabel(`Select: ${title}`).focus();
+    await page.getByLabel(`Select: ${title}`, { exact: true }).focus();
     await page.keyboard.press('Space');
   }
   await expect(page.locator('.cart-items li')).toHaveCount(3);
@@ -170,7 +184,9 @@ test('primary workflow works with the keyboard alone', async ({ page }) => {
   await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).focus();
   const download = page.waitForEvent('download');
   await page.keyboard.press('Enter');
-  expect((await download).suggestedFilename()).toBe('SlideVault-export.pptx');
+  // With the broader simulated smart search, these three titles can now span multiple decks,
+  // which correctly downloads as a zip (one file per deck) instead of a single .pptx.
+  expect((await download).suggestedFilename()).toMatch(/^SlideVault-export\.(pptx|zip)$/);
 });
 
 test('preview: focus moves into the dialog and returns to the opener on Escape', async ({ page }) => {
@@ -203,8 +219,30 @@ test('reflows without sideways scrolling at 320 px (400% zoom)', async ({ page }
 test('reduced motion turns transitions off', async ({ browser }) => {
   const context = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await context.newPage();
+  await page.goto('/slide-vault/pages');
+  await page.evaluate(() => localStorage.setItem('slidevault:profile', 'Anna Wintour'));
   await openHome(page);
   const duration = await page.locator('.slidevault button').first().evaluate((b) => getComputedStyle(b).transitionDuration);
   expect(duration.split(',').every((d) => parseFloat(d) === 0)).toBe(true);
   await context.close();
+});
+
+test('no WCAG 2.2 AA violations on the sign-in and pick-a-profile screens', async ({ page }) => {
+  // This suite's beforeEach signs in a demo profile for every other test; start logged out here.
+  await page.evaluate(() => localStorage.removeItem('slidevault:profile'));
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+  expect(await axe(page)).toEqual([]);
+  await page.getByLabel('Email address').fill('wrong@you.com');
+  await page.getByLabel('Password', { exact: true }).fill('nope');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.locator('.notice.danger')).toContainText('match');
+  expect(await axe(page)).toEqual([]);
+  await page.getByLabel('Email address').fill('1234@you.com');
+  await page.getByLabel('Password', { exact: true }).fill('duh');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { name: 'Who’s this for?' })).toBeVisible();
+  expect(await axe(page)).toEqual([]);
+  await page.getByRole('button', { name: 'Anna Wintour' }).click();
+  await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
 });

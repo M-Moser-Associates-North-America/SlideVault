@@ -11,7 +11,7 @@ import { useWorkspace } from './state';
  * Example searches shown under the box. The sentence-style ones are read by the simulated smart
  * search (FD-14); the single words also work with the real keyword search.
  */
-const TRY_QUERIES = ['team intro for a law firm pitch', 'cost and fees', 'about us and values', 'recent logistics work', 'process and timeline 2025'];
+export const TRY_QUERIES = ['team intro for a law firm pitch', 'cost and fees', 'about us and values', 'recent logistics work', 'process and timeline 2025'];
 
 /** Wide screens always show the filters; narrow ones fold them away behind the heading. */
 const WIDE = '(min-width: 961px)';

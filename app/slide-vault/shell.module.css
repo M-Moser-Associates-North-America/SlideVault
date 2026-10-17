@@ -32,6 +32,11 @@
   padding: 12px 20px;
   background: #1a1a1a;
   color: #ffffff;
+  /* Local design prototype: pinned in place like an app's top bar, matching the bottom tab bar's
+     fixed position, instead of scrolling away with the page content (not pushed). */
+  position: sticky;
+  top: 0;
+  z-index: 60;
 }
 
 .brand {

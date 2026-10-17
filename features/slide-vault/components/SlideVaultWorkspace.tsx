@@ -8,7 +8,9 @@ import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
 import { Crumbs, Link, type Crumb } from './parts';
 import { FilterPanel, SearchForm, TryAsking } from './Rail';
-import { WorkspaceProvider, useWorkspace } from './state';
+import { WorkspaceProvider, profileInitials, useWorkspace } from './state';
+import { LoginView, PickProfileView } from './AuthView';
+import { ProfileView } from './ProfileView';
 import { UploadView } from './UploadView';
 import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './Views';
 import './slidevault.css';
@@ -55,12 +57,16 @@ const TABS: {
 ];
 
 function Workspace() {
-  const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement } = useWorkspace();
+  const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, profile, authStage } = useWorkspace();
   const loc = runtime.location;
   const view = loc.view === 'home' || loc.view === 'library' ? 'pages' : loc.view;
   const deep = view === 'deck' || view === 'slide';
-  const noRail = view !== 'pages' && view !== 'browse';
-  const narrow = view === 'create' || view === 'upload';
+  /* Local design prototype: the whole Home/pages view (browsing or searching) drops the rail in
+     favor of the original reference HTML's hero search (Views.tsx HomeHeader), which stays
+     mounted across that transition so typing never loses focus mid-word. Browse is untouched
+     until reviewed separately. Not pushed, not changing Khushali's build. */
+  const noRail = view !== 'browse';
+  const narrow = view === 'create' || view === 'upload' || view === 'profile';
 
   /* New page: scroll to the top and move focus to its heading, like a page load would. */
   const key = `${view}/${loc.id ?? ''}`;
@@ -99,26 +105,10 @@ function Workspace() {
   const slidesAll = library.status === 'ready' ? library.slides : [];
   const decksAll = library.status === 'ready' ? library.decks : [];
 
+  if (!profile) return authStage === 'pick' ? <PickProfileView /> : <LoginView />;
+
   return (
-    <div className="sv-app">
-      <div className="sv-top">
-        <div className="sv-wrap">
-          <div className="sv-brandrow">
-            <nav className="sv-nav" aria-label="Main">
-              <ul>
-                {TABS.filter((t) => t.view !== 'upload' || runtime.capabilities.has('source.upload')).map((t) => (
-                  <li key={t.view}>
-                    <Link to={{ view: t.view }} aria-current={view === t.view || (t.view === 'pages' && (view === 'browse' || deep)) ? 'page' : undefined} title={t.tip}>
-                      <Icon name={t.icon} />
-                      {t.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </div>
-        </div>
-      </div>
+    <div className="sv-app sv-app-bottomnav">
       <div className={`sv-shell${cartMin ? ' cart-min' : ''}${noRail ? ' no-rail' : ''}${narrow ? ' narrow' : ''}`}>
         {!noRail && (
           <aside className="rail" aria-label="Search and filters">
@@ -155,12 +145,38 @@ function Workspace() {
             {view === 'slide' && <SlideView id={loc.id ?? ''} />}
             {view === 'create' && <CreateView />}
             {view === 'upload' && <UploadView />}
+            {view === 'profile' && <ProfileView />}
           </main>
         </div>
-        <aside className="cart-col" aria-label="Cart">
+        <aside className="cart-col" aria-label="Slide selection">
           <Cart />
         </aside>
       </div>
+      {/* Local design prototype: Home/Create/Upload moved to a Netflix-style bottom bar, on both
+          desktop and phone for this mockup pass. Real build later needs the desktop placement
+          (rail or top) to be whatever the team decides by Saturday; this isn't that decision,
+          just the look for the pitch. Not pushed, not changing Khushali's build. */}
+      <nav className="bottom-tabs" aria-label="Main">
+        {TABS.filter((t) => t.view !== 'upload' || runtime.capabilities.has('source.upload')).map((t) => (
+          <Link
+            key={t.view}
+            to={{ view: t.view }}
+            aria-current={view === t.view || (t.view === 'pages' && (view === 'browse' || deep)) ? 'page' : undefined}
+            className="bottom-tabs-link"
+          >
+            <span className="bottom-tabs-ic">
+              <Icon name={t.icon} />
+            </span>
+            <span className="bottom-tabs-lbl">{t.label}</span>
+          </Link>
+        ))}
+        <Link to={{ view: 'profile' }} aria-current={view === 'profile' ? 'page' : undefined} className="bottom-tabs-link">
+          <span className="bottom-tabs-ic bottom-tabs-avatar" aria-hidden="true">
+            {profileInitials(profile ?? '')}
+          </span>
+          <span className="bottom-tabs-lbl">Profile</span>
+        </Link>
+      </nav>
       <div className={`toasts${selection.length ? ' lift' : ''}`} aria-live="polite" aria-relevant="additions">
         {toasts.map((t) => (
           <div key={t.id} className="toast">

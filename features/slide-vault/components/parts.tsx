@@ -111,7 +111,7 @@ export function useCartToggle() {
       if (!on && has) return cur.filter((s) => s.id !== slide.id);
       return cur;
     });
-    announce(on ? `Added to cart: ${slide.title}` : `Removed from cart: ${slide.title}`);
+    announce(on ? `Added to slide selection: ${slide.title}` : `Removed from slide selection: ${slide.title}`);
   };
   return { isSelected, set };
 }
@@ -132,12 +132,26 @@ export function StatusBadge({ tier }: { tier: Tier }) {
   );
 }
 
+/** Local design prototype: save a slide to the signed-in demo profile (not pushed). */
+export function useSavedToggle() {
+  const { savedIds, toggleSaved, announce } = useWorkspace();
+  const isSaved = (id: string) => savedIds.has(id);
+  const toggle = (slide: SlideSummary) => {
+    const was = isSaved(slide.id);
+    toggleSaved(slide);
+    announce(was ? `Removed from saved: ${slide.title}` : `Saved: ${slide.title}`);
+  };
+  return { isSaved, toggle };
+}
+
 /** Slide card: preview, tick-to-add, where it came from, "also in N other decks". */
 export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; list: SlideSummary[]; why?: string; note?: string }) {
   const { openPreview, openAlso } = useWorkspace();
   const tier = simTier(slide);
   const { isSelected, set } = useCartToggle();
+  const { isSaved, toggle: toggleSave } = useSavedToggle();
   const sel = isSelected(slide.id);
+  const saved = isSaved(slide.id);
   const p = slide.provenance;
   const meta = [clientOf(slide), yearOf(slide), categoryOf(slide)].filter((x) => x !== null).join(' · ');
   return (
@@ -176,6 +190,15 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
             {slide.hiddenInSource && <span className="badge">Hidden in source</span>}
           </span>
         )}
+        <button
+          type="button"
+          className={`save-tg${saved ? ' is-saved' : ''}`}
+          aria-pressed={saved}
+          aria-label={saved ? `Remove from saved: ${slide.title}` : `Save: ${slide.title}`}
+          onClick={() => toggleSave(slide)}
+        >
+          <Icon name="heart" />
+        </button>
       </div>
       <div className="card-body">
         <Link className="card-title" to={{ view: 'slide', id: slide.id }}>
