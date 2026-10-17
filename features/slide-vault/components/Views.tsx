@@ -343,12 +343,7 @@ function LibraryView() {
   return (
     <div className="sv-wrap">
       {/* No page-head h1 here: HomeView's hero search provides the page's real (sr-only when
-          searching) h1 so there's exactly one, not a duplicate "Home" heading. The simulated-data
-          legend still belongs here since it explains every orange mark on this page. */}
-      <p className="sim-legend">
-        <SimFlag />
-        Orange marks show a simulated preview: approval status, AI labels, download counts and smart search are not connected to real data yet.
-      </p>
+          searching) h1 so there's exactly one, not a duplicate "Home" heading. */}
       {!ready ? (
         <div style={{ marginTop: 20 }}>{lib.blocker}</div>
       ) : (
