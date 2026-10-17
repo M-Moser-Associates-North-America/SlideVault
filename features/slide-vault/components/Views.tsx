@@ -666,7 +666,7 @@ export function ResultsView() {
       )}
       {smart && (
         <>
-          <div className="interp">
+          <div className="interp" hidden={smart.parsed.chips.length > 0 && smart.parsed.chips.every((c) => chipShownInFilterRow(smart.parsed, c)) && smart.parsed.tokens.length === 0}>
             <span className="meta" title="Simulated for now. The real build uses an AI model.">
               <Icon name="sparkle" className="ic-sm" />
               We read this as:

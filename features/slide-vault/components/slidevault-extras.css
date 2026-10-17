@@ -419,3 +419,4 @@
 .slidevault .chip-x.from-search { border-style: dashed; }
 .slidevault .chip-x.from-search .ic-sm { color: var(--sv-brand); width: 13px; height: 13px; }
 .slidevault .fb-note { margin: 0 0 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .interp[hidden] { display: none; }
