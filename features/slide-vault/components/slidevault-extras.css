@@ -66,7 +66,7 @@
  * padding, 44px controls), mapped onto the real app's --sv-* tokens instead of the
  * reference's unprefixed ones. Sits above Khushali's existing rows, which are untouched.
  */
-.slidevault .home-hero { padding: 24px 0 0; max-width: 840px; }
+.slidevault .home-hero { padding: 56px 0 0; max-width: 840px; }
 .slidevault .home-try { max-width: 840px; }
 .slidevault .home-hero-caret {
   display: inline-block;
@@ -88,12 +88,12 @@
   gap: 14px;
   padding: 0;
 }
-.slidevault .home-hero-prefix { flex: none; font-size: 17px; font-weight: 500; letter-spacing: -0.02em; color: var(--sv-text); white-space: nowrap; }
+.slidevault .home-hero-prefix { flex: none; font-size: 24px; font-weight: 500; letter-spacing: -0.02em; color: var(--sv-text); white-space: nowrap; }
 /* Sizes, colours and padding follow the HTML mockup's search bar (white bar, strong border, 20px left padding, 16px text), a little smaller. */
-.slidevault .home-hero-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 20px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); box-shadow: var(--sv-shadow-card); }
+.slidevault .home-hero-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 7px 7px 7px 24px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); box-shadow: var(--sv-shadow-card); }
 .slidevault .home-hero-field:focus-within { border-color: var(--sv-brand); }
-.slidevault .home-hero-field input { flex: 1; width: 100%; height: 40px; font-weight: 400; }
-.slidevault .home-hero-anim { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); font-size: 16px; font-weight: 400; color: color-mix(in srgb, var(--sv-text) 45%, transparent); pointer-events: none; white-space: nowrap; }
+.slidevault .home-hero-field input { flex: 1; width: 100%; height: 44px; font-size: 18px; font-weight: 400; }
+.slidevault .home-hero-anim { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); font-size: 18px; font-weight: 400; color: color-mix(in srgb, var(--sv-text) 45%, transparent); pointer-events: none; white-space: nowrap; }
 .slidevault .home-hero-search .ic { flex: none; color: var(--sv-text-secondary); }
 .slidevault .home-hero-search input {
   flex: 1;
@@ -109,8 +109,8 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: none;
   background: var(--sv-action-bg);
