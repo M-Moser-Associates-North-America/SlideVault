@@ -156,11 +156,11 @@ export function FilterBar() {
   const yearOn = filters.yfrom !== null || filters.yto !== null;
   const moreCount = filters.uploader.length + filters.contributor.length + filters.status.length + (filters.bestOnly ? 1 : 0);
   const items: { key: Key; label: string; icon: IconName; active: number }[] = [
-    { key: 'year', label: 'Year', icon: 'calendar', active: yearOn ? 1 : 0 },
-    { key: 'client', label: 'Client', icon: 'building', active: filters.client.length },
-    { key: 'category', label: 'Project type', icon: 'folder', active: filters.category.length },
-    { key: 'slideType', label: 'Slide type', icon: 'layers', active: filters.slideType.length },
-    { key: 'more', label: 'More filters', icon: 'sliders', active: moreCount },
+    { key: 'year', label: 'Year', icon: 'calendarFill', active: yearOn ? 1 : 0 },
+    { key: 'client', label: 'Client', icon: 'buildingFill', active: filters.client.length },
+    { key: 'category', label: 'Project type', icon: 'folderFill', active: filters.category.length },
+    { key: 'slideType', label: 'Slide type', icon: 'layersFill', active: filters.slideType.length },
+    { key: 'more', label: 'More', icon: 'slidersFill', active: moreCount },
   ];
 
   /* The chips under the row: one per active choice, each removable. */
@@ -276,15 +276,13 @@ export function FilterBar() {
               type="button"
               className={`fb-btn${it.active ? ' on' : ''}`}
               data-key={it.key}
-              data-tip={it.label}
-              aria-label={it.active ? `${it.label}, ${it.active} chosen` : it.label}
-              aria-haspopup="dialog"
+                            aria-haspopup="dialog"
               aria-expanded={open === it.key}
               onClick={() => setOpen(open === it.key ? null : it.key)}
             >
               <Icon name={it.icon} />
               <span className="fb-lbl">{it.label}</span>
-              {it.active > 0 && <span className="fb-dot" aria-hidden="true" />}
+              {it.active > 0 && <span className="fb-n-on" aria-hidden="true">{it.active}</span>}
             </button>
             {open === it.key && (
               <div className={`fb-pop${it.key === 'more' ? ' fb-pop-wide' : ''}`} role="dialog" aria-label={it.label}>

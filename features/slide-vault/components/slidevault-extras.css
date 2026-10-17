@@ -319,20 +319,13 @@
 @media (prefers-reduced-motion: reduce) { .slidevault .fbar { transition: none; } }
 .slidevault .fbar-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .slidevault .fb-item { position: relative; }
-.slidevault .fb-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 40px; height: 40px; padding: 0; border: 1px solid transparent; border-radius: 999px; background: transparent; color: var(--sv-text-secondary); cursor: pointer; }
-.slidevault .fb-btn:hover, .slidevault .fb-btn[aria-expanded="true"] { background: var(--sv-surface); border-color: var(--sv-border); color: var(--sv-text); }
-.slidevault .fb-btn.on { color: var(--sv-text); }
-.slidevault .fb-btn .ic { width: 20px; height: 20px; }
-.slidevault .fb-lbl { display: none; font-size: var(--sv-text-small); font-weight: 600; }
-.slidevault .fb-dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--sv-brand); }
-/* The name on hover comes from the shared [data-tip] tooltip; hide it while the panel is open. */
-.slidevault .fb-btn[aria-expanded="true"]::after { display: none !important; }
-@media (max-width: 600px), (hover: none) {
-  .slidevault .fb-btn { width: auto; padding: 0 12px; border-color: var(--sv-border); background: var(--sv-surface); }
-  .slidevault .fb-lbl { display: inline; }
-  .slidevault .fb-dot { top: 6px; right: 6px; }
-  .slidevault .fb-btn[data-tip]::after { display: none; }
-}
+.slidevault .fbar-row { gap: 8px; }
+.slidevault .fb-btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 14px; border: 1px solid var(--sv-border); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); font-weight: 700; cursor: pointer; box-shadow: 0 1px 2px rgba(20, 20, 28, 0.06); }
+.slidevault .fb-btn:hover { border-color: var(--sv-text-secondary); }
+.slidevault .fb-btn[aria-expanded="true"] { border-color: var(--sv-brand); box-shadow: inset 0 0 0 1px var(--sv-brand); }
+.slidevault .fb-btn.on { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
+.slidevault .fb-btn .ic { width: 20px; height: 20px; color: var(--sv-brand); }
+.slidevault .fb-n-on { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
 .slidevault .fb-clear { margin-left: 6px; font-size: var(--sv-text-small); }
 .slidevault .fb-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 35; width: 280px; max-width: calc(100vw - 32px); padding: 14px; border: 1px solid var(--sv-border); border-radius: 16px; background: var(--sv-surface); box-shadow: var(--sv-shadow-panel); }
 .slidevault .fb-pop-wide { width: 320px; }
