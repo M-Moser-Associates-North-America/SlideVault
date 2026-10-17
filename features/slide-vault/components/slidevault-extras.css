@@ -420,3 +420,18 @@
 .slidevault .chip-x.from-search .ic-sm { color: var(--sv-brand); width: 13px; height: 13px; }
 .slidevault .fb-note { margin: 0 0 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
 .slidevault .interp[hidden] { display: none; }
+
+/* ---- Status badge: icon + plain words, so colour is never the only clue ---- */
+.slidevault .tier-ic { display: inline-grid; place-items: center; flex: none; }
+.slidevault .tier-ic .ic-sm { width: 13px; height: 13px; }
+.slidevault .tier-ic-approved { color: var(--sv-success); }
+.slidevault .tier-ic-suggested { color: var(--sv-warning); }
+.slidevault .tier-ic-retired { color: var(--sv-text-secondary); }
+
+/* ---- Filter options that would leave nothing are greyed out (still clickable) ---- */
+.slidevault .fb-list label.is-zero, .slidevault .fb-presets .pchip.is-zero { opacity: 0.45; }
+.slidevault .fb-presets .pchip .fb-n { margin-left: 4px; }
+
+/* ---- Upload tab when you don't have permission: still there, greyed, with the reason on hover ---- */
+.slidevault .sv-nav a.is-locked { opacity: 0.6; cursor: not-allowed; }
+.slidevault .sv-nav a.is-locked .ic { color: var(--sv-text-secondary); }

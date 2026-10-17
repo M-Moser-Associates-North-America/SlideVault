@@ -116,20 +116,6 @@ function TopTenRow({ slides, sub }: { slides: SlideSummary[]; sub: string }) {
   );
 }
 
-function FilterNote() {
-  const { filters, clearFilters } = useWorkspace();
-  if (!filterCount(filters)) return null;
-  return (
-    <p className="f-note">
-      <Icon name="check" className="ic-sm" />
-      Filters on: only matching slides are shown.
-      <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters}>
-        Clear filters
-      </button>
-    </p>
-  );
-}
-
 /** The library is loading, failed, or empty: the screens below only run once it is ready. */
 function useReadyLibrary(): { slides: SlideSummary[]; decks: Deck[] } | { blocker: ReactNode } {
   const { library, reloadLibrary } = useWorkspace();
@@ -230,7 +216,7 @@ function FirstVisitTip() {
   return (
     <p className="first-tip" role="note">
       <Icon name="info" className="ic-sm" />
-      <span>Tick slides, then download them together.</span>
+      <span>Add slides to your draft deck, then download them together.</span>
       <button type="button" className="btn-link" onClick={dismiss}>
         Got it
       </button>
@@ -425,7 +411,6 @@ function LibraryView() {
         <div style={{ marginTop: 20 }}>{lib.blocker}</div>
       ) : (
         <>
-          <FilterNote />
           {picked.length > 0 && (
             <Row id="picked" title={`Picked for ${profile}`} sub="Based on what this profile looks at most.">
               {picked.slice(0, ROW_LIMIT).map((s) => (
@@ -464,7 +449,7 @@ function LibraryView() {
             </Row>
           )}
           {suggested.length > 0 && (
-            <Row id="suggested" title="Suggested for review" sub="Added or labelled by AI. A person has not checked them yet." seeAll="suggested" total={suggested.length} sim>
+            <Row id="suggested" title="Awaiting approval" sub="Added or labelled by AI. A person has not checked them yet." seeAll="suggested" total={suggested.length} sim>
               {suggested.slice(0, ROW_LIMIT).map((s) => (
                 <li key={s.id}>
                   <SlideCard slide={s} list={suggested.slice(0, ROW_LIMIT)} />
@@ -491,7 +476,7 @@ function LibraryView() {
             </Row>
           )}
           {retired.length > 0 && (
-            <Row id="retired" title="Retired" sub="Kept for records. Curators only. Can’t be downloaded." seeAll="retired" total={retired.length} sim>
+            <Row id="retired" title="Out of date" sub="Kept for records. Curators only. Can’t be downloaded." seeAll="retired" total={retired.length} sim>
               {retired.slice(0, ROW_LIMIT).map((s) => (
                 <li key={s.id}>
                   <SlideCard slide={s} list={retired.slice(0, ROW_LIMIT)} />
@@ -582,12 +567,12 @@ function SelectAll({ slides: every }: { slides: SlideSummary[] }) {
   const all = slides.length > 0 && slides.every((s) => selection.some((x) => x.id === s.id));
   const click = () => {
     updateSelection((cur) => (all ? cur.filter((c) => !slides.some((s) => s.id === c.id)) : [...cur, ...slides.filter((s) => !cur.some((c) => c.id === s.id))]));
-    announce(all ? 'Selection cleared' : `${plural(slides.length, 'slide')} added to draft deck`);
+    announce(all ? 'Removed from draft deck' : `${plural(slides.length, 'slide')} added to draft deck`);
   };
   return (
     <button type="button" className="btn btn-sm" onClick={click}>
       <Icon name="check" />
-      <span>{all ? 'Clear selection' : `Select all ${slides.length}`}</span>
+      <span>{all ? 'Remove all from draft deck' : `Add all ${slides.length} to draft deck`}</span>
     </button>
   );
 }
@@ -621,7 +606,6 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
         <span className="spacer" />
         <SelectAll slides={ids} />
       </div>
-      <FilterNote />
       <div className="grid" style={{ marginTop: 8 }}>
         {ids.map((s) => (
           <SlideCard key={s.id} slide={s} list={ids} note={id === 'popular' ? `Downloaded ${simUsed(s)} times (sample)` : undefined} />
@@ -722,7 +706,6 @@ export function ResultsView() {
             <span className="spacer" />
             {slides.length > 0 && <SelectAll slides={slides} />}
           </div>
-          <FilterNote />
           {shown.length === 0 ? (
             <StateBlock
               icon="search"

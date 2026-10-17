@@ -9,10 +9,17 @@ import type { SlideSummary } from '../contracts/dto';
 
 export type Tier = 'Approved' | 'Suggested' | 'Retired';
 
+/** Plain-language names shown to people. The internal names (Suggested, Retired) stay in the code. */
+export const TIER_LABEL: Record<Tier, string> = {
+  Approved: 'Approved',
+  Suggested: 'Awaiting approval',
+  Retired: 'Out of date',
+};
+
 export const TIER_TEXT: Record<Tier, string> = {
   Approved: 'Approved: checked by a person and cleared for client use.',
-  Suggested: 'Suggested: added or labelled by AI. Not yet checked by a person.',
-  Retired: 'Retired: kept for records only. Can’t be downloaded.',
+  Suggested: 'Awaiting approval: added or labelled by AI. Not yet checked by a person.',
+  Retired: 'Out of date: kept for records only. Can’t be downloaded.',
 };
 
 function hash(s: string): number {

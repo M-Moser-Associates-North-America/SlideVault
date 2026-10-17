@@ -5,7 +5,7 @@ import type { SlideSummary } from '../contracts/dto';
 import type { Location } from '../contracts/runtime';
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, plural, yearOf, type Deck, folderLabel } from './library';
-import { simTier, TIER_TEXT, type Tier } from './simulation';
+import { simTier, TIER_LABEL, TIER_TEXT, type Tier } from './simulation';
 import { useWorkspace } from './state';
 
 /** A link that goes through the host's navigation (runtime.navigate), keeping real hrefs for new tabs. */
@@ -140,13 +140,15 @@ export function SimFlag({ children = 'Simulated' }: { children?: ReactNode }) {
   return <span className="sim-flag">{children}</span>;
 }
 
-/** Approval status (simulated): Approved, Suggested or Retired. */
+/** Approval status (simulated): Approved, Awaiting approval or Out of date. */
 export function StatusBadge({ tier }: { tier: Tier }) {
   return (
     <span className="badge sim" title={`${TIER_TEXT[tier]} (Simulated)`}>
       <span className="sr-only">Status: </span>
-      <span className={`dot dot-${tier.toLowerCase()}`} aria-hidden="true" />
-      {tier}
+      <span className={`tier-ic tier-ic-${tier.toLowerCase()}`} aria-hidden="true">
+        <Icon name={tier === 'Approved' ? 'check' : tier === 'Suggested' ? 'clock' : 'minus'} className="ic-sm" />
+      </span>
+      {TIER_LABEL[tier]}
     </span>
   );
 }
@@ -204,8 +206,8 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
           </span>
         </button>
         {tier !== 'Retired' && (
-          <label className="pick" title="Select this slide to download">
-            <input type="checkbox" checked={sel} onChange={(e) => set(slide, e.target.checked)} aria-label={`Select: ${slide.title}`} />
+          <label className="pick" title="Add this slide to your draft deck">
+            <input type="checkbox" checked={sel} onChange={(e) => set(slide, e.target.checked)} aria-label={`Add to draft deck: ${slide.title}`} />
             <span className="box" aria-hidden="true">
               <Icon name="check" />
             </span>
@@ -232,6 +234,7 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
         <button
           type="button"
           className={`save-tg${saved ? ' is-saved' : ''}`}
+          title={saved ? 'Saved' : 'Save'}
           aria-pressed={saved}
           aria-label={saved ? `Remove from saved: ${slide.title}` : `Save: ${slide.title}`}
           onClick={() => toggleSave(slide)}

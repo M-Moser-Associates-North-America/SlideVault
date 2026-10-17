@@ -103,8 +103,6 @@ function Workspace() {
   }
   const showBack = deep && query.trim() !== '';
 
-  const slidesAll = library.status === 'ready' ? library.slides : [];
-  const decksAll = library.status === 'ready' ? library.decks : [];
 
   if (!profile) return authStage === 'pick' ? <PickProfileView /> : <LoginView />;
 
@@ -115,14 +113,23 @@ function Workspace() {
           <div className="sv-brandrow">
             <nav className="sv-nav" aria-label="Main">
               <ul>
-                {TABS.filter((t) => t.view !== 'upload' || runtime.capabilities.has('source.upload')).map((t) => (
-                  <li key={t.view}>
-                    <Link to={{ view: t.view }} aria-current={view === t.view || (t.view === 'pages' && (view === 'browse' || deep)) ? 'page' : undefined} title={t.tip}>
-                      <Icon name={t.icon} />
-                      {t.label}
-                    </Link>
-                  </li>
-                ))}
+                {TABS.map((t) => {
+                  /* Upload stays visible for everyone; without permission it is greyed and says why. */
+                  const locked = t.view === 'upload' && !runtime.capabilities.has('source.upload');
+                  return (
+                    <li key={t.view}>
+                      <Link
+                        to={{ view: t.view }}
+                        aria-current={view === t.view || (t.view === 'pages' && (view === 'browse' || deep)) ? 'page' : undefined}
+                        className={locked ? 'is-locked' : undefined}
+                        {...(locked ? { 'data-tip': 'Only contributors can upload.', 'data-tip-pos': 'start' } : { title: t.tip })}
+                      >
+                        <Icon name={locked ? 'lock' : t.icon} />
+                        {t.label}
+                      </Link>
+                    </li>
+                  );
+                })}
                 <li>
                   <Link to={{ view: 'profile' }} aria-current={view === 'profile' ? 'page' : undefined} title="Your saved slides and working drafts">
                     <Icon name="folder" />

@@ -171,8 +171,8 @@ export function browseTitle(key: string): string {
   if (kind === 'best') return 'Best of the Best';
   if (kind === 'recent') return 'Newest decks';
   if (kind === 'popular') return 'Most downloaded';
-  if (kind === 'suggested') return 'Suggested for review';
-  if (kind === 'retired') return 'Retired';
+  if (kind === 'suggested') return 'Awaiting approval';
+  if (kind === 'retired') return 'Out of date';
   return 'Browse';
 }
 

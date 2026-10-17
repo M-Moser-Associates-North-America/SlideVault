@@ -244,3 +244,17 @@ Acceptance evidence / affected PR criteria: axe checks clean in light and dark o
 Documents/contracts changed: components/simulation.ts, Access switch in app/slide-vault, docs/DECISIONS.md.
 Revisit trigger: When review tiers, AI labels or an AI provider are approved (D-03, D-12), or when the Postgres read path lands.
 ```
+
+```text
+Decision ID and title: FD-15 Brand orange follows the HTML mockup for now
+Status: proposed
+Decision date: (pending)
+Decision owner/reviewer: (pending: UX lead + client confirmation from Alina Pak)
+Context and evidence: The client asked us to match the supplied HTML mockup more closely (check-in notes, 2026-10-14). The mockup's brand colour is #FF3F0A (strong #E03408, tint #FFE6DC; dark theme #FF5A2C and #FF7048). An earlier change had set the app's orange to #EC672C, and docs/DESIGN_SYSTEM.md listed a different strong orange (#D93407).
+Options considered: (a) follow the HTML mockup; (b) keep docs/DESIGN_SYSTEM.md values; (c) keep #EC672C.
+Chosen outcome: (a) for now. --sv-brand is #FF3F0A and --sv-brand-strong is #E03408 in the light theme; the dark theme is unchanged. Colours remain tokens, so switching again is a one-file change.
+Consequences for scope, cost, security and integration: Orange #FF3F0A on white is about 3.5:1, so it is only for non-text marks (icons, borders, focus rings); use --sv-brand-strong for orange text. This departs from the written design contract (DESIGN_SYSTEM.md normally wins over the HTML), so it needs the client's confirmation.
+Acceptance evidence / affected PR criteria: Visual check of Home, browse lists and the account menu; contrast re-check for any orange text.
+Documents/contracts changed: docs/design-tokens.css, docs/DESIGN_SYSTEM.md, docs/DECISIONS.md.
+Revisit trigger: Alina confirms which palette to follow.
+```

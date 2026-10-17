@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
-import { categoryOf, clientOf, countBy, filterCount, UNKNOWN_CLIENT } from './library';
+import { categoryOf, clientOf, countBy, filterCount, slideMatches, UNKNOWN_CLIENT, yearOf, type Filters } from './library';
 import { SimFlag } from './parts';
-import { SIM_PEOPLE, SLIDE_TYPES, simContributor, simHasSlideType, simParse, simUploader, slideTypeForChip, stripFromQuery, visibleTiers, type Chip, type Tier } from './simulation';
+import { SIM_PEOPLE, SLIDE_TYPES, TIER_LABEL, simContributor, simHasSlideType, simParse, simUploader, slideTypeForChip, stripFromQuery, visibleTiers, type Chip, type Tier } from './simulation';
 import { useWorkspace } from './state';
 
 /**
@@ -97,7 +97,7 @@ function Picker({
       <ul className="fb-list" aria-label={label}>
         {shown.map((o, i) => (
           <li key={o}>
-            <label htmlFor={`${id}-${i}`}>
+            <label htmlFor={`${id}-${i}`} className={counts && (counts.get(o) ?? 0) === 0 && !picked.includes(o) ? 'is-zero' : undefined}>
               <input id={`${id}-${i}`} type="checkbox" checked={picked.includes(o)} onChange={() => onToggle(o)} />
               <span className="fb-opt">{o}</span>
               {counts && <span className="fb-n">{counts.get(o) ?? 0}</span>}
@@ -120,13 +120,24 @@ export function FilterBar() {
   const nowYear = new Date().getFullYear();
 
   const slides = useMemo(() => (library.status === 'ready' ? library.slides : []), [library]);
-  const clientCounts = useMemo(() => countBy(slides, clientOf), [slides]);
-  const categoryCounts = useMemo(() => countBy(slides, categoryOf), [slides]);
-  const typeCounts = useMemo(() => new Map(SLIDE_TYPES.map((t) => [t.label, slides.filter((s) => simHasSlideType(s, t.label)).length])), [slides]);
-  const uploaderCounts = useMemo(() => countBy(slides, simUploader), [slides]);
-  const contributorCounts = useMemo(() => countBy(slides, simContributor), [slides]);
-  const clients = useMemo(() => [...clientCounts.keys()].sort((a, b) => a.localeCompare(b)), [clientCounts]);
-  const categories = useMemo(() => [...categoryCounts.keys()].sort((a, b) => a.localeCompare(b)), [categoryCounts]);
+  /* The lists show every option. The numbers beside them count only slides that also fit the OTHER
+     filters that are on, so picking one thing updates the counts for the rest, and options that
+     would leave nothing are greyed out. */
+  const clients = useMemo(() => [...countBy(slides, clientOf).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
+  const categories = useMemo(() => [...countBy(slides, categoryOf).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
+  const without = useCallback((omit: Partial<Filters>) => slides.filter((s) => slideMatches(s, { ...filters, ...omit })), [slides, filters]);
+  const clientCounts = useMemo(() => countBy(without({ client: [] }), clientOf), [without]);
+  const categoryCounts = useMemo(() => countBy(without({ category: [] }), categoryOf), [without]);
+  const typeCounts = useMemo(() => {
+    const base = without({ slideType: [] });
+    return new Map(SLIDE_TYPES.map((t) => [t.label, base.filter((s) => simHasSlideType(s, t.label)).length]));
+  }, [without]);
+  const uploaderCounts = useMemo(() => countBy(without({ uploader: [] }), simUploader), [without]);
+  const contributorCounts = useMemo(() => countBy(without({ contributor: [] }), simContributor), [without]);
+  const yearCounts = useMemo(() => {
+    const base = without({ yfrom: null, yto: null });
+    return new Map(YEAR_PRESETS.map(([k]) => [k, base.filter((s) => (yearOf(s) ?? -1) >= new Date().getFullYear() - k + 1).length]));
+  }, [without]);
   const tiers = visibleTiers(runtime.capabilities);
 
   /* What the typed sentence already says (client, year, kind of slide), so the row can show it too. */
@@ -191,7 +202,7 @@ export function FilterBar() {
     ...filters.slideType.map((v) => ({ id: `t-${v}`, kind: 'Slide type', text: v, remove: () => patchFilters({ slideType: filters.slideType.filter((x) => x !== v) }) })),
     ...filters.uploader.map((v) => ({ id: `u-${v}`, kind: 'Uploaded by', text: v, remove: () => patchFilters({ uploader: filters.uploader.filter((x) => x !== v) }) })),
     ...filters.contributor.map((v) => ({ id: `k-${v}`, kind: 'Contributed by', text: v, remove: () => patchFilters({ contributor: filters.contributor.filter((x) => x !== v) }) })),
-    ...filters.status.map((v) => ({ id: `s-${v}`, kind: 'Status', text: v, remove: () => patchFilters({ status: filters.status.filter((x) => x !== v) }) })),
+    ...filters.status.map((v) => ({ id: `s-${v}`, kind: 'Status', text: TIER_LABEL[v], remove: () => patchFilters({ status: filters.status.filter((x) => x !== v) }) })),
     ...(filters.bestOnly ? [{ id: 'best', kind: 'Collection', text: 'Best of the Best', remove: () => patchFilters({ bestOnly: false }) }] : []),
     ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
     ...(fromClient ? [{ id: 'sc', kind: 'Client', text: fromClient.label, remove: () => removeFromSearch(fromClient), fromSearch: true }] : []),
@@ -217,8 +228,8 @@ export function FilterBar() {
             {YEAR_PRESETS.map(([k, label]) => {
               const on = filters.yfrom === nowYear - k + 1 && filters.yto === null;
               return (
-                <button key={k} type="button" className="pchip" aria-pressed={on} onClick={() => patchFilters(on ? { yfrom: null, yto: null } : { yfrom: nowYear - k + 1, yto: null })} data-autofocus={k === 2 ? true : undefined}>
-                  {label}
+                <button key={k} type="button" className={`pchip${(yearCounts.get(k) ?? 0) === 0 && !on ? ' is-zero' : ''}`} aria-pressed={on} onClick={() => patchFilters(on ? { yfrom: null, yto: null } : { yfrom: nowYear - k + 1, yto: null })} data-autofocus={k === 2 ? true : undefined}>
+                  {label} <span className="fb-n">{yearCounts.get(k) ?? 0}</span>
                 </button>
               );
             })}
@@ -291,7 +302,7 @@ export function FilterBar() {
             <div className="fb-presets">
               {tiers.map((t) => (
                 <button key={t} type="button" className="pchip" aria-pressed={filters.status.includes(t)} onClick={() => patchFilters({ status: toggle(filters.status, t) as Tier[] })}>
-                  {t}
+                  {TIER_LABEL[t]}
                 </button>
               ))}
             </div>

@@ -228,11 +228,11 @@ export function Cart() {
           </div>
         )}
         <div className="cart-acts">
-          <button type="button" className="btn btn-sm" disabled={none} title={none ? 'Tick at least one slide in your draft deck.' : undefined} onClick={() => openPreview(included, 0)}>
+          <button type="button" className="btn btn-sm" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openPreview(included, 0)}>
             <Icon name="eye" />
             <span>Preview</span>
           </button>
-          <button type="button" className="btn btn-sm btn-primary" disabled={none} title={none ? 'Tick at least one slide in your draft deck.' : undefined} onClick={() => openDownload(included)}>
+          <button type="button" className="btn btn-sm btn-primary" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openDownload(included)}>
             <Icon name="download" />
             <span>Download as pptx</span>
           </button>

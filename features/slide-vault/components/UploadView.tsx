@@ -99,7 +99,7 @@ export function UploadView() {
           Upload
         </h1>
         <p className="lede muted" style={{ marginTop: 4 }}>
-          Only Editors and Curators can upload. Switch Access at the top right to try it.
+          Only contributors can upload. Ask a contributor or curator to add your deck.
         </p>
       </div>
     );
@@ -111,7 +111,7 @@ export function UploadView() {
         Upload a deck
       </h1>
       <p className="lede muted" style={{ marginTop: 4 }}>
-        A .pptx goes in unchanged, gets split into slides with thumbnails, and shows up in the library. New slides arrive as Suggested until a Curator approves them.
+        A .pptx goes in unchanged, gets split into slides with thumbnails, and shows up in the library. New slides arrive marked “Awaiting approval” until a Curator approves them.
       </p>
 
       <form onSubmit={submit} style={{ marginTop: 14 }}>
@@ -228,7 +228,7 @@ export function UploadView() {
               </div>
               {done && (
                 <p className="meta" style={{ marginTop: 8 }}>
-                  {q.slides} {q.slides === 1 ? 'slide' : 'slides'} added. In the real build they arrive as Suggested. AI labels suggested (simulated):{' '}
+                  {q.slides} {q.slides === 1 ? 'slide' : 'slides'} added. In the real build they arrive marked “Awaiting approval”. Labels the AI would suggest (simulated):{' '}
                   {q.tags.length ? q.tags.join(', ') : 'none'}.{' '}
                   {q.real && q.deckId ? <Link to={{ view: 'deck', id: q.deckId }}>Open the deck</Link> : 'Sample only: nothing was added to the library.'}
                 </p>
