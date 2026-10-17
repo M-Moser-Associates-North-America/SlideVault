@@ -25,20 +25,42 @@
 }
 
 .header {
+  background: var(--sv-surface);
+  color: var(--sv-text);
+  padding: 10px 0 4px;
+}
+
+.headerInner {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: 5px 20px;
-  background: #1a1a1a;
-  color: #ffffff;
+  gap: 10px;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--sv-surface-sunken);
+  color: var(--sv-text);
 }
 
 .brand {
-  font-size: 16px;
+  font-size: 21px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.02em;
+}
+
+.tag {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  color: var(--sv-text-secondary);
 }
 
 .tools {
@@ -48,17 +70,41 @@
   margin-left: auto;
 }
 
-.themeButton {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 1px solid #6b6b6b;
-  border-radius: 11px;
-  background: transparent;
-  color: #ffffff;
+.themeButton,
+.signOut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  border: 1px solid var(--sv-border-strong);
+  border-radius: 12px;
+  background: var(--sv-surface);
+  color: var(--sv-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
+}
+
+.themeButton {
+  width: 36px;
+  padding: 0;
+}
+
+.signOut {
+  padding: 0 14px;
+}
+
+.themeButton:hover,
+.signOut:hover {
+  background: var(--sv-surface-sunken);
+}
+
+.themeButton:focus-visible,
+.signOut:focus-visible {
+  outline: 2px solid var(--sv-brand);
+  outline-offset: 2px;
 }
 
 .access {
@@ -137,27 +183,8 @@
   }
 }
 
-.themeButton:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.themeButton:focus-visible {
-  outline: 2px solid #ffffff;
-  outline-offset: 2px;
-}
-
-.tag {
-  font-size: 12.5px;
-  color: #c9c9cc;
-}
-
 .loading {
   margin: 40px 20px;
   font-size: 14.5px;
 }
 
-@media (min-width: 768px) {
-  .header {
-    padding: 5px 40px;
-  }
-}

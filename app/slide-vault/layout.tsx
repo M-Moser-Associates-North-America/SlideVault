@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 import { StandaloneWorkspace } from './StandaloneWorkspace';
-import { AccessProvider, AccessSwitch } from './access';
-import { ThemeProvider, ThemeToggle } from './theme';
+import { AccessProvider } from './access';
+import { ShellHeader } from './ShellHeader';
+import { ThemeProvider } from './theme';
 import styles from './shell.module.css';
 
 /**
@@ -18,14 +19,7 @@ export default function SlideVaultLayout({ children }: LayoutProps<'/slide-vault
           <a href="#sv-main" className={styles.skip}>
             Skip to content
           </a>
-          <header className={styles.header}>
-            <span className={styles.brand}>SlideVault</span>
-            <span className={styles.tag}>Prototype</span>
-            <div className={styles.tools}>
-              <AccessSwitch />
-              <ThemeToggle className={styles.themeButton} />
-            </div>
-          </header>
+          <ShellHeader />
           <Suspense fallback={<p className={styles.loading}>Loading…</p>}>
             <StandaloneWorkspace />
           </Suspense>

@@ -344,3 +344,13 @@
 .slidevault .home-hero-try button.try-chip:hover { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text); }
 .slidevault .home-hero-try button.try-chip[aria-current="true"] { background: var(--sv-brand-tint); border-color: var(--sv-brand); color: var(--sv-text); font-weight: 600; }
 .slidevault .home-hero-field input::-webkit-search-cancel-button { filter: grayscale(1); cursor: pointer; }
+
+/* ---- Tabs styled like the mockup: icon + label, thin line under the whole row, orange underline on the current tab ---- */
+.slidevault .sv-top { box-shadow: none; border-bottom: 1px solid var(--sv-border); }
+.slidevault .sv-brandrow { padding: 0; }
+.slidevault .sv-nav ul { gap: 22px; }
+.slidevault .sv-nav a { min-height: 46px; padding: 0 4px; border-radius: 0; font-size: 15.5px; font-weight: 500; color: var(--sv-text-secondary); }
+.slidevault .sv-nav a:hover { background: transparent; color: var(--sv-text); }
+.slidevault .sv-nav a[aria-current="page"] { color: var(--sv-text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--sv-brand); }
+.slidevault .sv-nav a .ic { color: var(--sv-text-secondary); }
+.slidevault .sv-nav a[aria-current="page"] .ic { color: var(--sv-brand); }
