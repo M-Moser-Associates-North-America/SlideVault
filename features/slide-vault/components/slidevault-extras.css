@@ -233,6 +233,9 @@
 .slidevault .auth-pw-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--sv-text-secondary); cursor: pointer; border-radius: 8px; }
 .slidevault .auth-pw-toggle:hover { color: var(--sv-text); }
 .slidevault .auth-pw-toggle .ic { width: 18px; height: 18px; }
+.slidevault .auth-sim { text-align: center; margin: 4px 0 16px; padding: 14px 16px; border-radius: 12px; background: var(--sv-surface-sunken); }
+.slidevault .auth-sim-title { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-brand, #ff3f0a); }
+.slidevault .auth-sim-note { margin: 6px 0 0; font-size: 13.5px; font-style: italic; color: var(--sv-text-secondary); }
 .slidevault .auth-submit { width: 100%; justify-content: center; height: 46px; font-size: 14.5px; margin-top: 4px; }
 .slidevault .auth-switch { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--sv-border); text-align: center; font-size: 13px; color: var(--sv-text-secondary); }
 .slidevault .auth-switch-cta { border: none; background: transparent; color: var(--sv-link); font-weight: 600; cursor: pointer; font-family: var(--sv-font-sans); font-size: 13px; padding: 0; }
@@ -308,3 +311,4 @@
   user-select: none;
 }
 @media (max-width: 600px) { .slidevault .top10-num { font-size: 72px; margin-right: -16px; } }
+

@@ -8,7 +8,7 @@ import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
 import { Crumbs, Link, type Crumb } from './parts';
 import { FilterPanel, SearchForm, TryAsking } from './Rail';
-import { WorkspaceProvider, profileInitials, useWorkspace } from './state';
+import { WorkspaceProvider, useWorkspace } from './state';
 import { LoginView, PickProfileView } from './AuthView';
 import { ProfileView } from './ProfileView';
 import { UploadView } from './UploadView';
@@ -108,7 +108,31 @@ function Workspace() {
   if (!profile) return authStage === 'pick' ? <PickProfileView /> : <LoginView />;
 
   return (
-    <div className="sv-app sv-app-bottomnav">
+    <div className="sv-app">
+      <div className="sv-top">
+        <div className="sv-wrap">
+          <div className="sv-brandrow">
+            <nav className="sv-nav" aria-label="Main">
+              <ul>
+                {TABS.filter((t) => t.view !== 'upload' || runtime.capabilities.has('source.upload')).map((t) => (
+                  <li key={t.view}>
+                    <Link to={{ view: t.view }} aria-current={view === t.view || (t.view === 'pages' && (view === 'browse' || deep)) ? 'page' : undefined} title={t.tip}>
+                      <Icon name={t.icon} />
+                      {t.label}
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <Link to={{ view: 'profile' }} aria-current={view === 'profile' ? 'page' : undefined} title="Your saved slides and activity">
+                    <Icon name="user" />
+                    Profile
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
       <div className={`sv-shell${cartMin ? ' cart-min' : ''}${noRail ? ' no-rail' : ''}${narrow ? ' narrow' : ''}`}>
         {!noRail && (
           <aside className="rail" aria-label="Search and filters">
@@ -152,31 +176,6 @@ function Workspace() {
           <Cart />
         </aside>
       </div>
-      {/* Local design prototype: Home/Create/Upload moved to a Netflix-style bottom bar, on both
-          desktop and phone for this mockup pass. Real build later needs the desktop placement
-          (rail or top) to be whatever the team decides by Saturday; this isn't that decision,
-          just the look for the pitch. Not pushed, not changing Khushali's build. */}
-      <nav className="bottom-tabs" aria-label="Main">
-        {TABS.filter((t) => t.view !== 'upload' || runtime.capabilities.has('source.upload')).map((t) => (
-          <Link
-            key={t.view}
-            to={{ view: t.view }}
-            aria-current={view === t.view || (t.view === 'pages' && (view === 'browse' || deep)) ? 'page' : undefined}
-            className="bottom-tabs-link"
-          >
-            <span className="bottom-tabs-ic">
-              <Icon name={t.icon} />
-            </span>
-            <span className="bottom-tabs-lbl">{t.label}</span>
-          </Link>
-        ))}
-        <Link to={{ view: 'profile' }} aria-current={view === 'profile' ? 'page' : undefined} className="bottom-tabs-link">
-          <span className="bottom-tabs-ic bottom-tabs-avatar" aria-hidden="true">
-            {profileInitials(profile ?? '')}
-          </span>
-          <span className="bottom-tabs-lbl">Profile</span>
-        </Link>
-      </nav>
       <div className={`toasts${selection.length ? ' lift' : ''}`} aria-live="polite" aria-relevant="additions">
         {toasts.map((t) => (
           <div key={t.id} className="toast">

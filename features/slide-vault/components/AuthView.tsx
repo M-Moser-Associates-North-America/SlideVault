@@ -19,8 +19,8 @@ const DEMO_PASSWORD = 'duh';
 export function LoginView() {
   const { submitLogin } = useWorkspace();
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(DEMO_EMAIL);
+  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState(false);
 
@@ -50,6 +50,12 @@ export function LoginView() {
               {isSignUp ? 'Request access' : 'Welcome back'}
             </h1>
             <p className="auth-sub">{isSignUp ? "We'll set you up with a SlideVault seat." : 'Sign in to search and assemble proposals.'}</p>
+          </div>
+          <div className="auth-sim" role="note">
+            <p className="auth-sim-title">SIMULATED</p>
+            <p className="auth-sim-note">This sign-in is simulated.
+              <br />
+              Just click on Sign in below.</p>
           </div>
           <form className="auth-form" onSubmit={submit}>
             {error && (
