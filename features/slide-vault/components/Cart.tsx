@@ -11,7 +11,7 @@ import { useWorkspace } from './state';
  * Collapsed to a thin rail by default; opens by itself the first time a slide is added.
  */
 export function Cart() {
-  const { selection, updateSelection, excluded, setIncluded, setCartMin, openDownload, openPreview, announce, saveDraft, toast, runtime } = useWorkspace();
+  const { selection, updateSelection, excluded, setIncluded, setCartMin, draftTitle, setDraftTitle, openDownload, openPreview, announce, saveDraft, toast, runtime } = useWorkspace();
   const n = selection.length;
   const included = selection.filter((s) => !excluded.has(s.id));
   const plan = downloadPlan(included);
@@ -28,7 +28,7 @@ export function Cart() {
   const [draftName, setDraftName] = useState('');
   const nameId = useId();
   const openSave = () => {
-    setDraftName('');
+    setDraftName(draftTitle.trim());
     setSaveOpen(true);
     saveRef.current?.showModal();
   };
@@ -110,49 +110,78 @@ export function Cart() {
     move(id, to);
   };
 
+  /* The panel is as tall as the room left under the header: full height once the page has scrolled
+     and the panel has stuck to the top, shorter while the page header is still showing. */
+  useEffect(() => {
+    const fit = () => {
+      const col = document.querySelector<HTMLElement>('.slidevault .cart-col');
+      if (!col) return;
+      /* Stick right under the tabs bar, whatever its height is, so no gap shows above the panel. */
+      const stick = document.querySelector<HTMLElement>('.slidevault .sv-top')?.offsetHeight ?? 47;
+      col.style.setProperty('--cart-top', `${stick}px`);
+      col.style.setProperty('--cart-room', `${Math.max(240, window.innerHeight - Math.max(stick, col.getBoundingClientRect().top))}px`);
+    };
+    fit();
+    window.addEventListener('scroll', fit, { passive: true });
+    window.addEventListener('resize', fit);
+    return () => {
+      window.removeEventListener('scroll', fit);
+      window.removeEventListener('resize', fit);
+    };
+  }, []);
+
+  /* The name of the draft deck. It looks like a field (pencil, outline on hover) so it is clear it can be edited. */
+  const titleField = (
+    <label className="cart-name">
+      <span className="sr-only">Name of this draft deck</span>
+      <input type="text" value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} maxLength={80} placeholder="Untitled draft deck" autoComplete="off" spellCheck={false} />
+      <Icon name="pencil" className="ic cart-name-ic" />
+    </label>
+  );
+
+  const closeCart = () => {
+    setCartMin(true);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart-pill')?.focus());
+  };
+  const openCart = () => {
+    setCartMin(false);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart .cart-tg')?.focus());
+  };
+
   const toggleButton = (
-    <button type="button" className="btn btn-ghost btn-icon btn-sm cart-tg" aria-label="Collapse draft deck to a thin rail" onClick={() => setCartMin(true)}>
-      <Icon name="right" />
+    <button type="button" className="btn btn-ghost btn-icon btn-sm cart-tg" aria-label="Close draft deck" onClick={closeCart}>
+      <Icon name="x" />
     </button>
   );
 
+  /* The black button at the bottom right that opens the draft deck, like the reference mockup's. */
   const mini = (
-    <div className="cart-mini">
-      <button type="button" className="mini-open" aria-label={`Expand draft deck, ${plural(n, 'slide')}`} onClick={() => setCartMin(false)}>
-        <Icon name="left" />
-        <span className="mini-ic" aria-hidden="true">
-          <Icon name="layers" />
-          {n > 0 && <span className="mini-n">{n}</span>}
-        </span>
-        <span className="mini-t">Draft deck</span>
-      </button>
-      {included.length > 0 && (
-        <button
-          type="button"
-          className="btn btn-primary btn-icon btn-sm"
-          aria-label={`Download ${plural(included.length, 'slide')} as pptx`}
-          onClick={() => openDownload(included)}
-        >
-          <Icon name="download" />
-        </button>
-      )}
-    </div>
+    <button type="button" className="cart-pill" aria-label={`Open draft deck, ${plural(n, 'slide')}`} onClick={openCart}>
+      <Icon name="layers" />
+      <span>Draft deck</span>
+      {n > 0 && <span className="pill-n">{n}</span>}
+    </button>
   );
 
   if (!n) {
     return (
       <>
         <div className="cart cart-empty">
-          <div className="cart-top">
-            <h2 className="cart-h">Draft deck</h2>
-            <span className="cart-tools">{toggleButton}</span>
+          <div className="cart-head">
+            <div className="cart-top">
+              <h2 className="cart-h">Draft deck</h2>
+              <span className="cart-tools">{toggleButton}</span>
+            </div>
+            {titleField}
+            <p className="cart-title">No slides yet</p>
           </div>
-          <div className="cart-empty-body">
-            <span className="ce-ic" aria-hidden="true">
-              <Icon name="layers" />
-            </span>
-            <p className="ce-t">Your draft deck is empty</p>
-            <p className="meta">Tick the corner box on any slide to add it. You can download them together from here.</p>
+          <div className="cart-body">
+            <div className="cart-empty-body">
+              <span className="ce-ic" aria-hidden="true">
+                <Icon name="layers" />
+              </span>
+              <p className="meta">Tick slides you like. They collect here, and you can download them as one deck.</p>
+            </div>
           </div>
         </div>
         {mini}
@@ -164,137 +193,145 @@ export function Cart() {
   return (
     <>
       <div className="cart" role="region" aria-label="Draft deck">
-        <div className="cart-top">
-          <h2 className="cart-h">
-            Draft deck<span className="count">{n}</span>
-          </h2>
-          <span className="cart-tools">{toggleButton}</span>
+        <div className="cart-head">
+          <div className="cart-top">
+            <h2 className="cart-h">
+              Draft deck<span className="count">{n}</span>
+            </h2>
+            <span className="cart-tools">{toggleButton}</span>
+          </div>
+          {titleField}
+          <p className="cart-title">{plural(n, 'slide')}</p>
+          <div className="cart-acts">
+            <button type="button" className="btn btn-sm" onClick={openSave}>
+              <Icon name="folder" />
+              <span>Save as draft</span>
+            </button>
+            <button type="button" className="btn btn-sm btn-primary" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openDownload(included)}>
+              <Icon name="download" />
+              <span>Download as pptx</span>
+            </button>
+          </div>
         </div>
-        <ul
-          ref={listRef}
-          className="cart-items"
-          onDragOver={onDragOver}
-          onDrop={onDrop}
-          onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setMark(null)}
-        >
-          {selection.map((s, i) => {
-            const off = excluded.has(s.id);
-            const cls = ['ci', off ? 'off' : '', dragId === s.id ? 'dragging' : '', mark?.id === s.id ? (mark.after ? 'drop-after' : 'drop-before') : ''].filter(Boolean).join(' ');
-            return (
-              <li
-                key={s.id}
-                className={cls}
-                draggable
-                data-id={s.id}
-                onDragStart={(e) => {
-                  setDragId(s.id);
-                  e.dataTransfer.effectAllowed = 'move';
-                  try {
-                    e.dataTransfer.setData('text/plain', s.id);
-                  } catch {
-                    /* some browsers refuse; the drag still works from state */
-                  }
-                }}
-                onDragEnd={() => {
-                  setDragId(null);
-                  setMark(null);
-                }}
-              >
-                <button
-                  type="button"
-                  className="grip"
+        <div className="cart-body">
+          <ul
+            ref={listRef}
+            className="cart-items"
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setMark(null)}
+          >
+            {selection.map((s, i) => {
+              const off = excluded.has(s.id);
+              const cls = ['ci', off ? 'off' : '', dragId === s.id ? 'dragging' : '', mark?.id === s.id ? (mark.after ? 'drop-after' : 'drop-before') : ''].filter(Boolean).join(' ');
+              return (
+                <li
+                  key={s.id}
+                  className={cls}
+                  draggable
                   data-id={s.id}
-                  title="Drag to reorder"
-                  aria-label={`Reorder: ${s.title}, position ${i + 1} of ${n}. Press up or down arrow to move.`}
-                  onKeyDown={(e) => onGripKey(e, s.id, i)}
+                  onDragStart={(e) => {
+                    setDragId(s.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                    try {
+                      e.dataTransfer.setData('text/plain', s.id);
+                    } catch {
+                      /* some browsers refuse; the drag still works from state */
+                    }
+                  }}
+                  onDragEnd={() => {
+                    setDragId(null);
+                    setMark(null);
+                  }}
                 >
-                  <Icon name="grip" />
+                  <button
+                    type="button"
+                    className="grip"
+                    data-id={s.id}
+                    title="Drag to reorder"
+                    aria-label={`Reorder: ${s.title}, position ${i + 1} of ${n}. Press up or down arrow to move.`}
+                    onKeyDown={(e) => onGripKey(e, s.id, i)}
+                  >
+                    <Icon name="grip" />
+                  </button>
+                  <input type="checkbox" checked={!off} onChange={(e) => setIncluded(s.id, e.target.checked)} aria-label={`Include in download: ${s.title}`} />
+                  <div className="t">
+                    <Thumb slide={s} />
+                    <span className="ci-n" aria-hidden="true">
+                      {i + 1}
+                    </span>
+                  </div>
+                  <div className="ci-txt">
+                    <Link to={{ view: 'slide', id: s.id }}>{s.title}</Link>
+                    <span className="meta">{s.provenance.sourceTitle}</span>
+                  </div>
+                  <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Remove from draft deck: ${s.title}`} onClick={() => updateSelection((cur) => cur.filter((x) => x.id !== s.id))}>
+                    <Icon name="x" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {n > 1 && <p className="ci-hint">Drag to reorder. Slides download in this order.</p>}
+          {plan.zip && (
+            <div className="cart-zip">
+              <span className="tipw">
+                <button type="button" className="btn btn-sm" aria-disabled="true" aria-describedby="cart-combine-note" onClick={(e) => e.preventDefault()}>
+                  <Icon name="layers" />
+                  <span>Combine into one deck</span>
                 </button>
-                <input type="checkbox" checked={!off} onChange={(e) => setIncluded(s.id, e.target.checked)} aria-label={`Include in download: ${s.title}`} />
-                <div className="t">
-                  <Thumb slide={s} />
-                  <span className="ci-n" aria-hidden="true">
-                    {i + 1}
-                  </span>
-                </div>
-                <div className="ci-txt">
-                  <Link to={{ view: 'slide', id: s.id }}>{s.title}</Link>
-                  <span className="meta">{s.provenance.sourceTitle}</span>
-                </div>
-                <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Remove from draft deck: ${s.title}`} onClick={() => updateSelection((cur) => cur.filter((x) => x.id !== s.id))}>
-                  <Icon name="x" />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-        {n > 1 && <p className="ci-hint">Drag to reorder. Slides download in this order.</p>}
-        <div className="cart-list-acts">
-          {confirming ? (
-            <div className="cart-confirm" role="group" aria-label="Confirm clearing the draft deck">
-              <span className="cc-q">Are you sure?</span>
-              <button
-                type="button"
-                className="btn btn-sm btn-icon cc-yes"
-                aria-label="Yes, clear the draft deck"
-                title="Yes, clear it"
-                onClick={() => {
-                  updateSelection(() => []);
-                  setConfirmFor(null);
-                  announce('Draft deck cleared');
-                }}
-              >
-                <Icon name="check" />
-              </button>
-              <button type="button" className="btn btn-sm btn-icon" aria-label="No, keep my slides" title="No, keep them" onClick={() => setConfirmFor(null)} autoFocus>
-                <Icon name="x" />
-              </button>
+                <span className="tip tip-start" aria-hidden="true">
+                  Coming later
+                </span>
+              </span>
+              <span id="cart-combine-note" className="sr-only">
+                Not available yet. Combining slides from different decks into one file is planned for a later phase.
+              </span>
             </div>
-          ) : (
-            <>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmFor(signature)}>
-                <Icon name="trash" />
-                <span>Clear</span>
-              </button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={openSave}>
-                <Icon name="folder" />
-                <span>Save as draft</span>
-              </button>
-            </>
           )}
         </div>
-        <p className="txt">
-          <strong>
-            {included.length} of {plural(n, 'slide')}
-          </strong>{' '}
-          in the download
-          {included.length ? ` · ${plural(plan.files.length, 'deck')}. Downloads as ${planSummary(plan)}.` : '.'}
-        </p>
-        {plan.zip && (
-          <div className="cart-zip">
-            <span className="tipw">
-              <button type="button" className="btn btn-sm" aria-disabled="true" aria-describedby="cart-combine-note" onClick={(e) => e.preventDefault()}>
-                <Icon name="layers" />
-                <span>Combine into one deck</span>
-              </button>
-              <span className="tip tip-start" aria-hidden="true">
-                Coming later
-              </span>
-            </span>
-            <span id="cart-combine-note" className="sr-only">
-              Not available yet. Combining slides from different decks into one file is planned for a later phase.
-            </span>
+        <div className="cart-foot">
+          <p className="txt">
+            <strong>
+              {included.length} of {plural(n, 'slide')}
+            </strong>{' '}
+            in the download
+            {included.length ? ` · ${plural(plan.files.length, 'deck')}. Downloads as ${planSummary(plan)}.` : '.'}
+          </p>
+          <div className="cart-list-acts">
+            {confirming ? (
+              <div className="cart-confirm" role="group" aria-label="Confirm clearing the draft deck">
+                <span className="cc-q">Are you sure?</span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-icon cc-yes"
+                  aria-label="Yes, clear the draft deck"
+                  title="Yes, clear it"
+                  onClick={() => {
+                    updateSelection(() => []);
+                    setConfirmFor(null);
+                    announce('Draft deck cleared');
+                  }}
+                >
+                  <Icon name="check" />
+                </button>
+                <button type="button" className="btn btn-sm btn-icon" aria-label="No, keep my slides" title="No, keep them" onClick={() => setConfirmFor(null)} autoFocus>
+                  <Icon name="x" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <button type="button" className="btn btn-ghost btn-sm" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openPreview(included, 0)}>
+                  <Icon name="eye" />
+                  <span>Preview</span>
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmFor(signature)}>
+                  <Icon name="trash" />
+                  <span>Clear</span>
+                </button>
+              </>
+            )}
           </div>
-        )}
-        <div className="cart-acts">
-          <button type="button" className="btn btn-sm" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openPreview(included, 0)}>
-            <Icon name="eye" />
-            <span>Preview</span>
-          </button>
-          <button type="button" className="btn btn-sm btn-primary" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openDownload(included)}>
-            <Icon name="download" />
-            <span>Download as pptx</span>
-          </button>
         </div>
       </div>
       <dialog

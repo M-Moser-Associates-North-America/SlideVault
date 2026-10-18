@@ -37,6 +37,26 @@ function hashString(s: string): number {
   return h;
 }
 
+/** The browse tiles (client, year, category): scrolls sideways and fades out at the edge like the card rows. */
+function TileRow({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [atEnd, setAtEnd] = useState(false);
+  const measure = () => {
+    const el = ref.current;
+    if (el) setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 6);
+  };
+  useEffect(() => {
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  });
+  return (
+    <div ref={ref} className={`tiles${atEnd ? ' at-end' : ''}`} onScroll={measure}>
+      {children}
+    </div>
+  );
+}
+
 /** One horizontally scrolling row of cards, with "See all". */
 function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; title: string; sub?: string; seeAll?: string; total?: number; sim?: boolean; children: ReactNode }) {
   const ref = useRef<HTMLUListElement>(null);
@@ -465,7 +485,7 @@ function LibraryView() {
                   <div className="sub">Straight from folder names.</div>
                 </div>
               </div>
-              <div className="tiles">{tiles('client', clients, (a, b) => a.localeCompare(b))}</div>
+              <TileRow>{tiles('client', clients, (a, b) => a.localeCompare(b))}</TileRow>
             </section>
           )}
           {years.slideN.size > 0 && (
@@ -475,7 +495,7 @@ function LibraryView() {
                   <h2 id="row-years">Browse by year</h2>
                 </div>
               </div>
-              <div className="tiles">{tiles('year', years, (a, b) => Number(b) - Number(a))}</div>
+              <TileRow>{tiles('year', years, (a, b) => Number(b) - Number(a))}</TileRow>
             </section>
           )}
           {cats.slideN.size > 0 && (
@@ -485,7 +505,7 @@ function LibraryView() {
                   <h2 id="row-categories">Browse by category</h2>
                 </div>
               </div>
-              <div className="tiles">{tiles('category', cats, (a, b) => a.localeCompare(b))}</div>
+              <TileRow>{tiles('category', cats, (a, b) => a.localeCompare(b))}</TileRow>
             </section>
           )}
           {slides.length === 0 && (

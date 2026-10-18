@@ -65,6 +65,7 @@ export function ShellHeader() {
               <span className={styles.brand}>SlideVault</span>
               <span className={styles.tag}>Prototype</span>
             </p>
+            <p className={styles.tagline}>Search every slide your teams have ever shipped.</p>
           </div>
           <div className={styles.tools}>
             <ThemeToggle className={styles.themeButton} />

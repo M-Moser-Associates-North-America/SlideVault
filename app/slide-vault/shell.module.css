@@ -27,7 +27,7 @@
 .header {
   background: var(--sv-surface);
   color: var(--sv-text);
-  padding: 28px 0 16px;
+  padding: 28px 0 22px;
 }
 
 .headerInner {
@@ -43,7 +43,7 @@
   flex: none;
   width: 46px;
   height: 46px;
-  margin-top: 8px;
+  margin-top: 18px;
   border-radius: 14px;
   background: var(--sv-surface-sunken);
   color: var(--sv-text);
@@ -70,6 +70,12 @@
   align-items: baseline;
   gap: 12px;
   margin-top: 4px !important;
+}
+
+.tagline {
+  margin-top: 6px !important;
+  font-size: 14.5px;
+  color: var(--sv-text-secondary);
 }
 
 .brand {

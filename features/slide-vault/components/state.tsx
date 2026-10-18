@@ -43,6 +43,8 @@ type Workspace = {
   setIncluded: (id: string, included: boolean) => void;
   cartMin: boolean;
   setCartMin: (min: boolean) => void;
+  draftTitle: string;
+  setDraftTitle: (title: string) => void;
   toasts: Toast[];
   toast: (message: string) => void;
   dismissToast: (id: number) => void;
@@ -168,13 +170,11 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     [],
   );
 
-  /* Collapsed by default; opens by itself the first time something is added. */
-  const [cartMin, setCartMin] = useState(true);
-  const prevCount = useRef(selection.length);
-  useEffect(() => {
-    if (prevCount.current === 0 && selection.length > 0) setCartMin(false);
-    prevCount.current = selection.length;
-  }, [selection.length]);
+  /* Open from the start so a first-time visitor sees where slides collect. It only closes when the
+     person closes it, and only opens again when they open it. */
+  const [cartMin, setCartMin] = useState(false);
+  /* The draft deck's name, edited at the top of the panel; it also fills the Save as draft box. */
+  const [draftTitle, setDraftTitle] = useState('');
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextToast = useRef(1);
@@ -249,6 +249,8 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     setIncluded,
     cartMin,
     setCartMin,
+    draftTitle,
+    setDraftTitle,
     toasts,
     toast,
     dismissToast,
