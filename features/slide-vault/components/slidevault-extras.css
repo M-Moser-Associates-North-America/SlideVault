@@ -363,7 +363,7 @@
   .slidevault .sv-top .sv-wrap { padding: 0 var(--sv-side); }
   .slidevault .sv-shell { padding: 0 var(--sv-side); --gut: max(var(--sv-side), calc((100vw - 1560px) / 2 + var(--sv-side))); }
 }
-.slidevault .home-try { margin-bottom: 64px; }
+.slidevault .home-try { margin-bottom: 36px; }
 
 /* ---- Slide selection column: slimmer, and flush with the right edge (no extra side gutter inside it) ---- */
 @media (min-width: 1101px) {
@@ -377,8 +377,6 @@
 }
 
 /* ---- First-visit tip ---- */
-.slidevault .first-tip { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
-.slidevault .first-tip .ic-sm { color: var(--sv-brand); }
 
 /* ---- Loading placeholders shaped like the rows ---- */
 .slidevault .skel-rows { display: grid; gap: 36px; margin-top: 8px; }

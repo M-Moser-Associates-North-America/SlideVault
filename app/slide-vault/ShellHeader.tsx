@@ -59,8 +59,13 @@ export function ShellHeader() {
               </g>
             </svg>
           </span>
-          <span className={styles.brand}>SlideVault</span>
-          <span className={styles.tag}>Prototype</span>
+          <div className={styles.title}>
+            <p className={styles.eyebrow}>Proposal library</p>
+            <p className={styles.nameRow}>
+              <span className={styles.brand}>SlideVault</span>
+              <span className={styles.tag}>Prototype</span>
+            </p>
+          </div>
           <div className={styles.tools}>
             <ThemeToggle className={styles.themeButton} />
             <div className={styles.menuWrap} ref={wrap}>

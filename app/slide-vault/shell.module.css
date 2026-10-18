@@ -27,28 +27,54 @@
 .header {
   background: var(--sv-surface);
   color: var(--sv-text);
-  padding: 10px 0 4px;
+  padding: 28px 0 16px;
 }
 
 .headerInner {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 18px;
   padding: 0 20px 0 var(--sv-side, 40px);
 }
 
 .logo {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  margin-top: 8px;
+  border-radius: 14px;
   background: var(--sv-surface-sunken);
   color: var(--sv-text);
 }
 
+.title {
+  min-width: 0;
+}
+
+.title p {
+  margin: 0;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sv-text-secondary);
+}
+
+.nameRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 4px !important;
+}
+
 .brand {
-  font-size: 21px;
+  font-size: 28px;
+  line-height: 1.15;
   font-weight: 700;
   letter-spacing: -0.02em;
 }

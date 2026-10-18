@@ -24,7 +24,6 @@ import {
 import { DeckCard, Link, SimFlag, SkeletonGrid, SkeletonRows, SlideCard, StateBlock, StatusBadge, Thumb, useCartToggle } from './parts';
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
-import { useTipSeen } from '../client/tip-store';
 import { setHeroOut } from '../client/hero-visibility';
 import { chipShownInFilterRow, simParse, simSearch, simTags, simTier, simUsed, stripFromQuery, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
@@ -204,26 +203,6 @@ function useTypewriter(phrases: string[], active: boolean): string {
   return text;
 }
 
-/** One-line first-visit hint. Goes away when dismissed, or as soon as the person adds a slide. */
-function FirstVisitTip() {
-  const { seen, dismiss } = useTipSeen('select');
-  const { selection } = useWorkspace();
-  const added = selection.length > 0;
-  useEffect(() => {
-    if (added) dismiss();
-  }, [added, dismiss]);
-  if (seen || added) return null;
-  return (
-    <p className="first-tip" role="note">
-      <Icon name="info" className="ic-sm" />
-      <span>Tick slides to add them to your draft deck, then download them together.</span>
-      <button type="button" className="btn-link" onClick={dismiss}>
-        Got it
-      </button>
-    </p>
-  );
-}
-
 /** The "Try" example searches, shown under the search and filter card. */
 function HomeTry() {
   const { query, setQuery, runtime } = useWorkspace();
@@ -245,7 +224,6 @@ function HomeTry() {
           ))}
         </ul>
       </div>
-      <FirstVisitTip />
     </div>
   );
 }
@@ -380,6 +358,10 @@ function LibraryView() {
   const firstSaved = slides.find((s) => savedIds.has(s.id));
   const becauseCategory = firstSaved ? categoryOf(firstSaved) : null;
   const because = firstSaved && becauseCategory ? slides.filter((s) => s.id !== firstSaved.id && categoryOf(s) === becauseCategory) : [];
+  /* One "Suggested for you" row: slides like the first one this person saved come first, then the
+     profile's category lane (a stand-in for real recommendations), without repeats. */
+  const forYou = [...because, ...picked.filter((s) => !because.some((b) => b.id === s.id))];
+  const forYouSub = firstSaved && because.length > 0 ? `Because you saved “${firstSaved.title}”, plus slides in your usual area.` : 'Slides in an area you often use. A sample for now.';
   const tileCounts = (pick: (s: SlideSummary) => string | number | null) => {
     const slideN = countBy(slides, pick);
     const deckN = new Map<string, Set<string>>();
@@ -411,21 +393,21 @@ function LibraryView() {
         <div style={{ marginTop: 20 }}>{lib.blocker}</div>
       ) : (
         <>
-          {picked.length > 0 && (
-            <Row id="picked" title={`Picked for ${profile}`} sub="Based on what this profile looks at most.">
-              {picked.slice(0, ROW_LIMIT).map((s) => (
-                <li key={s.id}>
-                  <SlideCard slide={s} list={picked.slice(0, ROW_LIMIT)} />
-                </li>
-              ))}
-            </Row>
-          )}
-          <TopTenRow slides={top10} sub={top10Sub} />
           {best.length > 0 && (
             <Row id="best" title="Best of the Best" sub="Hand-picked slides. Row names TBD." seeAll="best" total={best.length}>
               {best.slice(0, ROW_LIMIT).map((s) => (
                 <li key={s.id}>
                   <SlideCard slide={s} list={best.slice(0, ROW_LIMIT)} />
+                </li>
+              ))}
+            </Row>
+          )}
+          <TopTenRow slides={top10} sub={top10Sub} />
+          {forYou.length > 0 && (
+            <Row id="foryou" title="Suggested for you" sub={forYouSub}>
+              {forYou.slice(0, ROW_LIMIT).map((s) => (
+                <li key={s.id}>
+                  <SlideCard slide={s} list={forYou.slice(0, ROW_LIMIT)} />
                 </li>
               ))}
             </Row>
@@ -448,29 +430,20 @@ function LibraryView() {
               ))}
             </Row>
           )}
-          {suggested.length > 0 && (
-            <Row id="suggested" title="Awaiting approval" sub="Added or labelled by AI. A person has not checked them yet." seeAll="suggested" total={suggested.length} sim>
-              {suggested.slice(0, ROW_LIMIT).map((s) => (
-                <li key={s.id}>
-                  <SlideCard slide={s} list={suggested.slice(0, ROW_LIMIT)} />
-                </li>
-              ))}
-            </Row>
-          )}
-          {because.length > 0 && firstSaved && (
-            <Row id="because" title={`Because you saved ${firstSaved.title}`} sub="Same category, more to look at.">
-              {because.slice(0, ROW_LIMIT).map((s) => (
-                <li key={s.id}>
-                  <SlideCard slide={s} list={because.slice(0, ROW_LIMIT)} />
-                </li>
-              ))}
-            </Row>
-          )}
           {decks.length > 0 && (
             <Row id="decks" title="Decks" sub="Arranged by client and year. Folder names TBD.">
               {decks.slice(0, 24).map((d) => (
                 <li key={d.id}>
                   <DeckCard deck={d} />
+                </li>
+              ))}
+            </Row>
+          )}
+          {suggested.length > 0 && (
+            <Row id="suggested" title="Awaiting approval" sub="Added or labelled by AI. A person has not checked them yet." seeAll="suggested" total={suggested.length} sim>
+              {suggested.slice(0, ROW_LIMIT).map((s) => (
+                <li key={s.id}>
+                  <SlideCard slide={s} list={suggested.slice(0, ROW_LIMIT)} />
                 </li>
               ))}
             </Row>
