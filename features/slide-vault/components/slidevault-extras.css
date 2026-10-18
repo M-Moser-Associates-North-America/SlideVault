@@ -286,9 +286,10 @@
  * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
  * "Today's Top 10"-style giant outlined rank numbers, from the Netflix reference video.
  */
-.slidevault .top10-item { display: flex; align-items: flex-end; }
+.slidevault .top10-item { display: flex; align-items: stretch; }
 .slidevault .top10-num {
   flex: none;
+  align-self: flex-end;
   font-size: 108px;
   font-weight: 800;
   line-height: 0.75;
@@ -516,3 +517,15 @@
 /* The browse tiles fade at the edge like the card rows above them, to show there is more to scroll to. */
 .slidevault .tiles { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); }
 .slidevault .tiles.at-end { -webkit-mask-image: none; mask-image: none; }
+
+/* ---- Quick tour: dimmed page, a spotlight on one thing, a plain-words note beside it ---- */
+.slidevault .tour { position: fixed; inset: 0; z-index: 90; }
+.slidevault .tour-block { position: absolute; inset: 0; }
+.slidevault .tour-spot { position: absolute; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(15, 15, 18, 0.55), 0 0 0 2px var(--sv-brand); pointer-events: none; transition: left 0.2s ease, top 0.2s ease, width 0.2s ease, height 0.2s ease; }
+.slidevault .tour:not(:has(.tour-spot)) .tour-block { background: rgba(15, 15, 18, 0.55); }
+.slidevault .tour-pop { position: absolute; padding: 18px 20px 16px; background: var(--sv-surface); color: var(--sv-text); border: 1px solid var(--sv-border-strong); border-radius: 16px; box-shadow: var(--sv-shadow-panel); }
+.slidevault .tour-n { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .tour-pop h2 { margin: 6px 0 0; font-size: 18px; letter-spacing: -0.01em; outline: none; }
+.slidevault .tour-t { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: var(--sv-text-secondary); }
+.slidevault .tour-acts { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.slidevault .tour-nav { display: flex; gap: 8px; }

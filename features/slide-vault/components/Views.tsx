@@ -1051,14 +1051,6 @@ export function CreateView() {
             Planned
           </span>
         </div>
-        <div className="card">
-          <Icon name="layers" className="ic-big" />
-          <h2 className="h2">My decks</h2>
-          <p className="meta">Your saved drafts, to arrange and export.</p>
-          <span className="badge" style={{ alignSelf: 'flex-start' }}>
-            Planned
-          </span>
-        </div>
       </div>
       <div className="notice info" style={{ marginTop: 20 }}>
         <Icon name="info" />

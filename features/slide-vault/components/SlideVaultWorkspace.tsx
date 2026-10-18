@@ -12,6 +12,7 @@ import { SearchForm } from './Rail';
 import { WorkspaceProvider, useWorkspace } from './state';
 import { LoginView } from './AuthView';
 import { ProfileView } from './ProfileView';
+import { Tour } from './Tour';
 import { UploadView } from './UploadView';
 import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './Views';
 import './slidevault.css';
@@ -189,6 +190,7 @@ function Workspace() {
       <div className="sr-only" aria-live="polite">
         {announcement}
       </div>
+      <Tour />
       <Lightbox />
       <DownloadDialog />
       <AlsoDialog />

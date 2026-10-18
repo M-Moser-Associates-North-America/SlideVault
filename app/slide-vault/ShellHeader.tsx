@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { useProfile } from '@/features/slide-vault';
+import { startTour, useProfile } from '@/features/slide-vault';
 import { ThemeToggle, useTheme } from './theme';
 import styles from './shell.module.css';
 
@@ -68,6 +68,13 @@ export function ShellHeader() {
             <p className={styles.tagline}>Search every slide your teams have ever shipped.</p>
           </div>
           <div className={styles.tools}>
+            <button type="button" className={styles.themeButton} aria-label="Take a quick tour" title="Take a quick tour" onClick={startTour}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9.5" />
+                <path d="M9.4 9.3a2.7 2.7 0 0 1 5.2 1c0 1.8-2.6 2.2-2.6 3.9" />
+                <path d="M12 17.4h.01" />
+              </svg>
+            </button>
             <ThemeToggle className={styles.themeButton} />
             <div className={styles.menuWrap} ref={wrap}>
               <button type="button" className={styles.avatarBtn} aria-haspopup="menu" aria-expanded={open} aria-label={`Account menu, signed in as ${profile}`} onClick={() => setOpen((o) => !o)}>
