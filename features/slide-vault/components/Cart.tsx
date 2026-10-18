@@ -152,7 +152,7 @@ export function Cart() {
               <Icon name="layers" />
             </span>
             <p className="ce-t">Your draft deck is empty</p>
-            <p className="meta">Hover over any slide and click + Add. You can download them together from here.</p>
+            <p className="meta">Tick the corner box on any slide to add it. You can download them together from here.</p>
           </div>
         </div>
         {mini}

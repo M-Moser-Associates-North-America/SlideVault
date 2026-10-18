@@ -376,17 +376,7 @@
   .slidevault .cart-min .mini-t { font-size: 10px; letter-spacing: 0.04em; text-align: center; }
 }
 
-/* ---- Hover actions on a slide card, and the first-visit tip ---- */
-.slidevault .thumb .zoom { display: none; }
-.slidevault .card-actions { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; display: flex; justify-content: center; gap: 8px; padding: 30px 10px 10px; border-radius: 0 0 12px 12px; background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent); opacity: 0; transition: opacity var(--sv-duration-fast); pointer-events: none; }
-.slidevault .vcard:hover .card-actions, .slidevault .card-actions:focus-within { opacity: 1; }
-.slidevault .card-actions .ca-btn { pointer-events: auto; }
-@media (hover: none) { .slidevault .card-actions { opacity: 1; } }
-.slidevault .ca-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border: 0; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-.slidevault .ca-preview { background: #fff; color: #1a1a1a; }
-.slidevault .ca-add { background: var(--sv-action-bg); color: var(--sv-action-fg); }
-.slidevault .ca-add.is-on { background: var(--sv-brand); color: #fff; }
-.slidevault .ca-btn:focus-visible { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
+/* ---- First-visit tip ---- */
 .slidevault .first-tip { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
 .slidevault .first-tip .ic-sm { color: var(--sv-brand); }
 
@@ -452,3 +442,10 @@
 .slidevault .draft-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); flex: none; }
 .slidevault .draft-txt { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .slidevault .draft-acts { display: flex; gap: 6px; flex: none; }
+
+/* ---- The corner tick: always faintly visible, brighter on hover, solid orange once chosen ---- */
+.slidevault .pick { opacity: 0.8; }
+.slidevault .vcard:hover .pick, .slidevault .pick:focus-within, .slidevault .vcard.is-selected .pick { opacity: 1; }
+.slidevault .pick .box { border-color: rgba(255, 255, 255, 0.95); background: rgba(0, 0, 0, 0.32); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
+.slidevault .pick .pick-tip { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; padding: 5px 9px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+.slidevault .pick:hover .pick-tip, .slidevault .pick input:focus-visible ~ .pick-tip { display: block; }

@@ -216,7 +216,7 @@ function FirstVisitTip() {
   return (
     <p className="first-tip" role="note">
       <Icon name="info" className="ic-sm" />
-      <span>Add slides to your draft deck, then download them together.</span>
+      <span>Tick slides to add them to your draft deck, then download them together.</span>
       <button type="button" className="btn-link" onClick={dismiss}>
         Got it
       </button>

@@ -175,14 +175,6 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
   const saved = isSaved(slide.id);
   const p = slide.provenance;
   const meta = [clientOf(slide), yearOf(slide), categoryOf(slide)].filter((x) => x !== null).join(' · ');
-  const openThisPreview = () =>
-    openPreview(
-      list,
-      Math.max(
-        0,
-        list.findIndex((s) => s.id === slide.id),
-      ),
-    );
   return (
     <article className={`card vcard${sel ? ' is-selected' : ''}`} data-card={slide.id}>
       <div className="thumbwrap">
@@ -206,10 +198,13 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
           </span>
         </button>
         {tier !== 'Retired' && (
-          <label className="pick" title="Add this slide to your draft deck">
+          <label className="pick">
             <input type="checkbox" checked={sel} onChange={(e) => set(slide, e.target.checked)} aria-label={`Add to draft deck: ${slide.title}`} />
             <span className="box" aria-hidden="true">
               <Icon name="check" />
+            </span>
+            <span className="pick-tip" aria-hidden="true">
+              {sel ? 'Remove from draft deck' : 'Add to draft deck'}
             </span>
           </label>
         )}
@@ -219,18 +214,6 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
             {slide.hiddenInSource && <span className="badge">Hidden in source</span>}
           </span>
         )}
-        <div className="card-actions">
-          <button type="button" className="ca-btn ca-preview" onClick={openThisPreview}>
-            <Icon name="eye" className="ic-sm" />
-            Preview
-          </button>
-          {tier !== 'Retired' && (
-            <button type="button" className={`ca-btn ca-add${sel ? ' is-on' : ''}`} aria-pressed={sel} onClick={() => set(slide, !sel)}>
-              <Icon name={sel ? 'check' : 'plus'} className="ic-sm" />
-              {sel ? 'Added' : 'Add'}
-            </button>
-          )}
-        </div>
         <button
           type="button"
           className={`save-tg${saved ? ' is-saved' : ''}`}
