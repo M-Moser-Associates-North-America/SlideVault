@@ -16,13 +16,16 @@
     "upload:library": "tsx scripts/upload-library.mts",
     "score:search": "tsx --conditions=react-server scripts/score-search.mts",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:a11y": "playwright test"
+    "test:a11y": "playwright test",
+    "db:setup": "tsx scripts/db-setup.mts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
+    "@types/pg": "^8.23.1",
     "@xmldom/xmldom": "^0.9.12",
     "jszip": "^3.10.2",
     "next": "16.4.0",
+    "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1"

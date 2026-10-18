@@ -176,6 +176,20 @@ Revisit trigger: Real SharePoint folder names from M Moser.
 ```
 
 ```text
+Decision ID and title: FD-12 Use M Moser's Supabase project through personal logins, with no master key
+Status: proposed
+Decision date: 2026-10-18
+Decision owner/reviewer: Vincent (build), Schiffon (data layer), Alina Pak (project owner)
+Context and evidence: On Oct 14 Alina created a SlideVault project in M Moser's Supabase account and gave each developer a personal database login (switching to the shared slidevault_developer role inside our own schema) and a separate Storage account limited to one private bucket and a personal upload folder. No service-role (master) key is issued. The app previously used a master key through the Supabase REST API on a team member's personal project.
+Options considered: (a) direct Postgres connection with the personal login, plus Storage through the signed-in Storage account; (b) ask for a service-role key; (c) stay on the personal project.
+Chosen outcome: (a). server/db.ts opens a small connection pool with the personal login, switches role and schema on every connection, and passes every value as a query parameter. server/sql/schema.sql creates the tables (npm run db:setup, safe to rerun). server/storage.ts signs in once and stores originals at <prefix>/originals/<deck id>.pptx and thumbnails at <prefix>/previews/<deck id>/0001.png. The bucket allows upload and read but not overwrite or delete, so keys are always new and nothing deletes. Until the bucket accepts PNG, thumbnails are kept on the developer's computer (data dir, keys starting "local:"). Settings are SV_* in .env.local (env.example).
+Consequences for scope, cost, security and integration: No master key exists in the app or on any laptop; the database enforces what each login can do. Meaning-based search waits for M Moser to enable pgvector. Deleting decks (archive/delete) needs delete permission or an admin path from M Moser. Each developer's thumbnails stay local until images are allowed. The old supabase/migrations folder describes the personal project and is kept for history.
+Acceptance evidence / affected PR criteria: scripts/check-mmoser-access.mts (access check); every repository function tested against a local Postgres with the same role and schema setup; npm run db:setup run twice with no changes the second time.
+Documents/contracts changed: server/db.ts (new), server/sql/schema.sql (new), server/pg-repository.ts, server/storage.ts, server/config.ts, server/services/export.ts, scripts/db-setup.mts (new), scripts/check-mmoser-access.mts (new), scripts/change-mmoser-passwords.mts (new), env.example, package.json (pg).
+Revisit trigger: pgvector enabled; bucket accepts images; M Moser's integration plan for auth and storage.
+```
+
+```text
 Decision ID and title: FD-06 Selection stored in the browser
 Status: proposed
 Decision date: (pending)

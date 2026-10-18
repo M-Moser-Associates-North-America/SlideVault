@@ -1,15 +1,18 @@
 import 'server-only';
 import type { LibraryDeck, LibrarySlide, SlideSummary } from '../contracts/dto';
+import { sql } from './db';
 import type { DetailChanges } from './deck-details';
 import type { SlideText } from './duplicates';
-import { supabaseAdmin } from './supabase';
 
 /**
- * Postgres-backed deck/slide storage (supabase/migrations, docs/foundry/SLIDE_RECORD.md).
- * This is the forward path for anything uploaded through POST /uploads. The existing
- * JSON-file index (library-repository.ts) still serves the synthetic fixture decks used
- * for export/search testing -- the two coexist today rather than one replacing the other
- * mid-flight; merging them is a deliberate next step, not done silently here.
+ * Postgres-backed deck/slide storage in M Moser's Supabase project (docs/DECISIONS.md FD-12;
+ * tables in server/sql/schema.sql, fields in docs/foundry/SLIDE_RECORD.md).
+ *
+ * Uses a direct database connection with each developer's personal login (server/db.ts), not
+ * the Supabase REST API with a master key. Every value goes in as a query parameter.
+ *
+ * The JSON-file index (library-repository.ts) still serves the synthetic fixture decks used for
+ * export/search tests; the two coexist until the fixtures are loaded into the database too.
  */
 
 type DeckRow = {
@@ -66,91 +69,70 @@ export type ExistingDeck = {
 };
 
 export async function findDeckByHash(fileHash: string): Promise<ExistingDeck | null> {
-  const { data, error } = await supabaseAdmin()
-    .from('decks')
-    .select('id, title, status, slide_count, client, year, category, best_of_the_best')
-    .eq('file_hash', fileHash)
-    .maybeSingle();
-  if (error) throw new Error(`Could not check for a duplicate deck: ${error.message}`);
-  if (!data) return null;
+  const [d] = await sql<DeckRow>('select * from decks where file_hash = $1', [fileHash]);
+  if (!d) return null;
   return {
-    id: data.id,
-    title: data.title,
-    status: data.status,
-    slideCount: data.slide_count,
-    client: data.client,
-    year: data.year,
-    category: data.category,
-    bestOfTheBest: data.best_of_the_best,
+    id: d.id,
+    title: d.title,
+    status: d.status,
+    slideCount: d.slide_count,
+    client: d.client,
+    year: d.year,
+    category: d.category,
+    bestOfTheBest: d.best_of_the_best,
   };
 }
 
 /** Fill in deck details from a second copy of the same file (deck-details.ts, FD-11). */
 export async function updateDeckDetails(deckId: string, changes: DetailChanges): Promise<void> {
-  const row: Record<string, unknown> = {};
-  if (changes.bestOfTheBest !== undefined) row.best_of_the_best = changes.bestOfTheBest;
-  if (changes.year !== undefined) row.year = changes.year;
-  if (changes.client !== undefined) row.client = changes.client;
-  if (changes.category !== undefined) row.category = changes.category;
-  if (Object.keys(row).length === 0) return;
-  const { error } = await supabaseAdmin().from('decks').update(row).eq('id', deckId);
-  if (error) throw new Error(`Could not update the deck details: ${error.message}`);
+  const sets: string[] = [];
+  const values: unknown[] = [];
+  const add = (column: string, value: unknown) => {
+    values.push(value);
+    sets.push(`${column} = $${values.length}`);
+  };
+  if (changes.bestOfTheBest !== undefined) add('best_of_the_best', changes.bestOfTheBest);
+  if (changes.year !== undefined) add('year', changes.year);
+  if (changes.client !== undefined) add('client', changes.client);
+  if (changes.category !== undefined) add('category', changes.category);
+  if (sets.length === 0) return;
+  values.push(deckId);
+  await sql(`update decks set ${sets.join(', ')} where id = $${values.length}`, values);
 }
 
 export async function createDeck(input: NewDeckInput): Promise<string> {
-  const { data, error } = await supabaseAdmin()
-    .from('decks')
-    .insert({
-      id: input.id,
-      client: input.client,
-      year: input.year,
-      category: input.category,
-      source_path: input.sourcePath,
-      title: input.title,
-      source_filename: input.sourceFilename,
-      file_path: input.filePath,
-      file_hash: input.fileHash,
-      source: 'upload',
-      best_of_the_best: input.bestOfTheBest,
-      slide_size: input.slideSize,
-      status: 'processing',
-    })
-    .select('id')
-    .single();
-  if (error) throw new Error(`Could not create the deck record: ${error.message}`);
-  return data.id as string;
+  const [row] = await sql<{ id: string }>(
+    `insert into decks (id, client, year, category, source_path, title, source_filename, file_path, file_hash, source, best_of_the_best, slide_size, status)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'upload', $10, $11, 'processing')
+     returning id`,
+    [input.id, input.client, input.year, input.category, input.sourcePath, input.title, input.sourceFilename,
+      input.filePath, input.fileHash, input.bestOfTheBest, input.slideSize],
+  );
+  return row.id;
 }
 
 export async function insertSlides(deckId: string, slides: NewSlideInput[]): Promise<void> {
-  const { error } = await supabaseAdmin()
-    .from('slides')
-    .insert(
-      slides.map((s) => ({
-        deck_id: deckId,
-        slide_number: s.slideNumber,
-        title: s.title,
-        text: s.extractedText,
-        thumbnail_path: s.thumbnailStorageKey,
-        is_hidden_in_source: s.isHiddenInSource,
-      })),
-    );
-  if (error) throw new Error(`Could not store the slide records: ${error.message}`);
+  if (slides.length === 0) return;
+  // One insert for the whole deck: unnest turns the parallel arrays into rows.
+  await sql(
+    `insert into slides (deck_id, slide_number, title, text, thumbnail_path, is_hidden_in_source)
+     select $1, * from unnest($2::int[], $3::text[], $4::text[], $5::text[], $6::boolean[])`,
+    [deckId, slides.map((s) => s.slideNumber), slides.map((s) => s.title), slides.map((s) => s.extractedText),
+      slides.map((s) => s.thumbnailStorageKey), slides.map((s) => s.isHiddenInSource)],
+  );
 }
 
 export async function markDeckReady(deckId: string, slideCount: number): Promise<void> {
-  const { error } = await supabaseAdmin().from('decks').update({ status: 'ready', slide_count: slideCount, error: null }).eq('id', deckId);
-  if (error) throw new Error(`Could not mark the deck ready: ${error.message}`);
+  await sql(`update decks set status = 'ready', slide_count = $2, error = null where id = $1`, [deckId, slideCount]);
 }
 
 export async function markDeckFailed(deckId: string, reason: string): Promise<void> {
-  const { error } = await supabaseAdmin().from('decks').update({ status: 'failed', error: reason }).eq('id', deckId);
-  if (error) throw new Error(`Could not record the deck failure: ${error.message}`);
+  await sql(`update decks set status = 'failed', error = $2 where id = $1`, [deckId, reason]);
 }
 
 export async function getDeck(deckId: string): Promise<DeckRow | null> {
-  const { data, error } = await supabaseAdmin().from('decks').select('*').eq('id', deckId).maybeSingle();
-  if (error) throw new Error(`Could not load the deck: ${error.message}`);
-  return data as DeckRow | null;
+  const [d] = await sql<DeckRow>('select * from decks where id = $1', [deckId]);
+  return d ?? null;
 }
 
 type SlideWithDeck = {
@@ -186,25 +168,30 @@ function toSlideSummary(row: SlideWithDeck): SlideSummary {
   };
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Slide columns plus its deck as one object, the shape toSlideSummary expects. */
+const SLIDE_WITH_DECK = `select s.id, s.slide_number, s.title, s.text, s.thumbnail_path, s.is_hidden_in_source, to_jsonb(d.*) as decks
+  from slides s join decks d on d.id = s.deck_id`;
+
 export async function getSlidePg(slideId: string): Promise<{ summary: SlideSummary; text: string; thumbnailStorageKey: string | null } | null> {
-  const { data, error } = await supabaseAdmin().from('slides').select('*, decks(*)').eq('id', slideId).maybeSingle();
-  if (error) throw new Error(`Could not load the slide: ${error.message}`);
-  if (!data) return null;
-  const row = data as unknown as SlideWithDeck;
+  if (!UUID.test(slideId)) return null;
+  const [row] = await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where s.id = $1`, [slideId]);
+  if (!row) return null;
   return { summary: toSlideSummary(row), text: row.text ?? '', thumbnailStorageKey: row.thumbnail_path };
 }
 
 /** Basic keyword search against the generated search_text column (docs/DATA_AND_API.md, "Search and selection"). */
 export async function searchSlidesPg(query: string, limit: number): Promise<SlideSummary[]> {
-  // !inner so the status filter on the joined deck actually applies (PostgREST embedded-resource filtering).
-  let builder = supabaseAdmin().from('slides').select('*, decks!inner(*)').eq('decks.status', 'ready').limit(limit);
-  if (query.trim()) {
-    // "plain" builds the AND-of-words tsquery itself; don't pre-join words into tsquery syntax here.
-    builder = builder.textSearch('search_text', query.trim(), { type: 'plain' });
-  }
-  const { data, error } = await builder;
-  if (error) throw new Error(`Search failed: ${error.message}`);
-  return ((data ?? []) as unknown as SlideWithDeck[]).map(toSlideSummary);
+  const q = query.trim();
+  const rows = q
+    ? await sql<SlideWithDeck>(
+        `${SLIDE_WITH_DECK} where d.status = 'ready' and s.search_text @@ plainto_tsquery('english', $1)
+         order by ts_rank(s.search_text, plainto_tsquery('english', $1)) desc, d.title, s.slide_number limit $2`,
+        [q, limit],
+      )
+    : await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where d.status = 'ready' order by d.uploaded_at desc, s.slide_number limit $1`, [limit]);
+  return rows.map(toSlideSummary);
 }
 
 /** What the export needs to know about an uploaded slide and its deck. */
@@ -220,15 +207,12 @@ export type ExportableSlide = {
   deckReady: boolean;
 };
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /** Look up uploaded slides by id. Ids that aren't uploaded-slide ids (e.g. fixture ids) are skipped, not errors. */
 export async function getSlidesForExport(slideIds: string[]): Promise<ExportableSlide[]> {
   const ids = [...new Set(slideIds.filter((id) => UUID.test(id)))];
   if (ids.length === 0) return [];
-  const { data, error } = await supabaseAdmin().from('slides').select('*, decks!inner(*)').in('id', ids);
-  if (error) throw new Error(`Could not load the selected slides: ${error.message}`);
-  return ((data ?? []) as unknown as SlideWithDeck[]).map((row) => ({
+  const rows = await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where s.id = any($1::uuid[])`, [ids]);
+  return rows.map((row) => ({
     slideId: row.id,
     slideNumber: row.slide_number,
     title: row.title || `Slide ${row.slide_number}`,
@@ -240,29 +224,18 @@ export async function getSlidesForExport(slideIds: string[]): Promise<Exportable
   }));
 }
 
-/** Title and text of every slide in a ready deck, for duplicate grouping. Pages through Supabase's 1000-row cap. */
+/** Title and text of every slide in a ready deck, for duplicate grouping. */
 export async function listSlideTextsPg(): Promise<SlideText[]> {
-  const out: SlideText[] = [];
-  const PAGE = 1000;
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabaseAdmin()
-      .from('slides')
-      .select('id, deck_id, title, text, decks!inner(status)')
-      .eq('decks.status', 'ready')
-      .order('id')
-      .range(from, from + PAGE - 1);
-    if (error) throw new Error(`Could not load slide text: ${error.message}`);
-    const rows = (data ?? []) as unknown as { id: string; deck_id: string; title: string | null; text: string | null }[];
-    out.push(...rows.map((r) => ({ id: r.id, sourceId: r.deck_id, title: r.title ?? '', text: r.text ?? '' })));
-    if (rows.length < PAGE) return out;
-  }
+  const rows = await sql<{ id: string; deck_id: string; title: string | null; text: string | null }>(
+    `select s.id, s.deck_id, s.title, s.text from slides s join decks d on d.id = s.deck_id where d.status = 'ready' order by s.id`,
+  );
+  return rows.map((r) => ({ id: r.id, sourceId: r.deck_id, title: r.title ?? '', text: r.text ?? '' }));
 }
 
-/** Every ready uploaded deck and its slides (GET /library). Pages through Supabase's 1000-row cap. */
+/** Every ready uploaded deck and its slides (GET /library). */
 export async function listLibraryPg(): Promise<{ decks: LibraryDeck[]; slides: Omit<LibrarySlide, 'duplicateGroupId'>[] }> {
-  const { data: deckRows, error } = await supabaseAdmin().from('decks').select('*').eq('status', 'ready').order('uploaded_at', { ascending: false });
-  if (error) throw new Error(`Could not load decks: ${error.message}`);
-  const decks: LibraryDeck[] = ((deckRows ?? []) as (DeckRow & { uploaded_at: string | null })[]).map((d) => ({
+  const deckRows = await sql<DeckRow & { uploaded_at: Date | string | null }>(`select * from decks where status = 'ready' order by uploaded_at desc`);
+  const decks: LibraryDeck[] = deckRows.map((d) => ({
     id: d.id,
     title: d.title,
     client: d.client && d.client !== 'Unknown client' ? d.client : null,
@@ -271,35 +244,21 @@ export async function listLibraryPg(): Promise<{ decks: LibraryDeck[]; slides: O
     bestOfTheBest: d.best_of_the_best,
     slideSize: d.slide_size,
     versionId: d.file_hash,
-    uploadedAt: d.uploaded_at,
+    uploadedAt: d.uploaded_at instanceof Date ? d.uploaded_at.toISOString() : d.uploaded_at,
     source: 'upload',
   }));
-  const ready = new Set(decks.map((d) => d.id));
-
-  const slides: Omit<LibrarySlide, 'duplicateGroupId'>[] = [];
-  const PAGE = 1000;
-  for (let from = 0; ; from += PAGE) {
-    const { data, error: e } = await supabaseAdmin()
-      .from('slides')
-      .select('id, deck_id, slide_number, title, text, is_hidden_in_source')
-      .order('deck_id')
-      .order('slide_number')
-      .range(from, from + PAGE - 1);
-    if (e) throw new Error(`Could not load slides: ${e.message}`);
-    const rows = (data ?? []) as { id: string; deck_id: string; slide_number: number; title: string | null; text: string | null; is_hidden_in_source: boolean }[];
-    for (const r of rows) {
-      if (!ready.has(r.deck_id)) continue;
-      slides.push({
-        id: r.id,
-        deckId: r.deck_id,
-        slideNumber: r.slide_number,
-        title: r.title || `Slide ${r.slide_number}`,
-        text: r.text ?? '',
-        hiddenInSource: r.is_hidden_in_source,
-        previewPath: `/slides/${r.id}/preview`,
-      });
-    }
-    if (rows.length < PAGE) break;
-  }
+  const rows = await sql<{ id: string; deck_id: string; slide_number: number; title: string | null; text: string | null; is_hidden_in_source: boolean }>(
+    `select s.id, s.deck_id, s.slide_number, s.title, s.text, s.is_hidden_in_source
+     from slides s join decks d on d.id = s.deck_id where d.status = 'ready' order by s.deck_id, s.slide_number`,
+  );
+  const slides = rows.map((r) => ({
+    id: r.id,
+    deckId: r.deck_id,
+    slideNumber: r.slide_number,
+    title: r.title || `Slide ${r.slide_number}`,
+    text: r.text ?? '',
+    hiddenInSource: r.is_hidden_in_source,
+    previewPath: `/slides/${r.id}/preview`,
+  }));
   return { decks, slides };
 }

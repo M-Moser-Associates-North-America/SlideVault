@@ -1,5 +1,5 @@
 // Server entry point for the SlideVault feature. Never import this from browser code.
-export { readConfig, readSupabaseConfig, type ServerConfig } from './server/config';
+export { readConfig, readSupabaseConfig, readMmoserConfig, hasMmoserConfig, type ServerConfig } from './server/config';
 export { loadLibraryIndex, findSlide, previewFile, type LibraryIndex } from './server/library-repository';
 export { searchSlides, toSummary, DEFAULT_LIMIT } from './server/services/search';
 export { exportSlides, type ExportFile } from './server/services/export';
