@@ -15,8 +15,8 @@ export type SearchState = { status: 'idle' } | { status: 'loading' } | { status:
 
 export type Toast = { id: number; message: string };
 
-/** Local design prototype: fake sign-in, five demo profiles, no real accounts (not pushed). */
-export const DEMO_PROFILES = ['Anna Wintour', 'Charlie Chocolate Factory', 'Grease Lightning', 'Charlie Moser', 'Two and a Half Men'];
+/** Local design prototype: fake sign-in as one demo profile, no real accounts (not pushed). */
+export const DEMO_PROFILE = 'Person A';
 export type { ActivityEntry, Draft };
 
 /** First letter of the first and last word, e.g. "Two and a Half Men" -> "TM". */
@@ -64,9 +64,7 @@ type Workspace = {
   /** Local design prototype: fake sign-in (docs/DECISIONS.md FD-01 is still the real default --
       this is a mockup for the pitch, not a real auth system). */
   profile: string | null;
-  authStage: 'login' | 'pick';
   submitLogin: () => void;
-  pickProfile: (name: string) => void;
   signOut: () => void;
   savedIds: ReadonlySet<string>;
   toggleSaved: (slide: SlideSummary) => void;
@@ -215,21 +213,8 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
   /* Fake sign-in: no server, no password check. `profile` persists across reloads so a demo
      doesn't have to log in again; clearing localStorage (as the test suite does) logs out. */
   const { profile, signIn, signOut: signOutStore } = useProfile();
-  const [authStage, setAuthStage] = useState<'login' | 'pick'>('login');
-  const submitLogin = useCallback(() => setAuthStage('pick'), []);
-  const pickProfile = useCallback(
-    (name: string) => {
-      signIn(name);
-      setAuthStage('login');
-    },
-    [signIn],
-  );
-  /* "Switch profile" (on the profile page) skips straight to the picker; signing out fully
-     (not currently reachable in the UI, kept for completeness) goes back to the login form. */
-  const signOut = useCallback(() => {
-    signOutStore();
-    setAuthStage('pick');
-  }, [signOutStore]);
+  const submitLogin = useCallback(() => signIn(DEMO_PROFILE), [signIn]);
+  const signOut = signOutStore;
 
   /* Saved slides and recent activity, scoped per demo profile so switching profiles actually
      shows a different person's stuff. */
@@ -280,9 +265,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     openAlso,
     closeAlso,
     profile,
-    authStage,
     submitLogin,
-    pickProfile,
     signOut,
     savedIds,
     toggleSaved,

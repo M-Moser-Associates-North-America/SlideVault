@@ -21,7 +21,7 @@ function timeAgo(at: number): string {
  * for a few hundred people needs this to be simple, not a second app (not pushed, not real auth).
  */
 export function ProfileView() {
-  const { profile, savedIds, activity, library, signOut, drafts, loadDraft, deleteDraft, selection, toast } = useWorkspace();
+  const { profile, savedIds, activity, library, drafts, loadDraft, deleteDraft, selection, toast } = useWorkspace();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   /* Arriving from the account menu's "Saved" item: scroll to the Saved section once the page is up. */
   useEffect(() => {
@@ -40,9 +40,6 @@ export function ProfileView() {
           </h1>
           <p className="lede">Your saved slides and working drafts. Signed in as {profile}.</p>
         </div>
-        <button type="button" className="btn btn-sm" onClick={signOut}>
-          Switch profile
-        </button>
       </div>
 
       <section className="row" id="saved">

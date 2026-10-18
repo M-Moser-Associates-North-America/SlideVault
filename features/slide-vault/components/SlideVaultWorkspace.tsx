@@ -10,7 +10,7 @@ import { Crumbs, Link, type Crumb } from './parts';
 import { CompactSearch } from './CompactSearch';
 import { SearchForm } from './Rail';
 import { WorkspaceProvider, useWorkspace } from './state';
-import { LoginView, PickProfileView } from './AuthView';
+import { LoginView } from './AuthView';
 import { ProfileView } from './ProfileView';
 import { UploadView } from './UploadView';
 import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './Views';
@@ -58,7 +58,7 @@ const TABS: {
 ];
 
 function Workspace() {
-  const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, profile, authStage } = useWorkspace();
+  const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, profile } = useWorkspace();
   const loc = runtime.location;
   const view = loc.view === 'home' || loc.view === 'library' ? 'pages' : loc.view;
   const deep = view === 'deck' || view === 'slide';
@@ -104,7 +104,7 @@ function Workspace() {
   const showBack = deep && query.trim() !== '';
 
 
-  if (!profile) return authStage === 'pick' ? <PickProfileView /> : <LoginView />;
+  if (!profile) return <LoginView />;
 
   return (
     <div className="sv-app">

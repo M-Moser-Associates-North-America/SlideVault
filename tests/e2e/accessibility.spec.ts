@@ -227,22 +227,14 @@ test('reduced motion turns transitions off', async ({ browser }) => {
   await context.close();
 });
 
-test('no WCAG 2.2 AA violations on the sign-in and pick-a-profile screens', async ({ page }) => {
+test('no WCAG 2.2 AA violations on the sign-in screen; Sign in goes straight to Home', async ({ page }) => {
   // This suite's beforeEach signs in a demo profile for every other test; start logged out here.
   await page.evaluate(() => localStorage.removeItem('slidevault:profile'));
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
   expect(await axe(page)).toEqual([]);
-  await page.getByLabel('Email address').fill('wrong@you.com');
-  await page.getByLabel('Password', { exact: true }).fill('nope');
+  // The sign-in is simulated: the fields start empty and Sign in works as it is, as the demo profile.
+  await expect(page.getByLabel('Email address')).toHaveValue('');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.locator('.notice.danger')).toContainText('match');
-  expect(await axe(page)).toEqual([]);
-  await page.getByLabel('Email address').fill('1234@you.com');
-  await page.getByLabel('Password', { exact: true }).fill('duh');
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { name: 'Who’s this for?' })).toBeVisible();
-  expect(await axe(page)).toEqual([]);
-  await page.getByRole('button', { name: 'Anna Wintour' }).click();
   await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
 });
