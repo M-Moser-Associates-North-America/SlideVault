@@ -13,6 +13,7 @@
     "test:folder-path": "tsx scripts/test-folder-path.mts",
     "test:deck-details": "tsx scripts/test-deck-details.mts",
     "test:v3": "tsx --conditions=react-server scripts/test-v3-live.mts",
+    "test:smart-search": "tsx --conditions=react-server scripts/test-smart-search.mts",
     "upload:library": "tsx scripts/upload-library.mts",
     "score:search": "tsx --conditions=react-server scripts/score-search.mts",
     "typecheck": "next typegen && tsc --noEmit",

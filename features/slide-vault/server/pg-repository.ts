@@ -3,6 +3,7 @@ import type { LibraryDeck, LibrarySlide, SlideSummary } from '../contracts/dto';
 import { sql } from './db';
 import type { DetailChanges } from './deck-details';
 import type { SlideText } from './duplicates';
+import { anyOfQuery, type SearchPlan, type SlideFacts } from './ai/search-plan';
 
 /**
  * Postgres-backed deck/slide storage in M Moser's Supabase project (docs/DECISIONS.md FD-12;
@@ -192,6 +193,56 @@ export async function searchSlidesPg(query: string, limit: number): Promise<Slid
       )
     : await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where d.status = 'ready' order by d.uploaded_at desc, s.slide_number limit $1`, [limit]);
   return rows.map(toSlideSummary);
+}
+
+/**
+ * Quick AI search (FD-15): slides matching ANY of the plan's keywords, inside its filters, best
+ * match first. With no keywords, the filters alone decide (newest decks first).
+ */
+export async function smartSearchPg(plan: SearchPlan, limit: number): Promise<{ summary: SlideSummary; facts: SlideFacts }[]> {
+  const where: string[] = [`d.status = 'ready'`];
+  const values: unknown[] = [];
+  const add = (v: unknown) => {
+    values.push(v);
+    return `$${values.length}`;
+  };
+  const q = anyOfQuery(plan.keywords);
+  let order = 'd.uploaded_at desc, s.slide_number';
+  if (q) {
+    const p = add(q);
+    where.push(`s.search_text @@ websearch_to_tsquery('english', ${p})`);
+    order = `ts_rank(s.search_text, websearch_to_tsquery('english', ${p})) desc, d.title, s.slide_number`;
+  }
+  if (plan.client) where.push(`lower(d.client) = lower(${add(plan.client)})`);
+  if (plan.yearFrom) where.push(`d.year >= ${add(plan.yearFrom)}`);
+  if (plan.yearTo) where.push(`d.year <= ${add(plan.yearTo)}`);
+  if (plan.category) where.push(`lower(d.category) = lower(${add(plan.category)})`);
+  if (plan.bestOfTheBest) where.push('d.best_of_the_best');
+  const rows = await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where ${where.join(' and ')} order by ${order} limit ${add(limit)}`, values);
+  return rows.map((row) => ({
+    summary: toSlideSummary(row),
+    facts: {
+      title: row.title ?? '',
+      text: row.text ?? '',
+      client: row.decks.client,
+      year: row.decks.year,
+      category: row.decks.category,
+      bestOfTheBest: row.decks.best_of_the_best,
+    },
+  }));
+}
+
+/** Client names and categories that exist, so search filters can only use real values. */
+export async function listFilterValuesPg(): Promise<{ clients: string[]; categories: string[] }> {
+  const rows = await sql<{ kind: string; value: string }>(
+    `select distinct 'client' as kind, client as value from decks where status = 'ready' and client is not null and client <> 'Unknown client'
+     union select distinct 'category', category from decks where status = 'ready' and category is not null
+     order by 1, 2`,
+  );
+  return {
+    clients: rows.filter((r) => r.kind === 'client').map((r) => r.value),
+    categories: rows.filter((r) => r.kind === 'category').map((r) => r.value),
+  };
 }
 
 /** What the export needs to know about an uploaded slide and its deck. */

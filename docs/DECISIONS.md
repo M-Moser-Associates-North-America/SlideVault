@@ -258,3 +258,17 @@ Acceptance evidence / affected PR criteria: axe checks clean in light and dark o
 Documents/contracts changed: components/simulation.ts, Access switch in app/slide-vault, docs/DECISIONS.md.
 Revisit trigger: When review tiers, AI labels or an AI provider are approved (D-03, D-12), or when the Postgres read path lands.
 ```
+
+```text
+Decision ID and title: FD-15 Quick AI search: Claude reads the request, Postgres finds the slides, the note comes from what matched
+Status: proposed
+Decision date: 2026-10-18
+Decision owner/reviewer: Vincent (build), Schiffon (search engine), Khushali (search screen), Alina Pak (AI approval)
+Context and evidence: On Oct 14 Alina asked for natural-language search with "why it fits" explanations for the Oct 21 midpoint. She approved Claude on the condition that training on our data is off, and our own API key is fine. pgvector (meaning-based search) is not enabled yet and is a question for the midpoint. FD-14's front end already simulates this reading in the browser.
+Options considered: (a) Claude turns the request into keywords and filters, the existing full-text search runs them, and the note is built from what actually matched; (b) send slide text to Claude and let it pick and explain results; (c) wait for pgvector.
+Chosen outcome: (a). GET /api/slide-vault/v1/smart-search?q= returns { reader, readerNote, plan, chips, relaxed, items: [{ slide, why, matched }] }. server/ai/claude.ts sends only the request plus the lists of client names and categories (no slide text, no files) and forces a structured search_plan answer; server/ai/search-plan.ts cleans it so filters can only be real values. Postgres matches ANY keyword (websearch_to_tsquery), inside the filters, best match first. If the filters leave nothing, it searches again without them and says so. With no ANTHROPIC_API_KEY, or if Claude fails or takes over 8 seconds, a rules-only stand-in (the same rules as FD-14's simulation) reads the request instead, so search always works.
+Consequences for scope, cost, security and integration: One small, fast Claude call per search; slide content never leaves our database for quick search. The "why it fits" note can't claim something the slide doesn't say. Synonyms only help as far as the keywords Claude picks; meaning-based matching waits for pgvector. Deep Research (several searches, Claude reading and comparing candidate slides, a grouped answer) is the next step and would send slide text to Claude, so it needs the same training-off condition and a cost check.
+Acceptance evidence / affected PR criteria: npm run test:smart-search (reader, cleaning, why-it-fits, fallbacks, and the Claude call against a fake API); smartSearchPg and listFilterValuesPg run against a local Postgres set up like M Moser's.
+Documents/contracts changed: server/ai/search-plan.ts (new), server/ai/claude.ts (new), server/services/smart-search.ts (new), server/pg-repository.ts (smartSearchPg, listFilterValuesPg), app/api/slide-vault/v1/smart-search/route.ts (new), scripts/test-smart-search.mts (new), env.example, package.json.
+Revisit trigger: pgvector enabled; the BD query scorecard shows misses; Deep Research approved; the search screen settles after the redesign.
+```
