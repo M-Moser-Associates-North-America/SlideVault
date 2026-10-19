@@ -1,10 +1,12 @@
 import type { UploadDeckMeta } from '@/features/slide-vault/contracts/dto';
-import { fail, ok, ServiceError, toResponse } from '@/features/slide-vault/server';
+import { fail, ok, RATE_POLICIES, rateLimit, ServiceError, toResponse } from '@/features/slide-vault/server';
 import { processUpload } from '@/features/slide-vault/server/services/upload';
 
 // POST /uploads (multipart/form-data): file + clientName, deckYear, category, folderPath,
 // bestOfTheBest. A .pptx goes in, is stored unchanged, and is split into slide records.
 export async function POST(request: Request) {
+  const limited = rateLimit(request, RATE_POLICIES.upload);
+  if (limited) return limited;
   let form: FormData;
   try {
     form = await request.formData();

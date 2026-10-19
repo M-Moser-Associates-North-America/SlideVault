@@ -1,12 +1,14 @@
 /**
- * Quick AI search checks (docs/DECISIONS.md FD-16). No database and no real Claude calls:
- * the reader, the search and Claude's API are all stand-ins here.
+ * Quick AI search checks (docs/DECISIONS.md FD-16, FD-17). No database and no real model calls:
+ * the reader, the search and the provider's API are all stand-ins here.
  *
  *   npm run test:smart-search
  */
 import type { SlideSummary } from '../features/slide-vault/contracts/dto';
-import { claudePlan, DEFAULT_MODEL } from '../features/slide-vault/server/ai/claude';
-import { anyOfQuery, chipsFor, cleanPlan, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
+import { openAiCompatibleReader, parsePlan } from '../features/slide-vault/server/ai/openai-compatible';
+import { readAiConfig, readerFromConfig, type PlanReader } from '../features/slide-vault/server/ai/reader';
+import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/rate-limit';
+import { anyOfQuery, chipsFor, cleanPlan, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { smartSearch } from '../features/slide-vault/server/services/smart-search';
 
 let failures = 0;
@@ -74,43 +76,97 @@ const context = async () => ({ clients: ctx.clients, categories: ctx.categories 
     context, thisYear: 2026,
     search: async (p) => { calls.push(p); return p.client ? [] : [{ summary: slide('s1'), facts: facts() }]; },
   });
-  check(r.reader === 'stand-in' && r.readerNote === null, 'flow: no key means the stand-in, with no warning');
+  check(r.reader === 'stand-in' && r.readerNote === null, 'flow: no reader configured means the stand-in, with no warning');
   check(calls.length === 2 && r.relaxed && r.items.length === 1, 'flow: when filters leave nothing, it searches again without them and says so', { calls: calls.length, relaxed: r.relaxed });
   check(!r.items[0].why.includes('from the Kestrel Law deck'), 'flow: a relaxed result does not claim to match the dropped filter', r.items[0].why);
 }
 {
-  const r = await smartSearch('team', 10, { context, thisYear: 2026, claude: async () => { throw new Error('timeout'); }, search: async () => [], log: () => {} });
-  check(r.reader === 'stand-in' && Boolean(r.readerNote), 'flow: if Claude fails, the stand-in answers and the screen is told');
+  const failing: PlanReader = { name: 'fake', read: async () => { throw new Error('timeout'); } };
+  const r = await smartSearch('team', 10, { context, thisYear: 2026, reader: failing, search: async () => [], log: () => {} });
+  check(r.reader === 'stand-in' && Boolean(r.readerNote), 'flow: if the model fails, the stand-in answers and the screen is told');
 }
 {
-  const r = await smartSearch('people', 10, { context, thisYear: 2026, claude: async () => cleanPlan({ summary: 'Team slides', keywords: ['team'], topics: ['Team'] }, ctx), search: async (p) => [{ summary: slide('s1'), facts: facts({ title: p.keywords[0] }) }] });
-  check(r.reader === 'claude' && r.items[0].matched[0] === 'team', 'flow: Claude\'s plan is what gets searched');
+  const seen: string[][] = [];
+  const model: PlanReader = { name: 'fake', read: async (_q, c) => { seen.push(c.clients); return cleanPlan({ summary: 'Team slides', keywords: ['team'], topics: ['Team'] }, ctx); } };
+  const r = await smartSearch('people for kestrel', 10, { context, thisYear: 2026, reader: model, search: async (p) => [{ summary: slide('s1'), facts: facts({ title: p.keywords[0] }) }] });
+  check(r.reader === 'model' && r.items[0].matched[0] === 'team', 'flow: the model\'s plan is what gets searched');
+  check(JSON.stringify(seen[0]) === JSON.stringify(['Kestrel Law']), 'flow: the model sees only the client named in the request, not the whole list', seen[0]);
 }
 
-// ---- The Claude adapter, against a fake API
+// ---- Which client names a model may see
+check(JSON.stringify(relevantClients('team intro for a bank pitch', ctx.clients)) === '[]', 'clients: "bank" alone sends no client names');
+check(JSON.stringify(relevantClients('Northgate Bank workplace', ctx.clients)) === JSON.stringify(['Northgate Bank']), 'clients: a named client is the only one sent');
+
+// ---- Provider settings
+check(readAiConfig({}).provider === 'none' && readerFromConfig(readAiConfig({})) === null, 'config: no provider means rules only');
+{
+  const c = readAiConfig({ SV_AI_PROVIDER: 'openai-compatible', SV_AI_BASE_URL: 'http://localhost:11434/v1/', SV_AI_MODEL: 'qwen3:8b' });
+  check(c.provider === 'openai-compatible' && c.baseUrl === 'http://localhost:11434/v1' && c.apiKey === null && c.timeoutMs === 15000, 'config: local Qwen3 needs no key, trailing slash trimmed', c);
+}
+for (const [env, label] of [
+  [{ SV_AI_PROVIDER: 'openai-compatible', SV_AI_MODEL: 'x' }, 'a provider without a base URL'],
+  [{ SV_AI_PROVIDER: 'claude' }, 'an unknown provider'],
+  [{ SV_AI_PROVIDER: 'openai-compatible', SV_AI_BASE_URL: 'http://x', SV_AI_MODEL: 'x', SV_AI_TIMEOUT_MS: '5' }, 'a silly timeout'],
+] as [Record<string, string>, string][]) {
+  let threw = false;
+  try { readAiConfig(env); } catch { threw = true; }
+  check(threw, `config: ${label} is an error, not a silent fallback`);
+}
+
+// ---- The OpenAI-compatible reader, against a fake API
 {
   type Sent = { url: string; headers: Record<string, string>; body: Record<string, unknown> };
   const box: { sent?: Sent } = {};
-  const fetchFn = async (url: string, init: RequestInit) => {
+  const reply = (content: string) => async (url: string, init: RequestInit) => {
     box.sent = { url, headers: init.headers as Record<string, string>, body: JSON.parse(String(init.body)) };
-    return Response.json({ content: [{ type: 'tool_use', name: 'search_plan', input: { summary: 'Team slides for a bank', keywords: ['team', 'our people'], topics: ['Team'], client: 'Northgate Bank', yearFrom: null, yearTo: null, category: null, bestOfTheBest: null } }] });
+    return Response.json({ choices: [{ message: { content, refusal: null } }] });
   };
-  const p = await claudePlan('team for a bank', ctx, { env: { ANTHROPIC_API_KEY: 'test-key' }, fetchFn });
+  const plan = { summary: 'Team slides for a bank', keywords: ['team', 'our people'], topics: ['Team'], client: 'Northgate Bank', yearFrom: null, yearTo: null, category: null, bestOfTheBest: null };
+  const local = openAiCompatibleReader({ baseUrl: 'http://localhost:11434/v1', apiKey: null, model: 'qwen3:8b', timeoutMs: 5000 }, reply(JSON.stringify(plan)));
+  const p = await local.read('team for northgate', { ...ctx, clients: ['Northgate Bank'] });
   const s = box.sent as Sent;
-  check(s.url === 'https://api.anthropic.com/v1/messages' && s.headers['x-api-key'] === 'test-key' && s.headers['anthropic-version'] === '2023-06-01', 'claude: calls the Messages API with the key header');
-  check(s.body.model === DEFAULT_MODEL && (s.body.tool_choice as { name: string }).name === 'search_plan', 'claude: default model and forced search_plan tool');
-  check(JSON.stringify(s.body.messages).includes('team for a bank') && String(s.body.system).includes('Kestrel Law'), 'claude: sends the request and the client list, nothing else', s.body);
-  check(p.client === 'Northgate Bank' && p.keywords.includes('our people'), 'claude: plan read back and cleaned', p);
+  check(s.url === 'http://localhost:11434/v1/chat/completions' && !('authorization' in s.headers), 'reader: calls /chat/completions, no auth header without a key');
+  const rf = s.body.response_format as { type: string; json_schema: { strict: boolean; name: string } };
+  check(s.body.model === 'qwen3:8b' && rf.type === 'json_schema' && rf.json_schema.strict === true, 'reader: asks for the search_plan JSON schema, strict', rf);
+  const system = String((s.body.messages as { content: string }[])[0].content);
+  check(system.includes('Northgate Bank') && !system.includes('Kestrel Law'), 'reader: sends only the client names it was given');
+  check(p.client === 'Northgate Bank' && p.keywords.includes('our people'), 'reader: plan read back and cleaned', p);
+
+  await openAiCompatibleReader({ baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-test', model: 'gpt-x', timeoutMs: 5000 }, reply(JSON.stringify(plan))).read('x', ctx);
+  check((box.sent as Sent).headers.authorization === 'Bearer sk-test', 'reader: hosted provider gets a bearer key');
+
+  check(parsePlan('<think>the user wants team slides</think>\n{"summary":"x","keywords":["team"]}').keywords?.[0] === 'team', 'reader: a <think> block before the JSON is ignored');
 
   let threw = '';
   try {
-    await claudePlan('x', ctx, { env: { ANTHROPIC_API_KEY: 'secret-123' }, fetchFn: async () => Response.json({ error: { type: 'authentication_error' } }, { status: 401 }) });
+    await openAiCompatibleReader({ baseUrl: 'https://api.openai.com/v1', apiKey: 'secret-123', model: 'gpt-x', timeoutMs: 5000 }, async () => Response.json({ error: { type: 'invalid_request_error' } }, { status: 401 })).read('x', ctx);
   } catch (e) { threw = (e as Error).message; }
-  check(threw.includes('401') && !threw.includes('secret-123'), 'claude: an API error throws without the key in the message', threw);
+  check(threw.includes('401') && !threw.includes('secret-123'), 'reader: an API error throws without the key in the message', threw);
 
   threw = '';
-  try { await claudePlan('x', ctx, { env: {} }); } catch (e) { threw = (e as Error).message; }
-  check(threw.includes('ANTHROPIC_API_KEY'), 'claude: no key, no call');
+  try {
+    await openAiCompatibleReader({ baseUrl: 'http://x/v1', apiKey: null, model: 'm', timeoutMs: 5000 }, async () => Response.json({ choices: [{ message: { content: null, refusal: 'no' } }] })).read('x', ctx);
+  } catch (e) { threw = (e as Error).message; }
+  check(threw.includes('declined'), 'reader: a refusal is an error, so the stand-in answers');
+}
+
+// ---- Rate limits
+{
+  resetRateLimits();
+  const policy = { name: 'test', limit: 2, windowMs: 60_000 };
+  const t = 1_000_000;
+  const a = [hit(policy, 'a', t), hit(policy, 'a', t), hit(policy, 'a', t + 1000)];
+  check(a[0].ok && a[1].ok && !a[2].ok && a[2].retryAfter === 59, 'rate: the third request in a minute waits out the window', a);
+  check(hit(policy, 'b', t).ok, 'rate: callers are counted separately');
+  check(hit(policy, 'a', t + 60_000).ok, 'rate: a new window starts fresh');
+  resetRateLimits();
+  const req = new Request('http://x/api', { headers: { 'x-forwarded-for': '10.0.0.9, 10.0.0.1' } });
+  const tight = { name: 'tight', limit: 1, windowMs: 60_000 };
+  const first = rateLimit(req, tight);
+  const second = rateLimit(req, tight);
+  const body = second ? ((await second.json()) as { error: { code: string; retryable: boolean } }) : null;
+  check(first === null && second?.status === 429 && Boolean(second.headers.get('retry-after')) && body?.error.code === 'RATE_LIMITED' && body.error.retryable, 'rate: over the limit returns 429 RATE_LIMITED with Retry-After');
+  resetRateLimits();
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smart search checks passed');

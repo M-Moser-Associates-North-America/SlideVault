@@ -1,18 +1,20 @@
 import type { SlideSummary } from '../../contracts/dto';
-import { chipsFor, hasFilters, standInPlan, whyItFits, withoutFilters, type Chip, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
+import type { PlanReader } from '../ai/reader';
+import { chipsFor, hasFilters, relevantClients, standInPlan, whyItFits, withoutFilters, type Chip, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
 
 /**
- * Quick AI search (docs/DECISIONS.md FD-16). The route wires in the real reader (Claude or the
- * stand-in) and Postgres; tests pass in fakes.
+ * Quick AI search (docs/DECISIONS.md FD-16, FD-17). The route wires in the configured reader (or
+ * none) and Postgres; tests pass in fakes. Which provider read the request never changes how
+ * slides are found or explained.
  */
 
 export type SmartResult = { slide: SlideSummary; why: string; matched: string[] };
 
 export type SmartSearchResponse = {
   query: string;
-  /** Who read the request: Claude, or the rules-only stand-in (no key, or Claude unavailable) */
-  reader: 'claude' | 'stand-in';
-  /** Set when Claude was tried and failed, so the screen can say results are simpler than usual */
+  /** Who read the request: the configured AI model, or the rules-only stand-in (none configured, or it failed) */
+  reader: 'model' | 'stand-in';
+  /** Set when the model was tried and failed, so the screen can say results are simpler than usual */
   readerNote: string | null;
   plan: SearchPlan;
   chips: Chip[];
@@ -23,8 +25,8 @@ export type SmartSearchResponse = {
 
 export type SmartSearchDeps = {
   context: () => Promise<Omit<PlanContext, 'thisYear'>>;
-  /** Claude's reader; absent when no key is set */
-  claude?: (query: string, ctx: PlanContext) => Promise<SearchPlan>;
+  /** The configured AI reader; absent for rules only */
+  reader?: PlanReader | null;
   search: (plan: SearchPlan, limit: number) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]>;
   thisYear?: number;
   log?: (message: string) => void;
@@ -36,12 +38,13 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
   let plan: SearchPlan;
   let reader: SmartSearchResponse['reader'] = 'stand-in';
   let readerNote: string | null = null;
-  if (deps.claude) {
+  if (deps.reader) {
     try {
-      plan = await deps.claude(query, ctx);
-      reader = 'claude';
+      // The model only sees client names typed in the request, never the whole list.
+      plan = await deps.reader.read(query, { ...ctx, clients: relevantClients(query, ctx.clients) });
+      reader = 'model';
     } catch (e) {
-      deps.log?.(`Claude unavailable, using the stand-in: ${(e as Error).message}`);
+      deps.log?.(`AI reader ${deps.reader.name} unavailable, using the stand-in: ${(e as Error).message}`);
       readerNote = 'AI reading is unavailable right now, so this search used simpler rules.';
       plan = standInPlan(query, ctx);
     }

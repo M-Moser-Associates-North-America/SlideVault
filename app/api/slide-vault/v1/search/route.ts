@@ -6,6 +6,8 @@ import {
   listSlideTextsPg,
   loadLibraryIndex,
   ok,
+  RATE_POLICIES,
+  rateLimit,
   searchSlides,
   searchSlidesPg,
   type SlideText,
@@ -19,6 +21,8 @@ import {
 // (noted as a follow-up, not a silent gap) -- today's goal is an uploaded deck's slides
 // actually showing up here, not full cross-source pagination correctness.
 export async function GET(request: Request) {
+  const limited = rateLimit(request, RATE_POLICIES.search);
+  if (limited) return limited;
   const url = new URL(request.url);
   const kind = url.searchParams.get('kind') ?? 'slide';
   if (kind !== 'slide') return fail(400, 'BAD_REQUEST', 'Only kind=slide is available.');

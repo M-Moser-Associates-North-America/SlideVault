@@ -16,7 +16,9 @@ export type ApiErrorCode =
   | 'LIBRARY_NOT_READY'
   | 'UNSUPPORTED_FILE_TYPE'
   | 'DUPLICATE_DECK'
-  | 'UPLOAD_FAILED';
+  | 'UPLOAD_FAILED'
+  /** Too many requests from this caller; retry after the Retry-After header (seconds) */
+  | 'RATE_LIMITED';
 
 /** Error envelope: { error: { code, message, retryable }, requestId } */
 export type ApiError = {

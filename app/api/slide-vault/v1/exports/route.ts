@@ -1,9 +1,11 @@
 import type { ExportRequest } from '@/features/slide-vault/contracts/dto';
-import { exportSlides, fail, file, loadLibraryIndex, ServiceError, toResponse } from '@/features/slide-vault/server';
+import { exportSlides, fail, file, loadLibraryIndex, RATE_POLICIES, rateLimit, ServiceError, toResponse } from '@/features/slide-vault/server';
 
 // POST /exports: build an editable .pptx from an ordered selection (a .zip of one .pptx per deck when it spans decks).
 // Prototype: returns the file directly instead of 202 + job (decision FD-03).
 export async function POST(request: Request) {
+  const limited = rateLimit(request, RATE_POLICIES.export);
+  if (limited) return limited;
   let body: ExportRequest;
   try {
     body = (await request.json()) as ExportRequest;

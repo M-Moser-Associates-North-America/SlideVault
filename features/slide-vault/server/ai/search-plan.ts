@@ -1,12 +1,12 @@
 import { simParse } from '../../components/simulation';
 
 /**
- * Quick AI search (docs/DECISIONS.md FD-16): how a typed request becomes a search, and how each
- * result gets its "why it fits" note. No network here, so it's easy to test.
+ * Quick AI search (docs/DECISIONS.md FD-16, FD-17): how a typed request becomes a search, and how
+ * each result gets its "why it fits" note. No network here, so it's easy to test.
  *
  *   1. Read the request into a SearchPlan: keywords (with likely synonyms) plus optional filters.
- *      Claude does this when a key is set (ai/claude.ts); otherwise the stand-in below does, using
- *      the same rules as the front end's simulated search, so the demo behaves the same either way.
+ *      The configured AI reader does this (ai/reader.ts); with none configured, or if it fails, the
+ *      stand-in below does, using the same rules as the front end's simulated search.
  *   2. Search Postgres for slides matching ANY keyword, inside the filters, best match first.
  *   3. Explain each result from what actually matched. The note is worked out from the slide's
  *      own words, not written by the model, so it can't claim something the slide doesn't say.
@@ -33,7 +33,7 @@ export type Chip = { kind: 'Topic' | 'Client' | 'Year' | 'Category' | 'Collectio
 
 export const MAX_KEYWORDS = 12;
 
-/** Rules-only reader, used when no Claude key is set or Claude can't be reached. */
+/** Rules-only reader, used when no AI reader is configured or it can't be reached. */
 export function standInPlan(query: string, ctx: PlanContext): SearchPlan {
   const p = simParse(query, ctx.clients);
   const q = ` ${query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ')} `;
@@ -73,7 +73,7 @@ export function standInPlan(query: string, ctx: PlanContext): SearchPlan {
 }
 
 /**
- * Make any plan (the stand-in's or Claude's) safe to run: filters must be real values, years
+ * Make any plan (the stand-in's or a model's) safe to run: filters must be real values, years
  * sensible, keywords short and de-duplicated. Anything that doesn't fit is dropped, not guessed.
  */
 export function cleanPlan(raw: Partial<SearchPlan>, ctx: PlanContext): SearchPlan {
@@ -97,6 +97,16 @@ export function cleanPlan(raw: Partial<SearchPlan>, ctx: PlanContext): SearchPla
     category: pick(raw.category, ctx.categories),
     bestOfTheBest: raw.bestOfTheBest === true ? true : null,
   };
+}
+
+/**
+ * The client names a reader may see for this request: only those whose first (distinctive) word
+ * was typed, the same rule the stand-in uses, so "a bank pitch" sends no client names at all. The
+ * full client list never leaves the server; a client not named here can't become a filter anyway.
+ */
+export function relevantClients(query: string, clients: string[]): string[] {
+  const typed = new Set(query.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+  return clients.filter((c) => typed.has(c.toLowerCase().split(/[^a-z0-9]+/).find(Boolean) ?? ''));
 }
 
 export function hasFilters(p: SearchPlan): boolean {

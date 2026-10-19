@@ -18,9 +18,9 @@ export function ok<T>(data: T, extra?: Record<string, unknown>) {
   return Response.json({ data, ...extra, requestId }, { headers: baseHeaders(requestId) });
 }
 
-export function fail(status: number, code: ApiErrorCode, message: string, retryable = false) {
+export function fail(status: number, code: ApiErrorCode, message: string, retryable = false, headers?: Record<string, string>) {
   const requestId = randomUUID();
-  return Response.json({ error: { code, message, retryable }, requestId }, { status, headers: baseHeaders(requestId) });
+  return Response.json({ error: { code, message, retryable }, requestId }, { status, headers: { ...baseHeaders(requestId), ...headers } });
 }
 
 export function file(bytes: Uint8Array, contentType: string, downloadName?: string) {

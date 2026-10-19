@@ -5,6 +5,7 @@ export { searchSlides, toSummary, DEFAULT_LIMIT } from './server/services/search
 export { exportSlides, type ExportFile } from './server/services/export';
 export { exportSelectedSlides, listSlides, ExportValidationError } from './server/export-pptx';
 export { ok, fail, file, ServiceError, toResponse } from './server/http';
+export { rateLimit, RATE_POLICIES } from './server/rate-limit';
 export { findDeckByHash, createDeck, insertSlides, markDeckReady, markDeckFailed, getDeck, getSlidePg, searchSlidesPg, listSlideTextsPg, listLibraryPg } from './server/pg-repository';
 export { uploadOriginal, uploadPreview, downloadPreview } from './server/storage';
 export { groupDuplicates, type SlideText } from './server/duplicates';
