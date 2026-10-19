@@ -1,7 +1,7 @@
 import 'server-only';
 import { readFile } from 'node:fs/promises';
 import type { ExportRequest } from '../../contracts/dto';
-import { readSupabaseConfig } from '../config';
+import { hasMmoserConfig } from '../config';
 import { bundleDeckFiles, type DeckFile } from '../export-bundle';
 import { exportSelectedSlides, ExportValidationError } from '../export-pptx';
 import { ServiceError } from '../http';
@@ -23,18 +23,10 @@ export type UploadedDecks = {
   loadOriginal(storageKey: string): Promise<Uint8Array>;
 };
 
-const supabaseConfigured = () => {
-  try {
-    readSupabaseConfig();
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 /** The real uploaded-deck store. On a checkout without Supabase set up, it simply has no slides. */
 export const supabaseUploadedDecks: UploadedDecks = {
-  findSlides: async (ids) => (supabaseConfigured() ? getSlidesForExport(ids) : []),
+  findSlides: async (ids) => (hasMmoserConfig() ? getSlidesForExport(ids) : []),
   loadOriginal: downloadOriginal,
 };
 

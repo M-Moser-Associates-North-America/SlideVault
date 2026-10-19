@@ -35,3 +35,40 @@ export function readSupabaseConfig(env: Record<string, string | undefined> = pro
   }
   return { url, serviceRoleKey };
 }
+
+/**
+ * M Moser's Supabase project (FD-12): a personal database login plus a Storage account, both
+ * from Alina. Read from SV_* settings in .env.local; never commit them. Validated lazily, only
+ * when a route needs the database or Storage, so the fixture-only app still runs without them.
+ */
+export type MmoserConfig = {
+  db: { host: string; port: number; database: string; user: string; password: string; schema: string };
+  storage: { url: string; publishableKey: string; email: string; password: string; bucket: string; prefix: string };
+};
+
+export function readMmoserConfig(env: Record<string, string | undefined> = process.env): MmoserConfig {
+  const need = ['SV_DB_HOST', 'SV_DB_PORT', 'SV_DB_USER', 'SV_DB_PASSWORD', 'SV_DB_SCHEMA',
+    'SV_SUPABASE_URL', 'SV_SUPABASE_PUBLISHABLE_KEY', 'SV_STORAGE_EMAIL', 'SV_STORAGE_PASSWORD', 'SV_STORAGE_BUCKET', 'SV_STORAGE_PREFIX'];
+  const missing = need.filter((k) => !env[k]);
+  if (missing.length) throw new Error(`Missing M Moser Supabase settings: ${missing.join(', ')}. See env.example.`);
+  return {
+    db: {
+      host: env.SV_DB_HOST!, port: Number(env.SV_DB_PORT), database: env.SV_DB_NAME || 'postgres',
+      user: env.SV_DB_USER!, password: env.SV_DB_PASSWORD!, schema: env.SV_DB_SCHEMA!,
+    },
+    storage: {
+      url: env.SV_SUPABASE_URL!, publishableKey: env.SV_SUPABASE_PUBLISHABLE_KEY!, email: env.SV_STORAGE_EMAIL!,
+      password: env.SV_STORAGE_PASSWORD!, bucket: env.SV_STORAGE_BUCKET!, prefix: env.SV_STORAGE_PREFIX!.replace(/\/+$/, ''),
+    },
+  };
+}
+
+/** True when the M Moser settings are present (used to skip database work on fixture-only checkouts). */
+export function hasMmoserConfig(env: Record<string, string | undefined> = process.env): boolean {
+  try {
+    readMmoserConfig(env);
+    return true;
+  } catch {
+    return false;
+  }
+}

@@ -13,16 +13,20 @@
     "test:folder-path": "tsx scripts/test-folder-path.mts",
     "test:deck-details": "tsx scripts/test-deck-details.mts",
     "test:v3": "tsx --conditions=react-server scripts/test-v3-live.mts",
+    "test:smart-search": "tsx --conditions=react-server scripts/test-smart-search.mts",
     "upload:library": "tsx scripts/upload-library.mts",
     "score:search": "tsx --conditions=react-server scripts/score-search.mts",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:a11y": "playwright test"
+    "test:a11y": "playwright test",
+    "db:setup": "tsx scripts/db-setup.mts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
+    "@types/pg": "^8.23.1",
     "@xmldom/xmldom": "^0.9.12",
     "jszip": "^3.10.2",
     "next": "16.4.0",
+    "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1"
