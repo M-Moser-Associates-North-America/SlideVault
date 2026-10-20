@@ -31,9 +31,10 @@ const norm = (s: string) => s.toLowerCase().replace(/[’']/g, '');
 
 /** The search box. On Home it sits at the top of the left column; on deck and slide pages it sits above the content. */
 export function SearchForm({ onSubmit }: { onSubmit: () => void }) {
-  const { query, setQuery } = useWorkspace();
+  const { query, setQuery, submitSearch } = useWorkspace();
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    if (query.trim()) submitSearch();
     onSubmit();
   };
   return (

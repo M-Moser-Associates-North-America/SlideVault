@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, UploadDeckMeta } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, SmartSearchResult, UploadDeckMeta } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -32,6 +32,18 @@ export async function searchSlides(runtime: Transport, query: string, signal?: A
   const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiPage<SlideSummary>).data;
+}
+
+/**
+ * Quick AI search (FD-16, FD-17). `read` is true only when the person submitted the search; while
+ * they type, the server reads with rules only, so a long question never calls the AI mid-sentence.
+ */
+export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal): Promise<SmartSearchResult> {
+  const params = new URLSearchParams({ q: query.trim(), limit: '100' });
+  if (read) params.set('read', '1');
+  const res = await runtime.request({ path: `/smart-search?${params}`, method: 'GET', signal });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<SmartSearchResult>).data;
 }
 
 const MAX_LIBRARY_PAGES = 30;

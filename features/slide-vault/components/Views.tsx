@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { getSlide } from '../client/api';
-import type { SlideDetail, SlideSummary } from '../contracts/dto';
+import type { SlideDetail, SlideSummary, SmartSearchChip } from '../contracts/dto';
 import { Icon } from './icons';
 import {
   browseSlides,
@@ -16,7 +16,6 @@ import {
   removeHint,
   plural,
   slideMatches,
-  sortNewest,
   UNKNOWN_CLIENT,
   yearOf,
   type Deck,
@@ -25,7 +24,7 @@ import { DeckCard, Link, SimFlag, SkeletonGrid, SkeletonRows, SlideCard, StateBl
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { setHeroOut } from '../client/hero-visibility';
-import { chipShownInFilterRow, simParse, simSearch, simTags, simTier, simUsed, stripFromQuery, TIER_TEXT } from './simulation';
+import { simTags, simTier, simUsed, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
 
 const ROW_LIMIT = 12;
@@ -253,12 +252,13 @@ function HomeTry() {
 let heroTouched = false;
 
 function HomeHeader() {
-  const { query, setQuery, runtime } = useWorkspace();
+  const { query, setQuery, submitSearch, runtime } = useWorkspace();
   const [touched, setTouched] = useState(heroTouched);
   const showHint = query === '' && !touched;
   const tw = useTypewriter(TYPEWRITER_PHRASES, showHint);
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    if (query.trim()) submitSearch();
   };
   /* Tell the header when this bar has scrolled up out of sight, so it can show a slim search shortcut. */
   const formRef = useRef<HTMLFormElement>(null);
@@ -610,40 +610,35 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 
 /* --------------------------------------------------------------- Search */
 
+/** The search text without a chip's words, so removing a chip re-runs the search without it. */
+function withoutChip(q: string, chip: SmartSearchChip): string {
+  const words = chip.kind === 'Collection' ? ['best', 'of', 'the', 'best'] : chip.label.toLowerCase().split(/\s+/);
+  return q
+    .split(/\s+/)
+    .filter((w) => !words.includes(w.toLowerCase().replace(/[^a-z0-9/-]/g, '')))
+    .join(' ');
+}
+
 export function ResultsView() {
-  const { query, search, library, filters, clearFilters, retrySearch, setQuery } = useWorkspace();
+  const { query, search, filters, clearFilters, retrySearch, setQuery } = useWorkspace();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
   const q = query.trim();
 
-  /* Simulated smart search (FD-14): reads the sentence, scores every slide, and says why it fits.
-     Real keyword hits from the server count for extra, so plain words still behave as before. */
-  const smart = useMemo(() => {
-    if (search.status !== 'ready' || library.status !== 'ready') return null;
-    const clients = [...new Set(library.slides.map((s) => s.provenance.clientName).filter((c): c is string => !!c))];
-    const parsed = simParse(q, clients);
-    const real = new Set(search.slides.map((s) => s.id));
-    const scored = simSearch(parsed, library.slides, real).filter((r) => slideMatches(r.slide, filters));
-    const seen = new Set<string>();
-    const ranked = scored.sort((a, b) => b.score - a.score);
-    const shown = ranked.filter((r) => {
-      const g = r.slide.alsoIn?.groupId;
-      if (!g) return true;
-      if (seen.has(g)) return false;
-      seen.add(g);
-      return true;
-    });
-    const sorted =
-      sort === 'popular'
-        ? [...shown].sort((a, b) => simUsed(b.slide) - simUsed(a.slide))
-        : sort === 'newest'
-          ? [...shown].sort((a, b) => (yearOf(b.slide) ?? -1) - (yearOf(a.slide) ?? -1) || b.score - a.score)
-          : shown;
-    return { parsed, shown: sorted, hidden: scored.length - shown.length };
-  }, [search, library, filters, q, sort]);
-
-  const shown = smart?.shown ?? [];
-  const slides = shown.map((r) => r.slide);
+  /* Real search (FD-16, FD-17): the server reads the request, finds slides and says why each fits.
+     The filter row narrows the results further here; sorting is a view choice. */
+  const result = search.status === 'ready' ? search.result : null;
+  const shown = useMemo(() => {
+    if (!result) return [];
+    const kept = result.items.filter((i) => slideMatches(i.slide, filters));
+    return sort === 'popular'
+      ? [...kept].sort((a, b) => simUsed(b.slide) - simUsed(a.slide))
+      : sort === 'newest'
+        ? [...kept].sort((a, b) => (yearOf(b.slide) ?? -1) - (yearOf(a.slide) ?? -1))
+        : kept;
+  }, [result, filters, sort]);
+  const slides = shown.map((i) => i.slide);
   const deckCount = new Set(slides.map((s) => s.provenance.sourceId)).size;
+  const grouped = shown.filter((i) => i.slide.alsoIn).length;
 
   return (
     <div className="sv-wrap">
@@ -659,7 +654,7 @@ export function ResultsView() {
           </button>
         </StateBlock>
       )}
-      {(search.status === 'loading' || search.status === 'idle' || (search.status === 'ready' && !smart)) && (
+      {(search.status === 'loading' || search.status === 'idle') && (
         <div role="status" aria-live="polite">
           <p className="thinking">
             <Icon name="spinner" className="spin" />
@@ -668,25 +663,34 @@ export function ResultsView() {
           <SkeletonGrid count={4} />
         </div>
       )}
-      {smart && (
+      {result && (
         <>
-          <div className="interp" hidden={smart.parsed.chips.length > 0 && smart.parsed.chips.every((c) => chipShownInFilterRow(smart.parsed, c)) && smart.parsed.tokens.length === 0}>
-            <span className="meta" title="Simulated for now. The real build uses an AI model.">
-              <Icon name="sparkle" className="ic-sm" />
-              We read this as:
-              <SimFlag />
-            </span>
-            {smart.parsed.chips
-              .filter((c) => !chipShownInFilterRow(smart.parsed, c))
-              .map((c) => (
-                <button key={c.key} type="button" className="chip-x" aria-label={`Remove ${c.kind}: ${c.label}`} onClick={() => setQuery(stripFromQuery(q, c))}>
-                  <span className="k">{c.kind}:</span> {c.label}
-                  <Icon name="x" />
-                </button>
-              ))}
-            {smart.parsed.tokens.length > 0 && <span className="meta">{smart.parsed.chips.some((c) => !chipShownInFilterRow(smart.parsed, c)) ? 'and the words' : 'the words'} {smart.parsed.tokens.map((t) => `“${t}”`).join(', ')}</span>}
-            {!smart.parsed.chips.length && !smart.parsed.tokens.length && <span className="meta">no specific topic, showing what fits your filters</span>}
-          </div>
+          {result.readerNote && (
+            <p className="meta" role="status">
+              <Icon name="alert" className="ic-sm" /> {result.readerNote}
+            </p>
+          )}
+          {result.chips.length > 0 && (
+            <div className="interp">
+              <span className="meta">
+                <Icon name="sparkle" className="ic-sm" />
+                We read this as:
+              </span>
+              {result.chips.map((c) =>
+                c.kind === 'Topic' ? (
+                  <span key={`${c.kind}:${c.label}`} className="chip-x">
+                    <span className="k">{c.kind}:</span> {c.label}
+                  </span>
+                ) : (
+                  <button key={`${c.kind}:${c.label}`} type="button" className="chip-x" aria-label={`Remove ${c.kind}: ${c.label}`} onClick={() => setQuery(withoutChip(q, c))}>
+                    <span className="k">{c.kind}:</span> {c.label}
+                    <Icon name="x" />
+                  </button>
+                ),
+              )}
+            </div>
+          )}
+          {result.relaxed && <p className="meta">Nothing matched every detail, so these results leave out the client, year or category filter.</p>}
           <div className="refine">
             <label>
               Sort
@@ -718,27 +722,22 @@ export function ResultsView() {
             <>
               <p className="summary" aria-live="polite">
                 <strong>{plural(shown.length, 'slide')}</strong> from {plural(deckCount, 'deck')}. Best matches first.
-                {smart.hidden > 0 ? ` ${plural(smart.hidden, 'near-identical copy', 'near-identical copies')} grouped under “Also in…”.` : ''}
+                {grouped > 0 ? ` Near-identical copies are grouped under “Also in…”.` : ''}
               </p>
               <div className="grid">
-                {shown.map((r) => (
-                  <SlideCard key={r.slide.id} slide={r.slide} list={slides} why={r.why} note={sort === 'popular' ? `Downloaded ${simUsed(r.slide)} times (sample)` : undefined} />
+                {shown.map((i) => (
+                  <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} note={sort === 'popular' ? `Downloaded ${simUsed(i.slide)} times (sample)` : undefined} />
                 ))}
               </div>
             </>
           )}
           <details className="how">
-            <summary>
-              How does this search work? <SimFlag />
-            </summary>
+            <summary>How does this search work?</summary>
             <ol>
-              <li>Your request is read and turned into filters (client, year) and topics.</li>
-              <li>Slides are matched on those filters, then on meaning. The real build uses text search plus embeddings in Postgres.</li>
-              <li>Each result says why it fits. Near-identical slides are grouped, never deleted.</li>
+              <li>Short searches like “team” or “Kestrel Law 2024” are read by simple rules, instantly.</li>
+              <li>When you press Enter on a question or a sentence, an AI model reads it once and turns it into search words and filters. Filters you didn’t ask for are dropped.</li>
+              <li>Slides are matched on those words and filters, best match first, and each result says why it fits from what is actually on the slide. Near-identical slides are grouped, never deleted.</li>
             </ol>
-            <p className="meta" style={{ marginTop: 8 }}>
-              Steps 1 and 2 are simulated here. The words you type are also checked against the real slide text.
-            </p>
           </details>
         </>
       )}

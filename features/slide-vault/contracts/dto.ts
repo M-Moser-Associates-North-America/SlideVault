@@ -132,3 +132,27 @@ export type LibrarySlide = {
 };
 
 export type LibraryData = { decks: LibraryDeck[]; slides: LibrarySlide[] };
+
+/** GET /smart-search (docs/DECISIONS.md FD-16, FD-17): results with the reading shown and a reason per slide. */
+export type SmartSearchChip = { kind: 'Topic' | 'Client' | 'Year' | 'Category' | 'Collection'; label: string };
+
+export type SmartSearchItem = {
+  slide: SlideSummary;
+  /** Plain "why it fits" line, built only from what the slide and its deck contain */
+  why: string;
+  /** The search words found on the slide */
+  matched: string[];
+};
+
+export type SmartSearchResult = {
+  query: string;
+  /** model: the configured AI read the request; stand-in: the rules did (a basic search, no AI set up, or it failed) */
+  reader: 'model' | 'stand-in';
+  /** Set when the AI was tried and failed, so the screen can say results are simpler than usual */
+  readerNote: string | null;
+  /** How the request was read, as removable chips */
+  chips: SmartSearchChip[];
+  /** true when the request's filters left nothing, so results are shown without them */
+  relaxed: boolean;
+  items: SmartSearchItem[];
+};

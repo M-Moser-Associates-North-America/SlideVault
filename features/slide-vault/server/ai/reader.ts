@@ -41,3 +41,27 @@ export function readAiConfig(env: Record<string, string | undefined> = process.e
 export function readerFromConfig(config: AiConfig = readAiConfig()): PlanReader | null {
   return config.provider === 'none' ? null : openAiCompatibleReader(config);
 }
+
+/**
+ * Remembers recent readings, so the same request costs one model call per hour, not one per
+ * search. Counts live in this server process (like rate-limit.ts). The key includes the allowed
+ * client names, so a reading is never reused for a request that could see different clients.
+ */
+export function cachedReader(reader: PlanReader, opts: { max?: number; ttlMs?: number; now?: () => number } = {}): PlanReader {
+  const max = opts.max ?? 500;
+  const ttlMs = opts.ttlMs ?? 60 * 60 * 1000;
+  const now = opts.now ?? Date.now;
+  const memo = new Map<string, { plan: SearchPlan; until: number }>();
+  return {
+    name: reader.name,
+    async read(query, ctx) {
+      const key = JSON.stringify([query.trim().toLowerCase().replace(/\s+/g, ' '), ctx.clients, ctx.categories, ctx.thisYear]);
+      const hit = memo.get(key);
+      if (hit && hit.until > now()) return hit.plan;
+      const plan = await reader.read(query, ctx);
+      if (memo.size >= max) memo.delete(memo.keys().next().value as string);
+      memo.set(key, { plan, until: now() + ttlMs });
+      return plan;
+    },
+  };
+}

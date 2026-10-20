@@ -1,17 +1,17 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { listLibrary, searchSlides } from '../client/api';
+import { listLibrary, smartSearch } from '../client/api';
 import { useActivity, useDrafts, useProfile, useSaved, type ActivityEntry, type Draft } from '../client/profile-store';
 import { useSelection } from '../client/selection-store';
-import type { SlideSummary } from '../contracts/dto';
+import type { SlideSummary, SmartSearchResult } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 import { groupDecks, NO_FILTERS, type Deck, type Filters } from './library';
 import { canSeeTier, simTier } from './simulation';
 
 export type LibraryState = { status: 'loading' } | { status: 'ready'; slides: SlideSummary[]; decks: Deck[] } | { status: 'error'; message: string };
 
-export type SearchState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; slides: SlideSummary[] } | { status: 'error'; message: string };
+export type SearchState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; result: SmartSearchResult } | { status: 'error'; message: string };
 
 export type Toast = { id: number; message: string };
 
@@ -31,6 +31,8 @@ type Workspace = {
   reloadLibrary: () => void;
   query: string;
   setQuery: (q: string) => void;
+  /** Enter or the Search button: lets the AI read the current request (once; repeats are cached) */
+  submitSearch: () => void;
   retrySearch: () => void;
   search: SearchState;
   filters: Filters;
@@ -116,6 +118,12 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
   const [query, setQueryRaw] = useState('');
   const [rawSearch, setSearch] = useState<SearchState>({ status: 'idle' });
   const [searchTry, setSearchTry] = useState(0);
+  /* The request the person submitted. Only that one may be read by the AI; typing uses the rules. */
+  const [submitted, setSubmitted] = useState('');
+  const submitSearch = useCallback(() => {
+    setSubmitted(query.trim());
+    setSearchTry((n) => n + 1);
+  }, [query]);
   const setQuery = useCallback((q: string) => {
     setQueryRaw(q);
     setSearch(q.trim() ? { status: 'loading' } : { status: 'idle' });
@@ -129,15 +137,15 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     if (!q) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      searchSlides(transport, q, controller.signal)
-        .then((slides) => setSearch({ status: 'ready', slides }))
+      smartSearch(transport, q, q === submitted, controller.signal)
+        .then((result) => setSearch({ status: 'ready', result }))
         .catch((e: Error) => e.name !== 'AbortError' && setSearch({ status: 'error', message: e.message }));
     }, SEARCH_DELAY_MS);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [transport, query, searchTry]);
+  }, [transport, query, submitted, searchTry]);
 
   /* Simulated approval tiers (FD-14): what the signed-in access may see. The server has no tiers yet. */
   const caps = runtime.capabilities;
@@ -151,7 +159,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
       rawSearch.status === 'ready'
         ? {
             status: 'ready',
-            slides: rawSearch.slides.filter((s) => canSeeTier(simTier(s), caps)),
+            result: { ...rawSearch.result, items: rawSearch.result.items.filter((i) => canSeeTier(simTier(i.slide), caps)) },
           }
         : rawSearch,
     [rawSearch, caps],
@@ -238,6 +246,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     reloadLibrary,
     query,
     setQuery,
+    submitSearch,
     retrySearch,
     search,
     filters,

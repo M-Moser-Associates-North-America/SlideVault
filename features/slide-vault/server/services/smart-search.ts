@@ -32,14 +32,18 @@ export type SmartSearchDeps = {
   log?: (message: string) => void;
 };
 
-export async function smartSearch(query: string, limit: number, deps: SmartSearchDeps): Promise<SmartSearchResponse> {
+/**
+ * `read` is true only when the person submitted the search (Enter or the Search button). While they
+ * type, every search uses the rules, so a long question never calls the model mid-sentence.
+ */
+export async function smartSearch(query: string, limit: number, deps: SmartSearchDeps, opts: { read?: boolean } = {}): Promise<SmartSearchResponse> {
   const ctx: PlanContext = { ...(await deps.context()), thisYear: deps.thisYear ?? new Date().getFullYear() };
 
   let plan: SearchPlan;
   let reader: SmartSearchResponse['reader'] = 'stand-in';
   let readerNote: string | null = null;
   // Basic searches stay on the rules; only sentences and questions are worth a model call.
-  if (deps.reader && !isBasicQuery(query)) {
+  if (deps.reader && opts.read && !isBasicQuery(query)) {
     try {
       // The model only sees client names typed in the request, never the whole list.
       plan = groundFilters(await deps.reader.read(query, { ...ctx, clients: relevantClients(query, ctx.clients) }), query);

@@ -6,9 +6,10 @@
  */
 import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import { openAiCompatibleReader, parsePlan } from '../features/slide-vault/server/ai/openai-compatible';
-import { readAiConfig, readerFromConfig, type PlanReader } from '../features/slide-vault/server/ai/reader';
+import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../features/slide-vault/server/ai/reader';
 import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/rate-limit';
 import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
+import { fixtureFilterValues, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
 import { smartSearch } from '../features/slide-vault/server/services/smart-search';
 
 let failures = 0;
@@ -82,13 +83,13 @@ const context = async () => ({ clients: ctx.clients, categories: ctx.categories 
 }
 {
   const failing: PlanReader = { name: 'fake', read: async () => { throw new Error('timeout'); } };
-  const r = await smartSearch('which team slides should I use?', 10, { context, thisYear: 2026, reader: failing, search: async () => [], log: () => {} });
+  const r = await smartSearch('which team slides should I use?', 10, { context, thisYear: 2026, reader: failing, search: async () => [], log: () => {} }, { read: true });
   check(r.reader === 'stand-in' && Boolean(r.readerNote), 'flow: if the model fails, the stand-in answers and the screen is told');
 }
 {
   const seen: string[][] = [];
   const model: PlanReader = { name: 'fake', read: async (_q, c) => { seen.push(c.clients); return cleanPlan({ summary: 'Team slides', keywords: ['team'], topics: ['Team'] }, ctx); } };
-  const r = await smartSearch('I need people slides for kestrel', 10, { context, thisYear: 2026, reader: model, search: async (p) => [{ summary: slide('s1'), facts: facts({ title: p.keywords[0] }) }] });
+  const r = await smartSearch('I need people slides for kestrel', 10, { context, thisYear: 2026, reader: model, search: async (p) => [{ summary: slide('s1'), facts: facts({ title: p.keywords[0] }) }] }, { read: true });
   check(r.reader === 'model' && r.items[0].matched[0] === 'team', 'flow: the model\'s plan is what gets searched');
   check(JSON.stringify(seen[0]) === JSON.stringify(['Kestrel Law']), 'flow: the model sees only the client named in the request, not the whole list', seen[0]);
 }
@@ -101,7 +102,7 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
 {
   let calls = 0;
   const counting: PlanReader = { name: 'fake', read: async () => { calls++; return cleanPlan({ keywords: ['team'] }, ctx); } };
-  const r = await smartSearch('team', 10, { context, thisYear: 2026, reader: counting, search: async () => [] });
+  const r = await smartSearch('team', 10, { context, thisYear: 2026, reader: counting, search: async () => [] }, { read: true });
   check(calls === 0 && r.reader === 'stand-in' && r.readerNote === null, 'flow: a basic search never calls the model, and shows no warning');
 }
 
@@ -115,8 +116,46 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
 }
 {
   const eager: PlanReader = { name: 'fake', read: async () => cleanPlan({ keywords: ['tenant'], bestOfTheBest: true, category: 'IDD' }, ctx) };
-  const r = await smartSearch('which slides for a shared building fit-out?', 10, { context, thisYear: 2026, reader: eager, search: async () => [] });
+  const r = await smartSearch('which slides for a shared building fit-out?', 10, { context, thisYear: 2026, reader: eager, search: async () => [] }, { read: true });
   check(r.plan.bestOfTheBest === null && r.plan.category === null, 'flow: a model\'s invented filters never reach the search', r.plan);
+}
+
+// ---- The model reads only what was submitted, once
+{
+  let calls = 0;
+  const counting: PlanReader = { name: 'fake', read: async () => { calls++; return cleanPlan({ keywords: ['tenant'] }, ctx); } };
+  const typing = await smartSearch('which slides for a shared building?', 10, { context, thisYear: 2026, reader: counting, search: async () => [] });
+  check(calls === 0 && typing.reader === 'stand-in', 'flow: while typing (not submitted), even a question uses the rules');
+  const cached = cachedReader(counting);
+  await smartSearch('Which slides for a shared building?', 10, { context, thisYear: 2026, reader: cached, search: async () => [] }, { read: true });
+  await smartSearch('which slides for a  shared building?', 10, { context, thisYear: 2026, reader: cached, search: async () => [] }, { read: true });
+  check(calls === 1, 'cache: the same question twice calls the model once', calls);
+  await cached.read('which slides for a shared building?', { ...ctx, clients: ['Kestrel Law'] });
+  check(calls === 2, 'cache: a request that may see different clients is read again', calls);
+  let t = 0;
+  const expiring = cachedReader(counting, { ttlMs: 1000, now: () => t });
+  await expiring.read('q', ctx); t = 2000; await expiring.read('q', ctx);
+  check(calls === 4, 'cache: readings expire', calls);
+}
+
+// ---- Sample decks searched with the same rules as Postgres
+{
+  const index = {
+    generatedAt: '',
+    sources: [
+      { id: 'src_a', title: 'Kestrel Law - SME', fileName: 'Kestrel Law - SME.pptx', versionId: 'ver_a', sha256: 'a', slides: [
+        { id: 'sld_1', number: 1, title: 'Our team', text: 'Meet the people', hidden: false },
+        { id: 'sld_2', number: 2, title: 'Budget', text: 'Cost plan for the team', hidden: false },
+        { id: 'sld_3', number: 3, title: 'Lighting', text: 'Daylight study', hidden: false },
+      ] },
+    ],
+  };
+  const hits = smartSearchFixtures(index, cleanPlan({ keywords: ['team'] }, ctx), 10);
+  check(hits.map((h) => h.summary.id).join() === 'sld_1,sld_2', 'fixtures: any keyword matches, title hits first', hits.map((h) => h.summary.id));
+  check(smartSearchFixtures(index, cleanPlan({ keywords: ['team'], client: 'Northgate Bank' }, ctx), 10).length === 0, 'fixtures: filters apply');
+  check(smartSearchFixtures(null, cleanPlan({ keywords: ['team'] }, ctx), 10).length === 0, 'fixtures: no index, no results, no error');
+  const fv = fixtureFilterValues(index);
+  check(fv.clients.includes('Kestrel Law') && fv.categories.includes('SME'), 'fixtures: client and category come from the file name', fv);
 }
 
 // ---- Which client names a model may see
