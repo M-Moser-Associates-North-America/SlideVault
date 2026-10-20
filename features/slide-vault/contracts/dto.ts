@@ -18,7 +18,11 @@ export type ApiErrorCode =
   | 'DUPLICATE_DECK'
   | 'UPLOAD_FAILED'
   /** Too many requests from this caller; retry after the Retry-After header (seconds) */
-  | 'RATE_LIMITED';
+  | 'RATE_LIMITED'
+  /** A per-person request (saved slides, My decks, activity) arrived with no signed-in person */
+  | 'SIGNED_OUT'
+  /** The database behind per-person data isn't reachable or set up on this server */
+  | 'UNAVAILABLE';
 
 /** Error envelope: { error: { code, message, retryable }, requestId } */
 export type ApiError = {
@@ -66,6 +70,8 @@ export type SlideSummary = {
   id: string;
   title: string;
   hiddenInSource: boolean;
+  /** Real number of times this slide has been downloaded (FD-18); absent when unknown */
+  downloads?: number;
   /** Path relative to the API root, resolved with runtime.assetUrl() */
   previewPath: string;
   provenance: Provenance;
@@ -156,3 +162,16 @@ export type SmartSearchResult = {
   relaxed: boolean;
   items: SmartSearchItem[];
 };
+
+/* ---- Per-person data (docs/DECISIONS.md FD-18) ----------------------------------------------- */
+
+/** A named, ordered set of slides under My decks. savedAt is milliseconds since 1970. */
+export type Draft = { id: string; name: string; slideIds: string[]; savedAt: number };
+
+export type ActivityKind = 'viewed' | 'saved' | 'downloaded';
+
+/** One thing a person did, recorded only while they've opted in. at is milliseconds since 1970. */
+export type ActivityEntry = { kind: ActivityKind; label: string; at: number; slideId?: string };
+
+/** GET /me/activity: whether tracking is on, and (when it is) the last 90 days, newest first. */
+export type ActivityResponse = { optedIn: boolean; retentionDays: number; entries: ActivityEntry[] };

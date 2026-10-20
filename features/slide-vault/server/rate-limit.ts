@@ -20,6 +20,8 @@ export const RATE_POLICIES = {
   smartSearch: { name: 'smart-search', limit: 20, windowMs: 60_000 },
   export: { name: 'export', limit: 10, windowMs: 60_000 },
   upload: { name: 'upload', limit: 10, windowMs: 60_000 },
+  // Saved slides, My decks, activity (FD-18): small, frequent writes from normal use.
+  userData: { name: 'user-data', limit: 120, windowMs: 60_000 },
 } as const satisfies Record<string, RatePolicy>;
 
 const windows = new Map<string, { count: number; resetAt: number }>();

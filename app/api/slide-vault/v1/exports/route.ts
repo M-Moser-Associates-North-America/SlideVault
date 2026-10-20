@@ -1,5 +1,6 @@
 import type { ExportRequest } from '@/features/slide-vault/contracts/dto';
-import { exportSlides, fail, file, loadLibraryIndex, RATE_POLICIES, rateLimit, ServiceError, toResponse } from '@/features/slide-vault/server';
+import { exportSlides, fail, file, hasMmoserConfig, loadLibraryIndex, RATE_POLICIES, rateLimit, ServiceError, toResponse } from '@/features/slide-vault/server';
+import { recordDownloads } from '@/features/slide-vault/server/user-data';
 
 // POST /exports: build an editable .pptx from an ordered selection (a .zip of one .pptx per deck when it spans decks).
 // Prototype: returns the file directly instead of 202 + job (decision FD-03).
@@ -19,6 +20,10 @@ export async function POST(request: Request) {
 
   try {
     const result = await exportSlides(index, body);
+    // "Most downloaded" (FD-18): count each slide once per download. Never blocks or fails the download.
+    if (hasMmoserConfig()) {
+      await recordDownloads(body.items.map((item) => item.slideId)).catch((e) => console.error('Could not count this download', e));
+    }
     return file(result.bytes, result.contentType, result.fileName);
   } catch (e) {
     if (e instanceof ServiceError) return toResponse(e);

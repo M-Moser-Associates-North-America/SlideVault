@@ -14,11 +14,13 @@
     "test:deck-details": "tsx scripts/test-deck-details.mts",
     "test:v3": "tsx --conditions=react-server scripts/test-v3-live.mts",
     "test:smart-search": "tsx --conditions=react-server scripts/test-smart-search.mts",
+    "test:user-data": "tsx --conditions=react-server scripts/test-user-data.mts",
     "upload:library": "tsx scripts/upload-library.mts",
     "score:search": "tsx --conditions=react-server scripts/score-search.mts",
     "typecheck": "next typegen && tsc --noEmit",
     "test:a11y": "playwright test",
-    "db:setup": "tsx scripts/db-setup.mts"
+    "db:setup": "tsx scripts/db-setup.mts",
+    "db:check": "tsx scripts/check-mmoser-db.mts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

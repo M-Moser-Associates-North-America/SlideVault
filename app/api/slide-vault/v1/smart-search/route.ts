@@ -1,6 +1,7 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
 import type { PlanReader } from '@/features/slide-vault/server/ai/reader';
 import { configuredReader, searchLibrary } from '@/features/slide-vault/server/services/library-smart-search';
+import { downloadCounts } from '@/features/slide-vault/server/user-data';
 
 // GET /smart-search?q=&limit=&read=1 (docs/DECISIONS.md FD-16, FD-17)
 // One search over sample and uploaded decks. read=1 (sent when the person submits the search)
@@ -27,7 +28,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    return ok(await searchLibrary(query, limit, { reader, read: url.searchParams.get('read') === '1' }));
+    const result = await searchLibrary(query, limit, { reader, read: url.searchParams.get('read') === '1' });
+    // Real "Most downloaded" counts on each result (FD-18); without the database, results just have none.
+    try {
+      const counts = await downloadCounts(result.items.map((i) => i.slide.id));
+      result.items = result.items.map((i) => ({ ...i, slide: { ...i.slide, downloads: counts.get(i.slide.id) ?? 0 } }));
+    } catch (e) {
+      console.error('Download counts unavailable', e);
+    }
+    return ok(result);
   } catch (e) {
     console.error('Smart search failed', e);
     return fail(503, 'LIBRARY_NOT_READY', 'Search is unavailable right now. Please try again.', true);
