@@ -8,7 +8,7 @@ import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import { openAiCompatibleReader, parsePlan } from '../features/slide-vault/server/ai/openai-compatible';
 import { readAiConfig, readerFromConfig, type PlanReader } from '../features/slide-vault/server/ai/reader';
 import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/rate-limit';
-import { anyOfQuery, chipsFor, cleanPlan, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
+import { anyOfQuery, chipsFor, cleanPlan, isBasicQuery, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { smartSearch } from '../features/slide-vault/server/services/smart-search';
 
 let failures = 0;
@@ -82,15 +82,27 @@ const context = async () => ({ clients: ctx.clients, categories: ctx.categories 
 }
 {
   const failing: PlanReader = { name: 'fake', read: async () => { throw new Error('timeout'); } };
-  const r = await smartSearch('team', 10, { context, thisYear: 2026, reader: failing, search: async () => [], log: () => {} });
+  const r = await smartSearch('which team slides should I use?', 10, { context, thisYear: 2026, reader: failing, search: async () => [], log: () => {} });
   check(r.reader === 'stand-in' && Boolean(r.readerNote), 'flow: if the model fails, the stand-in answers and the screen is told');
 }
 {
   const seen: string[][] = [];
   const model: PlanReader = { name: 'fake', read: async (_q, c) => { seen.push(c.clients); return cleanPlan({ summary: 'Team slides', keywords: ['team'], topics: ['Team'] }, ctx); } };
-  const r = await smartSearch('people for kestrel', 10, { context, thisYear: 2026, reader: model, search: async (p) => [{ summary: slide('s1'), facts: facts({ title: p.keywords[0] }) }] });
+  const r = await smartSearch('I need people slides for kestrel', 10, { context, thisYear: 2026, reader: model, search: async (p) => [{ summary: slide('s1'), facts: facts({ title: p.keywords[0] }) }] });
   check(r.reader === 'model' && r.items[0].matched[0] === 'team', 'flow: the model\'s plan is what gets searched');
   check(JSON.stringify(seen[0]) === JSON.stringify(['Kestrel Law']), 'flow: the model sees only the client named in the request, not the whole list', seen[0]);
+}
+
+// ---- Basic searches skip the model
+for (const q of ['team', 'Kestrel Law 2024', 'recent IDD decks', 'best of the best'])
+  check(isBasicQuery(q), `basic: "${q}" stays on the rules`);
+for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we just won a 30-day contract in a shared building', 'slides about wellbeing for a bank headquarters move'])
+  check(!isBasicQuery(q), `basic: "${q}" goes to the model`);
+{
+  let calls = 0;
+  const counting: PlanReader = { name: 'fake', read: async () => { calls++; return cleanPlan({ keywords: ['team'] }, ctx); } };
+  const r = await smartSearch('team', 10, { context, thisYear: 2026, reader: counting, search: async () => [] });
+  check(calls === 0 && r.reader === 'stand-in' && r.readerNote === null, 'flow: a basic search never calls the model, and shows no warning');
 }
 
 // ---- Which client names a model may see

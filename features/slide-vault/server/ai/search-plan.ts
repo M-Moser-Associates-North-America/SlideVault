@@ -109,6 +109,20 @@ export function relevantClients(query: string, clients: string[]): string[] {
   return clients.filter((c) => typed.has(c.toLowerCase().split(/[^a-z0-9]+/).find(Boolean) ?? ''));
 }
 
+/**
+ * Basic searches ("team", "Kestrel Law 2024", "recent IDD decks") never go to a model: the rules
+ * read them just as well, instantly and for free. Only a sentence or a question does, e.g. "which
+ * slides should I use for a 30-day fit-out in a shared building?".
+ */
+const QUESTION = /\?|^(how|what|which|why|when|where|who|should|can|could|do|does|is|are)\b|\b(need|needs|want|looking for|should i|should we|help me|we just|i just)\b/;
+export const BASIC_MAX_WORDS = 4;
+
+export function isBasicQuery(query: string): boolean {
+  const q = query.toLowerCase().trim();
+  const words = q.split(/\s+/).filter(Boolean);
+  return words.length <= BASIC_MAX_WORDS && !QUESTION.test(q);
+}
+
 export function hasFilters(p: SearchPlan): boolean {
   return Boolean(p.client || p.yearFrom || p.yearTo || p.category || p.bestOfTheBest);
 }

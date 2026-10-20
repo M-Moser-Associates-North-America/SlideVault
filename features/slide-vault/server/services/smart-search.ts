@@ -1,6 +1,6 @@
 import type { SlideSummary } from '../../contracts/dto';
 import type { PlanReader } from '../ai/reader';
-import { chipsFor, hasFilters, relevantClients, standInPlan, whyItFits, withoutFilters, type Chip, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
+import { chipsFor, hasFilters, isBasicQuery, relevantClients, standInPlan, whyItFits, withoutFilters, type Chip, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
 
 /**
  * Quick AI search (docs/DECISIONS.md FD-16, FD-17). The route wires in the configured reader (or
@@ -12,7 +12,7 @@ export type SmartResult = { slide: SlideSummary; why: string; matched: string[] 
 
 export type SmartSearchResponse = {
   query: string;
-  /** Who read the request: the configured AI model, or the rules-only stand-in (none configured, or it failed) */
+  /** Who read the request: the configured AI model, or the rules-only stand-in (a basic search, none configured, or it failed) */
   reader: 'model' | 'stand-in';
   /** Set when the model was tried and failed, so the screen can say results are simpler than usual */
   readerNote: string | null;
@@ -38,7 +38,8 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
   let plan: SearchPlan;
   let reader: SmartSearchResponse['reader'] = 'stand-in';
   let readerNote: string | null = null;
-  if (deps.reader) {
+  // Basic searches stay on the rules; only sentences and questions are worth a model call.
+  if (deps.reader && !isBasicQuery(query)) {
     try {
       // The model only sees client names typed in the request, never the whole list.
       plan = await deps.reader.read(query, { ...ctx, clients: relevantClients(query, ctx.clients) });
