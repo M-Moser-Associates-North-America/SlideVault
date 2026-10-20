@@ -24,7 +24,8 @@ export function toSummary(source: IndexedSource, slide: IndexedSlide): SlideSumm
       sourceId: source.id,
       sourceVersionId: source.versionId,
       sourceTitle: source.title,
-      sourceFileName: source.fileName,
+      // The index keeps the deck's path inside the library; the folders are shown separately (folderPath).
+      sourceFileName: source.fileName.split('/').pop() ?? source.fileName,
       slideNumber: slide.number,
       // Curation is not built yet: unknown values stay explicit (PR-03), never implied.
       owner: null,

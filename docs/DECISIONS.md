@@ -314,3 +314,17 @@ Acceptance evidence / affected PR criteria: npm run test:user-data against a loc
 Documents/contracts changed: server/sql/schema.sql, server/user-data.ts (new), server/principal.ts (new), server/user-route.ts (new), server/rate-limit.ts, app/api/slide-vault/v1/me/* (new), exports, search and smart-search routes, contracts/dto.ts (SlideSummary.downloads, Draft, ActivityEntry, ActivityResponse, SIGNED_OUT, UNAVAILABLE), client/user-api.ts (new), client/profile-store.ts, components/state.tsx (passes the transport, exposes the opt-in), scripts/test-user-data.mts and scripts/check-mmoser-db.mts (new), package.json.
 Revisit trigger: M Moser's sign-in is plugged in (replace userOf); a retention period other than 90 days; Most downloaded needs a time window ("this month").
 ```
+
+```text
+Decision ID and title: FD-19 The quick tour uses React Joyride
+Status: proposed
+Decision date: 2026-10-20
+Decision owner/reviewer: Alina Pak (asked for it), Schiffon (build)
+Context and evidence: Alina (2026-10-19): "I don't mind the walkthroughs. If you'd like to add them, can you implement them with React Joyride library? I think your current implementation is a custom tour." The custom tour measured targets on a timer and positioned its own card.
+Options considered: (a) React Joyride 3.2.0 with the tour card in the workspace's own styles; (b) keep the custom tour.
+Chosen outcome: (a). react-joyride@3.2.0, pinned exactly (supports React 19). Joyride handles placement, the spotlight, scrolling (leaving room for the sticky tabs), keyboard and focus; a custom tooltip keeps the same five steps, wording and look (.tour-pop, design tokens). It renders inside .slidevault so styles stay scoped. First sign-in starts it once; the header's tour button replays it; Escape, Skip or clicking the dimmed page closes it.
+Consequences for scope, cost, security and integration: One new runtime dependency (MIT). The hand-written positioning code is gone. No contract changes.
+Acceptance evidence / affected PR criteria: Browser check on the sample decks: all five steps show in order with focus inside the card, Done closes it, it doesn't restart after a reload once seen, the tour button replays it, Escape closes it. Typecheck and lint pass.
+Documents/contracts changed: components/Tour.tsx, slidevault-extras.css (tour rules), package.json, package-lock.json, docs/DECISIONS.md.
+Revisit trigger: Steps change, or the host platform provides its own onboarding.
+```
