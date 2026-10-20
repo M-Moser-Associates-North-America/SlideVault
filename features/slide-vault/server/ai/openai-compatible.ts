@@ -47,7 +47,7 @@ export function planInstructions(ctx: PlanContext): string {
 type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 
 export function openAiCompatibleReader(
-  config: { baseUrl: string; apiKey: string | null; model: string; timeoutMs: number },
+  config: { baseUrl: string; apiKey: string | null; model: string; timeoutMs: number; reasoningEffort?: string | null },
   fetchFn: FetchLike = fetch,
 ): PlanReader {
   return {
@@ -59,6 +59,8 @@ export function openAiCompatibleReader(
         body: JSON.stringify({
           model: config.model,
           temperature: 0,
+          // Reading a request is a small job; a reasoning model's thinking step only adds seconds.
+          ...(config.reasoningEffort ? { reasoning_effort: config.reasoningEffort } : {}),
           messages: [
             { role: 'system', content: planInstructions(ctx) },
             { role: 'user', content: `Request: ${query.slice(0, 500)}` },

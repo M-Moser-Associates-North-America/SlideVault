@@ -16,7 +16,7 @@ export type PlanReader = {
 
 export type AiConfig =
   | { provider: 'none' }
-  | { provider: 'openai-compatible'; baseUrl: string; apiKey: string | null; model: string; timeoutMs: number };
+  | { provider: 'openai-compatible'; baseUrl: string; apiKey: string | null; model: string; timeoutMs: number; reasoningEffort: string | null };
 
 /**
  * SV_AI_PROVIDER picks the reader:
@@ -34,7 +34,7 @@ export function readAiConfig(env: Record<string, string | undefined> = process.e
   if (!baseUrl || !model) throw new Error('SV_AI_PROVIDER=openai-compatible needs SV_AI_BASE_URL and SV_AI_MODEL. See env.example.');
   const timeoutMs = Number(env.SV_AI_TIMEOUT_MS || 15000);
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 60000) throw new Error('SV_AI_TIMEOUT_MS must be a whole number from 1000 to 60000.');
-  return { provider, baseUrl, apiKey: env.SV_AI_API_KEY?.trim() || null, model, timeoutMs };
+  return { provider, baseUrl, apiKey: env.SV_AI_API_KEY?.trim() || null, model, timeoutMs, reasoningEffort: env.SV_AI_REASONING_EFFORT?.trim() || null };
 }
 
 /** The configured reader, or null for rules only. */

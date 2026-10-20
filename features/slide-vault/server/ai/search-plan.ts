@@ -123,6 +123,23 @@ export function isBasicQuery(query: string): boolean {
   return words.length <= BASIC_MAX_WORDS && !QUESTION.test(q);
 }
 
+/**
+ * Keep only the filters the request actually asks for. Models like to add helpful-looking filters
+ * (a category, a year range, Best of the Best) that nobody typed, which would silently hide good
+ * results; the person's own words are the evidence. Clients are already limited by relevantClients.
+ */
+export function groundFilters(plan: SearchPlan, query: string): SearchPlan {
+  const q = ` ${query.toLowerCase().replace(/[^a-z0-9/ ]/g, ' ').replace(/\s+/g, ' ')} `;
+  const asksForYears = /\b(19|20)\d\d\b/.test(q) || /\b(recent|latest|newest|newer|last (few|two|three|\d+) years?|this year|last year)\b/.test(q);
+  return {
+    ...plan,
+    category: plan.category && q.includes(` ${plan.category.toLowerCase()} `) ? plan.category : null,
+    bestOfTheBest: plan.bestOfTheBest && /best of (the )?best|\bbotb\b/.test(q) ? true : null,
+    yearFrom: asksForYears ? plan.yearFrom : null,
+    yearTo: asksForYears ? plan.yearTo : null,
+  };
+}
+
 export function hasFilters(p: SearchPlan): boolean {
   return Boolean(p.client || p.yearFrom || p.yearTo || p.category || p.bestOfTheBest);
 }

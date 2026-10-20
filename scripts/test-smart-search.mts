@@ -8,7 +8,7 @@ import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import { openAiCompatibleReader, parsePlan } from '../features/slide-vault/server/ai/openai-compatible';
 import { readAiConfig, readerFromConfig, type PlanReader } from '../features/slide-vault/server/ai/reader';
 import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/rate-limit';
-import { anyOfQuery, chipsFor, cleanPlan, isBasicQuery, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
+import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { smartSearch } from '../features/slide-vault/server/services/smart-search';
 
 let failures = 0;
@@ -103,6 +103,20 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
   const counting: PlanReader = { name: 'fake', read: async () => { calls++; return cleanPlan({ keywords: ['team'] }, ctx); } };
   const r = await smartSearch('team', 10, { context, thisYear: 2026, reader: counting, search: async () => [] });
   check(calls === 0 && r.reader === 'stand-in' && r.readerNote === null, 'flow: a basic search never calls the model, and shows no warning');
+}
+
+// ---- Filters need evidence in the request
+{
+  const invented = cleanPlan({ keywords: ['tenant'], category: 'Business Proposal', bestOfTheBest: true, yearFrom: 2024, yearTo: 2026 }, ctx);
+  const g = groundFilters(invented, 'we just won a 30-day contract in a building with another tenant');
+  check(g.category === null && g.bestOfTheBest === null && g.yearFrom === null && g.yearTo === null, 'ground: filters nobody asked for are dropped', g);
+  const asked = groundFilters(cleanPlan({ category: 'SME', bestOfTheBest: true, yearFrom: 2024, yearTo: 2026 }, ctx), 'recent best of the best SME slides');
+  check(asked.category === 'SME' && asked.bestOfTheBest === true && asked.yearFrom === 2024, 'ground: filters the person typed are kept', asked);
+}
+{
+  const eager: PlanReader = { name: 'fake', read: async () => cleanPlan({ keywords: ['tenant'], bestOfTheBest: true, category: 'IDD' }, ctx) };
+  const r = await smartSearch('which slides for a shared building fit-out?', 10, { context, thisYear: 2026, reader: eager, search: async () => [] });
+  check(r.plan.bestOfTheBest === null && r.plan.category === null, 'flow: a model\'s invented filters never reach the search', r.plan);
 }
 
 // ---- Which client names a model may see

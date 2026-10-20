@@ -1,6 +1,6 @@
 import type { SlideSummary } from '../../contracts/dto';
 import type { PlanReader } from '../ai/reader';
-import { chipsFor, hasFilters, isBasicQuery, relevantClients, standInPlan, whyItFits, withoutFilters, type Chip, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
+import { chipsFor, groundFilters, hasFilters, isBasicQuery, relevantClients, standInPlan, whyItFits, withoutFilters, type Chip, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
 
 /**
  * Quick AI search (docs/DECISIONS.md FD-16, FD-17). The route wires in the configured reader (or
@@ -42,7 +42,7 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
   if (deps.reader && !isBasicQuery(query)) {
     try {
       // The model only sees client names typed in the request, never the whole list.
-      plan = await deps.reader.read(query, { ...ctx, clients: relevantClients(query, ctx.clients) });
+      plan = groundFilters(await deps.reader.read(query, { ...ctx, clients: relevantClients(query, ctx.clients) }), query);
       reader = 'model';
     } catch (e) {
       deps.log?.(`AI reader ${deps.reader.name} unavailable, using the stand-in: ${(e as Error).message}`);
