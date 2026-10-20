@@ -33,6 +33,13 @@ export type Chip = { kind: 'Topic' | 'Client' | 'Year' | 'Category' | 'Collectio
 
 export const MAX_KEYWORDS = 12;
 
+/**
+ * Words that describe every slide in the library, so they can't tell one from another. A search
+ * that matches only these ("our most recent hospitality deck" -> "deck") would return slides that
+ * look like answers but aren't, so they are never search words.
+ */
+const GENERIC_WORDS = new Set(['deck', 'decks', 'slide', 'slides', 'page', 'pages', 'proposal', 'proposals', 'presentation', 'presentations', 'pitch', 'ppt', 'pptx', 'powerpoint', 'm moser', 'mmoser']);
+
 /** Rules-only reader, used when no AI reader is configured or it can't be reached. */
 export function standInPlan(query: string, ctx: PlanContext): SearchPlan {
   const p = simParse(query, ctx.clients);
@@ -89,7 +96,7 @@ export function cleanPlan(raw: Partial<SearchPlan>, ctx: PlanContext): SearchPla
   if (yearFrom && yearTo && yearFrom > yearTo) [yearFrom, yearTo] = [yearTo, yearFrom];
   return {
     summary: typeof raw.summary === 'string' ? raw.summary.trim().slice(0, 200) : '',
-    keywords: words(raw.keywords, MAX_KEYWORDS),
+    keywords: words(raw.keywords, MAX_KEYWORDS + GENERIC_WORDS.size).filter((k) => !GENERIC_WORDS.has(k)).slice(0, MAX_KEYWORDS),
     topics: [...new Set((Array.isArray(raw.topics) ? raw.topics : []).filter((x): x is string => typeof x === 'string').map((x) => x.trim()).filter((x) => x && x.length <= 40))].slice(0, 4),
     client: pick(raw.client, ctx.clients),
     yearFrom,

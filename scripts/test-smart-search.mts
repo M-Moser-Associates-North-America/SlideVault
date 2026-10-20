@@ -106,6 +106,13 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
   check(calls === 0 && r.reader === 'stand-in' && r.readerNote === null, 'flow: a basic search never calls the model, and shows no warning');
 }
 
+// ---- Words that describe every slide are never search words
+{
+  const p = cleanPlan({ keywords: ['hospitality', 'proposal', 'deck', 'slides'] }, ctx);
+  check(JSON.stringify(p.keywords) === JSON.stringify(['hospitality']), 'clean: "deck", "proposal", "slides" are dropped, they match every slide', p.keywords);
+  check(!standInPlan('our most recent hospitality deck', ctx).keywords.includes('deck'), 'stand-in: "deck" is not a search word');
+}
+
 // ---- Filters need evidence in the request
 {
   const invented = cleanPlan({ keywords: ['tenant'], category: 'Business Proposal', bestOfTheBest: true, yearFrom: 2024, yearTo: 2026 }, ctx);
