@@ -201,7 +201,7 @@ const CONCEPTS: Concept[] = [
 ];
 
 const STOP = new Set(
-  'intro a an the for to of and or show me find need needs want looking look slide slides deck decks about from our we with in on that this is are any some please give get something one into by at my us i can you what which how do does work works have has had was were it its be using use large introduce pitch project recent latest newest newer'.split(
+  'intro a an the for to of and or show me find need needs want looking look slide slides deck decks about from our we with in on that this is are any some please give get something one into by at my us i can you what which how do does work works have has had was were it its be using use large introduce pitch project recent latest newest newer whats most greatest best add include could would there where should'.split(
     ' ',
   ),
 );
@@ -318,7 +318,7 @@ export function simParse(q: string, clients: string[]): Parsed {
   for (const w of rest.split(' ')) {
     if (w.length < 3 || STOP.has(w) || /^20\d\d$/.test(w)) continue;
     const t = w.length > 4 ? w.replace(/(es|s)$/, '') : w;
-    if (!P.tokens.includes(t)) P.tokens.push(t);
+    if (!STOP.has(t) && !P.tokens.includes(t)) P.tokens.push(t);
   }
   return P;
 }

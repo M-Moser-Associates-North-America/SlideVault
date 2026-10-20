@@ -111,6 +111,8 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
   const p = cleanPlan({ keywords: ['hospitality', 'proposal', 'deck', 'slides'] }, ctx);
   check(JSON.stringify(p.keywords) === JSON.stringify(['hospitality']), 'clean: "deck", "proposal", "slides" are dropped, they match every slide', p.keywords);
   check(!standInPlan('our most recent hospitality deck', ctx).keywords.includes('deck'), 'stand-in: "deck" is not a search word');
+  const k = standInPlan('whats our most recent bank deck', ctx).keywords;
+  check(JSON.stringify(k) === JSON.stringify(['bank']), 'stand-in: "whats our most recent bank deck" searches for "bank" only', k);
 }
 
 // ---- Filters need evidence in the request

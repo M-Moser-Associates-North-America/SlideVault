@@ -11,9 +11,11 @@ export type RowReading = { client: SmartSearchChip | null; year: SmartSearchChip
 
 export function rowReading(result: SmartSearchResult | null): RowReading {
   const chips = result?.chips ?? [];
+  // When nothing matched every detail, the server dropped the client and year, so the row mustn't show them as on.
+  const applied = !result?.relaxed;
   return {
-    client: chips.find((c) => c.kind === 'Client') ?? null,
-    year: chips.find((c) => c.kind === 'Year') ?? null,
+    client: applied ? (chips.find((c) => c.kind === 'Client') ?? null) : null,
+    year: applied ? (chips.find((c) => c.kind === 'Year') ?? null) : null,
     types: chips.flatMap((chip) => {
       const label = chip.kind === 'Topic' ? slideTypeForTopic(chip.label) : null;
       return label ? [{ chip, label }] : [];
