@@ -519,11 +519,8 @@
 .slidevault .tiles.at-end { -webkit-mask-image: none; mask-image: none; }
 
 /* ---- Quick tour: dimmed page, a spotlight on one thing, a plain-words note beside it ---- */
-.slidevault .tour { position: fixed; inset: 0; z-index: 90; }
-.slidevault .tour-block { position: absolute; inset: 0; }
-.slidevault .tour-spot { position: absolute; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(15, 15, 18, 0.55), 0 0 0 2px var(--sv-brand); pointer-events: none; transition: left 0.2s ease, top 0.2s ease, width 0.2s ease, height 0.2s ease; }
-.slidevault .tour:not(:has(.tour-spot)) .tour-block { background: rgba(15, 15, 18, 0.55); }
-.slidevault .tour-pop { position: absolute; padding: 18px 20px 16px; background: var(--sv-surface); color: var(--sv-text); border: 1px solid var(--sv-border-strong); border-radius: 16px; box-shadow: var(--sv-shadow-panel); }
+/* Tour card (React Joyride places it; these rules only style it). */
+.slidevault .tour-pop { width: 340px; max-width: 100%; padding: 18px 20px 16px; background: var(--sv-surface); color: var(--sv-text); border: 1px solid var(--sv-border-strong); border-radius: 16px; box-shadow: var(--sv-shadow-panel); }
 .slidevault .tour-n { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
 .slidevault .tour-pop h2 { margin: 6px 0 0; font-size: 18px; letter-spacing: -0.01em; outline: none; }
 .slidevault .tour-t { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: var(--sv-text-secondary); }
