@@ -254,7 +254,6 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
             <b>
               <Icon name="sparkle" className="ic-sm" />
               Why it fits
-              <SimFlag />
             </b>
             {why}
           </div>

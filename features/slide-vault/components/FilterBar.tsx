@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
-import { categoryOf, clientOf, countBy, filterCount, slideMatches, UNKNOWN_CLIENT, yearOf, type Filters } from './library';
+import { categoryOf, clientOf, countBy, filterCount, slideMatches, yearOf, type Filters } from './library';
 import { SimFlag } from './parts';
-import { SIM_PEOPLE, SLIDE_TYPES, TIER_LABEL, simContributor, simHasSlideType, simParse, simUploader, slideTypeForChip, stripFromQuery, visibleTiers, type Chip, type Tier } from './simulation';
+import type { SmartSearchChip } from '../contracts/dto';
+import { rowReading, withoutChip } from './search-reading';
+import { SIM_PEOPLE, SLIDE_TYPES, TIER_LABEL, simContributor, simHasSlideType, simUploader, visibleTiers, type Tier } from './simulation';
 import { useWorkspace } from './state';
 
 /**
@@ -111,7 +113,7 @@ function Picker({
 }
 
 export function FilterBar() {
-  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery } = useWorkspace();
+  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search } = useWorkspace();
   const [open, setOpen] = useState<Key | null>(null);
   const closeOnHide = useCallback(() => setOpen(null), []);
   const hidden = useHideOnScrollDown(closeOnHide);
@@ -140,21 +142,16 @@ export function FilterBar() {
   }, [without]);
   const tiers = visibleTiers(runtime.capabilities);
 
-  /* What the typed sentence already says (client, year, kind of slide), so the row can show it too. */
-  const clientNames = useMemo(() => clients.filter((c) => c !== UNKNOWN_CLIENT), [clients]);
-  const parsed = useMemo(() => (query.trim() ? simParse(query, clientNames) : null), [query, clientNames]);
-  const pClient = parsed?.chips.find((c) => c.key === 'client') ?? null;
-  const pYear = parsed?.chips.find((c) => c.key === 'year') ?? null;
-  const pTypes: { chip: Chip; label: string }[] = parsed
-    ? parsed.chips.flatMap((chip) => {
-        const label = slideTypeForChip(parsed, chip);
-        return label ? [{ chip, label }] : [];
-      })
-    : [];
+  /* What the search was read as (client, year, kind of slide), straight from the server, so the
+     row and the results header always agree. */
+  const reading = rowReading(query.trim() && search.status === 'ready' ? search.result : null);
+  const pClient = reading.client;
+  const pYear = reading.year;
+  const pTypes = reading.types;
   const fromClient = pClient && !filters.client.includes(pClient.label) ? pClient : null;
   const fromYear = pYear && filters.yfrom === null && filters.yto === null ? pYear : null;
   const fromTypes = pTypes.filter((t) => !filters.slideType.includes(t.label));
-  const removeFromSearch = (chip: Chip) => setQuery(stripFromQuery(query, chip));
+  const removeFromSearch = (chip: SmartSearchChip) => setQuery(withoutChip(query, chip));
 
   const close = useCallback((returnFocus: boolean) => {
     setOpen((cur) => {

@@ -1,6 +1,7 @@
 import 'server-only';
 import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../ai/reader';
 import { groupDuplicates, type SlideText } from '../duplicates';
+import { hasMmoserConfig } from '../config';
 import { loadLibraryIndex } from '../library-repository';
 import { listFilterValuesPg, listSlideTextsPg, smartSearchPg } from '../pg-repository';
 import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
@@ -26,8 +27,12 @@ export function configuredReader(): PlanReader | null {
   return readerCache.reader;
 }
 
-/** Uploaded decks live in Postgres; a checkout without it still searches the sample decks. */
+/**
+ * Uploaded decks live in Postgres. A checkout without database settings searches the sample decks
+ * only, quietly; a configured database that fails is logged, and search carries on without it.
+ */
 async function orWithoutDb<T>(what: string, run: () => Promise<T>, fallback: T): Promise<T> {
+  if (!hasMmoserConfig()) return fallback;
   try {
     return await run();
   } catch (e) {

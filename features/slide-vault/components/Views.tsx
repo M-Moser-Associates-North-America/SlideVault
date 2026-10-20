@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { getSlide } from '../client/api';
-import type { SlideDetail, SlideSummary, SmartSearchChip } from '../contracts/dto';
+import type { SlideDetail, SlideSummary } from '../contracts/dto';
 import { Icon } from './icons';
 import {
   browseSlides,
@@ -24,6 +24,7 @@ import { DeckCard, Link, SimFlag, SkeletonGrid, SkeletonRows, SlideCard, StateBl
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { setHeroOut } from '../client/hero-visibility';
+import { shownInFilterRow, withoutChip } from './search-reading';
 import { simTags, simTier, simUsed, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
 
@@ -610,15 +611,6 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 
 /* --------------------------------------------------------------- Search */
 
-/** The search text without a chip's words, so removing a chip re-runs the search without it. */
-function withoutChip(q: string, chip: SmartSearchChip): string {
-  const words = chip.kind === 'Collection' ? ['best', 'of', 'the', 'best'] : chip.label.toLowerCase().split(/\s+/);
-  return q
-    .split(/\s+/)
-    .filter((w) => !words.includes(w.toLowerCase().replace(/[^a-z0-9/-]/g, '')))
-    .join(' ');
-}
-
 export function ResultsView() {
   const { query, search, filters, clearFilters, retrySearch, setQuery } = useWorkspace();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
@@ -639,6 +631,8 @@ export function ResultsView() {
   const slides = shown.map((i) => i.slide);
   const deckCount = new Set(slides.map((s) => s.provenance.sourceId)).size;
   const grouped = shown.filter((i) => i.slide.alsoIn).length;
+  /* Client, year and slide type already light up in the filter row above. */
+  const extraChips = result ? result.chips.filter((c) => !shownInFilterRow(c)) : [];
 
   return (
     <div className="sv-wrap">
@@ -670,13 +664,13 @@ export function ResultsView() {
               <Icon name="alert" className="ic-sm" /> {result.readerNote}
             </p>
           )}
-          {result.chips.length > 0 && (
+          {extraChips.length > 0 && (
             <div className="interp">
               <span className="meta">
                 <Icon name="sparkle" className="ic-sm" />
                 We read this as:
               </span>
-              {result.chips.map((c) =>
+              {extraChips.map((c) =>
                 c.kind === 'Topic' ? (
                   <span key={`${c.kind}:${c.label}`} className="chip-x">
                     <span className="k">{c.kind}:</span> {c.label}

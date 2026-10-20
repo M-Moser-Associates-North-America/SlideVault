@@ -122,6 +122,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
   const [submitted, setSubmitted] = useState('');
   const submitSearch = useCallback(() => {
     setSubmitted(query.trim());
+    setSearch({ status: 'loading' });
     setSearchTry((n) => n + 1);
   }, [query]);
   const setQuery = useCallback((q: string) => {

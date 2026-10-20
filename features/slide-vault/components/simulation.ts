@@ -323,19 +323,8 @@ export function simParse(q: string, clients: string[]): Parsed {
   return P;
 }
 
-/** The slide type a "Topic" chip stands for, if it matches one of the fixed slide types. */
-export function slideTypeForChip(P: Parsed, chip: Chip): string | null {
-  if (chip.kind !== 'Topic') return null;
-  const concept = P.concepts.find((k) => `k:${k.id}` === chip.key);
+/** The slide type a search topic (e.g. "Team and people") stands for, if it matches one of the fixed slide types. */
+export function slideTypeForTopic(topic: string): string | null {
+  const concept = CONCEPTS.find((k) => k.label === topic);
   return SLIDE_TYPES.find((t) => t.tag === concept?.tags[0])?.label ?? null;
-}
-
-/** Client, year and slide type are shown in the filter row under the search box, so results needn't repeat them. */
-export const chipShownInFilterRow = (P: Parsed, chip: Chip) => chip.key === 'client' || chip.key === 'year' || slideTypeForChip(P, chip) !== null;
-
-/** Remove the words a chip stood for from the typed search, so "removing the chip" changes the search. */
-export function stripFromQuery(q: string, chip: Chip): string {
-  let out = ` ${q} `;
-  for (const w of chip.strip) out = out.replace(new RegExp(`(^|[^A-Za-z0-9])${esc(w)}(?![A-Za-z0-9])`, 'gi'), '$1 ');
-  return out.replace(/\s+/g, ' ').trim();
 }
