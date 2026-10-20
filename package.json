@@ -16,6 +16,7 @@
     "test:v3": "tsx --conditions=react-server scripts/test-v3-live.mts",
     "test:smart-search": "tsx --conditions=react-server scripts/test-smart-search.mts",
     "test:user-data": "tsx --conditions=react-server scripts/test-user-data.mts",
+    "test:reasoning-map": "tsx --conditions=react-server scripts/test-reasoning-map.mts",
     "upload:library": "tsx scripts/upload-library.mts",
     "score:search": "tsx --conditions=react-server scripts/score-search.mts",
     "typecheck": "next typegen && tsc --noEmit",

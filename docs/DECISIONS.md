@@ -316,6 +316,17 @@ Revisit trigger: M Moser's sign-in is plugged in (replace userOf); a retention p
 ```
 
 ```text
+Decision ID and title: FD-18 Reasoning map: problem-solving search follows a written map, with a model only as the last resort
+Status: proposed
+Decision date: 2026-10-20
+Decision owner/reviewer: Schiffon (reasoning design), Alina Pak (review)
+Context and evidence: People ask for help with a situation, not only for words ("we just won a 30-day contract in a building that already has another tenant, which slides should I start with?"). Asking a model to work out the whole answer each time is slow and costs money per search. M Moser's business development team shared 16 example searches (2026-10-20) grouped under About M Moser, General Design, IDD, Methodology, MSA, SME and Case studies.
+Options considered: (a) a written map, situation -> needs -> slide types, matched by trigger words, with one short model call only when no situation matches; (b) a model reasons out every answer; (c) keyword search only.
+Chosen outcome: (a). server/ai/reasoning-map.ts holds slide types (grouped under M Moser's headings), needs and situations, every entry draft until a person reviews it against real decks. mapProblems() reports broken references. The search pipeline that uses the map (understand, match situation, needs to slide types, find and rank, explain) follows in later commits.
+Consequences for scope, cost, security and integration: Most searches need no model call; a problem-solving question needs at most one short call. The map is plain data in the repo, so the team can extend it and Git keeps its history. It holds M Moser vocabulary, not client content. Tuning it on real decks happens on M Moser machines (local model or a person reading), not by sending decks to an outside service.
+Acceptance evidence / affected PR criteria: npm run test:reasoning-map: the map holds together, all 16 example searches reach the expected slide type, and the 30-day example is recognised without a model and leads to timeline, occupied-building case study and logistics slides.
+Documents/contracts changed: server/ai/reasoning-map.ts (new), scripts/test-reasoning-map.mts (new), package.json, docs/DECISIONS.md.
+Revisit trigger: The team's situations arrive (2026-10-22); real decks show slide types or words the map lacks; the scorecard shows misses.
 Decision ID and title: FD-19 The quick tour uses React Joyride
 Status: proposed
 Decision date: 2026-10-20
