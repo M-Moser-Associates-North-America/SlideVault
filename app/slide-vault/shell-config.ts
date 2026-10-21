@@ -7,7 +7,7 @@ import type { Location, View } from '@/features/slide-vault';
 export const UI_BASE = '/slide-vault';
 export const API_ROOT = '/api/slide-vault/v1';
 
-const VIEWS: readonly View[] = ['home', 'library', 'pages', 'browse', 'create', 'upload', 'deck', 'slide', 'profile'];
+const VIEWS: readonly View[] = ['home', 'library', 'pages', 'browse', 'create', 'upload', 'deck', 'slide', 'profile', 'settings'];
 export const DEFAULT_LOCATION: Location = { view: 'pages' };
 
 /** URL path segments after UI_BASE → workspace Location. Unknown paths fall back to the default. */

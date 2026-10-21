@@ -205,3 +205,13 @@ export function downloadPlan(slides: SlideSummary[]): DownloadPlan {
 
 export const planSummary = (p: DownloadPlan) =>
   !p.files.length ? 'nothing to download' : p.zip ? `a zip of ${p.files.length} editable .pptx files (one per deck)` : 'one editable .pptx';
+
+const RELATIVE = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+export function timeAgo(at: number): string {
+  const mins = Math.round((at - Date.now()) / 60000);
+  if (mins > -1) return 'just now';
+  if (mins > -60) return RELATIVE.format(mins, 'minute');
+  const hours = Math.round(mins / 60);
+  if (hours > -24) return RELATIVE.format(hours, 'hour');
+  return RELATIVE.format(Math.round(hours / 24), 'day');
+}

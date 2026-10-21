@@ -13,6 +13,7 @@ import { WorkspaceProvider, useWorkspace } from './state';
 import { LoginView } from './AuthView';
 import { ActivityOptInAsk } from './ActivityOptIn';
 import { ProfileView } from './ProfileView';
+import { SettingsView } from './SettingsView';
 import { Tour } from './Tour';
 import { UploadView } from './UploadView';
 import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './Views';
@@ -69,7 +70,7 @@ function Workspace() {
      mounted across that transition so typing never loses focus mid-word. Browse is untouched
      until reviewed separately. Not pushed, not changing Khushali's build. */
   const noRail = true; // the search bar and filter row now sit at the top of Home and the browse lists
-  const narrow = view === 'create' || view === 'upload' || view === 'profile';
+  const narrow = view === 'create' || view === 'upload' || view === 'profile' || view === 'settings';
 
   /* New page: scroll to the top and move focus to its heading, like a page load would. */
   const key = `${view}/${loc.id ?? ''}`;
@@ -172,6 +173,7 @@ function Workspace() {
             {view === 'create' && <CreateView />}
             {view === 'upload' && <UploadView />}
             {view === 'profile' && <ProfileView />}
+            {view === 'settings' && <SettingsView />}
           </main>
         </div>
         <aside className="cart-col" aria-label="Draft deck">
