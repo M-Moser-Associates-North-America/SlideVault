@@ -10,7 +10,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en">
+    // Browser extensions (screen recorders such as Scribe) add attributes to <html> before React
+    // loads; this only stops that harmless mismatch warning, for <html>'s own attributes.
+    <html lang="en" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );
