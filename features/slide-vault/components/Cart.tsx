@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
 import { Icon } from './icons';
 import { downloadPlan, plural } from './library';
+import { useRoot } from './root';
 import { workspaceSizeOf } from './size';
 import { Link, Thumb } from './parts';
 import { useWorkspace } from './state';
@@ -129,23 +130,28 @@ export function Cart() {
 
   /* The panel is as tall as the room left under the header: full height once the page has scrolled
      and the panel has stuck to the top, shorter while the page header is still showing. */
+  const { scroll } = useRoot();
   useEffect(() => {
+    const scroller = scroll.current;
+    if (!scroller) return;
     const fit = () => {
-      const col = document.querySelector<HTMLElement>('.slidevault .cart-col');
+      const col = scroller.querySelector<HTMLElement>('.cart-col');
       if (!col) return;
       /* Stick right under the tabs bar, whatever its height is, so no gap shows above the panel. */
-      const stick = document.querySelector<HTMLElement>('.slidevault .sv-top')?.offsetHeight ?? 47;
+      const stick = scroller.querySelector<HTMLElement>('.sv-top')?.offsetHeight ?? 47;
       col.style.setProperty('--cart-top', `${stick}px`);
-      col.style.setProperty('--cart-room', `${Math.max(240, window.innerHeight - Math.max(stick, col.getBoundingClientRect().top))}px`);
+      const colTop = col.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      col.style.setProperty('--cart-room', `${Math.max(240, scroller.clientHeight - Math.max(stick, colTop))}px`);
     };
     fit();
-    window.addEventListener('scroll', fit, { passive: true });
-    window.addEventListener('resize', fit);
+    scroller.addEventListener('scroll', fit, { passive: true });
+    const observer = new ResizeObserver(fit);
+    observer.observe(scroller);
     return () => {
-      window.removeEventListener('scroll', fit);
-      window.removeEventListener('resize', fit);
+      scroller.removeEventListener('scroll', fit);
+      observer.disconnect();
     };
-  }, []);
+  }, [scroll]);
 
   /* The name of the draft deck. It looks like a field (pencil, outline on hover) so it is clear it can be edited. */
   const titleField = (
@@ -160,41 +166,21 @@ export function Cart() {
     setCartMin(true);
     requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart-pill')?.focus());
   };
-  const openCart = () => {
-    setCartMin(false);
-    requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart .cart-tg')?.focus());
-  };
 
-  /* On phones the open draft deck covers the page: a tap outside it, or Escape, closes it. */
+  /* On phones the open draft deck covers the page: Escape closes it (a tap on the dimmed page does too). */
   useEffect(() => {
     if (cartMin) return;
     const compact = () => workspaceSizeOf(document.querySelector('.slidevault .cart-col')) === 'compact';
-    const onDown = (e: globalThis.PointerEvent) => {
-      if (compact() && !(e.target as Element).closest('.cart-col')) setCartMin(true);
-    };
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (compact() && e.key === 'Escape' && !document.querySelector('dialog[open]')) closeCart();
     };
-    document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
+    return () => document.removeEventListener('keydown', onKey);
   });
 
   const toggleButton = (
     <button type="button" className="btn btn-ghost btn-icon btn-sm cart-tg" aria-label="Close draft deck" onClick={closeCart}>
       <Icon name="x" />
-    </button>
-  );
-
-  /* The black button at the bottom right that opens the draft deck, like the reference mockup's. */
-  const mini = (
-    <button type="button" className="cart-pill" aria-label={`Open draft deck, ${plural(n, 'slide')}`} onClick={openCart}>
-      <Icon name="layers" />
-      <span>Draft deck</span>
-      {n > 0 && <span className="pill-n">{n}</span>}
     </button>
   );
 
@@ -219,7 +205,6 @@ export function Cart() {
             </div>
           </div>
         </div>
-        {mini}
       </>
     );
   }
@@ -392,7 +377,29 @@ export function Cart() {
           </form>
         )}
       </dialog>
-      {mini}
     </>
+  );
+}
+
+/* The black button at the bottom right that opens the draft deck, like the reference mockup's. It sits at
+   the workspace level, outside the panel, so it stays put while the panel is closed. */
+export function CartPill() {
+  const { selection, cartMin, setCartMin } = useWorkspace();
+  const n = selection.length;
+  if (!cartMin) return null;
+  return (
+    <button
+      type="button"
+      className="cart-pill"
+      aria-label={`Open draft deck, ${plural(n, 'slide')}`}
+      onClick={() => {
+        setCartMin(false);
+        requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart .cart-tg')?.focus());
+      }}
+    >
+      <Icon name="layers" />
+      <span>Draft deck</span>
+      {n > 0 && <span className="pill-n">{n}</span>}
+    </button>
   );
 }

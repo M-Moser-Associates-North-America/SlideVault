@@ -27,6 +27,7 @@ import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { setHeroOut } from '../client/hero-visibility';
 import { shownInFilterRow, withoutChip } from './search-reading';
+import { useRoot } from './root';
 import { simTags, simTier, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
 
@@ -240,16 +241,17 @@ function HomeHeader() {
   };
   /* Tell the header when this bar has scrolled up out of sight, so it can show a slim search shortcut. */
   const formRef = useRef<HTMLFormElement>(null);
+  const { scroll } = useRoot();
   useEffect(() => {
     const el = formRef.current;
     if (!el) return;
-    const io = new IntersectionObserver(([entry]) => setHeroOut(!entry.isIntersecting), { rootMargin: '-110px 0px 0px 0px' });
+    const io = new IntersectionObserver(([entry]) => setHeroOut(!entry.isIntersecting), { root: scroll.current, rootMargin: '-110px 0px 0px 0px' });
     io.observe(el);
     return () => {
       io.disconnect();
       setHeroOut(false);
     };
-  }, []);
+  }, [scroll]);
   return (
     <div className="home-hero">
       <form className="home-hero-search" role="search" onSubmit={submit} ref={formRef}>

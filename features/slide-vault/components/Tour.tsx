@@ -4,15 +4,12 @@ import { useCallback, useEffect } from 'react';
 import { ACTIONS, EVENTS, Joyride, type EventData, type Step, type TooltipRenderProps } from 'react-joyride';
 import { endTour, startTour, useTourOpen } from '../client/tour-store';
 import { useTipSeen } from '../client/tip-store';
+import { useRoot } from './root';
 import { workspaceSizeOf } from './size';
 import { useWorkspace } from './state';
 
 /** Wait for the next paint, so a panel opened by a step's `before` has a size to point at. */
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-const toTop = async () => {
-  window.scrollTo(0, 0);
-  await nextFrame();
-};
 
 /** The tour's card, in the workspace's own styles (Joyride handles placement, spotlight, scrolling and focus). */
 function TourCard({ index, size, step, isLastStep, backProps, primaryProps, skipProps, tooltipProps }: TooltipRenderProps) {
@@ -53,6 +50,11 @@ export function Tour() {
   const { profile, runtime, setCartMin } = useWorkspace();
   const onHome = runtime.location.view === 'pages' || runtime.location.view === 'home' || runtime.location.view === 'library';
 
+  const { scroll } = useRoot();
+  const toTop = async () => {
+    scroll.current?.scrollTo(0, 0);
+    await nextFrame();
+  };
   const compact = workspaceSizeOf(document.querySelector('.slidevault .sv-app')) === 'compact';
 
   const steps: Step[] = [

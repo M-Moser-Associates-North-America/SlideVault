@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
-import { Cart } from './Cart';
+import { Cart, CartPill } from './Cart';
 import { AlsoDialog, DownloadDialog, Lightbox } from './Dialogs';
 import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
@@ -14,6 +14,7 @@ import { LoginView } from './AuthView';
 import { ActivityOptInAsk } from './ActivityOptIn';
 import { ProfileView } from './ProfileView';
 import { SettingsView } from './SettingsView';
+import { RootContext } from './root';
 import { useWorkspaceSize } from './size';
 import { Tour } from './Tour';
 import { UploadView } from './UploadView';
@@ -27,10 +28,10 @@ import './slidevault-extras.css';
  * approved v3 prototype (mockup/SlideVault-v3.html): filters and search on the left, content in the
  * middle, a collapsible cart on the right.
  */
-export function SlideVaultWorkspace({ runtime }: SlideVaultWorkspaceProps) {
+export function SlideVaultWorkspace({ runtime, header }: SlideVaultWorkspaceProps) {
   return (
     <WorkspaceProvider runtime={runtime}>
-      <Workspace />
+      <Workspace header={header} />
     </WorkspaceProvider>
   );
 }
@@ -61,9 +62,11 @@ const TABS: {
   },
 ];
 
-function Workspace() {
+function Workspace({ header }: { header?: ReactNode }) {
   const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, profile, setCartMin } = useWorkspace();
   const appRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const root = useMemo(() => ({ app: appRef, scroll: scrollRef }), []);
   /* In a narrow space the draft deck starts closed, because open it covers the page. */
   useWorkspaceSize(appRef, !!profile, (size) => size === 'compact' && setCartMin(true));
   const loc = runtime.location;
@@ -85,7 +88,7 @@ function Workspace() {
       first.current = false;
       return;
     }
-    window.scrollTo(0, 0);
+    scrollRef.current?.scrollTo(0, 0);
     mainRef.current?.querySelector<HTMLElement>('h1')?.focus({ preventScroll: true });
   }, [key]);
 
@@ -114,7 +117,10 @@ function Workspace() {
   if (!profile) return <LoginView />;
 
   return (
+    <RootContext.Provider value={root}>
     <div className="sv-app" ref={appRef}>
+      <div className="sv-scroll" ref={scrollRef}>
+      {header}
       <div className="sv-top">
         <div className="sv-wrap">
           <div className="sv-brandrow">
@@ -184,6 +190,20 @@ function Workspace() {
           <Cart />
         </aside>
       </div>
+      </div>
+      <CartPill />
+      {!cartMin && (
+        <button
+          type="button"
+          className="cart-scrim"
+          aria-label="Close draft deck"
+          tabIndex={-1}
+          onClick={() => {
+            setCartMin(true);
+            requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart-pill')?.focus());
+          }}
+        />
+      )}
       <div className={`toasts${selection.length ? ' lift' : ''}`} aria-live="polite" aria-relevant="additions">
         {toasts.map((t) => (
           <div key={t.id} className="toast">
@@ -203,5 +223,6 @@ function Workspace() {
       <DownloadDialog />
       <AlsoDialog />
     </div>
+    </RootContext.Provider>
   );
 }

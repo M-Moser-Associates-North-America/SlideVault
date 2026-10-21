@@ -12,7 +12,9 @@
 .slidevault .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .slidevault .ic { width: 18px; height: 18px; flex: none; }
 .slidevault .ic-sm { width: 14px; height: 14px; }
-.slidevault .sv-app { background: var(--sv-bg); min-height: 100vh; display: flex; flex-direction: column; }
+.slidevault .sv-app { position: relative; background: var(--sv-bg); height: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+/* The one scrolling area of the workspace: everything that scrolls, sticks or measures scroll uses this element, not the window. */
+.slidevault .sv-scroll { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; background: var(--sv-bg); }
 .slidevault .sv-wrap { width: 100%; max-width: 1320px; margin: 0 auto; padding: 0 40px; }
 @media (max-width: 900px) { .slidevault .sv-wrap { padding: 0 20px; } }
 @media (max-width: 480px) { .slidevault .sv-wrap { padding: 0 16px; } }
@@ -162,7 +164,7 @@
 .slidevault .slide-text { font-size: var(--sv-text-small); background: var(--sv-surface-sunken); border-radius: 10px; padding: 12px 14px; }
 
 /* Toasts */
-.slidevault .toasts { position: fixed; right: 16px; bottom: 16px; z-index: 60; display: flex; flex-direction: column; gap: 8px; max-width: min(420px, calc(100vw - 32px)); }
+.slidevault .toasts { position: absolute; right: 16px; bottom: 16px; z-index: 60; display: flex; flex-direction: column; gap: 8px; max-width: min(420px, calc(var(--sv-w, 420px) - 32px)); }
 .slidevault .toasts.lift { bottom: 100px; }
 .slidevault .toast { background: var(--sv-action-bg); color: var(--sv-action-fg); border-radius: 12px; padding: 10px 10px 10px 14px; box-shadow: var(--sv-shadow-popover); display: flex; gap: 10px; align-items: center; font-size: var(--sv-text-small); }
 .slidevault .toast .msg { flex: 1; }
@@ -170,15 +172,15 @@
 .slidevault .toast .x { border: 0; width: 32px; padding: 0; display: grid; place-items: center; }
 
 /* Dialogs */
-dialog.slidevault.sv-dialog { border: 1px solid var(--sv-border); padding: 0; border-radius: var(--sv-radius-panel); background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 32px); }
+dialog.slidevault.sv-dialog { border: 1px solid var(--sv-border); padding: 0; border-radius: var(--sv-radius-panel); background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); width: min(560px, calc(var(--sv-w, 1280px) - 24px)); max-height: calc(var(--sv-h, 100%) - 32px); }
 dialog.slidevault.sv-dialog[open] { display: flex; flex-direction: column; }
 dialog.slidevault.sv-dialog::backdrop { background: rgba(10,10,14,.6); }
-dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100vw - 24px)); }
+dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .dlg-head { padding: 18px 20px 10px 24px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .slidevault .dlg-head h2 { font-size: 18px; }
 .slidevault .dlg-body { padding: 4px 24px 16px; overflow: auto; min-height: 0; }
 .slidevault .dlg-foot { padding: 12px 24px 20px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--sv-border); }
-.slidevault .lb-stage { position: relative; background: var(--sv-surface-sunken); border-radius: 14px; overflow: hidden; aspect-ratio: 16/9; max-height: 66vh; margin: 0 auto; }
+.slidevault .lb-stage { position: relative; background: var(--sv-surface-sunken); border-radius: 14px; overflow: hidden; aspect-ratio: 16/9; max-height: calc(var(--sv-h, 700px) * 0.66); margin: 0 auto; }
 .slidevault .lb-stage svg { width: 100%; height: 100%; display: block; }
 .slidevault .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; border-radius: 50%; width: 44px; height: 44px; padding: 0; background: var(--sv-surface); box-shadow: var(--sv-shadow-popover); }
 .slidevault .lb-prev { left: 10px; } .slidevault .lb-next { right: 10px; }
@@ -353,7 +355,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100vw - 24px)); }
 .slidevault .notice.info { background: var(--sv-surface-sunken); }
 
 /* Selection bar */
-.slidevault .sel-bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 40; width: min(900px, calc(100vw - 24px)); background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius-card); box-shadow: var(--sv-shadow-panel); padding: 10px 12px; display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; }
 .slidevault .sel-thumbs { display: flex; gap: 6px; align-items: center; }
 .slidevault .sel-thumbs .t { width: 54px; aspect-ratio: 16/9; border-radius: 5px; overflow: hidden; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); }
 .slidevault .sel-thumbs .t svg { width: 100%; height: 100%; display: block; }
@@ -382,9 +383,9 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100vw - 24px)); }
 .slidevault .sv-top .sv-wrap { max-width: 1560px; padding: 0 28px; }
 .slidevault .sv-shell { width: 100%; max-width: 1560px; margin: 0 auto; padding: 0 28px; flex: 1; display: grid; grid-template-columns: 272px minmax(0, 1fr) 248px; gap: 24px; align-items: start; }
 .slidevault .sv-shell .sv-wrap { max-width: none; padding: 0; }
-.slidevault .rail, .slidevault .cart-col { position: sticky; top: 61px; margin-top: 0; min-height: calc(100vh - 61px); max-height: calc(100vh - 61px); overflow-y: auto; overflow-x: hidden; padding: 24px 22px 24px 0; border-radius: 0; scrollbar-width: thin; }
+.slidevault .rail, .slidevault .cart-col { position: sticky; top: 61px; margin-top: 0; min-height: calc(var(--sv-h, 100%) - 61px); max-height: calc(var(--sv-h, 100%) - 61px); overflow-y: auto; overflow-x: hidden; padding: 24px 22px 24px 0; border-radius: 0; scrollbar-width: thin; }
 /* full-bleed: the colour runs to the window edge behind the column */
-.slidevault .sv-shell { --gut: max(28px, calc((100vw - 1560px) / 2 + 28px)); }
+.slidevault .sv-shell { --gut: max(28px, calc((var(--sv-w, 1280px) - 1560px) / 2 + 28px)); }
 .slidevault .rail { background: var(--rail-bg); margin-left: calc(-1 * var(--gut)); padding-left: var(--gut); --rail-bg: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); --rail-line: color-mix(in srgb, var(--sv-brand) 28%, transparent); }
 .slidevault .cart-col { background: var(--cart-bg); margin-right: calc(-1 * var(--gut)); padding: 24px var(--gut) 24px 22px; --cart-bg: var(--sv-surface-sunken); }
 .slidevault .rail { display: flex; flex-direction: column; gap: 18px; }
@@ -468,7 +469,7 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100vw - 24px)); }
 .slidevault .cart-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .slidevault .cart-h { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--sv-text-secondary); margin: 0; }
 .slidevault .cart-h .count { margin-left: 6px; color: var(--sv-text); }
-.slidevault .cart-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: calc(100vh - 340px); overflow-y: auto; scrollbar-width: thin; }
+.slidevault .cart-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: calc(var(--sv-h, 100%) - 340px); overflow-y: auto; scrollbar-width: thin; }
 .slidevault .ci { display: grid; grid-template-columns: 14px 16px 46px minmax(0, 1fr) 28px; gap: 6px; align-items: center; position: relative; cursor: grab; }
 .slidevault .ci.dragging { opacity: .35; }
 .slidevault .ci.drop-before::before, .slidevault .ci.drop-after::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: var(--sv-brand); }
@@ -539,7 +540,7 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100vw - 24px)); }
   .slidevault .filters[open] > summary::after { transform: rotate(-135deg); margin-bottom: 0; }
   .slidevault .f-clear { margin-left: auto; }
   .slidevault .cart-col:has(.cart-empty) { display: none; }
-  .slidevault .cart-col { position: fixed; top: auto; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 40; width: min(700px, calc(100vw - 24px)); max-height: none; padding: 0; background: none; margin: 0; }
+  .slidevault .cart-col { position: absolute; top: auto; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 40; width: min(700px, calc(var(--sv-w, 1280px) - 24px)); max-height: none; padding: 0; background: none; margin: 0; }
   .slidevault .cart { border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius-card); background: var(--sv-surface); box-shadow: var(--sv-shadow-panel); padding: 10px 12px; flex-direction: row; flex-wrap: wrap; align-items: center; }
   .slidevault .cart-items { display: none; }
   .slidevault .cart-min .cart { display: flex; }

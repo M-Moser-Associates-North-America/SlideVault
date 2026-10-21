@@ -3,7 +3,7 @@ import { useLayoutEffect, useSyncExternalStore, type RefObject } from 'react';
 /**
  * How much room the workspace has, measured on its own root (not the window), so it adapts the same
  * way when the host puts it in a narrow panel on a wide screen. The CSS reads it as
- * `.sv-app[data-size="compact" | "medium" | "wide"]`.
+ * `.sv-app[data-size="compact" | "medium" | "wide"]`, with `--sv-w` and `--sv-h` holding the measured size.
  */
 export type WorkspaceSize = 'compact' | 'medium' | 'wide';
 
@@ -16,8 +16,12 @@ export function useWorkspaceSize(ref: RefObject<HTMLElement | null>, active: boo
     if (!active || !el) return;
     let first = true;
     const apply = () => {
-      const size = sizeForWidth(el.getBoundingClientRect().width);
+      const box = el.getBoundingClientRect();
+      const size = sizeForWidth(box.width);
       if (el.dataset.size !== size) el.dataset.size = size;
+      // Pixel sizes of this workspace, for CSS that needs a length (gutters, panel widths, heights).
+      el.style.setProperty('--sv-w', `${Math.round(box.width)}px`);
+      el.style.setProperty('--sv-h', `${Math.round(box.height)}px`);
       return size;
     };
     apply();

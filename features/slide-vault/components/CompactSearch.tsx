@@ -2,6 +2,7 @@
 
 import { useHeroOut } from '../client/hero-visibility';
 import { Icon } from './icons';
+import { useRoot } from './root';
 import { useWorkspace } from './state';
 
 /**
@@ -11,9 +12,10 @@ import { useWorkspace } from './state';
 export function CompactSearch() {
   const out = useHeroOut();
   const { query } = useWorkspace();
+  const { scroll } = useRoot();
   if (!out) return null;
   const goUp = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scroll.current?.scrollTo({ top: 0, behavior: 'smooth' });
     setTimeout(() => {
       const el = document.getElementById('sv-hero-q') as HTMLInputElement | null;
       el?.focus({ preventScroll: true });

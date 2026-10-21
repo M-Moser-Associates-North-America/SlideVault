@@ -8,6 +8,7 @@ import { backdropClose, useDialogOpen } from './Dialogs';
 import type { SmartSearchChip } from '../contracts/dto';
 import { rowReading, withoutChip } from './search-reading';
 import { SIM_PEOPLE, SLIDE_TYPES, TIER_LABEL, simContributor, simHasSlideType, simUploader, visibleTiers, type Tier } from './simulation';
+import { useRoot } from './root';
 import { useWorkspaceCompact } from './size';
 import { useWorkspace } from './state';
 
@@ -100,6 +101,7 @@ export function FilterBar() {
   const [open, setOpen] = useState<Key | null>(null);
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
   const compact = useWorkspaceCompact();
+  const { scroll } = useRoot();
   const [sheet, setSheet] = useState<Key | 'all' | null>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
   useDialogOpen(sheetRef, sheet !== null);
@@ -169,10 +171,10 @@ export function FilterBar() {
   useEffect(() => {
     const el = rowRef.current;
     if (!compact || !el) return;
-    const observer = new IntersectionObserver(([entry]) => setRowOut(!entry.isIntersecting && entry.boundingClientRect.top < 0));
+    const observer = new IntersectionObserver(([entry]) => setRowOut(!entry.isIntersecting && entry.boundingClientRect.top < (entry.rootBounds?.top ?? 0)), { root: scroll.current });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [compact]);
+  }, [compact, scroll]);
 
   const yearOn = filters.yfrom !== null || filters.yto !== null;
   const moreCount = filters.uploader.length + filters.contributor.length + filters.status.length + (filters.bestOnly ? 1 : 0);

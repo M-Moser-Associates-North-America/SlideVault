@@ -1,7 +1,10 @@
 /* Standalone application shell. The workspace itself is styled in features/slide-vault. */
 
 .shell {
-  min-height: 100vh;
+  /* The standalone app's own box: as tall as the window. The workspace fills it and scrolls inside it. */
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
   font-family: "Helvetica Neue", "Helvetica", "Arimo", Arial, system-ui, -apple-system, sans-serif;
 }
 

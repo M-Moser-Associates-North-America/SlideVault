@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 /**
  * The runtime contract between the SlideVault workspace and whatever hosts it
  * (the standalone app today; possibly an internal system later).
@@ -60,4 +61,6 @@ export interface SlideVaultRuntime {
 
 export interface SlideVaultWorkspaceProps {
   runtime: SlideVaultRuntime;
+  /** Shown at the top of the workspace's scrolling area (the standalone app puts its header here). A host with its own header leaves it out. */
+  header?: ReactNode;
 }
