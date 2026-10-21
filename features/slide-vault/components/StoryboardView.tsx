@@ -148,7 +148,7 @@ export function StoryboardView() {
             <MicButton onText={(t) => setSituation((s) => [s.trim(), t].filter(Boolean).join(' '))} />
             <label className="sb-toggle">
               <input type="checkbox" checked={read} onChange={(e) => setRead(e.target.checked)} />
-              Let the AI read it <span className="muted">(about a minute)</span>
+              Let the AI read it <span className="muted">(about 30 seconds)</span>
             </label>
             <button type="button" className="btn btn-primary" disabled={situation.trim().length < 20} onClick={() => void run('')}>
               <Icon name="sparkle" />
