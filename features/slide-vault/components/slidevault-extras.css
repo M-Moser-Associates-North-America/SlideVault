@@ -255,6 +255,9 @@
 
 /* ---- Filter row under the Home search box (FilterBar.tsx) ---- */
 .slidevault .fbar { position: sticky; z-index: 25; margin: 0; padding: 12px 0 4px; background: var(--sv-bg); }
+.slidevault .fbar-sentinel { height: 0; }
+/* Stuck to the top: more room above the row. The negative margin keeps the page below from jumping. */
+.slidevault .fbar.is-stuck { padding-top: 22px; margin-bottom: -10px; }
 .slidevault .fbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: 840px; }
 .slidevault .fb-item { position: relative; }
 .slidevault .fb-btn { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }

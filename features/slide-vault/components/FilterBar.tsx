@@ -108,6 +108,8 @@ export function FilterBar() {
   const wrap = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const [rowOut, setRowOut] = useState(false);
+  const sentinel = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState(false);
   const top = useTopOffset();
   const nowYear = new Date().getFullYear();
 
@@ -166,6 +168,18 @@ export function FilterBar() {
       document.removeEventListener('keydown', onKey);
     };
   }, [open, close]);
+
+  /* Wide and medium widths: tell when the row has stuck to the top, to give it more room above. */
+  useEffect(() => {
+    const el = sentinel.current;
+    if (compact || !el) return;
+    const observer = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting && entry.boundingClientRect.top < (entry.rootBounds?.top ?? 0)), {
+      root: scroll.current,
+      rootMargin: `${-top}px 0px 0px 0px`,
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [compact, scroll, top]);
 
   /* Phones: once the row has scrolled off the top, a small "Filters" button stays pinned there. */
   useEffect(() => {
@@ -317,7 +331,9 @@ export function FilterBar() {
   const openOne = (key: Key) => (compact ? setSheet(key) : setOpen(open === key ? null : key));
 
   return (
-    <div className="fbar" ref={wrap} style={{ top }} role="region" aria-label="Filters">
+    <>
+    <div ref={sentinel} className="fbar-sentinel" aria-hidden="true" />
+    <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
       <div className="fbar-row" ref={rowRef} role="toolbar" aria-label="Filter slides">
         <button type="button" className={`fb-btn fb-all${activeTotal ? ' on' : ''}`} aria-haspopup="dialog" onClick={() => setSheet('all')}>
           <Icon name="slidersFill" />
@@ -410,5 +426,6 @@ export function FilterBar() {
         )}
       </dialog>
     </div>
+    </>
   );
 }
