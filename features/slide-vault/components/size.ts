@@ -7,18 +7,24 @@ import { useLayoutEffect, useSyncExternalStore, type RefObject } from 'react';
  */
 export type WorkspaceSize = 'compact' | 'medium' | 'wide';
 
-export const sizeForWidth = (width: number): WorkspaceSize => (width <= 700 ? 'compact' : width <= 1100 ? 'medium' : 'wide');
+/**
+ * compact: a phone. medium: a tablet held upright (narrow and taller than wide).
+ * wide: everything with room for a side column, including a tablet on its side.
+ */
+export const sizeForBox = (width: number, height: number): WorkspaceSize => (width <= 700 ? 'compact' : width <= 1100 && height > width ? 'medium' : 'wide');
 
-/** Keeps `data-size` on the root up to date while `active` (the root is on screen). `onFirst` hears the size once, after the first measurement. */
-export function useWorkspaceSize(ref: RefObject<HTMLElement | null>, active: boolean, onFirst?: (size: WorkspaceSize) => void) {
+/** Keeps `data-size` on the root up to date while `active` (the root is on screen). `onChange` hears the size after the first measurement and whenever it changes (`previous` is null the first time). */
+export function useWorkspaceSize(ref: RefObject<HTMLElement | null>, active: boolean, onChange?: (size: WorkspaceSize, previous: WorkspaceSize | null) => void) {
   useLayoutEffect(() => {
     const el = ref.current;
     if (!active || !el) return;
-    let first = true;
+    let last: WorkspaceSize | null = null;
     const apply = () => {
       const box = el.getBoundingClientRect();
-      const size = sizeForWidth(box.width);
+      const size = sizeForBox(box.width, box.height);
       if (el.dataset.size !== size) el.dataset.size = size;
+      if (box.width >= 1360) el.dataset.xl = '';
+      else delete el.dataset.xl;
       // Pixel sizes of this workspace, for CSS that needs a length (gutters, panel widths, heights).
       el.style.setProperty('--sv-w', `${Math.round(box.width)}px`);
       el.style.setProperty('--sv-h', `${Math.round(box.height)}px`);
@@ -27,14 +33,15 @@ export function useWorkspaceSize(ref: RefObject<HTMLElement | null>, active: boo
     apply();
     const observer = new ResizeObserver(() => {
       const size = apply();
-      if (first) {
-        first = false;
-        onFirst?.(size);
+      if (size !== last) {
+        const previous = last;
+        last = size;
+        onChange?.(size, previous);
       }
     });
     observer.observe(el);
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- measured once per mount; onFirst only matters on the first call
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- measured once per mount; the latest onChange is not needed to re-subscribe
   }, [ref, active]);
 }
 

@@ -167,12 +167,12 @@ export function Cart() {
     requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart-pill')?.focus());
   };
 
-  /* On phones the open draft deck covers the page: Escape closes it (a tap on the dimmed page does too). */
+  /* On phones and upright tablets the open draft deck covers the page: Escape closes it (a tap on the dimmed page does too). */
   useEffect(() => {
     if (cartMin) return;
-    const compact = () => workspaceSizeOf(document.querySelector('.slidevault .cart-col')) === 'compact';
+    const overlay = () => workspaceSizeOf(document.querySelector('.slidevault .cart-col')) !== 'wide';
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (compact() && e.key === 'Escape' && !document.querySelector('dialog[open]')) closeCart();
+      if (overlay() && e.key === 'Escape' && !document.querySelector('dialog[open]')) closeCart();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);

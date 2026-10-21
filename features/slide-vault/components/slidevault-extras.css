@@ -308,8 +308,103 @@
 
 /* ---- Room at the sides and under the Try chips (the mockup centres its content, so on a laptop its side margin is well over 40px) ---- */
 .slidevault { --sv-side: 40px; }
-@media (min-width: 1101px) { .slidevault { --sv-side: 56px; } }
-@media (min-width: 1360px) { .slidevault { --sv-side: 80px; } }
+.slidevault .sv-app[data-size="wide"], .slidevault .sv-app[data-size="wide"] .slidevault { --sv-side: 56px; }
+.slidevault .sv-app[data-size="wide"][data-xl], .slidevault .sv-app[data-size="wide"][data-xl] .slidevault { --sv-side: 80px; }
+/* container width: wide */
+  .slidevault .sv-app[data-size="wide"] .sv-top .sv-wrap { padding: 0 var(--sv-side); }
+  .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 var(--sv-side); --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 1560px) / 2 + var(--sv-side))); }
+
+.slidevault .home-try { margin-bottom: 36px; }
+
+/* ---- Slide selection column: slimmer, and flush with the right edge (no extra side gutter inside it) ---- */
+/* container width: wide */
+  .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 0 0 var(--sv-side); grid-template-columns: 272px minmax(0, 1fr) 264px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 264px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; }
+  .slidevault .sv-app[data-size="wide"] .cart-col { margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 1560px) / 2)); padding: 24px 16px 24px 22px; }
+  .slidevault .sv-app[data-size="wide"] .cart-min .cart-col { padding: 24px 4px; }
+  .slidevault .sv-app[data-size="wide"] .cart-min .mini-t { font-size: 10px; letter-spacing: 0.04em; text-align: center; }
+
+
+/* ---- First-visit tip ---- */
+
+/* ---- Loading placeholders shaped like the rows ---- */
+.slidevault .skel-rows { display: grid; gap: 36px; margin-top: 8px; }
+.slidevault .skel-title { width: 220px; height: 22px; margin-bottom: 16px; }
+.slidevault .skel-cards { display: flex; gap: 18px; overflow: hidden; }
+.slidevault .skel-cards .skel-card { flex: 0 0 260px; height: 250px; }
+
+/* ---- Calmer row headings: plain title, details tucked behind a small info icon ---- */
+.slidevault .row-head h2::before { display: none; }
+.slidevault .row-head h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0; }
+.slidevault .row-title { display: flex; align-items: center; gap: 8px; }
+.slidevault .row-info { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: help; }
+.slidevault .row-info:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
+.slidevault .row-info .ic { width: 15px; height: 15px; }
+.slidevault .row-info[data-tip]::after { white-space: normal; width: 230px; font-weight: 500; line-height: 1.4; text-align: left; }
+
+/* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
+.slidevault .sv-brandrow { justify-content: space-between; flex-wrap: nowrap; }
+.slidevault .compact-search { display: inline-flex; align-items: center; gap: 8px; width: min(320px, calc(var(--sv-w, 800px) * 0.4)); height: 34px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13.5px; cursor: text; text-align: left; animation: svFade 0.18s ease-out; }
+.slidevault .compact-search:hover { border-color: var(--sv-text-secondary); }
+.slidevault .compact-search .ic { width: 16px; height: 16px; flex: none; }
+.slidevault .compact-search span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .compact-search .cs-q { color: var(--sv-text); }
+@keyframes svFade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .slidevault .compact-search { animation: none; } }
+
+/* ---- Filter choices read from the typed sentence ---- */
+.slidevault .chip-x.from-search { border-style: dashed; }
+.slidevault .chip-x.from-search .ic-sm { color: var(--sv-brand); width: 13px; height: 13px; }
+.slidevault .fb-note { margin: 0 0 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .interp[hidden] { display: none; }
+
+/* ---- Status badge: icon + plain words, so colour is never the only clue ---- */
+.slidevault .tier-ic { display: inline-grid; place-items: center; flex: none; }
+.slidevault .tier-ic .ic-sm { width: 13px; height: 13px; }
+.slidevault .tier-ic-approved { color: var(--sv-success); }
+.slidevault .tier-ic-suggested { color: var(--sv-warning); }
+.slidevault .tier-ic-retired { color: var(--sv-text-secondary); }
+
+/* ---- Filter options that would leave nothing are greyed out (still clickable) ---- */
+.slidevault .fb-list label.is-zero, .slidevault .fb-presets .pchip.is-zero { opacity: 0.45; }
+.slidevault .fb-presets .pchip .fb-n { margin-left: 4px; }
+
+/* ---- Upload tab when you don't have permission: still there, greyed, with the reason on hover ---- */
+.slidevault .sv-nav a.is-locked { opacity: 0.6; cursor: not-allowed; }
+.slidevault .sv-nav a.is-locked .ic { color: var(--sv-text-secondary); }
+
+/* ---- Draft deck: Clear and Save as draft sit under the list; Clear asks first ---- */
+.slidevault .cart-list-acts { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; }
+.slidevault .cart-list-acts .btn .ic { width: 15px; height: 15px; }
+.slidevault .cart-confirm { display: flex; align-items: center; gap: 8px; }
+.slidevault .cart-confirm .cc-q { font-size: var(--sv-text-small); font-weight: 600; margin-right: 2px; }
+.slidevault .cc-yes { background: var(--sv-action-bg); color: var(--sv-action-fg); border-color: transparent; }
+.slidevault .save-name { display: grid; gap: 6px; font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .save-name input { height: 42px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 12px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: 15px; font-weight: 400; }
+.slidevault .save-name input:focus { outline: none; border-color: var(--sv-brand); }
+
+/* ---- Working drafts list on My decks ---- */
+.slidevault .draft-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.slidevault .draft-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
+.slidevault .draft-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); flex: none; }
+.slidevault .draft-txt { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.slidevault .draft-acts { display: flex; gap: 6px; flex: none; }
+
+/* ---- The corner tick: always faintly visible, brighter on hover, solid orange once chosen ---- */
+.slidevault .pick { opacity: 0.8; }
+.slidevault .vcard:hover .pick, .slidevault .pick:focus-within, .slidevault .vcard.is-selected .pick { opacity: 1; }
+.slidevault .pick .box { border-color: rgba(255, 255, 255, 0.95); background: rgba(0, 0, 0, 0.32); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
+.slidevault .pick .pick-tip { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; padding: 5px 9px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+.slidevault .pick:hover .pick-tip, .slidevault .pick input:focus-visible ~ .pick-tip { display: block; }
+
+/* ---- Draft deck, in the look of the reference mockup's proposal tray --------------------------
+ * Open: a white side panel with a small caps label, a large title, two buttons on top, a sunken
+ * body holding the slides as white cards, and a footer. Closed: a black pill at the bottom right
+ * that says "Draft deck" (with an orange count). Same functions as before; only the look changed.
+ * Phones keep the older bottom bar (slidevault.css), so the new parts only apply from 1101px up. */
+.slidevault .cart-pill { display: none; }
 /* container width: wide */
   .slidevault .sv-app[data-size="wide"] .sv-top .sv-wrap { padding: 0 var(--sv-side); }
   .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 var(--sv-side); --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 1560px) / 2 + var(--sv-side))); }
@@ -429,44 +524,44 @@
 /* The draft deck's inside (header, list, footer, black pill): the same on desktop and phones.
    Tablet widths keep the older layout until they are reworked. */
 /* container width: compact/wide */
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-head { padding: 22px 22px 18px; border-bottom: 1px solid var(--sv-border); }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-top { align-items: center; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-h { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-h .count { display: none; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-tg { border: 1px solid var(--sv-border); border-radius: 8px; width: 32px; height: 32px; min-height: 32px; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-name { position: relative; display: block; margin: 10px 0 0; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-name input { width: 100%; height: 44px; padding: 0 40px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); font: 600 20px var(--sv-font-sans); letter-spacing: -0.02em; color: var(--sv-text); text-overflow: ellipsis; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-name input::placeholder { color: var(--sv-text-secondary); font-weight: 500; opacity: 1; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-name input:hover { border-color: var(--sv-text-secondary); }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-name input:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 1px; border-color: var(--sv-brand); }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-name .cart-name-ic { position: absolute; right: 13px; top: 50%; width: 17px; height: 17px; margin-top: -8px; color: var(--sv-text-secondary); pointer-events: none; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-name:focus-within .cart-name-ic { color: var(--sv-brand); }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-title { margin: 8px 2px 0; font-size: 13px; font-weight: 500; color: var(--sv-text-secondary); }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-head .cart-acts { display: flex; gap: 8px; margin-top: 14px; flex-wrap: nowrap; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-head .cart-acts .btn { flex: 1 1 0; justify-content: center; height: 38px; font-size: 13px; font-weight: 600; white-space: nowrap; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-head .cart-acts .btn-primary { order: 0; flex: 1 1 0; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-head { padding: 22px 22px 18px; border-bottom: 1px solid var(--sv-border); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-top { align-items: center; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-h { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-h .count { display: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-tg { border: 1px solid var(--sv-border); border-radius: 8px; width: 32px; height: 32px; min-height: 32px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name { position: relative; display: block; margin: 10px 0 0; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name input { width: 100%; height: 44px; padding: 0 40px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); font: 600 20px var(--sv-font-sans); letter-spacing: -0.02em; color: var(--sv-text); text-overflow: ellipsis; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name input::placeholder { color: var(--sv-text-secondary); font-weight: 500; opacity: 1; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name input:hover { border-color: var(--sv-text-secondary); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name input:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 1px; border-color: var(--sv-brand); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name .cart-name-ic { position: absolute; right: 13px; top: 50%; width: 17px; height: 17px; margin-top: -8px; color: var(--sv-text-secondary); pointer-events: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name:focus-within .cart-name-ic { color: var(--sv-brand); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-title { margin: 8px 2px 0; font-size: 13px; font-weight: 500; color: var(--sv-text-secondary); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-head .cart-acts { display: flex; gap: 8px; margin-top: 14px; flex-wrap: nowrap; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-head .cart-acts .btn { flex: 1 1 0; justify-content: center; height: 38px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-head .cart-acts .btn-primary { order: 0; flex: 1 1 0; }
 
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; background: var(--sv-surface-sunken); scrollbar-width: thin; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-body .cart-items { max-height: none; overflow: visible; padding: 0; gap: 10px; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-body .ci { background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 12px; padding: 9px 8px 9px 4px; grid-template-columns: 20px 20px 62px minmax(0, 1fr) 28px; gap: 8px; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-body .ci .t { border-radius: 7px; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-body .ci-hint { margin: 12px 0 0; text-align: center; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-body .cart-zip { margin: 12px 0 0; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-empty .cart-body { display: flex; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-empty .cart-empty-body { flex: 1; align-self: stretch; justify-content: center; padding: 32px; border: 1.5px dashed var(--sv-border-strong); border-radius: var(--sv-radius-card); gap: 12px; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-empty .ce-ic { width: 44px; height: 44px; border: 0; background: none; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-empty .ce-ic .ic { width: 32px; height: 32px; color: var(--sv-text-secondary); }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-empty .cart-empty-body .meta { max-width: 240px; font-size: 13.5px; line-height: 1.55; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; background: var(--sv-surface-sunken); scrollbar-width: thin; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body .cart-items { max-height: none; overflow: visible; padding: 0; gap: 10px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body .ci { background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 12px; padding: 9px 8px 9px 4px; grid-template-columns: 20px 20px 62px minmax(0, 1fr) 28px; gap: 8px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body .ci .t { border-radius: 7px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body .ci-hint { margin: 12px 0 0; text-align: center; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body .cart-zip { margin: 12px 0 0; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-empty .cart-body { display: flex; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-empty .cart-empty-body { flex: 1; align-self: stretch; justify-content: center; padding: 32px; border: 1.5px dashed var(--sv-border-strong); border-radius: var(--sv-radius-card); gap: 12px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-empty .ce-ic { width: 44px; height: 44px; border: 0; background: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-empty .ce-ic .ic { width: 32px; height: 32px; color: var(--sv-text-secondary); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-empty .cart-empty-body .meta { max-width: 240px; font-size: 13.5px; line-height: 1.55; }
 
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-foot { padding: 12px 18px; border-top: 1px solid var(--sv-border); background: var(--sv-surface); }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-foot .txt { margin: 0 0 6px; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-foot .cart-list-acts { margin: 0; justify-content: space-between; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-foot { padding: 12px 18px; border-top: 1px solid var(--sv-border); background: var(--sv-surface); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-foot .txt { margin: 0 0 6px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-foot .cart-list-acts { margin: 0; justify-content: space-between; }
   /* Closed: the black pill. */
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-pill { display: inline-flex; position: absolute; right: 28px; bottom: 28px; z-index: 55; align-items: center; gap: 10px; height: 50px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--sv-action-bg); color: var(--sv-action-fg); box-shadow: var(--sv-shadow-panel); cursor: pointer; font: 600 14px var(--sv-font-sans); letter-spacing: -0.01em; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-pill:hover { opacity: 0.88; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-pill:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 3px; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-pill .ic { width: 20px; height: 20px; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="wide"]) .cart-pill .pill-n { min-width: 22px; height: 22px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill { display: inline-flex; position: absolute; right: 28px; bottom: 28px; z-index: 55; align-items: center; gap: 10px; height: 50px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--sv-action-bg); color: var(--sv-action-fg); box-shadow: var(--sv-shadow-panel); cursor: pointer; font: 600 14px var(--sv-font-sans); letter-spacing: -0.01em; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:hover { opacity: 0.88; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 3px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill .ic { width: 20px; height: 20px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill .pill-n { min-width: 22px; height: 22px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
 
 
 /* The browse tiles fade at the edge like the card rows above them, to show there is more to scroll to. */
@@ -487,39 +582,39 @@
 /* Phones: the draft deck is a sidebar on the right. Closed, it is off screen and the black pill
    opens it; open, it covers the right side and dims the page. It starts closed on phones. */
 /* container width: compact */
-  .slidevault .sv-app[data-size="compact"] .cart-col, .slidevault .sv-app[data-size="compact"] .cart-col:has(.cart-empty) {
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-col, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-col:has(.cart-empty) {
     display: block; position: absolute; top: 0; bottom: 0; right: 0; left: auto; transform: none;
     width: min(calc(var(--sv-w, 390px) * 0.88), 360px); max-height: none; margin: 0; padding: 0; overflow: hidden; z-index: 60;
     background: var(--sv-surface); border: 0; border-left: 1px solid var(--sv-brand);
     box-shadow: -12px 0 32px -12px rgba(10, 10, 12, 0.45);
     transition: right 0.22s var(--sv-ease-out), visibility 0.22s;
   }
-  .slidevault .sv-app[data-size="compact"] .cart-min .cart-col, .slidevault .sv-app[data-size="compact"] .cart-min .cart-col:has(.cart-empty) {
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart-col, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart-col:has(.cart-empty) {
     right: calc(-1 * min(calc(var(--sv-w, 390px) * 0.88), 360px) - 24px); visibility: hidden; box-shadow: none; padding: 0;
   }
-  .slidevault .sv-app[data-size="compact"] .cart, .slidevault .sv-app[data-size="compact"] .cart-min .cart {
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart {
     display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0;
     height: 100%; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
   }
-  .slidevault .sv-app[data-size="compact"] .cart-head, .slidevault .sv-app[data-size="compact"] .cart-body, .slidevault .sv-app[data-size="compact"] .cart-foot { display: block; }
-  .slidevault .sv-app[data-size="compact"] .cart-body { overscroll-behavior: contain; }
-  .slidevault .sv-app[data-size="compact"] .cart-items { display: grid; max-height: none; }
-  .slidevault .sv-app[data-size="compact"] .cart-tg { display: inline-flex; }
-  .slidevault .sv-app[data-size="compact"] .cart-mini, .slidevault .sv-app[data-size="compact"] .cart-min .cart-mini { display: none; }
-  .slidevault .sv-app[data-size="compact"] .cart-head { padding-top: calc(18px + env(safe-area-inset-top)); }
-  .slidevault .sv-app[data-size="compact"] .cart-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
-  .slidevault .sv-app[data-size="compact"] .cart-top { order: 0; }
-  .slidevault .sv-app[data-size="compact"] .cart .txt { order: 0; flex: none; min-width: 0; }
-  .slidevault .sv-app[data-size="compact"] .cart-pill { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); }
-  .slidevault .sv-app[data-size="compact"] .sv-main { padding-bottom: 96px; }
-  .slidevault .sv-app[data-size="compact"] .toasts, .slidevault .sv-app[data-size="compact"] .toasts.lift { bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-head, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-body, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-foot { display: block; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-body { overscroll-behavior: contain; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-items { display: grid; max-height: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-tg { display: inline-flex; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-mini, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart-mini { display: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-head { padding-top: calc(18px + env(safe-area-inset-top)); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-top { order: 0; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart .txt { order: 0; flex: none; min-width: 0; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-pill { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .sv-main { padding-bottom: 96px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts.lift { bottom: calc(84px + env(safe-area-inset-bottom)); }
 
 @media (prefers-reduced-motion: reduce) {
-  .slidevault .sv-app[data-size="compact"] .cart-col { transition: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-col { transition: none; }
 }
 /* container width: compact */
-  .slidevault .sv-app[data-size="compact"] .grip { touch-action: none; width: 26px; height: 44px; cursor: grab; }
-  .slidevault .sv-app[data-size="compact"] .cart-body .ci { grid-template-columns: 26px 20px 62px minmax(0, 1fr) 28px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .grip { touch-action: none; width: 26px; height: 44px; cursor: grab; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-body .ci { grid-template-columns: 26px 20px 62px minmax(0, 1fr) 28px; }
 
 
 /* Phones: the search label sits above the box, and the example searches are one row you swipe. */
@@ -562,7 +657,7 @@
 .slidevault .auth-screen[data-size="compact"] .auth-foot { margin-top: 12px; gap: 18px; }
 
 /* Draft deck button, a little higher on phones. */
-.slidevault .sv-app[data-size="compact"] .cart-pill { bottom: calc(32px + env(safe-area-inset-bottom)); }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-pill { bottom: calc(32px + env(safe-area-inset-bottom)); }
 
 /* Filters on phones: one swipeable row, every filter opens in a bottom sheet, and a pinned button
    stays in reach once the row has scrolled away. */
@@ -586,4 +681,4 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 
 /* The dim layer behind the draft deck on phones. */
 .slidevault .cart-scrim { display: none; }
-.slidevault .sv-app[data-size="compact"] .cart-scrim { display: block; position: absolute; inset: 0; z-index: 59; padding: 0; border: 0; background: rgba(10, 10, 12, 0.5); cursor: default; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-scrim { display: block; position: absolute; inset: 0; z-index: 59; padding: 0; border: 0; background: rgba(10, 10, 12, 0.5); cursor: default; }
