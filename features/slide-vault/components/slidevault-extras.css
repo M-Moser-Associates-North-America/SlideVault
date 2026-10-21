@@ -714,3 +714,12 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-top, .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .cart-pill { display: none; }
 .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-main { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
 .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts.lift { bottom: calc(76px + env(safe-area-inset-bottom)); }
+
+/* The Draft deck item in the bottom bar is the same black button as on larger screens. */
+.slidevault .sv-bottombar li:last-child { padding: 6px 6px; }
+.slidevault .sv-bottombar .bb-deck { height: 48px; border-radius: 14px; background: var(--sv-action-bg); color: var(--sv-action-fg); box-shadow: var(--sv-shadow-panel); }
+.slidevault .sv-bottombar .bb-deck:hover { opacity: 0.88; }
+.slidevault .sv-bottombar .bb-deck[aria-expanded="true"] { color: var(--sv-action-fg); }
+.slidevault .sv-bottombar .bb-deck[aria-expanded="true"] .ic { color: var(--sv-action-fg); }
+.slidevault .sv-bottombar .bb-deck:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; border-radius: 14px; }
+.slidevault .sv-bottombar .bb-deck .bb-n { top: 3px; left: calc(50% + 8px); }
