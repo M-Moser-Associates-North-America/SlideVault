@@ -192,6 +192,8 @@ export type StoryboardSlide = {
   slide: SlideSummary;
   why: string;
   matched: string[];
+  /** The working behind `why`: the brief's words on the slide, what on it does this part's job, and its deck's details */
+  reasons: { brief: string[]; part: string[]; from: string[] };
   /** What colleagues said about this slide in this part, for similar briefs (FD-24); absent when no one has yet */
   learned?: { useful: number; notRight: number };
 };

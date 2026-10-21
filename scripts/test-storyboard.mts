@@ -45,7 +45,9 @@ const situation = 'We just won a 30-day contract to refit a floor in a building 
   check(new Set(ids).size === ids.length, 'rules: each slide is used once in the whole story', ids);
   check(r.sections.find((s) => s.role === 'client-challenge')!.items[0]?.slide.id === 's-challenge', 'rules: the challenge part opens with the slide about the client\'s objectives');
   check(r.sections.find((s) => s.role === 'insight')!.gap, 'rules: a part with no matching slide is flagged as a gap, not filled with a weak match');
-  check(r.sections.every((s) => s.items.every((i) => i.why.startsWith(s.need))), 'rules: every reason starts with what that part must prove');
+  check(r.sections.every((s) => s.items.every((i) => i.why.length > 0 && !i.why.includes(s.need))), 'rules: every slide has a reason, and it does not repeat what the part must show', r.sections.map((s) => s.items.map((i) => i.why)));
+  const proof = r.sections.find((s) => s.role === 'experience')!.items[0];
+  check(/Does this part's job: .*“case study”/.test(proof?.why ?? '') && proof?.reasons.part.includes('case study'), "rules: the reason says what on the slide does this part's job", proof);
   check(searches.some((p) => p.keywords.includes('phasing')), 'rules: a known situation (short contract, occupied building) adds phasing to the approach search', searches.map((p) => p.keywords));
 }
 

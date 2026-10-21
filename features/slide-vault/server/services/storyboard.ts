@@ -1,7 +1,7 @@
 import type { SlideSummary, StoryboardResult, StoryboardSection, StoryboardSlide } from '../../contracts/dto';
 import { cleanPlan, MAX_KEYWORDS, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
 import { isStopWord } from '../../components/simulation';
-import { STORY_ARC, standInStory, type StoryPlan, type StoryReader } from '../ai/storyboard';
+import { missingContext, STORY_ARC, standInStory, type StoryPlan, type StoryReader } from '../ai/storyboard';
 
 /**
  * Storyboard (docs/DECISIONS.md FD-22): a client situation in, a story out. Each part of the story
@@ -11,6 +11,8 @@ import { STORY_ARC, standInStory, type StoryPlan, type StoryReader } from '../ai
  */
 
 export const SLIDES_PER_SECTION = 3;
+
+const quoted = (words: string[]) => words.map((w) => `“${w}”`).join(', ');
 
 export type StoryboardResponse = StoryboardResult;
 
@@ -62,8 +64,11 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   } else {
     plan = standInStory(text);
   }
-  // Once the person has answered, don't ask again.
-  if (opts.answers?.trim()) plan = { ...plan, questions: [] };
+  // Ask only about what the situation doesn't already say (the audience, the real worry, what a win
+  // looks like): a model left alone asks about things the brief states plainly. Once the person has
+  // answered, don't ask again.
+  const missing = missingContext(text).length;
+  plan = { ...plan, questions: opts.answers?.trim() ? [] : plan.questions.slice(0, missing) };
 
   // What's specific to this client ("hybrid", "sustainability", "desks") is searched on its own and
   // leads every part; the story words ("approach", "case study") decide which part a slide belongs to.
@@ -96,12 +101,20 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     for (const { row, l } of ranked) {
       const { summary, facts } = row;
       if (used.has(summary.id)) continue;
-      // The reason names the client's most telling topics on this slide first, then this part's words.
-      const telling = whyItFits(topics, facts).matched.sort((a, b) => weight(b) - weight(a)).slice(0, 4);
-      const fit = whyItFits(cleanPlan({ keywords: [...telling, ...story.keywords] }, NO_FILTERS), facts);
+      // The reason shows its working, from the slide and its deck only: which of the brief's words
+      // are on it (most telling first), what on it does this part's job, and where it comes from.
+      const brief = whyItFits(topics, facts).matched.sort((a, b) => weight(b) - weight(a)).slice(0, 3);
+      const part = whyItFits(story, facts).matched.filter((k) => !brief.includes(k)).slice(0, 2);
+      const fit = whyItFits(cleanPlan({ keywords: [...brief, ...story.keywords] }, NO_FILTERS), facts);
+      const from = [facts.bestOfTheBest ? 'Best of the Best' : null, facts.category, facts.year ? String(facts.year) : null].filter((x): x is string => !!x);
+      const why = [
+        brief.length ? `Matches your brief: ${quoted(brief)}.` : null,
+        part.length ? `Does this part's job: ${quoted(part)} on the slide.` : null,
+        from.length ? `From a ${from.join(', ')} deck.` : null,
+        l?.useful ? `Colleagues marked it useful for this part on ${l.useful === 1 ? 'a similar brief' : `${l.useful} similar briefs`}.` : null,
+      ].filter(Boolean).join(' ');
       used.add(summary.id);
-      const said = l?.useful ? ` Colleagues marked it useful for this part on ${l.useful === 1 ? 'a similar brief' : `${l.useful} similar briefs`}.` : '';
-      items.push({ slide: summary, why: `${section.need} ${fit.why}${said}`, matched: fit.matched, ...(l ? { learned: l } : {}) });
+      items.push({ slide: summary, why, matched: fit.matched, reasons: { brief, part, from }, ...(l ? { learned: l } : {}) });
       if (items.length >= SLIDES_PER_SECTION) break;
     }
     const label = STORY_ARC.find((a) => a.role === section.role)!.label;

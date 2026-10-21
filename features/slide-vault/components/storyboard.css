@@ -1,6 +1,6 @@
 /* Storyboard tab (FD-22, FD-24). Uses the app's own tokens so it sits in Khushali's system:
    numbered parts in story order, uppercase labels, thin rules, orange only as the accent. */
-.slidevault .sb { padding-bottom: 64px; }
+.slidevault .sb { padding-bottom: 64px; container-type: inline-size; }
 .slidevault .sb-eyebrow, .slidevault .sb-label { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-brand-strong); margin: 0; }
 .slidevault .sb-title { margin: 6px 0 8px; }
 .slidevault .sb-lede { max-width: 64ch; margin: 0 0 20px; }
@@ -20,7 +20,13 @@
 .slidevault .sb-head-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 .slidevault .sb-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
-@media (max-width: 1100px) { .slidevault .sb-layout { grid-template-columns: 1fr; } .slidevault .sb-chat { order: -1; position: static !important; } }
+/* Beside the story only when there's room for three slides and the chat; otherwise the chat sits
+   above the story (the draft deck beside the page takes width too, so this follows the page, not the window). */
+@container (max-width: 1180px) {
+  .slidevault .sb-layout { grid-template-columns: 1fr; }
+  .slidevault .sb-chat { order: -1; position: static; max-height: none; }
+  .slidevault .sb-msgs { max-height: 260px; }
+}
 
 .slidevault .sb-part { border-top: 1px solid var(--sv-border); padding: 20px 0 8px; }
 .slidevault .sb-part:first-child { border-top: 0; padding-top: 4px; }
@@ -29,8 +35,10 @@
 .slidevault .sb-part-title { margin: 4px 0 4px; }
 .slidevault .sb-need { margin: 0 0 12px; color: var(--sv-text-secondary); max-width: 70ch; }
 .slidevault .sb-need b { color: var(--sv-text); font-weight: 600; }
-.slidevault .sb-grid { margin-top: 4px; }
+.slidevault .sb-grid { margin-top: 4px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
 .slidevault .sb-item { display: flex; flex-direction: column; gap: 6px; }
+.slidevault .sb-from { display: flex; gap: 6px; align-items: center; margin: 0; font-size: var(--sv-text-meta); color: var(--sv-text-secondary); }
+.slidevault .sb-from b { color: var(--sv-text); font-weight: 600; }
 .slidevault .sb-feedback { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--sv-text-meta); color: var(--sv-text-secondary); }
 .slidevault .sb-feedback span { margin-right: 2px; }
 .slidevault .sb-thanks { font-size: var(--sv-text-meta); color: var(--sv-text-secondary); margin: 2px 0; }

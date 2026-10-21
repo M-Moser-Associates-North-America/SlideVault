@@ -244,6 +244,10 @@ function Part({ n, section, list, topics }: { n: number; section: StoryboardSect
             {section.items.map(({ slide, why }) => (
               <div key={slide.id} className="sb-item">
                 <SlideCard slide={slide} list={list} why={why} />
+                <p className="sb-from">
+                  <Icon name="file" className="ic-sm" />
+                  From <b>{slide.provenance.sourceTitle}</b>, slide {slide.provenance.slideNumber}
+                </p>
                 <Feedback verdict={said[slide.id]} onSay={(v) => send(slide.id, v)} />
               </div>
             ))}
