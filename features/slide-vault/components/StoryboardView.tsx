@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SlideSummary, StoryboardResult, StoryboardSection, StoryFeedbackVerdict } from '../contracts/dto';
 import { buildStory, sendStoryFeedback, speechAvailable, transcribe } from '../client/api';
+import { takeHandedOffBrief } from '../client/story-handoff';
 import { startRecording, type Recording } from '../client/wav-recorder';
 import { Icon } from './icons';
-import { SlideCard } from './parts';
+import { Link, SlideCard } from './parts';
 import { useWorkspace } from './state';
 import './storyboard.css';
 
@@ -27,7 +28,8 @@ const two = (n: number) => String(n).padStart(2, '0');
 
 export function StoryboardView() {
   const { runtime, updateSelection, toast, announce } = useWorkspace();
-  const [situation, setSituation] = useState('');
+  // A brief typed in search arrives here when the person chose "Build a story instead".
+  const [situation, setSituation] = useState(() => takeHandedOffBrief() ?? '');
   const [read, setRead] = useState(true);
   const [phase, setPhase] = useState<'start' | 'building' | 'ready' | 'error'>('start');
   const [error, setError] = useState('');
@@ -120,6 +122,7 @@ export function StoryboardView() {
   if (phase === 'start' || phase === 'error' || (phase === 'building' && !story))
     return (
       <div className="sv-wrap sb">
+        <BackHome />
         <p className="sb-eyebrow">Storyboard</p>
         <h1 className="h1 sb-title" tabIndex={-1}>
           Start with the client, not the archive.
@@ -162,6 +165,7 @@ export function StoryboardView() {
 
   return (
     <div className="sv-wrap sb">
+      <BackHome />
       <div className="sb-head">
         <div>
           <p className="sb-eyebrow">Storyboard</p>
@@ -212,6 +216,16 @@ const LOADING_STEPS = ['Understanding your brief', 'Matching relevant projects',
  * follow the real call: the brief is understood first, matching runs for as long as the AI takes,
  * and preparing shows when the answer is back. No percentage: the length of the call is unknown.
  */
+/** The Storyboard opens from beside the search bar, not a tab, so it says how to get back. */
+function BackHome() {
+  return (
+    <Link className="btn-link sb-back" to={{ view: 'pages' }}>
+      <Icon name="back" className="ic-sm" />
+      Back to Home
+    </Link>
+  );
+}
+
 function LoadingDialog({ elapsed, preparing, onClose }: { elapsed: number; preparing: boolean; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => closeRef.current?.focus(), []);

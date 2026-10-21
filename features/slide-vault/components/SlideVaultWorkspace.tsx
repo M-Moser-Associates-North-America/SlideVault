@@ -39,7 +39,7 @@ export function SlideVaultWorkspace({ runtime, header }: SlideVaultWorkspaceProp
 }
 
 const TABS: {
-  view: 'pages' | 'story' | 'create' | 'upload';
+  view: 'pages' | 'create' | 'upload';
   label: string;
   icon: IconName;
   tip: string;
@@ -49,12 +49,6 @@ const TABS: {
     label: 'Home',
     icon: 'library',
     tip: 'Browse and search every slide',
-  },
-  {
-    view: 'story',
-    label: 'Storyboard',
-    icon: 'sparkle',
-    tip: "Turn a client's situation into a story of your slides",
   },
   {
     view: 'create',

@@ -100,3 +100,22 @@
 .slidevault .sb-chat-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
 .slidevault .sb-chat-row textarea { flex: 1 1 160px; }
 .slidevault .sb-mic.is-on { border-color: var(--sv-brand); color: var(--sv-brand-strong); background: var(--sv-brand-tint); }
+
+/* The way in, beside the search bar (FD-24). Lays the hero's search and this button out in one row
+   without changing the search itself; when the search moves into the filter row, this goes with it. */
+.slidevault .home-hero:has(.sb-launch) { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; max-width: 1040px; }
+.slidevault .home-hero:has(.sb-launch) > .home-hero-search { flex: 1 1 520px; }
+.slidevault .sb-launch { position: relative; display: flex; flex-direction: column; align-items: flex-start; }
+.slidevault .sb-launch-btn { height: 58px; padding: 0 22px; border-radius: 999px; font-size: 16px; gap: 8px; }
+.slidevault .sb-launch-btn .ic { color: var(--sv-brand); }
+.slidevault .sb-launch-btn.is-glow { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-brand-strong); animation: sb-glow-btn 1.8s ease-in-out infinite, sb-tick 0.5s ease-out 1; }
+.slidevault .sb-launch-hint { position: absolute; top: calc(100% + 8px); right: 0; z-index: 5; display: flex; gap: 6px; align-items: center; white-space: nowrap; margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--sv-surface); border: 1px solid var(--sv-brand); box-shadow: var(--sv-shadow-card); font-size: var(--sv-text-small); }
+.slidevault .sb-launch-hint .ic { color: var(--sv-brand); }
+.slidevault .sb-back { display: inline-flex; gap: 6px; align-items: center; margin: 16px 0 12px; font-size: var(--sv-text-small); }
+@keyframes sb-glow-btn { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sv-brand) 45%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--sv-brand) 0%, transparent); } }
+@keyframes sb-tick { 0% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } 75% { transform: rotate(-2deg); } 100% { transform: rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .slidevault .sb-launch-btn.is-glow { animation: none; } }
+@media (max-width: 640px) {
+  .slidevault .sb-launch, .slidevault .sb-launch-btn { width: 100%; justify-content: center; }
+  .slidevault .sb-launch-hint { position: static; margin-top: 8px; white-space: normal; }
+}

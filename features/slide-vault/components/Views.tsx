@@ -30,6 +30,7 @@ import { shownInFilterRow, withoutChip } from './search-reading';
 import { useRoot } from './root';
 import { simTags, simTier, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
+import { StoryLauncher } from './StoryLauncher';
 
 const ROW_LIMIT = 12;
 
@@ -294,6 +295,7 @@ function HomeHeader() {
           </button>
         </span>
       </form>
+      <StoryLauncher />
     </div>
   );
 }
