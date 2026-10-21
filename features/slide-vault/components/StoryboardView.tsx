@@ -210,12 +210,51 @@ const UNDERSTAND_S = 3;
 /** How long "Preparing your results" shows once the AI has answered, so the last step is seen. */
 const PREPARE_MS = 700;
 const LOADING_STEPS = ['Understanding your brief', 'Matching relevant projects', 'Preparing your results'];
+/**
+ * While a step is the one working, its words change every few seconds, like a person thinking out
+ * loud, so a long AI call never looks stuck. Each line says something the storyboard really does.
+ */
+const STEP_THOUGHTS: string[][] = [
+  ['Understanding your brief', 'Picking out what matters to this client'],
+  [
+    'Matching relevant projects',
+    'Reading slides across every deck',
+    "Finding the client's story",
+    'Weighing proof for each part',
+    'Checking Best of the Best',
+    'Looking for work like this',
+    'Lining up the strongest slides',
+    'Still matching relevant projects',
+  ],
+  ['Preparing your results'],
+];
+const THOUGHT_S = 3;
 
 /**
  * The loading screen (Schiffon's design, 21 Oct): one calm card while the AI works. The steps
  * follow the real call: the brief is understood first, matching runs for as long as the AI takes,
  * and preparing shows when the answer is back. No percentage: the length of the call is unknown.
  */
+/** The working step's changing words, with how long it has been going (screen readers hear the step once). */
+function Thought({ step, elapsed }: { step: number; elapsed: number }) {
+  const lines = STEP_THOUGHTS[step];
+  const since = step === 1 ? Math.max(0, elapsed - UNDERSTAND_S) : elapsed;
+  const line = lines[Math.floor(since / THOUGHT_S) % lines.length];
+  return (
+    <>
+      <span className="sr-only">{LOADING_STEPS[step]}</span>
+      <span key={line} className="sb-thought" aria-hidden="true">
+        {line}…
+      </span>
+      {step === 1 && elapsed >= 5 && (
+        <span className="sb-thought-time" aria-hidden="true">
+          {elapsed}s
+        </span>
+      )}
+    </>
+  );
+}
+
 /** The Storyboard opens from beside the search bar, not a tab, so it says how to get back. */
 function BackHome() {
   return (
@@ -275,9 +314,9 @@ function LoadingDialog({ elapsed, preparing, onClose }: { elapsed: number; prepa
           </span>
           <p className="sb-load-working">Working on your search...</p>
         </div>
-        <ol className="sb-load-steps" aria-live="polite">
+        <ol className="sb-load-steps">
           {LOADING_STEPS.map((label, i) => (
-            <li key={label} className={i < active ? 'is-done' : i === active ? 'is-active' : 'is-todo'}>
+            <li key={label} className={i < active ? 'is-done' : i === active ? 'is-active' : 'is-todo'} aria-current={i === active ? 'step' : undefined}>
               <span className="sb-load-step-ic" aria-hidden="true">
                 {i < active && (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -287,7 +326,7 @@ function LoadingDialog({ elapsed, preparing, onClose }: { elapsed: number; prepa
                 )}
               </span>
               <span className="sr-only">{i < active ? 'Done: ' : i === active ? 'Now: ' : 'Next: '}</span>
-              {label}
+              {i === active ? <Thought step={i} elapsed={elapsed} /> : label}
             </li>
           ))}
         </ol>
