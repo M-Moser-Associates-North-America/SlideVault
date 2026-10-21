@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { SlideSummary, StoryboardResult, StoryboardSection, StoryFeedbackVerdict } from '../contracts/dto';
+import type { SlideSummary, StoryboardResult, StoryboardSection, StoryFeedbackVerdict, StoryRole } from '../contracts/dto';
 import { buildStory, sendStoryFeedback, speechAvailable, transcribe } from '../client/api';
 import { takeHandedOffBrief } from '../client/story-handoff';
 import { startRecording, type Recording } from '../client/wav-recorder';
 import { Icon } from './icons';
-import { Link, SlideCard } from './parts';
+import { Link, SlideCard, Thumb, useCartToggle } from './parts';
 import { useWorkspace } from './state';
 import './storyboard.css';
 
@@ -40,6 +40,13 @@ export function StoryboardView() {
   /** The AI has answered: "Preparing your results" shows for a moment before the story appears */
   const [preparing, setPreparing] = useState(false);
   const before = useRef<'start' | 'ready'>('start');
+  /** "Useful / Not right / No match", keyed "role:slideId" or "role:_part"; shared by the board and the detail */
+  const [said, setSaid] = useState<Record<string, StoryFeedbackVerdict>>({});
+  function say(role: StoryRole, slideId: string | null, verdict: StoryFeedbackVerdict) {
+    if (!story) return;
+    setSaid((cur) => ({ ...cur, [`${role}:${slideId ?? '_part'}`]: verdict }));
+    sendStoryFeedback(runtime, { role, slideId, verdict, topics: story.topics }).catch(() => toast("Couldn't save that. Please try again."));
+  }
   const abort = useRef<AbortController | null>(null);
   const headRef = useRef<HTMLHeadingElement>(null);
 
@@ -65,6 +72,7 @@ export function StoryboardView() {
       await new Promise((r) => setTimeout(r, PREPARE_MS));
       if (controller.signal.aborted) return;
       setPreparing(false);
+      setSaid({});
       setStory(result);
       setPhase('ready');
       setChat((c) => {
@@ -166,27 +174,31 @@ export function StoryboardView() {
   return (
     <div className="sv-wrap sb">
       <BackHome />
-      <div className="sb-head">
+      <header className="sb-board-head">
         <div>
-          <p className="sb-eyebrow">Storyboard</p>
-          <h1 className="h1 sb-title" tabIndex={-1} ref={headRef}>
-            Your story
+          <p className="sb-eyebrow">SlideVault / M Moser Associates</p>
+          <h1 className="sb-board-title" tabIndex={-1} ref={headRef}>
+            <b>Client-first</b> proposal story
           </h1>
           {story?.summary && <p className="lede muted sb-lede">{story.summary}</p>}
         </div>
         {story && (
-          <div className="sb-head-actions">
-            <span className="badge">{story.reader === 'model' ? 'Read by AI' : 'Standard story order'}</span>
-            <button type="button" className="btn" onClick={addStory}>
-              <Icon name="plus" />
-              Add the story to the draft deck
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={startOver}>
-              Start over
-            </button>
+          <div className="sb-board-meta">
+            <p>
+              <span className="sb-accent">{story.reader === 'model' ? 'Read by AI' : 'Standard story order'}</span> · {story.sections.length} parts
+            </p>
+            <div className="sb-head-actions">
+              <button type="button" className="btn" onClick={addStory}>
+                <Icon name="plus" />
+                Add the story to the draft deck
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={startOver}>
+                Start over
+              </button>
+            </div>
           </div>
         )}
-      </div>
+      </header>
       {story?.readerNote && (
         <div className="notice info">
           <Icon name="info" />
@@ -194,12 +206,21 @@ export function StoryboardView() {
         </div>
       )}
 
+      {story && <Board story={story} list={ordered} said={said} onSay={say} />}
       <div className="sb-layout">
         <div className="sb-story" aria-busy={phase === 'building'}>
-          {story?.sections.map((s, i) => <Part key={s.role} n={i + 1} section={s} list={ordered} topics={story.topics} />)}
+          {story && (
+            <>
+              <h2 className="sb-detail-h">Every option, part by part</h2>
+              {story.sections.map((s, i) => (
+                <Part key={s.role} n={i + 1} section={s} list={ordered} said={said} onSay={say} />
+              ))}
+            </>
+          )}
         </div>
         <ChatPanel chat={chat} busy={phase === 'building'} onSend={reply} />
       </div>
+      <p className="sb-board-foot">Slides come from your library and are shown as they are. Proof marked needed has no slide yet.</p>
       {loading}
     </div>
   );
@@ -335,22 +356,114 @@ function LoadingDialog({ elapsed, preparing, onClose }: { elapsed: number; prepa
   );
 }
 
-function Part({ n, section, list, topics }: { n: number; section: StoryboardSection; list: SlideSummary[]; topics: string[] }) {
-  const { runtime, toast } = useWorkspace();
-  const [said, setSaid] = useState<Record<string, StoryFeedbackVerdict>>({});
-  const send = (slideId: string | null, verdict: StoryFeedbackVerdict) => {
-    setSaid((s) => ({ ...s, [slideId ?? '_part']: verdict }));
-    sendStoryFeedback(runtime, { role: section.role, slideId, verdict, topics }).catch(() => toast("Couldn't save that. Please try again."));
-  };
+type Say = (role: StoryRole, slideId: string | null, verdict: StoryFeedbackVerdict) => void;
+
+/**
+ * The story as a board (Schiffon's "Proof-led proposal story" design): one framed card per part,
+ * in order, its lead slide as the picture, then the part's number, heading, what it must show,
+ * where the slide came from, and Useful / Not right / No match. A part with no slide shows the
+ * "proof needed" frame.
+ */
+function Board({ story, list, said, onSay }: { story: StoryboardResult; list: SlideSummary[]; said: Record<string, StoryFeedbackVerdict>; onSay: Say }) {
+  const total = two(story.sections.length);
+  return (
+    <ol className="sb-board">
+      {story.sections.map((s, i) => (
+        <BoardCard key={s.role} n={i + 1} total={total} section={s} list={list} said={said} onSay={onSay} />
+      ))}
+    </ol>
+  );
+}
+
+function BoardCard({ n, total, section, list, said, onSay }: { n: number; total: string; section: StoryboardSection; list: SlideSummary[]; said: Record<string, StoryFeedbackVerdict>; onSay: Say }) {
+  const { openPreview } = useWorkspace();
+  const { isSelected, set } = useCartToggle();
+  const lead = section.items[0];
+  const verdict = lead ? said[`${section.role}:${lead.slide.id}`] : undefined;
+  const none = said[`${section.role}:_part`];
+  const picked = lead ? isSelected(lead.slide.id) : false;
+  return (
+    <li className="sb-card">
+      <div className="sb-frame">
+        <div className="sb-frame-top">
+          <span>{section.label}</span>
+          <span className="sb-accent">MM / SV</span>
+        </div>
+        {lead ? (
+          <button
+            type="button"
+            className="sb-frame-pic"
+            aria-label={`Preview: ${lead.slide.title}`}
+            onClick={() => openPreview(list, Math.max(0, list.findIndex((x) => x.id === lead.slide.id)))}
+          >
+            <Thumb slide={lead.slide} />
+          </button>
+        ) : (
+          <div className="sb-frame-pic sb-frame-gap" aria-label="Proof needed: no slide yet">
+            <span>
+              Proof
+              <br />
+              needed
+            </span>
+          </div>
+        )}
+        <div className="sb-frame-bottom">
+          <span>SlideVault / Storyboard</span>
+          <span>
+            {two(n)} — {total}
+          </span>
+        </div>
+      </div>
+      <h3 className="sb-card-title">
+        <span className="sb-n">{two(n)}</span> {section.title}
+      </h3>
+      <p className="sb-card-need">{section.need}</p>
+      {lead && (
+        <p className="sb-card-why">
+          <b>Why this slide:</b> {lead.why || 'It does this part’s job in the library’s words.'}
+          <br />
+          <span className="muted">
+            From {lead.slide.provenance.sourceTitle}, slide {lead.slide.provenance.slideNumber}
+          </span>
+        </p>
+      )}
+      <p className={`sb-tag${section.gap ? ' is-needed' : ''}`}>{section.gap ? 'Proof needed' : section.label}</p>
+      {lead && (
+        <div className="sb-card-actions">
+          <button type="button" className={`sb-chip${picked ? ' is-on' : ''}`} aria-pressed={picked} onClick={() => set(lead.slide, !picked)}>
+            {picked ? 'In draft deck' : '+ Add'}
+          </button>
+          {verdict || none ? (
+            <span className="sb-thanks">{none ? 'Noted: no match.' : verdict === 'useful' ? 'Marked useful.' : 'Noted: not right.'}</span>
+          ) : (
+            <>
+              <button type="button" className="sb-chip" onClick={() => onSay(section.role, lead.slide.id, 'useful')}>
+                Useful
+              </button>
+              <button type="button" className="sb-chip" onClick={() => onSay(section.role, lead.slide.id, 'not-right')}>
+                Not right
+              </button>
+              <button type="button" className="sb-chip" onClick={() => onSay(section.role, null, 'nothing-fits')}>
+                No match
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+function Part({ n, section, list, said, onSay }: { n: number; section: StoryboardSection; list: SlideSummary[]; said: Record<string, StoryFeedbackVerdict>; onSay: Say }) {
   return (
     <section className="sb-part" aria-labelledby={`sb-p${n}`}>
       <div className="sb-part-head">
         <span className="sb-n">{two(n)}</span>
         <span className="sb-label">{section.label}</span>
       </div>
-      <h2 className="h2 sb-part-title" id={`sb-p${n}`}>
+      <h3 className="h2 sb-part-title" id={`sb-p${n}`}>
         {section.title}
-      </h2>
+      </h3>
       <p className="sb-need">
         <b>This part must show:</b> {section.need.replace(/^Show /, '').replace(/\.$/, '')}.
       </p>
@@ -374,14 +487,14 @@ function Part({ n, section, list, topics }: { n: number; section: StoryboardSect
                     From <b>{slide.provenance.sourceTitle}</b>, slide {slide.provenance.slideNumber}
                   </span>
                 </p>
-                <Feedback verdict={said[slide.id]} onSay={(v) => send(slide.id, v)} />
+                <Feedback verdict={said[`${section.role}:${slide.id}`]} onSay={(v) => onSay(section.role, slide.id, v)} />
               </div>
             ))}
           </div>
-          {said._part ? (
+          {said[`${section.role}:_part`] ? (
             <p className="sb-thanks">Thanks. We&apos;ll look for better proof for this part.</p>
           ) : (
-            <button type="button" className="btn btn-link sb-none" onClick={() => send(null, 'nothing-fits')}>
+            <button type="button" className="btn btn-link sb-none" onClick={() => onSay(section.role, null, 'nothing-fits')}>
               None of these fit this part
             </button>
           )}
