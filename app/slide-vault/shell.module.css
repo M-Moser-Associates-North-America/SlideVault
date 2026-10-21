@@ -278,7 +278,7 @@
 /* Phones: logo, name and buttons share one tidy block, and the tagline runs full width below it. */
 @media (max-width: 600px) {
   .header {
-    padding: 16px 0 12px;
+    padding: 32px 0 12px;
   }
   .headerInner {
     display: grid;
@@ -322,10 +322,11 @@
     letter-spacing: 0.1em;
   }
   .tagline {
-    grid-column: 1 / -1;
+    grid-column: 2 / -1;
     grid-row: 3;
     margin-top: 0 !important;
-    font-size: 13.5px;
+    font-size: 12px;
+    font-style: italic;
     line-height: 1.4;
   }
   .tools {

@@ -590,3 +590,24 @@
   .slidevault .sv-app[data-size="compact"] .draft-txt { flex: 1 1 0; }
   .slidevault .sv-app[data-size="compact"] .draft-acts, .slidevault .sv-app[data-size="compact"] .draft-item .cart-confirm { flex: 1 1 100%; justify-content: flex-end; }
 
+
+/* Sign-in in a narrow space: the logo sits inside the card and everything fits one screen. */
+.slidevault .auth-screen[data-size="compact"] { min-height: 100dvh; padding: 16px; align-items: center; }
+.slidevault .auth-screen[data-size="compact"] .auth-col { background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: var(--sv-radius-panel); box-shadow: var(--sv-shadow-panel); padding: 18px 18px 12px; }
+.slidevault .auth-screen[data-size="compact"] .auth-brand { margin-bottom: 12px; }
+.slidevault .auth-screen[data-size="compact"] .auth-brand .ic { width: 24px; height: 24px; }
+.slidevault .auth-screen[data-size="compact"] .auth-wordmark { font-size: 22px; }
+.slidevault .auth-screen[data-size="compact"] .auth-card { padding: 0; border: 0; border-radius: 0; box-shadow: none; background: none; }
+.slidevault .auth-screen[data-size="compact"] .auth-head { margin-bottom: 12px; }
+.slidevault .auth-screen[data-size="compact"] .auth-title { margin: 6px 0 4px; font-size: 20px; }
+.slidevault .auth-screen[data-size="compact"] .auth-sim { margin: 0 0 12px; padding: 8px 12px; }
+.slidevault .auth-screen[data-size="compact"] .auth-sim-title { font-size: 15px; }
+.slidevault .auth-screen[data-size="compact"] .auth-sim-note { margin-top: 2px; font-size: 12.5px; }
+.slidevault .auth-screen[data-size="compact"] .auth-form { gap: 12px; }
+.slidevault .auth-screen[data-size="compact"] .auth-field { gap: 5px; }
+.slidevault .auth-screen[data-size="compact"] .auth-submit { height: 44px; margin-top: 0; }
+.slidevault .auth-screen[data-size="compact"] .auth-switch { margin-top: 12px; padding-top: 12px; }
+.slidevault .auth-screen[data-size="compact"] .auth-foot { margin-top: 12px; gap: 18px; }
+
+/* Draft deck button, a little higher on phones. */
+.slidevault .sv-app[data-size="compact"] .cart-min .cart-pill { bottom: calc(32px + env(safe-area-inset-bottom)); }

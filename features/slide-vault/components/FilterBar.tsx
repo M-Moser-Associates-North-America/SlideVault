@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type RefObject } from 'react';
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, countBy, filterCount, slideMatches, yearOf, type Filters } from './library';
 import { SimFlag } from './parts';
@@ -26,14 +26,18 @@ const YEAR_PRESETS: [number, string][] = [
 
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
-/** Hide on scroll down, show on any scroll up, always show near the top of the page. */
-function useHideOnScrollDown(onHide: () => void): boolean {
+/**
+ * Once the filter row has scrolled up and stuck to the top, hide it on scroll down and show it on any
+ * scroll up. Before that it stays in its place, so it never slides over the search above it.
+ */
+function useHideOnScrollDown(onHide: () => void, row: RefObject<HTMLElement | null>, top: number): boolean {
   const [hidden, setHidden] = useState(false);
   useEffect(() => {
     let last = window.scrollY;
     const onScroll = () => {
       const y = window.scrollY;
-      if (y < 120) setHidden(false);
+      const stuck = (row.current?.getBoundingClientRect().top ?? 1) <= top + 1;
+      if (!stuck) setHidden(false);
       else if (y > last + 4) {
         setHidden(true);
         onHide();
@@ -43,7 +47,7 @@ function useHideOnScrollDown(onHide: () => void): boolean {
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, [onHide]);
+  }, [onHide, row, top]);
   return hidden;
 }
 
@@ -116,9 +120,9 @@ export function FilterBar() {
   const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search } = useWorkspace();
   const [open, setOpen] = useState<Key | null>(null);
   const closeOnHide = useCallback(() => setOpen(null), []);
-  const hidden = useHideOnScrollDown(closeOnHide);
-  const top = useTopOffset();
   const wrap = useRef<HTMLDivElement>(null);
+  const top = useTopOffset();
+  const hidden = useHideOnScrollDown(closeOnHide, wrap, top);
   const nowYear = new Date().getFullYear();
 
   const slides = useMemo(() => (library.status === 'ready' ? library.slides : []), [library]);

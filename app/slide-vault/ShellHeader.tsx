@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { startTour, useProfile } from '@/features/slide-vault';
-import { ThemeToggle, useTheme } from './theme';
+import { useTheme } from './theme';
 import styles from './shell.module.css';
 
 /**
@@ -12,7 +12,7 @@ import styles from './shell.module.css';
  * signing in. Hidden on the sign-in screens, which show their own logo.
  */
 export function ShellHeader() {
-  const { theme } = useTheme();
+  const { theme, toggle: toggleTheme } = useTheme();
   const { profile, signOut } = useProfile();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -75,7 +75,6 @@ export function ShellHeader() {
                 <path d="M12 17.4h.01" />
               </svg>
             </button>
-            <ThemeToggle className={styles.themeButton} />
             <div className={styles.menuWrap} ref={wrap}>
               <button type="button" className={styles.avatarBtn} aria-haspopup="menu" aria-expanded={open} aria-label={`Account menu, signed in as ${profile}`} onClick={() => setOpen((o) => !o)}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -119,6 +118,27 @@ export function ShellHeader() {
                       <circle cx="12" cy="12" r="3" />
                     </svg>
                     Settings
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.menuItem}
+                    onClick={() => {
+                      setOpen(false);
+                      toggleTheme();
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      {theme === 'dark' ? (
+                        <>
+                          <circle cx="12" cy="12" r="4" />
+                          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                        </>
+                      ) : (
+                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                      )}
+                    </svg>
+                    {theme === 'dark' ? 'Light mode' : 'Dark mode'}
                   </button>
                   <button
                     type="button"
