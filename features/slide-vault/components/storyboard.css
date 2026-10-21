@@ -23,9 +23,9 @@
 /* Beside the story only when there's room for three slides and the chat; otherwise the chat sits
    above the story (the draft deck beside the page takes width too, so this follows the page, not the window). */
 @container (max-width: 1180px) {
-  .slidevault .sb-layout { grid-template-columns: 1fr; }
-  .slidevault .sb-chat { order: -1; position: static; max-height: none; }
-  .slidevault .sb-msgs { max-height: 260px; }
+  .slidevault .sb .sb-layout { grid-template-columns: 1fr; }
+  .slidevault .sb .sb-chat { order: -1; position: static; max-height: none; }
+  .slidevault .sb .sb-msgs { max-height: 260px; }
 }
 
 .slidevault .sb-part { border-top: 1px solid var(--sv-border); padding: 20px 0 8px; }

@@ -246,7 +246,9 @@ function Part({ n, section, list, topics }: { n: number; section: StoryboardSect
                 <SlideCard slide={slide} list={list} why={why} />
                 <p className="sb-from">
                   <Icon name="file" className="ic-sm" />
-                  From <b>{slide.provenance.sourceTitle}</b>, slide {slide.provenance.slideNumber}
+                  <span>
+                    From <b>{slide.provenance.sourceTitle}</b>, slide {slide.provenance.slideNumber}
+                  </span>
                 </p>
                 <Feedback verdict={said[slide.id]} onSay={(v) => send(slide.id, v)} />
               </div>

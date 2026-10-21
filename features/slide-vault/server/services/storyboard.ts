@@ -110,7 +110,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       const why = [
         brief.length ? `Matches your brief: ${quoted(brief)}.` : null,
         part.length ? `Does this part's job: ${quoted(part)} on the slide.` : null,
-        from.length ? `From a ${from.join(', ')} deck.` : null,
+        from.length ? `Deck: ${from.join(' · ')}.` : null,
         l?.useful ? `Colleagues marked it useful for this part on ${l.useful === 1 ? 'a similar brief' : `${l.useful} similar briefs`}.` : null,
       ].filter(Boolean).join(' ');
       used.add(summary.id);
