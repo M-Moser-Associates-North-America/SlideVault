@@ -427,7 +427,8 @@ function BoardCard({ n, total, section, list, said, onSay }: { n: number; total:
           </span>
         </p>
       )}
-      <p className={`sb-tag${section.gap ? ' is-needed' : ''}`}>{section.gap ? 'Proof needed' : section.label}</p>
+      {/* What kind of evidence the lead slide is: about this client's brief, or a fit for this part of any story */}
+      <p className={`sb-tag${section.gap ? ' is-needed' : ''}`}>{section.gap ? 'Proof needed' : lead?.reasons.brief.length ? 'Matches the brief' : 'Fits the story'}</p>
       {lead && (
         <div className="sb-card-actions">
           <button type="button" className={`sb-chip${picked ? ' is-on' : ''}`} aria-pressed={picked} onClick={() => set(lead.slide, !picked)}>

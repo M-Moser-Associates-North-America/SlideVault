@@ -161,8 +161,8 @@
 .slidevault .sb-tag::before { content: ''; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--sv-brand); }
 .slidevault .sb-tag.is-needed { color: var(--sv-brand-strong); }
 .slidevault .sb-tag.is-needed::before { background: var(--sv-brand); }
-.slidevault .sb-card-actions { padding-left: 26px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; }
-.slidevault .sb-chip { font: inherit; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 9px; border: 1px solid var(--sv-border-strong); background: var(--sv-surface); color: var(--sv-text); cursor: pointer; }
+.slidevault .sb-card-actions { padding-left: 26px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 4px; }
+.slidevault .sb-chip { font: inherit; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; padding: 5px 7px; border: 1px solid var(--sv-border-strong); background: var(--sv-surface); color: var(--sv-text); cursor: pointer; }
 .slidevault .sb-chip:hover { border-color: var(--sv-brand); }
 .slidevault .sb-chip:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 1px; }
 .slidevault .sb-chip.is-on { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
