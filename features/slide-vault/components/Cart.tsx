@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type DragEvent, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
 import { Icon } from './icons';
 import { downloadPlan, plural } from './library';
 import { Link, Thumb } from './parts';
@@ -11,7 +11,7 @@ import { useWorkspace } from './state';
  * Collapsed to a thin rail by default; opens by itself the first time a slide is added.
  */
 export function Cart() {
-  const { selection, updateSelection, excluded, setIncluded, setCartMin, draftTitle, setDraftTitle, openDownload, openPreview, announce, saveDraft, toast, runtime } = useWorkspace();
+  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, openDownload, openPreview, announce, saveDraft, toast, runtime } = useWorkspace();
   const n = selection.length;
   const included = selection.filter((s) => !excluded.has(s.id));
   const plan = downloadPlan(included);
@@ -70,8 +70,8 @@ export function Cart() {
   };
 
   /** Where would a drop at pointer height y land? Index among the other items, plus which line to draw. */
-  const dropAt = (y: number): { index: number; id: string | null; after: boolean } => {
-    const items = [...(listRef.current?.querySelectorAll<HTMLElement>('.ci') ?? [])].filter((li) => li.dataset.id !== dragId);
+  const dropAt = (y: number, skip: string | null = dragId): { index: number; id: string | null; after: boolean } => {
+    const items = [...(listRef.current?.querySelectorAll<HTMLElement>('.ci') ?? [])].filter((li) => li.dataset.id !== skip);
     for (let i = 0; i < items.length; i++) {
       const b = items[i].getBoundingClientRect();
       if (y < b.top + b.height / 2) return { index: i, id: items[i].dataset.id ?? null, after: false };
@@ -83,22 +83,38 @@ export function Cart() {
     };
   };
 
-  const onDragOver = (e: DragEvent) => {
-    if (!dragId) return;
+  /* Dragging starts from the handle with a pointer (finger or mouse), so it works on touch screens too. */
+  const startDrag = (e: PointerEvent<HTMLButtonElement>, id: string) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    const d = dropAt(e.clientY);
-    setMark(d.id ? { id: d.id, after: d.after } : null);
-  };
-  const onDrop = (e: DragEvent) => {
-    if (!dragId) return;
-    e.preventDefault();
-    const id = dragId;
-    const d = dropAt(e.clientY);
-    setDragId(null);
-    setMark(null);
-    focusGrip.current = id;
-    move(id, d.index);
+    const grip = e.currentTarget;
+    grip.setPointerCapture(e.pointerId);
+    setDragId(id);
+    const scroller = listRef.current?.closest<HTMLElement>('.cart-body');
+    const over = (ev: globalThis.PointerEvent) => {
+      const d = dropAt(ev.clientY, id);
+      setMark(d.id ? { id: d.id, after: d.after } : null);
+      if (scroller) {
+        const r = scroller.getBoundingClientRect();
+        if (ev.clientY < r.top + 48) scroller.scrollTop -= 12;
+        else if (ev.clientY > r.bottom - 48) scroller.scrollTop += 12;
+      }
+    };
+    const finish = (ev: globalThis.PointerEvent) => {
+      grip.removeEventListener('pointermove', over);
+      grip.removeEventListener('pointerup', finish);
+      grip.removeEventListener('pointercancel', finish);
+      const d = dropAt(ev.clientY, id);
+      setDragId(null);
+      setMark(null);
+      if (ev.type === 'pointerup' && d.index !== selection.findIndex((x) => x.id === id)) {
+        focusGrip.current = id;
+        move(id, d.index);
+      }
+    };
+    grip.addEventListener('pointermove', over);
+    grip.addEventListener('pointerup', finish);
+    grip.addEventListener('pointercancel', finish);
   };
 
   const onGripKey = (e: KeyboardEvent, id: string, i: number) => {
@@ -147,6 +163,24 @@ export function Cart() {
     setCartMin(false);
     requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart .cart-tg')?.focus());
   };
+
+  /* On phones the open draft deck covers the page: a tap outside it, or Escape, closes it. */
+  useEffect(() => {
+    if (cartMin) return;
+    const phone = window.matchMedia('(max-width: 700px)');
+    const onDown = (e: globalThis.PointerEvent) => {
+      if (phone.matches && !(e.target as Element).closest('.cart-col')) setCartMin(true);
+    };
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (phone.matches && e.key === 'Escape' && !document.querySelector('dialog[open]')) closeCart();
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  });
 
   const toggleButton = (
     <button type="button" className="btn btn-ghost btn-icon btn-sm cart-tg" aria-label="Close draft deck" onClick={closeCart}>
@@ -214,41 +248,18 @@ export function Cart() {
           </div>
         </div>
         <div className="cart-body">
-          <ul
-            ref={listRef}
-            className="cart-items"
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-            onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setMark(null)}
-          >
+          <ul ref={listRef} className="cart-items">
             {selection.map((s, i) => {
               const off = excluded.has(s.id);
               const cls = ['ci', off ? 'off' : '', dragId === s.id ? 'dragging' : '', mark?.id === s.id ? (mark.after ? 'drop-after' : 'drop-before') : ''].filter(Boolean).join(' ');
               return (
-                <li
-                  key={s.id}
-                  className={cls}
-                  draggable
-                  data-id={s.id}
-                  onDragStart={(e) => {
-                    setDragId(s.id);
-                    e.dataTransfer.effectAllowed = 'move';
-                    try {
-                      e.dataTransfer.setData('text/plain', s.id);
-                    } catch {
-                      /* some browsers refuse; the drag still works from state */
-                    }
-                  }}
-                  onDragEnd={() => {
-                    setDragId(null);
-                    setMark(null);
-                  }}
-                >
+                <li key={s.id} className={cls} data-id={s.id}>
                   <button
                     type="button"
                     className="grip"
                     data-id={s.id}
                     title="Drag to reorder"
+                    onPointerDown={(e) => startDrag(e, s.id)}
                     aria-label={`Reorder: ${s.title}, position ${i + 1} of ${n}. Press up or down arrow to move.`}
                     onKeyDown={(e) => onGripKey(e, s.id, i)}
                   >
@@ -272,7 +283,7 @@ export function Cart() {
               );
             })}
           </ul>
-          {n > 1 && <p className="ci-hint">Drag to reorder. Slides download in this order.</p>}
+          {n > 1 && <p className="ci-hint">Drag the handle to reorder. Slides download in this order.</p>}
           {plan.zip && (
             <div className="cart-zip">
               <span className="tipw">

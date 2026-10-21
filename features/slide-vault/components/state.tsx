@@ -187,7 +187,8 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
 
   /* Open from the start so a first-time visitor sees where slides collect. It only closes when the
      person closes it, and only opens again when they open it. */
-  const [cartMin, setCartMin] = useState(false);
+  /* The draft deck starts open on wide screens and closed on phones, where it covers the page. */
+  const [cartMin, setCartMin] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 700px)').matches);
   /* The draft deck's name, edited at the top of the panel; it also fills the Save as draft box. */
   const [draftTitle, setDraftTitle] = useState('');
 

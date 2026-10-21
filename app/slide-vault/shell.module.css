@@ -274,3 +274,64 @@
   font-size: 14.5px;
 }
 
+
+/* Phones: logo, name and buttons share one tidy block, and the tagline runs full width below it. */
+@media (max-width: 600px) {
+  .header {
+    padding: 16px 0 12px;
+  }
+  .headerInner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 12px;
+    row-gap: 8px;
+    align-items: center;
+    padding: 0 16px;
+  }
+  .logo {
+    grid-row: 1 / span 2;
+    width: 38px;
+    height: 38px;
+    margin-top: 0;
+    border-radius: 12px;
+  }
+  .title {
+    display: contents;
+  }
+  .eyebrow {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+  .nameRow {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    margin-top: 0 !important;
+  }
+  .brand {
+    font-size: 22px;
+  }
+  .tag {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+  .tagline {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 0 !important;
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
+  .tools {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    gap: 6px;
+    margin-left: 0;
+  }
+}

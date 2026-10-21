@@ -455,7 +455,7 @@
  * that says "Draft deck" (with an orange count). Same functions as before; only the look changed.
  * Phones keep the older bottom bar (slidevault.css), so the new parts only apply from 1101px up. */
 .slidevault .cart-pill { display: none; }
-@media (max-width: 1100px) {
+@media (min-width: 701px) and (max-width: 1100px) {
   .slidevault .cart-head, .slidevault .cart-body, .slidevault .cart-foot { display: contents; }
   .slidevault .cart-title, .slidevault .cart-name { display: none; }
 }
@@ -470,6 +470,15 @@
   .slidevault .cart-col { top: var(--cart-top, 47px); }
   .slidevault .cart { gap: 0; height: var(--cart-room, calc(100vh - 179px)); }
 
+
+  .slidevault .toasts.lift, .slidevault .toasts { bottom: 16px; }
+  .slidevault .sv-app:has(.cart-min) .toasts { bottom: 92px; }
+  .slidevault .sv-app:not(:has(.cart-min)) .toasts { right: 376px; }
+}
+
+/* The draft deck's inside (header, list, footer, black pill): the same on desktop and phones.
+   Tablet widths keep the older layout until they are reworked. */
+@media (max-width: 700px), (min-width: 1101px) {
   .slidevault .cart-head { padding: 22px 22px 18px; border-bottom: 1px solid var(--sv-border); }
   .slidevault .cart-top { align-items: center; }
   .slidevault .cart-h { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; }
@@ -502,16 +511,12 @@
   .slidevault .cart-foot { padding: 12px 18px; border-top: 1px solid var(--sv-border); background: var(--sv-surface); }
   .slidevault .cart-foot .txt { margin: 0 0 6px; }
   .slidevault .cart-foot .cart-list-acts { margin: 0; justify-content: space-between; }
-
   /* Closed: the black pill. */
   .slidevault .cart-min .cart-pill { display: inline-flex; position: fixed; right: 28px; bottom: 28px; z-index: 55; align-items: center; gap: 10px; height: 50px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--sv-action-bg); color: var(--sv-action-fg); box-shadow: var(--sv-shadow-panel); cursor: pointer; font: 600 14px var(--sv-font-sans); letter-spacing: -0.01em; }
   .slidevault .cart-pill:hover { opacity: 0.88; }
   .slidevault .cart-pill:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 3px; }
   .slidevault .cart-pill .ic { width: 20px; height: 20px; }
   .slidevault .cart-pill .pill-n { min-width: 22px; height: 22px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
-  .slidevault .toasts.lift, .slidevault .toasts { bottom: 16px; }
-  .slidevault .sv-app:has(.cart-min) .toasts { bottom: 92px; }
-  .slidevault .sv-app:not(:has(.cart-min)) .toasts { right: 376px; }
 }
 
 /* The browse tiles fade at the edge like the card rows above them, to show there is more to scroll to. */
@@ -528,3 +533,62 @@
 /* Draft deck, dark mode: the grey secondary text and the name placeholder were hard to read on the dark panel. */
 .slidevault[data-theme="dark"] .cart-col, .dark .slidevault:not([data-theme="light"]) .cart-col { --sv-text-secondary: #d6d6da; }
 .slidevault[data-theme="dark"] .cart-name input::placeholder, .dark .slidevault:not([data-theme="light"]) .cart-name input::placeholder { color: #c9c9ce; opacity: 1; }
+
+/* Phones: the draft deck is a sidebar on the right. Closed, it is off screen and the black pill
+   opens it; open, it covers the right side and dims the page. It starts closed on phones. */
+@media (max-width: 700px) {
+  .slidevault .cart-col, .slidevault .cart-col:has(.cart-empty) {
+    display: block; position: fixed; top: 0; bottom: 0; right: 0; left: auto; transform: none;
+    width: min(88vw, 360px); max-height: none; margin: 0; padding: 0; overflow: hidden; z-index: 60;
+    background: var(--sv-surface); border: 0; border-left: 1px solid var(--sv-brand);
+    box-shadow: 0 0 0 100vmax rgba(10, 10, 12, 0.5);
+    transition: right 0.22s var(--sv-ease-out), visibility 0.22s;
+  }
+  .slidevault .cart-min .cart-col, .slidevault .cart-min .cart-col:has(.cart-empty) {
+    right: calc(-1 * min(88vw, 360px) - 12px); visibility: hidden; box-shadow: none; padding: 0;
+  }
+  .slidevault .cart, .slidevault .cart-min .cart {
+    display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0;
+    height: 100%; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
+  }
+  .slidevault .cart-head, .slidevault .cart-body, .slidevault .cart-foot { display: block; }
+  .slidevault .cart-body { overscroll-behavior: contain; }
+  .slidevault .cart-items { display: grid; max-height: none; }
+  .slidevault .cart-tg { display: inline-flex; }
+  .slidevault .cart-mini, .slidevault .cart-min .cart-mini { display: none; }
+  .slidevault .cart-head { padding-top: calc(18px + env(safe-area-inset-top)); }
+  .slidevault .cart-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .slidevault .cart-top { order: 0; }
+  .slidevault .cart .txt { order: 0; flex: none; min-width: 0; }
+  .slidevault .cart-min .cart-pill { visibility: visible; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .slidevault .sv-main { padding-bottom: 96px; }
+  .slidevault .toasts, .slidevault .toasts.lift { bottom: calc(84px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 700px) and (prefers-reduced-motion: reduce) {
+  .slidevault .cart-col { transition: none; }
+}
+@media (max-width: 700px) {
+  .slidevault .grip { touch-action: none; width: 26px; height: 44px; cursor: grab; }
+  .slidevault .cart-body .ci { grid-template-columns: 26px 20px 62px minmax(0, 1fr) 28px; }
+}
+
+/* Phones: the search label sits above the box, and the example searches are one row you swipe. */
+@media (max-width: 600px) {
+  .slidevault .home-hero { padding-top: 20px; }
+  .slidevault .home-hero-search { flex-direction: column; align-items: stretch; gap: 8px; }
+  .slidevault .home-hero-prefix { font-size: 20px; }
+  .slidevault .home-hero-field { padding-left: 18px; }
+  .slidevault .home-hero-anim { left: 18px; }
+  .slidevault .home-hero-try { flex-wrap: nowrap; }
+  .slidevault .home-hero-try > span { flex: none; }
+  .slidevault .home-hero-try ul { flex-wrap: nowrap; overflow-x: auto; min-width: 0; padding-bottom: 4px; scrollbar-width: none; }
+  .slidevault .home-hero-try ul::-webkit-scrollbar { display: none; }
+  .slidevault .home-hero-try ul li { flex: none; }
+}
+
+/* Phones: a working draft's buttons drop under its name instead of squeezing it. */
+@media (max-width: 600px) {
+  .slidevault .draft-item { flex-wrap: wrap; row-gap: 10px; }
+  .slidevault .draft-txt { flex: 1 1 0; }
+  .slidevault .draft-acts, .slidevault .draft-item .cart-confirm { flex: 1 1 100%; justify-content: flex-end; }
+}
