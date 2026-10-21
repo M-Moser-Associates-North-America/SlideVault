@@ -47,6 +47,9 @@ type Workspace = {
   setCartMin: (min: boolean) => void;
   draftTitle: string;
   setDraftTitle: (title: string) => void;
+  /** Put slides from several decks into one .pptx instead of a zip (off until chosen). Only matters when the slides come from more than one deck. */
+  combine: boolean;
+  setCombine: (on: boolean) => void;
   toasts: Toast[];
   toast: (message: string) => void;
   dismissToast: (id: number) => void;
@@ -78,9 +81,16 @@ type Workspace = {
   activityOptedIn: boolean | null;
   /** Turn tracking on or off. Off deletes everything recorded for this person. */
   setActivityOptIn: (on: boolean) => Promise<void>;
+  /** How long recorded activity is kept, as the server reports it; null until it has answered */
+  activityRetentionDays: number | null;
   /** Working drafts: named sets of slides saved from the draft deck, kept under My decks. */
   drafts: Draft[];
-  saveDraft: (name: string, slides: SlideSummary[]) => void;
+  /** Save the draft deck as a new deck in My decks. Resolves to the saved deck's id. */
+  saveDraft: (name: string, slides: SlideSummary[]) => Promise<string | null>;
+  /** Re-save an older deck with the draft deck's slides (and a name). */
+  replaceDraft: (id: string, name: string, slides: SlideSummary[]) => Promise<void>;
+  /** The saved deck the draft deck came from (opened from My decks, or saved from here), while the draft deck has slides in it. */
+  draftOrigin: Draft | null;
   deleteDraft: (id: string) => void;
   /** Replace the draft deck with a saved draft's slides. Returns how many slides were found. */
   loadDraft: (draft: Draft) => number;
@@ -185,9 +195,10 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
 
   /* Open from the start so a first-time visitor sees where slides collect. It only closes when the
      person closes it, and only opens again when they open it. */
-  const [cartMin, setCartMin] = useState(false);
+    const [cartMin, setCartMin] = useState(false);
   /* The draft deck's name, edited at the top of the panel; it also fills the Save as draft box. */
   const [draftTitle, setDraftTitle] = useState('');
+  const [combine, setCombine] = useState(false);
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextToast = useRef(1);
@@ -233,14 +244,39 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
      shows a different person's stuff. */
   /* Kept on the server for the signed-in person when the database is set up (FD-18). */
   const { ids: savedIds, toggle: toggleSaved } = useSaved(profile, transport);
-  const { entries: activity, log: logActivity, optedIn: activityOptedIn, setOptedIn: setActivityOptIn } = useActivity(profile, transport);
-  const { drafts, save: saveDraftStore, remove: deleteDraft } = useDrafts(profile, transport);
-  const saveDraft = useCallback((name: string, slides: SlideSummary[]) => saveDraftStore(name, slides.map((s) => s.id)), [saveDraftStore]);
+  const { entries: activity, log: logActivity, optedIn: activityOptedIn, setOptedIn: setActivityOptIn, retentionDays: activityRetentionDays } = useActivity(profile, transport);
+  const { drafts, save: saveDraftStore, replace: replaceDraftStore, remove: deleteDraft } = useDrafts(profile, transport);
+  /* Which saved deck the draft deck is "of", so saving again can ask: update that deck, or save a new one? It ends when the draft deck is emptied. */
+  const [originId, setOriginId] = useState<string | null>(null);
+  const [lastCount, setLastCount] = useState(selection.length);
+  if (selection.length !== lastCount) {
+    setLastCount(selection.length);
+    if (selection.length === 0 && originId !== null) setOriginId(null);
+  }
+  const draftOrigin = selection.length > 0 && originId ? (drafts.find((d) => d.id === originId) ?? null) : null;
+  const saveDraft = useCallback(
+    async (name: string, slides: SlideSummary[]) => {
+      const id = await saveDraftStore(name, slides.map((s) => s.id));
+      if (id) setOriginId(id);
+      setDraftTitle(name);
+      return id;
+    },
+    [saveDraftStore],
+  );
+  const replaceDraft = useCallback(
+    async (id: string, name: string, slides: SlideSummary[]) => {
+      setOriginId(await replaceDraftStore(id, name, slides.map((s) => s.id)));
+      setDraftTitle(name);
+    },
+    [replaceDraftStore],
+  );
   const loadDraft = useCallback(
     (draft: Draft) => {
       const all = library.status === 'ready' ? library.slides : [];
       const found = draft.slideIds.map((id) => all.find((s) => s.id === id)).filter((s): s is SlideSummary => s !== undefined);
       updateSelection(() => found);
+      setOriginId(draft.id);
+      setDraftTitle(draft.name);
       return found.length;
     },
     [library, updateSelection],
@@ -266,6 +302,8 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     setCartMin,
     draftTitle,
     setDraftTitle,
+    combine,
+    setCombine,
     toasts,
     toast,
     dismissToast,
@@ -290,8 +328,11 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     logActivity,
     activityOptedIn,
     setActivityOptIn,
+    activityRetentionDays,
     drafts,
     saveDraft,
+    replaceDraft,
+    draftOrigin,
     deleteDraft,
     loadDraft,
   };

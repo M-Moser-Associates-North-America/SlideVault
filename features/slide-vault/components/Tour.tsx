@@ -4,14 +4,13 @@ import { useCallback, useEffect } from 'react';
 import { ACTIONS, EVENTS, Joyride, type EventData, type Step, type TooltipRenderProps } from 'react-joyride';
 import { endTour, startTour, useTourOpen } from '../client/tour-store';
 import { useTipSeen } from '../client/tip-store';
+import { useNavPlacement } from '../client/nav-store';
+import { useRoot } from './root';
+import { workspaceSizeOf } from './size';
 import { useWorkspace } from './state';
 
 /** Wait for the next paint, so a panel opened by a step's `before` has a size to point at. */
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-const toTop = async () => {
-  window.scrollTo(0, 0);
-  await nextFrame();
-};
 
 /** The tour's card, in the workspace's own styles (Joyride handles placement, spotlight, scrolling and focus). */
 function TourCard({ index, size, step, isLastStep, backProps, primaryProps, skipProps, tooltipProps }: TooltipRenderProps) {
@@ -52,7 +51,24 @@ export function Tour() {
   const { profile, runtime, setCartMin } = useWorkspace();
   const onHome = runtime.location.view === 'pages' || runtime.location.view === 'home' || runtime.location.view === 'library';
 
+  const { scroll } = useRoot();
+  const toTop = async () => {
+    scroll.current?.scrollTo(0, 0);
+    await nextFrame();
+  };
+  const { placement } = useNavPlacement();
+  const compact = workspaceSizeOf(document.querySelector('.slidevault .sv-app')) === 'compact';
+
+  const bottomTabs = compact && placement === 'bottom';
+
   const steps: Step[] = [
+    {
+      target: 'body',
+      title: 'Welcome to SlideVault',
+      content: 'Find slides from past proposals, then collect the ones you like into a draft deck you can download as an editable PowerPoint.',
+      placement: 'center',
+      before: toTop,
+    },
     {
       target: '.home-hero-field',
       title: 'Search in plain words',
@@ -74,21 +90,32 @@ export function Tour() {
       placement: 'auto',
     },
     {
-      target: '.cart-col',
+      // On a phone the panel fills the right side, so the note goes under its header instead of beside it.
+      target: compact ? '.cart-col .cart-head' : '.cart-col',
       title: 'Your draft deck',
       content: 'Ticked slides collect here. Name your deck, drag slides into order, then download them together or save the set as a draft.',
-      placement: 'left',
+      placement: compact ? 'bottom' : 'left',
       before: async () => {
         setCartMin(false);
         await nextFrame();
+        // On phones the panel slides in; wait until it has arrived so the tour can find it.
+        await new Promise((resolve) => setTimeout(resolve, 320));
       },
     },
     {
-      target: '.sv-nav',
+      // Only the My decks tab is lit, not the whole row of tabs.
+      target: bottomTabs ? '.sv-bottombar a[href$="/profile"]' : '.sv-nav a[href$="/profile"]',
       title: 'Find your saved work',
       content: 'My decks keeps your saved slides and drafts. You can replay this tour any time with the ? button at the top of the page.',
-      placement: 'bottom',
-      before: toTop,
+      placement: bottomTabs ? 'top' : 'bottom',
+      before: async () => {
+        // Where the draft deck covers the page (phone, upright tablet), put it away so the tabs show.
+        if (workspaceSizeOf(document.querySelector('.slidevault .cart-col')) !== 'wide') {
+          setCartMin(true);
+          await new Promise((resolve) => setTimeout(resolve, 320));
+        }
+        await toTop();
+      },
     },
   ];
 

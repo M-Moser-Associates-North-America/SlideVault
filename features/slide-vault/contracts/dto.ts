@@ -86,6 +86,13 @@ export type ExportRequest = {
   format: 'pptx';
   fidelityPolicy: 'preserve-source';
   items: { slideId: string; sourceVersionId: string }[];
+  /**
+   * Slides from several decks: true puts them all in ONE .pptx, in the selected order, each slide
+   * keeping its own deck's design (FD-21). Absent or false keeps the .zip of one file per deck (FD-09).
+   * If the decks have different slide sizes, the server sends the .zip anyway and says why in the
+   * X-SlideVault-Export-Note response header.
+   */
+  combine?: boolean;
 };
 
 /** POST /uploads form fields (docs/foundry/SLIDE_RECORD.md: deck fields from the folder path). */

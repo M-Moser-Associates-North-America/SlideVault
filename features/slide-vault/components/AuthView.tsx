@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Icon } from './icons';
+import { useWorkspaceSize } from './size';
 import { useWorkspace } from './state';
 
 /**
@@ -17,6 +18,8 @@ export function LoginView() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const screen = useRef<HTMLDivElement>(null);
+  useWorkspaceSize(screen, true);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -24,7 +27,7 @@ export function LoginView() {
   };
 
   return (
-    <div className="auth-screen">
+    <div className="auth-screen" ref={screen}>
       <div className="auth-col">
         <div className="auth-brand">
           <Icon name="logoFill" className="ic" />

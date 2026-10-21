@@ -24,7 +24,10 @@ export async function POST(request: Request) {
     if (hasMmoserConfig()) {
       await recordDownloads(body.items.map((item) => item.slideId)).catch((e) => console.error('Could not count this download', e));
     }
-    return file(result.bytes, result.contentType, result.fileName);
+    const res = file(result.bytes, result.contentType, result.fileName);
+    // Asked for one combined file but got a .zip (mixed slide sizes): tell the screen why (FD-21).
+    if (result.note) res.headers.set('X-SlideVault-Export-Note', result.note);
+    return res;
   } catch (e) {
     if (e instanceof ServiceError) return toResponse(e);
     console.error('Export failed', e);

@@ -1,7 +1,10 @@
 /* Standalone application shell. The workspace itself is styled in features/slide-vault. */
 
 .shell {
-  min-height: 100vh;
+  /* The standalone app's own box: as tall as the window. The workspace fills it and scrolls inside it. */
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
   font-family: "Helvetica Neue", "Helvetica", "Arimo", Arial, system-ui, -apple-system, sans-serif;
 }
 
@@ -31,6 +34,9 @@
 }
 
 .headerInner {
+  /* Same width limit and centring as the workspace content below, so the two line up on very wide screens. */
+  max-width: 2200px;
+  margin: 0 auto;
   display: flex;
   align-items: flex-start;
   gap: 18px;
@@ -274,3 +280,78 @@
   font-size: 14.5px;
 }
 
+
+/* Phones: logo, name and buttons share one tidy block, and the tagline runs full width below it. */
+@media (max-width: 600px) {
+  .header {
+    padding: 48px 0 12px;
+  }
+  .headerInner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 12px;
+    row-gap: 8px;
+    align-items: center;
+    padding: 0 16px;
+  }
+  .logo {
+    grid-row: 1 / span 2;
+    width: 38px;
+    height: 38px;
+    margin-top: 0;
+    border-radius: 12px;
+  }
+  .title {
+    display: contents;
+  }
+  .eyebrow {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+  .nameRow {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    margin-top: 0 !important;
+  }
+  .brand {
+    font-size: 22px;
+  }
+  .tag {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+  /* The welcome step of the quick tour says what SlideVault is for, so the tagline is not needed here. */
+  .tagline {
+    display: none;
+  }
+  .tools {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    gap: 6px;
+    margin-left: 0;
+  }
+}
+
+/* Tablets: the tagline is set in italics. */
+@media (min-width: 601px) and (max-width: 1100px) {
+  .tagline {
+    font-style: italic;
+  }
+}
+
+/* Only shown on phones, where the tabs can sit at the top or the bottom. */
+.phoneOnly {
+  display: none;
+}
+@media (max-width: 700px) {
+  .phoneOnly {
+    display: flex;
+  }
+}

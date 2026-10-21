@@ -5,3 +5,5 @@ export type { Capability, Location, RuntimeRequest, SlideVaultRuntime, SlideVaul
 export type { ApiError, ApiErrorCode, ApiOk, ApiPage, ExportRequest, Provenance, Session, SlideDetail, SlideSummary } from './contracts/dto';
 export { useProfile } from './client/profile-store';
 export { startTour } from './client/tour-store';
+export { useNavPlacement } from './client/nav-store';
+export type { NavPlacement } from './client/nav-store';

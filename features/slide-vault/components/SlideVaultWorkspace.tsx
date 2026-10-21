@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
-import { Cart } from './Cart';
+import { useNavPlacement } from '../client/nav-store';
+import { Cart, CartPill, focusDraftOpener } from './Cart';
 import { AlsoDialog, DownloadDialog, Lightbox } from './Dialogs';
 import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
@@ -11,7 +12,11 @@ import { CompactSearch } from './CompactSearch';
 import { SearchForm } from './Rail';
 import { WorkspaceProvider, useWorkspace } from './state';
 import { LoginView } from './AuthView';
+import { ActivityOptInAsk } from './ActivityOptIn';
 import { ProfileView } from './ProfileView';
+import { SettingsView } from './SettingsView';
+import { RootContext } from './root';
+import { useWorkspaceSize } from './size';
 import { Tour } from './Tour';
 import { UploadView } from './UploadView';
 import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './Views';
@@ -24,10 +29,10 @@ import './slidevault-extras.css';
  * approved v3 prototype (mockup/SlideVault-v3.html): filters and search on the left, content in the
  * middle, a collapsible cart on the right.
  */
-export function SlideVaultWorkspace({ runtime }: SlideVaultWorkspaceProps) {
+export function SlideVaultWorkspace({ runtime, header }: SlideVaultWorkspaceProps) {
   return (
     <WorkspaceProvider runtime={runtime}>
-      <Workspace />
+      <Workspace header={header} />
     </WorkspaceProvider>
   );
 }
@@ -58,8 +63,17 @@ const TABS: {
   },
 ];
 
-function Workspace() {
-  const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, profile } = useWorkspace();
+function Workspace({ header }: { header?: ReactNode }) {
+  const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, profile, setCartMin } = useWorkspace();
+  const appRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { placement } = useNavPlacement();
+  const root = useMemo(() => ({ app: appRef, scroll: scrollRef }), []);
+  /* The draft deck starts open when there is room beside the page (desktop, a tablet on its side) and closed
+     when it would cover the page (phone, a tablet held upright). Turning a tablet upright closes it. */
+  useWorkspaceSize(appRef, !!profile, (size, previous) => {
+    if (size !== 'wide' && (previous === null || previous === 'wide')) setCartMin(true);
+  });
   const loc = runtime.location;
   const view = loc.view === 'home' || loc.view === 'library' ? 'pages' : loc.view;
   const deep = view === 'deck' || view === 'slide';
@@ -68,7 +82,7 @@ function Workspace() {
      mounted across that transition so typing never loses focus mid-word. Browse is untouched
      until reviewed separately. Not pushed, not changing Khushali's build. */
   const noRail = true; // the search bar and filter row now sit at the top of Home and the browse lists
-  const narrow = view === 'create' || view === 'upload' || view === 'profile';
+  const narrow = view === 'create' || view === 'upload' || view === 'profile' || view === 'settings';
 
   /* New page: scroll to the top and move focus to its heading, like a page load would. */
   const key = `${view}/${loc.id ?? ''}`;
@@ -79,7 +93,7 @@ function Workspace() {
       first.current = false;
       return;
     }
-    window.scrollTo(0, 0);
+    scrollRef.current?.scrollTo(0, 0);
     mainRef.current?.querySelector<HTMLElement>('h1')?.focus({ preventScroll: true });
   }, [key]);
 
@@ -108,7 +122,10 @@ function Workspace() {
   if (!profile) return <LoginView />;
 
   return (
-    <div className="sv-app">
+    <RootContext.Provider value={root}>
+    <div className="sv-app" ref={appRef} data-nav={placement}>
+      <div className="sv-scroll" ref={scrollRef}>
+      {header}
       <div className="sv-top">
         <div className="sv-wrap">
           <div className="sv-brandrow">
@@ -171,12 +188,28 @@ function Workspace() {
             {view === 'create' && <CreateView />}
             {view === 'upload' && <UploadView />}
             {view === 'profile' && <ProfileView />}
+            {view === 'settings' && <SettingsView />}
           </main>
         </div>
         <aside className="cart-col" aria-label="Draft deck">
           <Cart />
         </aside>
       </div>
+      </div>
+      <CartPill />
+      <BottomBar view={view} deep={deep} />
+      {!cartMin && (
+        <button
+          type="button"
+          className="cart-scrim"
+          aria-label="Close draft deck"
+          tabIndex={-1}
+          onClick={() => {
+            setCartMin(true);
+            focusDraftOpener();
+          }}
+        />
+      )}
       <div className={`toasts${selection.length ? ' lift' : ''}`} aria-live="polite" aria-relevant="additions">
         {toasts.map((t) => (
           <div key={t.id} className="toast">
@@ -191,9 +224,65 @@ function Workspace() {
         {announcement}
       </div>
       <Tour />
+      <ActivityOptInAsk />
       <Lightbox />
       <DownloadDialog />
       <AlsoDialog />
     </div>
+    </RootContext.Provider>
+  );
+}
+
+
+/**
+ * The main tabs as a bar along the bottom of a phone, with the draft deck as the fifth item. It is shown
+ * instead of the top tabs when the workspace is narrow and the placement is "bottom" (see client/nav-store.ts).
+ */
+function BottomBar({ view, deep }: { view: string; deep: boolean }) {
+  const { runtime, selection, cartMin, setCartMin } = useWorkspace();
+  const n = selection.length;
+  return (
+    <nav className="sv-bottombar" aria-label="Main">
+      <ul>
+        {TABS.map((t) => {
+          const locked = t.view === 'upload' && !runtime.capabilities.has('source.upload');
+          return (
+            <li key={t.view}>
+              <Link to={{ view: t.view }} aria-current={view === t.view || (t.view === 'pages' && (view === 'browse' || deep)) ? 'page' : undefined} className={locked ? 'is-locked' : undefined}>
+                <Icon name={locked ? 'lock' : t.icon} />
+                <span>{t.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+        <li>
+          <Link to={{ view: 'profile' }} aria-current={view === 'profile' ? 'page' : undefined}>
+            <Icon name="folder" />
+            <span>My decks</span>
+          </Link>
+        </li>
+        <li>
+          <button
+            type="button"
+            className="bb-deck"
+            aria-expanded={!cartMin}
+            aria-label={n ? `Draft deck, ${n} ${n === 1 ? 'slide' : 'slides'}` : 'Draft deck'}
+            onClick={() => {
+              setCartMin(!cartMin);
+              if (cartMin) requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart .cart-tg')?.focus());
+              else focusDraftOpener();
+            }}
+          >
+            <Icon name="layers" />
+            <span>Draft deck</span>
+            {n > 0 && (
+              <span className="bb-n" aria-hidden="true">
+                {n}
+              </span>
+            )}
+          </button>
+        </li>
+      </ul>
+    </nav>
   );
 }
