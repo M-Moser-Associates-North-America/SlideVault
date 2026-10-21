@@ -13,7 +13,7 @@ import { useWorkspace } from './state';
  * Collapsed to a thin rail by default; opens by itself the first time a slide is added.
  */
 export function Cart() {
-  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, openDownload, openPreview, announce, saveDraft, replaceDraft, draftOrigin, toast, runtime } = useWorkspace();
+  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, openDownload, openPreview, announce, saveDraft, replaceDraft, draftOrigin, toast, runtime, combine, setCombine } = useWorkspace();
   const n = selection.length;
   const included = selection.filter((s) => !excluded.has(s.id));
   const plan = downloadPlan(included);
@@ -299,18 +299,11 @@ export function Cart() {
           {n > 1 && <p className="ci-hint">Drag the handle to reorder. Slides download in this order.</p>}
           {plan.zip && (
             <div className="cart-zip">
-              <span className="tipw">
-                <button type="button" className="btn btn-sm" aria-disabled="true" aria-describedby="cart-combine-note" onClick={(e) => e.preventDefault()}>
-                  <Icon name="layers" />
-                  <span>Combine into one deck</span>
-                </button>
-                <span className="tip tip-start" aria-hidden="true">
-                  Coming later
-                </span>
-              </span>
-              <span id="cart-combine-note" className="sr-only">
-                Not available yet. Combining slides from different decks into one file is planned for a later phase.
-              </span>
+              <label className="fb-check">
+                <input type="checkbox" checked={combine} onChange={(e) => setCombine(e.target.checked)} />
+                <span>Combine into one deck</span>
+              </label>
+              <p className="meta">Slides from different decks go into one .pptx. Each slide keeps its own deck’s design, so it can look a little mixed.</p>
             </div>
           )}
         </div>
@@ -325,7 +318,7 @@ export function Cart() {
                     <strong>{included.length} of {n} slides</strong> ticked.{' '}
                   </>
                 )}
-                Downloads as {plan.zip ? 'a zip, one .pptx per deck' : 'one editable .pptx'}.
+                Downloads as {plan.zip && !combine ? 'a zip, one .pptx per deck' : 'one editable .pptx'}.
               </>
             )}
           </p>

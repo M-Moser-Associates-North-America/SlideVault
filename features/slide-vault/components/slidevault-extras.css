@@ -723,3 +723,12 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .sv-bottombar .bb-deck[aria-expanded="true"] .ic { color: var(--sv-action-fg); }
 .slidevault .sv-bottombar .bb-deck:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; border-radius: 14px; }
 .slidevault .sv-bottombar .bb-deck .bb-n { top: 3px; left: calc(50% + 8px); }
+
+.slidevault .cart-zip .meta { margin: 6px 0 0 26px; font-size: 12.5px; }
+/* Bottom bar: the Draft deck section is filled in from its dividing line to the end of the bar, top to bottom, not a card on top of it. */
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-bottombar { padding-bottom: 0; }
+.slidevault .sv-bottombar a, .slidevault .sv-bottombar .bb-deck { height: calc(60px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); }
+.slidevault .sv-bottombar li:last-child { padding: 0; }
+.slidevault .sv-bottombar .bb-deck { border-radius: 0; box-shadow: none; }
+.slidevault .sv-bottombar .bb-deck:focus-visible { border-radius: 0; outline-offset: -4px; outline-color: var(--sv-brand); }
+.slidevault .sv-bottombar .bb-deck .bb-n { top: 7px; }

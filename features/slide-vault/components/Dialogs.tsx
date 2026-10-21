@@ -115,11 +115,11 @@ export function Lightbox() {
   );
 }
 
-type Run = { kind: 'idle' } | { kind: 'busy' } | { kind: 'done'; fileName: string } | { kind: 'error'; message: string };
+type Run = { kind: 'idle' } | { kind: 'busy' } | { kind: 'done'; fileName: string; note?: string } | { kind: 'error'; message: string };
 
 /** What you are about to download, then the real export. */
 export function DownloadDialog() {
-  const { runtime, downloadSlides, closeDownload, toast, logActivity } = useWorkspace();
+  const { runtime, downloadSlides, closeDownload, toast, logActivity, combine, setCombine } = useWorkspace();
   // The result belongs to the slides it was started for, so opening the dialog again starts fresh.
   const [result, setResult] = useState<{
     for: SlideSummary[] | null;
@@ -137,15 +137,15 @@ export function DownloadDialog() {
   async function go() {
     setRun({ kind: 'busy' });
     try {
-      const { blob, fileName } = await exportPptx(runtime, slides);
+      const { blob, fileName, note } = await exportPptx(runtime, slides, { combine: plan.zip && combine });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = fileName;
       a.click();
       URL.revokeObjectURL(url);
-      setRun({ kind: 'done', fileName });
-      toast(`Downloaded ${fileName}`);
+      setRun({ kind: 'done', fileName, note });
+      toast(note ? `Downloaded ${fileName}. ${note}` : `Downloaded ${fileName}`);
       logActivity('downloaded', fileName);
     } catch (e) {
       const offline = e instanceof TypeError; // fetch rejects with TypeError when the network fails
@@ -162,8 +162,7 @@ export function DownloadDialog() {
         <div>
           <h2 id="sv-dl-title">Download {plural(slides.length, 'slide')}</h2>
           <p className="meta">
-            You get {planSummary(plan)}. Slides stay editable.
-            {plan.zip ? ' One combined file is planned for a later phase.' : ''}
+            You get {planSummary(plan, combine)}. Slides stay editable.
           </p>
         </div>
         <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closeDownload}>
@@ -180,7 +179,14 @@ export function DownloadDialog() {
             </li>
           ))}
         </ul>
+        {plan.zip && (
+          <label className="fb-check" style={{ marginTop: 12 }}>
+            <input type="checkbox" checked={combine} onChange={(e) => setCombine(e.target.checked)} disabled={run.kind === 'busy'} />
+            <span>Combine into one deck</span>
+          </label>
+        )}
         <p className="meta" style={{ marginTop: 10 }}>
+          {plan.zip && combine ? 'Each slide keeps its own deck’s design, so the file can look a little mixed. ' : ''}
           The file holds only the slides you picked, in this order. Speaker notes and review comments are left out, and source decks are never changed.
         </p>
         {run.kind === 'error' && (
@@ -192,7 +198,9 @@ export function DownloadDialog() {
         {run.kind === 'done' && (
           <div className="notice info" role="status">
             <Icon name="check" />
-            <span>Downloaded {run.fileName}.</span>
+            <span>
+              Downloaded {run.fileName}.{run.note ? ` ${run.note}` : ''}
+            </span>
           </div>
         )}
         {!canExport && (

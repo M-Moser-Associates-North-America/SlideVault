@@ -47,6 +47,9 @@ type Workspace = {
   setCartMin: (min: boolean) => void;
   draftTitle: string;
   setDraftTitle: (title: string) => void;
+  /** Put slides from several decks into one .pptx instead of a zip (off until chosen). Only matters when the slides come from more than one deck. */
+  combine: boolean;
+  setCombine: (on: boolean) => void;
   toasts: Toast[];
   toast: (message: string) => void;
   dismissToast: (id: number) => void;
@@ -195,6 +198,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     const [cartMin, setCartMin] = useState(false);
   /* The draft deck's name, edited at the top of the panel; it also fills the Save as draft box. */
   const [draftTitle, setDraftTitle] = useState('');
+  const [combine, setCombine] = useState(false);
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextToast = useRef(1);
@@ -298,6 +302,8 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     setCartMin,
     draftTitle,
     setDraftTitle,
+    combine,
+    setCombine,
     toasts,
     toast,
     dismissToast,

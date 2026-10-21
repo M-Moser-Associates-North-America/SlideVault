@@ -203,8 +203,9 @@ export function downloadPlan(slides: SlideSummary[]): DownloadPlan {
   return { files, zip: files.length > 1 };
 }
 
-export const planSummary = (p: DownloadPlan) =>
-  !p.files.length ? 'nothing to download' : p.zip ? `a zip of ${p.files.length} editable .pptx files (one per deck)` : 'one editable .pptx';
+/** What the download will be. `combine` only matters when the slides come from several decks. */
+export const planSummary = (p: DownloadPlan, combine = false) =>
+  !p.files.length ? 'nothing to download' : p.zip && !combine ? `a zip of ${p.files.length} editable .pptx files (one per deck)` : 'one editable .pptx';
 
 const RELATIVE = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 export function timeAgo(at: number): string {

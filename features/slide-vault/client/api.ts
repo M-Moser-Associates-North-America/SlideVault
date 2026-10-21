@@ -75,7 +75,8 @@ export async function getSlide(runtime: Transport, slideId: string, signal?: Abo
   return ((await res.json()) as ApiOk<SlideDetail>).data;
 }
 
-export type ExportDownload = { blob: Blob; fileName: string };
+/** `note` is the server's explanation when it sent something other than what was asked for (X-SlideVault-Export-Note). */
+export type ExportDownload = { blob: Blob; fileName: string; note?: string };
 
 /** File name from Content-Disposition, e.g. attachment; filename="SlideVault-export.zip". */
 const downloadName = (res: Response, fallback: string) =>
@@ -83,17 +84,20 @@ const downloadName = (res: Response, fallback: string) =>
 
 /**
  * Returns the export as a Blob plus its file name; the caller decides how to save it.
- * One deck gives a .pptx; slides from several decks give a .zip with one .pptx per deck.
+ * One deck gives a .pptx; slides from several decks give a .zip with one .pptx per deck, or, with
+ * `combine`, one .pptx that holds them all (the server falls back to the .zip for mixed slide sizes).
  */
-export async function exportPptx(runtime: Transport, slides: SlideSummary[]): Promise<ExportDownload> {
+export async function exportPptx(runtime: Transport, slides: SlideSummary[], options: { combine?: boolean } = {}): Promise<ExportDownload> {
   const body: ExportRequest = {
     format: 'pptx',
     fidelityPolicy: 'preserve-source',
     items: slides.map((s) => ({ slideId: s.id, sourceVersionId: s.provenance.sourceVersionId })),
+    ...(options.combine ? { combine: true } : {}),
   };
   const res = await runtime.request({ path: '/exports', method: 'POST', body });
   if (!res.ok) return failure(runtime, res);
-  return { blob: await res.blob(), fileName: downloadName(res, 'SlideVault-export.pptx') };
+  const note = res.headers.get('X-SlideVault-Export-Note') ?? undefined;
+  return { blob: await res.blob(), fileName: downloadName(res, 'SlideVault-export.pptx'), note };
 }
 
 /** POST /uploads (multipart/form-data). Throws ApiCallError on failure, including duplicates (409). */
