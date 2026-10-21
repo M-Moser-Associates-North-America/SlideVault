@@ -4,6 +4,7 @@ import { useCallback, useEffect } from 'react';
 import { ACTIONS, EVENTS, Joyride, type EventData, type Step, type TooltipRenderProps } from 'react-joyride';
 import { endTour, startTour, useTourOpen } from '../client/tour-store';
 import { useTipSeen } from '../client/tip-store';
+import { useNavPlacement } from '../client/nav-store';
 import { useRoot } from './root';
 import { workspaceSizeOf } from './size';
 import { useWorkspace } from './state';
@@ -55,7 +56,10 @@ export function Tour() {
     scroll.current?.scrollTo(0, 0);
     await nextFrame();
   };
+  const { placement } = useNavPlacement();
   const compact = workspaceSizeOf(document.querySelector('.slidevault .sv-app')) === 'compact';
+
+  const bottomTabs = compact && placement === 'bottom';
 
   const steps: Step[] = [
     {
@@ -100,10 +104,10 @@ export function Tour() {
     },
     {
       // Only the My decks tab is lit, not the whole row of tabs.
-      target: '.sv-nav a[href$="/profile"]',
+      target: bottomTabs ? '.sv-bottombar a[href$="/profile"]' : '.sv-nav a[href$="/profile"]',
       title: 'Find your saved work',
       content: 'My decks keeps your saved slides and drafts. You can replay this tour any time with the ? button at the top of the page.',
-      placement: 'bottom',
+      placement: bottomTabs ? 'top' : 'bottom',
       before: async () => {
         // Where the draft deck covers the page (phone, upright tablet), put it away so the tabs show.
         if (workspaceSizeOf(document.querySelector('.slidevault .cart-col')) !== 'wide') {

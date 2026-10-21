@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { startTour, useProfile } from '@/features/slide-vault';
+import { startTour, useNavPlacement, useProfile } from '@/features/slide-vault';
 import { useTheme } from './theme';
 import styles from './shell.module.css';
 
@@ -13,6 +13,7 @@ import styles from './shell.module.css';
  */
 export function ShellHeader() {
   const { theme, toggle: toggleTheme } = useTheme();
+  const { placement, setPlacement } = useNavPlacement();
   const { profile, signOut } = useProfile();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -139,6 +140,21 @@ export function ShellHeader() {
                       )}
                     </svg>
                     {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={`${styles.menuItem} ${styles.phoneOnly}`}
+                    onClick={() => {
+                      setOpen(false);
+                      setPlacement(placement === 'bottom' ? 'top' : 'bottom');
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d={placement === 'bottom' ? 'M3 8h18' : 'M3 16h18'} />
+                    </svg>
+                    {placement === 'bottom' ? 'Tabs at the top' : 'Tabs at the bottom'}
                   </button>
                   <button
                     type="button"

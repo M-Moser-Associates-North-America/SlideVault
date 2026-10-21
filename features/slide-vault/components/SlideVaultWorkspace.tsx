@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
-import { Cart, CartPill } from './Cart';
+import { useNavPlacement } from '../client/nav-store';
+import { Cart, CartPill, focusDraftOpener } from './Cart';
 import { AlsoDialog, DownloadDialog, Lightbox } from './Dialogs';
 import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
@@ -66,6 +67,7 @@ function Workspace({ header }: { header?: ReactNode }) {
   const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, profile, setCartMin } = useWorkspace();
   const appRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { placement } = useNavPlacement();
   const root = useMemo(() => ({ app: appRef, scroll: scrollRef }), []);
   /* The draft deck starts open when there is room beside the page (desktop, a tablet on its side) and closed
      when it would cover the page (phone, a tablet held upright). Turning a tablet upright closes it. */
@@ -121,7 +123,7 @@ function Workspace({ header }: { header?: ReactNode }) {
 
   return (
     <RootContext.Provider value={root}>
-    <div className="sv-app" ref={appRef}>
+    <div className="sv-app" ref={appRef} data-nav={placement}>
       <div className="sv-scroll" ref={scrollRef}>
       {header}
       <div className="sv-top">
@@ -195,6 +197,7 @@ function Workspace({ header }: { header?: ReactNode }) {
       </div>
       </div>
       <CartPill />
+      <BottomBar view={view} deep={deep} />
       {!cartMin && (
         <button
           type="button"
@@ -203,7 +206,7 @@ function Workspace({ header }: { header?: ReactNode }) {
           tabIndex={-1}
           onClick={() => {
             setCartMin(true);
-            requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart-pill')?.focus());
+            focusDraftOpener();
           }}
         />
       )}
@@ -227,5 +230,59 @@ function Workspace({ header }: { header?: ReactNode }) {
       <AlsoDialog />
     </div>
     </RootContext.Provider>
+  );
+}
+
+
+/**
+ * The main tabs as a bar along the bottom of a phone, with the draft deck as the fifth item. It is shown
+ * instead of the top tabs when the workspace is narrow and the placement is "bottom" (see client/nav-store.ts).
+ */
+function BottomBar({ view, deep }: { view: string; deep: boolean }) {
+  const { runtime, selection, cartMin, setCartMin } = useWorkspace();
+  const n = selection.length;
+  return (
+    <nav className="sv-bottombar" aria-label="Main">
+      <ul>
+        {TABS.map((t) => {
+          const locked = t.view === 'upload' && !runtime.capabilities.has('source.upload');
+          return (
+            <li key={t.view}>
+              <Link to={{ view: t.view }} aria-current={view === t.view || (t.view === 'pages' && (view === 'browse' || deep)) ? 'page' : undefined} className={locked ? 'is-locked' : undefined}>
+                <Icon name={locked ? 'lock' : t.icon} />
+                <span>{t.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+        <li>
+          <Link to={{ view: 'profile' }} aria-current={view === 'profile' ? 'page' : undefined}>
+            <Icon name="folder" />
+            <span>My decks</span>
+          </Link>
+        </li>
+        <li>
+          <button
+            type="button"
+            className="bb-deck"
+            aria-expanded={!cartMin}
+            aria-label={n ? `Draft deck, ${n} ${n === 1 ? 'slide' : 'slides'}` : 'Draft deck'}
+            onClick={() => {
+              setCartMin(!cartMin);
+              if (cartMin) requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart .cart-tg')?.focus());
+              else focusDraftOpener();
+            }}
+          >
+            <Icon name="layers" />
+            <span>Draft deck</span>
+            {n > 0 && (
+              <span className="bb-n" aria-hidden="true">
+                {n}
+              </span>
+            )}
+          </button>
+        </li>
+      </ul>
+    </nav>
   );
 }

@@ -697,3 +697,20 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .save-opt input { grid-row: 1 / span 2; margin: 2px 0 0; width: 18px; height: 18px; accent-color: var(--sv-brand); }
 .slidevault .save-opt .so-t { font-size: var(--sv-text-small); font-weight: 600; color: var(--sv-text); }
 .slidevault .save-opt .so-d { grid-column: 2; font-size: 12.5px; line-height: 1.4; color: var(--sv-text-secondary); }
+
+/* Phone tabs along the bottom (the default; "top" keeps them up with the page). The bar is part of the workspace and
+   sits inside it, not on the window. The draft deck is its fifth item, so the black button is not needed. */
+.slidevault .sv-bottombar { display: none; }
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-bottombar { display: block; position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--sv-surface); border-top: 1px solid var(--sv-border); box-shadow: 0 -8px 20px -14px rgba(20, 20, 20, 0.35); padding-bottom: env(safe-area-inset-bottom); }
+.slidevault .sv-bottombar ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.slidevault .sv-bottombar a, .slidevault .sv-bottombar .bb-deck { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; height: 60px; padding: 0; border: 0; background: none; color: var(--sv-text-secondary); font: 600 11px var(--sv-font-sans); letter-spacing: 0; text-decoration: none; cursor: pointer; }
+.slidevault .sv-bottombar .ic { width: 22px; height: 22px; }
+.slidevault .sv-bottombar a[aria-current="page"], .slidevault .sv-bottombar .bb-deck[aria-expanded="true"] { color: var(--sv-text); }
+.slidevault .sv-bottombar a[aria-current="page"] .ic, .slidevault .sv-bottombar .bb-deck[aria-expanded="true"] .ic { color: var(--sv-brand); }
+.slidevault .sv-bottombar a[aria-current="page"]::before { content: ""; position: absolute; top: -1px; left: 22%; right: 22%; height: 3px; border-radius: 0 0 3px 3px; background: var(--sv-brand); }
+.slidevault .sv-bottombar a:focus-visible, .slidevault .sv-bottombar .bb-deck:focus-visible { outline: 2px solid var(--sv-focus); outline-offset: -4px; border-radius: 8px; }
+.slidevault .sv-bottombar .bb-n { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; display: inline-grid; place-items: center; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 11px; font-weight: 700; }
+.slidevault .sv-bottombar .is-locked { opacity: 0.6; }
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-top, .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .cart-pill { display: none; }
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-main { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts.lift { bottom: calc(76px + env(safe-area-inset-bottom)); }

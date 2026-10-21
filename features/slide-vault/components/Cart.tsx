@@ -191,7 +191,7 @@ export function Cart() {
 
   const closeCart = () => {
     setCartMin(true);
-    requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart-pill')?.focus());
+    focusDraftOpener();
   };
 
   /* On phones and upright tablets the open draft deck covers the page: Escape closes it (a tap on the dimmed page does too). */
@@ -423,6 +423,14 @@ export function Cart() {
       </dialog>
     </>
   );
+}
+
+/** Puts focus back on whatever opens the draft deck: the bottom tab on a phone, otherwise the black button. */
+export function focusDraftOpener() {
+  requestAnimationFrame(() => {
+    const options = [...document.querySelectorAll<HTMLElement>('.slidevault .sv-bottombar .bb-deck, .slidevault .cart-pill')];
+    options.find((el) => el.offsetParent !== null)?.focus();
+  });
 }
 
 /* The black button at the bottom right that opens the draft deck, like the reference mockup's. It sits at

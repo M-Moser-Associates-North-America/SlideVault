@@ -345,3 +345,13 @@
     font-style: italic;
   }
 }
+
+/* Only shown on phones, where the tabs can sit at the top or the bottom. */
+.phoneOnly {
+  display: none;
+}
+@media (max-width: 700px) {
+  .phoneOnly {
+    display: flex;
+  }
+}
