@@ -278,7 +278,7 @@
 /* Phones: logo, name and buttons share one tidy block, and the tagline runs full width below it. */
 @media (max-width: 600px) {
   .header {
-    padding: 32px 0 12px;
+    padding: 48px 0 12px;
   }
   .headerInner {
     display: grid;
@@ -321,13 +321,9 @@
     font-size: 9px;
     letter-spacing: 0.1em;
   }
+  /* The welcome step of the quick tour says what SlideVault is for, so the tagline is not needed here. */
   .tagline {
-    grid-column: 2 / -1;
-    grid-row: 3;
-    margin-top: 0 !important;
-    font-size: 12px;
-    font-style: italic;
-    line-height: 1.4;
+    display: none;
   }
   .tools {
     grid-column: 3;

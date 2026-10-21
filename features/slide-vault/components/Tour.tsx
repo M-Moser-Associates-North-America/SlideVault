@@ -4,6 +4,7 @@ import { useCallback, useEffect } from 'react';
 import { ACTIONS, EVENTS, Joyride, type EventData, type Step, type TooltipRenderProps } from 'react-joyride';
 import { endTour, startTour, useTourOpen } from '../client/tour-store';
 import { useTipSeen } from '../client/tip-store';
+import { workspaceSizeOf } from './size';
 import { useWorkspace } from './state';
 
 /** Wait for the next paint, so a panel opened by a step's `before` has a size to point at. */
@@ -52,7 +53,16 @@ export function Tour() {
   const { profile, runtime, setCartMin } = useWorkspace();
   const onHome = runtime.location.view === 'pages' || runtime.location.view === 'home' || runtime.location.view === 'library';
 
+  const compact = workspaceSizeOf(document.querySelector('.slidevault .sv-app')) === 'compact';
+
   const steps: Step[] = [
+    {
+      target: 'body',
+      title: 'Welcome to SlideVault',
+      content: 'Find slides from past proposals, then collect the ones you like into a draft deck you can download as an editable PowerPoint.',
+      placement: 'center',
+      before: toTop,
+    },
     {
       target: '.home-hero-field',
       title: 'Search in plain words',
@@ -74,13 +84,16 @@ export function Tour() {
       placement: 'auto',
     },
     {
-      target: '.cart-col',
+      // On a phone the panel fills the right side, so the note goes under its header instead of beside it.
+      target: compact ? '.cart-col .cart-head' : '.cart-col',
       title: 'Your draft deck',
       content: 'Ticked slides collect here. Name your deck, drag slides into order, then download them together or save the set as a draft.',
-      placement: 'left',
+      placement: compact ? 'bottom' : 'left',
       before: async () => {
         setCartMin(false);
         await nextFrame();
+        // On phones the panel slides in; wait until it has arrived so the tour can find it.
+        await new Promise((resolve) => setTimeout(resolve, 320));
       },
     },
     {
