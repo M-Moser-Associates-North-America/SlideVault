@@ -24,6 +24,7 @@ export type FolderInfo = {
 
 const CATEGORY_NAMES: Record<string, string> = {
   idd: 'IDD',
+  msa: 'MSA',
   'business proposal': 'Business Proposal',
   'business proposals': 'Business Proposal',
   sme: 'SME',

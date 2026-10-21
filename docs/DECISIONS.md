@@ -409,3 +409,17 @@ Acceptance evidence / affected PR criteria: npm run test:story-learning (role ch
 Documents/contracts changed: server/ai/roles.ts (new), server/services/storyboard.ts, server/story-feedback.ts, server/sql/schema.sql (by_role), server/services/library-smart-search.ts, app/api/slide-vault/v1/storyboard/route.ts, client/api.ts, client/role-store.ts (new), components/StoryRoleSetting.tsx (new), components/ProfileView.tsx (one line), components/StoryboardView.tsx, components/storyboard.css, contracts/dto.ts, scripts/test-story-learning.mts.
 Revisit trigger: BD survey answers; the role moves to the server profile; more roles appear (client services).
 ```
+
+```text
+Decision ID and title: FD-26 The storyboard uses what the local model read on each slide
+Status: proposed
+Decision date: 2026-10-21
+Decision owner/reviewer: Schiffon (reasoning), Vincent (where the readings live once on the server), Alina Pak (review)
+Context and evidence: The discovery scan (local Qwen, on this machine) read all 204 slides of the three real decks: what each shows, what it convinces a client of, its role in a story, its topics. 53 are dividers and 17 admin pages, which word matching could put into a story. Alina added more decks on 21 Oct; Schiffon wants more data to tighten the logic.
+Options considered: (a) the storyboard reads the scan (data dir, never the repo): a slide read as doing a part can fill it without the part's words, the brief can match what a slide is about, dividers and admin pages are never proof, and the reason says "Read as: ..."; (b) keep word matching only; (c) send slides to a hosted model at story time.
+Chosen outcome: (a). server/slide-knowledge.ts loads discover-scan.json (cached by file time); buildStoryboard takes knowledge { of, forPart }; ranking is colleagues' verdicts, then the brief, then the model's reading, then the part's words. On the real decks, Grant's hospital brief: 8 of 18 slides placed because they were read as doing that part, all 18 matching the brief, no dividers.
+Consequences for scope, cost, security and integration: No model call at story time; the reading is done once per slide when decks arrive, on M Moser's own machine, and re-run only for new slides. Slide descriptions stay on the server. On the hosted app the readings belong in Postgres beside each slide (Vincent), written at upload.
+Acceptance evidence / affected PR criteria: npm run test:storyboard (knowledge checks: a slide read as the client's challenge fills that part without its words, the reason says how it was read and the brief matches what the slide is about, a divider titled "Case studies" is never proof).
+Documents/contracts changed: server/slide-knowledge.ts (new), server/services/storyboard.ts, server/services/library-smart-search.ts, server/services/fixture-smart-search.ts (fixtureRowsWhere), server/folder-path.ts (MSA folders), scripts/test-storyboard.mts.
+Revisit trigger: the scan runs at upload; readings move to Postgres; the regrouped categories become tags.
+```

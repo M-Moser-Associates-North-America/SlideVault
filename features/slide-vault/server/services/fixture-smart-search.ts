@@ -38,6 +38,22 @@ export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan
     .map(({ summary, facts }) => ({ summary, facts }));
 }
 
+/** The slides in the local library whose ids pass `keep`, as search rows, in deck and slide order. */
+export function fixtureRowsWhere(index: LibraryIndex | null, keep: (slideId: string) => boolean, limit: number): { summary: SlideSummary; facts: SlideFacts }[] {
+  if (!index) return [];
+  const out: { summary: SlideSummary; facts: SlideFacts }[] = [];
+  for (const source of index.sources) {
+    for (const slide of source.slides) {
+      if (!keep(slide.id)) continue;
+      const summary = toSummary(source, slide);
+      const p = summary.provenance;
+      out.push({ summary, facts: { title: slide.title, text: slide.text, client: p.clientName ?? null, year: p.deckYear ?? null, category: p.category ?? null, bestOfTheBest: Boolean(p.bestOfTheBest) } });
+      if (out.length >= limit) return out;
+    }
+  }
+  return out;
+}
+
 /** Client names and categories in the fixture library, the same values its search results carry. */
 export function fixtureFilterValues(index: LibraryIndex | null): { clients: string[]; categories: string[] } {
   const clients = new Set<string>();

@@ -60,6 +60,30 @@ const situation = 'We just won a 30-day contract to refit a floor in a building 
 
 check(JSON.stringify(situationTopics('Hospital campuses need studies and process analysis')) === JSON.stringify(['hospital', 'campus', 'study', 'process', 'analysis']), 'topics: plurals made singular properly (campuses, studies), "process" and "analysis" kept', situationTopics('Hospital campuses need studies and process analysis'));
 
+// ---- What the local model read on each slide (FD-26)
+{
+  const LIB2 = [
+    { id: 'k-plain', title: 'Three sites, one culture', text: 'Merging teams across campuses.' },
+    { id: 'k-divider', title: 'Case studies', text: '' },
+    { id: 'k-case', title: 'Case study: clinic refit', text: 'Project completed with results.' },
+  ];
+  const readings = new Map([
+    ['k-plain', { role: 'client-challenge', topics: ['merger'], about: 'Shows a hospital group merging three campuses and the risk to patient care.' }],
+    ['k-divider', { role: 'divider', topics: [], about: 'A section divider.' }],
+    ['k-case', { role: 'experience', topics: ['healthcare'], about: 'A completed clinic project.' }],
+  ]);
+  const rowOf = (s: (typeof LIB2)[number]) => ({ summary: slide(s.id, s.title), facts: { title: s.title, text: s.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const search2 = async (plan: SearchPlan) => LIB2.filter((s) => plan.keywords.some((k) => `${s.title} ${s.text}`.toLowerCase().includes(k))).map(rowOf);
+  const knowledge = { of: (id: string) => readings.get(id), forPart: async (role: string) => LIB2.filter((s) => readings.get(s.id)?.role === role).map(rowOf) };
+  const without = await buildStoryboard('A hospital group is merging three campuses.', { search: search2 });
+  const withIt = await buildStoryboard('A hospital group is merging three campuses.', { search: search2, knowledge });
+  const challenge = (r: typeof withIt) => r.sections.find((x) => x.role === 'client-challenge')!;
+  check(challenge(without).gap && challenge(withIt).items[0]?.slide.id === 'k-plain', "knowledge: a slide read as the client's challenge fills that part even without the part's words", [challenge(without).items.length, challenge(withIt).items.map((i) => i.slide.id)]);
+  check(/Read as: shows the client's challenge/.test(challenge(withIt).items[0]?.why ?? '') && /Matches your brief: .*hospital/.test(challenge(withIt).items[0]?.why ?? ''), 'knowledge: the reason says how it was read, and the brief matches what the slide is about', challenge(withIt).items[0]?.why);
+  const proof = withIt.sections.find((x) => x.role === 'experience')!;
+  check(!withIt.sections.some((x) => x.items.some((i) => i.slide.id === 'k-divider')) && proof.items[0]?.slide.id === 'k-case', 'knowledge: a divider titled "Case studies" is never used as proof', proof.items.map((i) => i.slide.id));
+}
+
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
 check(missingContext('The board and CFO worry about disruption; the goal is a low-cost, fast fit-out.').length === 0, 'questions: a situation that already says them gets no questions');

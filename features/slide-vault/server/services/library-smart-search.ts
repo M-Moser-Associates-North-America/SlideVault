@@ -9,7 +9,8 @@ import { loadLibraryIndex } from '../library-repository';
 import { listFilterValuesPg, listSlideTextsPg, smartSearchPg } from '../pg-repository';
 import { withDownloadCounts } from '../user-data';
 import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
-import { fixtureFilterValues, smartSearchFixtures } from './fixture-smart-search';
+import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from './fixture-smart-search';
+import { loadSlideReadings } from '../slide-knowledge';
 import { smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, type StoryboardResponse } from './storyboard';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
@@ -95,7 +96,12 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   const index = await loadLibraryIndex();
   const search = async (plan: SearchPlan, max: number) =>
     [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max)].slice(0, max);
-  const result = await buildStoryboard(situation, { reader: opts.reader, search, learned: learnedForTopics, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
+  // What the local model read on each slide (FD-26), when the scan has been run on this library.
+  const readings = await loadSlideReadings();
+  const knowledge = readings.size
+    ? { of: (id: string) => readings.get(id), forPart: async (role: string, limit: number) => fixtureRowsWhere(index, (id) => readings.get(id)?.role === role, limit) }
+    : undefined;
+  const result = await buildStoryboard(situation, { reader: opts.reader, search, learned: learnedForTopics, knowledge, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
   const all = result.sections.flatMap((s) => s.items.map((i) => i.slide));
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
   return { ...result, sections: result.sections.map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide })) })) };
