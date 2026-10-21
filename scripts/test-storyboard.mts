@@ -58,6 +58,8 @@ const situation = 'We just won a 30-day contract to refit a floor in a building 
   check(!['pitching', 'wants', 'way', 'losing', 'their', 'board'].some((w) => t.includes(w)), 'topics: filler about the pitch is left out', t);
 }
 
+check(JSON.stringify(situationTopics('Hospital campuses need studies and process analysis')) === JSON.stringify(['hospital', 'campus', 'study', 'process', 'analysis']), 'topics: plurals made singular properly (campuses, studies), "process" and "analysis" kept', situationTopics('Hospital campuses need studies and process analysis'));
+
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
 check(missingContext('The board and CFO worry about disruption; the goal is a low-cost, fast fit-out.').length === 0, 'questions: a situation that already says them gets no questions');

@@ -38,7 +38,8 @@ export function situationTopics(text: string): string[] {
   const out: string[] = [];
   for (const raw of text.toLowerCase().split(/[^a-z0-9/-]+/)) {
     if (raw.length < 4 || isStopWord(raw) || SITUATION_FILLER.has(raw)) continue;
-    const w = raw.length > 4 && raw.endsWith('s') && !raw.endsWith('ss') ? raw.slice(0, -1) : raw;
+    // Plurals made singular: "desks" -> "desk", "studies" -> "study", "campuses" -> "campus"; "process", "analysis" stay.
+    const w = raw.length <= 4 ? raw : raw.endsWith('ies') ? `${raw.slice(0, -3)}y` : /(s|x|ch|sh)es$/.test(raw) ? raw.slice(0, -2) : raw.endsWith('s') && !/(ss|us|is)$/.test(raw) ? raw.slice(0, -1) : raw;
     if (!SITUATION_FILLER.has(w) && !out.includes(w)) out.push(w);
   }
   return out.slice(0, MAX_TOPICS);
