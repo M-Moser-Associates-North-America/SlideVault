@@ -252,6 +252,20 @@ function HomeHeader() {
       setHeroOut(false);
     };
   }, [scroll]);
+  /* Start typing anywhere on Home and the letters go into the search box. Only plain characters when nothing
+     else is using the keyboard, so shortcuts, menus, dialogs and screen reader keys keep working. */
+  useEffect(() => {
+    const busy = 'input, textarea, select, button, a[href], summary, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="listbox"], [role="menu"], [role="menuitem"], [role="tab"], [role="dialog"], [role="slider"], [role="spinbutton"], [role="checkbox"], [role="switch"], dialog';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+      if (e.key.length !== 1 || e.key === ' ') return;
+      if ((e.target as Element | null)?.closest?.(busy)) return;
+      if (document.querySelector('dialog[open], .tour-pop')) return;
+      document.getElementById('sv-hero-q')?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
   return (
     <div className="home-hero">
       <form className="home-hero-search" role="search" onSubmit={submit} ref={formRef}>
