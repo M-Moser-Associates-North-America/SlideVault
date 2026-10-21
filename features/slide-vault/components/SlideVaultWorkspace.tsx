@@ -14,6 +14,7 @@ import { LoginView } from './AuthView';
 import { ActivityOptInAsk } from './ActivityOptIn';
 import { ProfileView } from './ProfileView';
 import { SettingsView } from './SettingsView';
+import { useWorkspaceSize } from './size';
 import { Tour } from './Tour';
 import { UploadView } from './UploadView';
 import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './Views';
@@ -61,7 +62,10 @@ const TABS: {
 ];
 
 function Workspace() {
-  const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, profile } = useWorkspace();
+  const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, profile, setCartMin } = useWorkspace();
+  const appRef = useRef<HTMLDivElement>(null);
+  /* In a narrow space the draft deck starts closed, because open it covers the page. */
+  useWorkspaceSize(appRef, !!profile, (size) => size === 'compact' && setCartMin(true));
   const loc = runtime.location;
   const view = loc.view === 'home' || loc.view === 'library' ? 'pages' : loc.view;
   const deep = view === 'deck' || view === 'slide';
@@ -110,7 +114,7 @@ function Workspace() {
   if (!profile) return <LoginView />;
 
   return (
-    <div className="sv-app">
+    <div className="sv-app" ref={appRef}>
       <div className="sv-top">
         <div className="sv-wrap">
           <div className="sv-brandrow">

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
 import { Icon } from './icons';
 import { downloadPlan, plural } from './library';
+import { workspaceSizeOf } from './size';
 import { Link, Thumb } from './parts';
 import { useWorkspace } from './state';
 
@@ -167,12 +168,12 @@ export function Cart() {
   /* On phones the open draft deck covers the page: a tap outside it, or Escape, closes it. */
   useEffect(() => {
     if (cartMin) return;
-    const phone = window.matchMedia('(max-width: 700px)');
+    const compact = () => workspaceSizeOf(document.querySelector('.slidevault .cart-col')) === 'compact';
     const onDown = (e: globalThis.PointerEvent) => {
-      if (phone.matches && !(e.target as Element).closest('.cart-col')) setCartMin(true);
+      if (compact() && !(e.target as Element).closest('.cart-col')) setCartMin(true);
     };
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (phone.matches && e.key === 'Escape' && !document.querySelector('dialog[open]')) closeCart();
+      if (compact() && e.key === 'Escape' && !document.querySelector('dialog[open]')) closeCart();
     };
     document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey);
