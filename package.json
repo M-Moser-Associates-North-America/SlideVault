@@ -18,6 +18,7 @@
     "test:user-data": "tsx --conditions=react-server scripts/test-user-data.mts",
     "test:reasoning-map": "tsx --conditions=react-server scripts/test-reasoning-map.mts",
     "test:storyboard": "tsx --conditions=react-server scripts/test-storyboard.mts",
+    "test:deck-suggestions": "tsx --conditions=react-server scripts/test-deck-suggestions.mts",
     "upload:library": "tsx scripts/upload-library.mts",
     "score:search": "tsx --conditions=react-server scripts/score-search.mts",
     "typecheck": "next typegen && tsc --noEmit",

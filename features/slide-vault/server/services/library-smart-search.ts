@@ -1,6 +1,7 @@
 import 'server-only';
 import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../ai/reader';
 import type { SearchPlan } from '../ai/search-plan';
+import { openAiCompatibleDeckFactsReader, type DeckFactsReader } from '../ai/deck-facts';
 import { openAiCompatibleStoryReader, type StoryReader } from '../ai/storyboard';
 import { groupDuplicates, type SlideText } from '../duplicates';
 import { hasMmoserConfig } from '../config';
@@ -11,6 +12,7 @@ import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
 import { fixtureFilterValues, smartSearchFixtures } from './fixture-smart-search';
 import { smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, type StoryboardResponse } from './storyboard';
+import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 
 /**
  * Quick AI search over the whole library (docs/DECISIONS.md FD-16, FD-17): uploaded decks in
@@ -95,4 +97,17 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   const all = result.sections.flatMap((s) => s.items.map((i) => i.slide));
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
   return { ...result, sections: result.sections.map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide })) })) };
+}
+
+/** The configured deck-facts reader (FD-23), or null when no AI provider is set up. */
+export function configuredDeckFactsReader(env: Record<string, string | undefined> = process.env): DeckFactsReader | null {
+  const config = readAiConfig(env);
+  return config.provider === 'none' ? null : openAiCompatibleDeckFactsReader(config);
+}
+
+/** Suggested deck facts for a file about to be uploaded, checked against the library's categories (FD-23). */
+export async function suggestUploadFacts(fileName: string, bytes: Uint8Array, opts: { reader: DeckFactsReader | null; read: boolean; folderPath: string | null }): Promise<DeckSuggestionResult> {
+  const db = await orWithoutDb('filter values', listFilterValuesPg, { clients: [], categories: [] });
+  const categories = [...new Set([...db.categories, ...fixtureFilterValues(await loadLibraryIndex()).categories])].sort();
+  return suggestDeckFacts(fileName, bytes, { reader: opts.reader, categories, log: (m) => console.warn(m) }, { folderPath: opts.folderPath, read: opts.read });
 }
