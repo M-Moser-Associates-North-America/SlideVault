@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { CONTRACT_VERSION, SlideVaultWorkspace, type Capability, type RuntimeRequest, type SlideVaultRuntime } from '@/features/slide-vault';
 import { API_ROOT, locationFromSegments, pathFromLocation, UI_BASE } from './shell-config';
 import { useAccess } from './access';
@@ -28,7 +28,7 @@ function assertFeaturePath(path: string) {
  * The standalone app's runtime bridge: turns the contract's navigate/request/assetUrl into
  * Next.js routing and same-origin fetch. A host system would supply its own version of this.
  */
-export function StandaloneWorkspace() {
+export function StandaloneWorkspace({ header }: { header?: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const segments = useMemo(() => pathname.slice(UI_BASE.length).split('/').filter(Boolean).map(decodeURIComponent), [pathname]);
@@ -76,8 +76,8 @@ export function StandaloneWorkspace() {
 
   // The shell owns theme: the workspace renders inside the .slidevault token scope.
   return (
-    <div className="slidevault" data-theme={runtime.theme}>
-      <SlideVaultWorkspace runtime={runtime} />
+    <div className="slidevault" data-theme={runtime.theme} style={{ flex: '1 1 0', minHeight: 0 }}>
+      <SlideVaultWorkspace runtime={runtime} header={header} />
     </div>
   );
 }

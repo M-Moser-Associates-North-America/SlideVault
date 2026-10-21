@@ -2,18 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { Icon } from './icons';
+import { timeAgo } from './library';
 import { SlideCard } from './parts';
 import { useWorkspace } from './state';
-
-const RELATIVE = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-function timeAgo(at: number): string {
-  const mins = Math.round((at - Date.now()) / 60000);
-  if (mins > -1) return 'just now';
-  if (mins > -60) return RELATIVE.format(mins, 'minute');
-  const hours = Math.round(mins / 60);
-  if (hours > -24) return RELATIVE.format(hours, 'hour');
-  return RELATIVE.format(Math.round(hours / 24), 'day');
-}
 
 /**
  * Local design prototype: a profile dashboard -- saved slides plus a simple activity record,
@@ -21,7 +12,7 @@ function timeAgo(at: number): string {
  * for a few hundred people needs this to be simple, not a second app (not pushed, not real auth).
  */
 export function ProfileView() {
-  const { profile, savedIds, activity, library, drafts, loadDraft, deleteDraft, selection, toast } = useWorkspace();
+  const { profile, savedIds, library, drafts, loadDraft, deleteDraft, selection, toast } = useWorkspace();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   /* Arriving from the account menu's "Saved" item: scroll to the Saved section once the page is up. */
   useEffect(() => {
@@ -115,27 +106,6 @@ export function ProfileView() {
                     </button>
                   </div>
                 )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="row">
-        <div className="row-head">
-          <h2 className="h2">Recent activity</h2>
-        </div>
-        {activity.length === 0 ? (
-          <p className="meta">Nothing recorded yet. Open or download a slide to see it here.</p>
-        ) : (
-          <ul className="activity-list">
-            {activity.map((a, i) => (
-              <li key={i}>
-                <Icon name={a.kind === 'downloaded' ? 'download' : 'eye'} className="ic-sm" />
-                <span className="activity-label">
-                  {a.kind === 'downloaded' ? 'Downloaded' : 'Viewed'} <strong>{a.label}</strong>
-                </span>
-                <span className="activity-time">{timeAgo(a.at)}</span>
               </li>
             ))}
           </ul>

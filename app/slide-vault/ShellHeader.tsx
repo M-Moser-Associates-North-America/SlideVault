@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { startTour, useProfile } from '@/features/slide-vault';
-import { ThemeToggle, useTheme } from './theme';
+import { startTour, useNavPlacement, useProfile } from '@/features/slide-vault';
+import { useTheme } from './theme';
 import styles from './shell.module.css';
 
 /**
@@ -12,7 +12,8 @@ import styles from './shell.module.css';
  * signing in. Hidden on the sign-in screens, which show their own logo.
  */
 export function ShellHeader() {
-  const { theme } = useTheme();
+  const { theme, toggle: toggleTheme } = useTheme();
+  const { placement, setPlacement } = useNavPlacement();
   const { profile, signOut } = useProfile();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -75,7 +76,6 @@ export function ShellHeader() {
                 <path d="M12 17.4h.01" />
               </svg>
             </button>
-            <ThemeToggle className={styles.themeButton} />
             <div className={styles.menuWrap} ref={wrap}>
               <button type="button" className={styles.avatarBtn} aria-haspopup="menu" aria-expanded={open} aria-label={`Account menu, signed in as ${profile}`} onClick={() => setOpen((o) => !o)}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -104,6 +104,57 @@ export function ShellHeader() {
                       <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                     </svg>
                     Saved
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.menuItem}
+                    onClick={() => {
+                      setOpen(false);
+                      router.push('/slide-vault/settings');
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    Settings
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.menuItem}
+                    onClick={() => {
+                      setOpen(false);
+                      toggleTheme();
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      {theme === 'dark' ? (
+                        <>
+                          <circle cx="12" cy="12" r="4" />
+                          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                        </>
+                      ) : (
+                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                      )}
+                    </svg>
+                    {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={`${styles.menuItem} ${styles.phoneOnly}`}
+                    onClick={() => {
+                      setOpen(false);
+                      setPlacement(placement === 'bottom' ? 'top' : 'bottom');
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d={placement === 'bottom' ? 'M3 8h18' : 'M3 16h18'} />
+                    </svg>
+                    {placement === 'bottom' ? 'Tabs at the top' : 'Tabs at the bottom'}
                   </button>
                   <button
                     type="button"

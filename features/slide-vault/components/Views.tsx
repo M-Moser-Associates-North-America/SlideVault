@@ -11,6 +11,8 @@ import {
   clientOf,
   countBy,
   deckMatches,
+  downloadedNote,
+  downloadsOf,
   filterCount,
   folderLabel,
   removeHint,
@@ -25,7 +27,8 @@ import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { setHeroOut } from '../client/hero-visibility';
 import { shownInFilterRow, withoutChip } from './search-reading';
-import { simTags, simTier, simUsed, TIER_TEXT } from './simulation';
+import { useRoot } from './root';
+import { simTags, simTier, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
 
 const ROW_LIMIT = 12;
@@ -37,39 +40,14 @@ function hashString(s: string): number {
   return h;
 }
 
-/** The browse tiles (client, year, category): scrolls sideways and fades out at the edge like the card rows. */
+/** The browse tiles (client, year, category): scroll sideways like the card rows. */
 function TileRow({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [atEnd, setAtEnd] = useState(false);
-  const measure = () => {
-    const el = ref.current;
-    if (el) setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 6);
-  };
-  useEffect(() => {
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  });
-  return (
-    <div ref={ref} className={`tiles${atEnd ? ' at-end' : ''}`} onScroll={measure}>
-      {children}
-    </div>
-  );
+  return <div className="tiles">{children}</div>;
 }
 
 /** One horizontally scrolling row of cards, with "See all". */
 function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; title: string; sub?: string; seeAll?: string; total?: number; sim?: boolean; children: ReactNode }) {
   const ref = useRef<HTMLUListElement>(null);
-  const [atEnd, setAtEnd] = useState(false);
-  const measure = () => {
-    const el = ref.current;
-    if (el) setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 6);
-  };
-  useEffect(() => {
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  });
   const scroll = (dir: -1 | 1) =>
     ref.current?.scrollBy({
       left: dir * ref.current.clientWidth * 0.85,
@@ -106,7 +84,7 @@ function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; tit
           </button>
         </div>
       </div>
-      <ul ref={ref} className={`row-scroller${atEnd ? ' at-end' : ''}`} onScroll={measure}>
+      <ul ref={ref} className="row-scroller">
         {children}
       </ul>
     </section>
@@ -263,15 +241,30 @@ function HomeHeader() {
   };
   /* Tell the header when this bar has scrolled up out of sight, so it can show a slim search shortcut. */
   const formRef = useRef<HTMLFormElement>(null);
+  const { scroll } = useRoot();
   useEffect(() => {
     const el = formRef.current;
     if (!el) return;
-    const io = new IntersectionObserver(([entry]) => setHeroOut(!entry.isIntersecting), { rootMargin: '-110px 0px 0px 0px' });
+    const io = new IntersectionObserver(([entry]) => setHeroOut(!entry.isIntersecting), { root: scroll.current, rootMargin: '-110px 0px 0px 0px' });
     io.observe(el);
     return () => {
       io.disconnect();
       setHeroOut(false);
     };
+  }, [scroll]);
+  /* Start typing anywhere on Home and the letters go into the search box. Only plain characters when nothing
+     else is using the keyboard, so shortcuts, menus, dialogs and screen reader keys keep working. */
+  useEffect(() => {
+    const busy = 'input, textarea, select, button, a[href], summary, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="listbox"], [role="menu"], [role="menuitem"], [role="tab"], [role="dialog"], [role="slider"], [role="spinbutton"], [role="checkbox"], [role="switch"], dialog';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+      if (e.key.length !== 1 || e.key === ' ') return;
+      if ((e.target as Element | null)?.closest?.(busy)) return;
+      if (document.querySelector('dialog[open], .tour-pop')) return;
+      document.getElementById('sv-hero-q')?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, []);
   return (
     <div className="home-hero">
@@ -443,10 +436,10 @@ function LibraryView() {
             </Row>
           )}
           {popular.length > 0 && (
-            <Row id="popular" title="Most downloaded" sub="Sample counts for now." seeAll="popular" total={popular.length} sim>
+            <Row id="popular" title="Most downloaded" sub="The slides people download most often." seeAll="popular" total={popular.length}>
               {popular.slice(0, ROW_LIMIT).map((s) => (
                 <li key={s.id}>
-                  <SlideCard slide={s} list={popular.slice(0, ROW_LIMIT)} note={`Downloaded ${simUsed(s)} times (sample)`} />
+                  <SlideCard slide={s} list={popular.slice(0, ROW_LIMIT)} note={downloadedNote(s)} />
                 </li>
               ))}
             </Row>
@@ -602,7 +595,7 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
       </div>
       <div className="grid" style={{ marginTop: 8 }}>
         {ids.map((s) => (
-          <SlideCard key={s.id} slide={s} list={ids} note={id === 'popular' ? `Downloaded ${simUsed(s)} times (sample)` : undefined} />
+          <SlideCard key={s.id} slide={s} list={ids} note={id === 'popular' ? downloadedNote(s) : undefined} />
         ))}
       </div>
     </>
@@ -623,7 +616,7 @@ export function ResultsView() {
     if (!result) return [];
     const kept = result.items.filter((i) => slideMatches(i.slide, filters));
     return sort === 'popular'
-      ? [...kept].sort((a, b) => simUsed(b.slide) - simUsed(a.slide))
+      ? [...kept].sort((a, b) => downloadsOf(b.slide) - downloadsOf(a.slide))
       : sort === 'newest'
         ? [...kept].sort((a, b) => (yearOf(b.slide) ?? -1) - (yearOf(a.slide) ?? -1))
         : kept;
@@ -690,7 +683,7 @@ export function ResultsView() {
               Sort
               <select className="select select-sm" value={sort} onChange={(e) => setSort(e.target.value as 'best' | 'popular' | 'newest')}>
                 <option value="best">Best match</option>
-                <option value="popular">Most downloaded (sample)</option>
+                <option value="popular">Most downloaded</option>
                 <option value="newest">Newest first</option>
               </select>
             </label>
@@ -720,7 +713,7 @@ export function ResultsView() {
               </p>
               <div className="grid">
                 {shown.map((i) => (
-                  <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} note={sort === 'popular' ? `Downloaded ${simUsed(i.slide)} times (sample)` : undefined} />
+                  <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} note={sort === 'popular' ? downloadedNote(i.slide) : undefined} />
                 ))}
               </div>
             </>

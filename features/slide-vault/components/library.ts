@@ -1,5 +1,5 @@
 import type { SlideSummary } from '../contracts/dto';
-import { simContributor, simHasSlideType, simTier, simUploader, simUsed, type Tier } from './simulation';
+import { simContributor, simHasSlideType, simTier, simUploader, type Tier } from './simulation';
 
 /**
  * Pure helpers over the slides the API returns. Decks, clients, years and categories are all
@@ -136,6 +136,15 @@ export const sortNewest = (slides: SlideSummary[]) =>
   );
 
 /** Browse rows are named by a key such as "best", "recent", "client:Client A", "year:2025", "category:IDD". */
+/** How many times a slide has been downloaded: the server's count, or none when it has none. */
+export const downloadsOf = (s: SlideSummary): number => s.downloads ?? 0;
+
+/** The line under a slide card in Most downloaded lists, or nothing when there is no count. */
+export const downloadedNote = (s: SlideSummary): string | undefined => {
+  const n = downloadsOf(s);
+  return n > 0 ? `Downloaded ${n} ${n === 1 ? 'time' : 'times'}` : undefined;
+};
+
 export function browseSlides(key: string, all: SlideSummary[]): SlideSummary[] {
   const [kind, ...rest] = key.split(':');
   const value = rest.join(':');
@@ -145,7 +154,7 @@ export function browseSlides(key: string, all: SlideSummary[]): SlideSummary[] {
     case 'recent':
       return sortNewest(all);
     case 'popular':
-      return [...all].sort((a, b) => simUsed(b) - simUsed(a));
+      return all.filter((s) => downloadsOf(s) > 0).sort((a, b) => downloadsOf(b) - downloadsOf(a));
     case 'suggested':
       return all.filter((s) => simTier(s) === 'Suggested');
     case 'retired':
@@ -194,5 +203,16 @@ export function downloadPlan(slides: SlideSummary[]): DownloadPlan {
   return { files, zip: files.length > 1 };
 }
 
-export const planSummary = (p: DownloadPlan) =>
-  !p.files.length ? 'nothing to download' : p.zip ? `a zip of ${p.files.length} editable .pptx files (one per deck)` : 'one editable .pptx';
+/** What the download will be. `combine` only matters when the slides come from several decks. */
+export const planSummary = (p: DownloadPlan, combine = false) =>
+  !p.files.length ? 'nothing to download' : p.zip && !combine ? `a zip of ${p.files.length} editable .pptx files (one per deck)` : 'one editable .pptx';
+
+const RELATIVE = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+export function timeAgo(at: number): string {
+  const mins = Math.round((at - Date.now()) / 60000);
+  if (mins > -1) return 'just now';
+  if (mins > -60) return RELATIVE.format(mins, 'minute');
+  const hours = Math.round(mins / 60);
+  if (hours > -24) return RELATIVE.format(hours, 'hour');
+  return RELATIVE.format(Math.round(hours / 24), 'day');
+}

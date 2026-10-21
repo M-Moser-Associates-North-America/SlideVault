@@ -34,11 +34,6 @@ export function simTier(s: SlideSummary): Tier {
   return n < 80 ? 'Approved' : n < 95 ? 'Suggested' : 'Retired';
 }
 
-/** Sample download count. */
-export function simUsed(s: SlideSummary): number {
-  return (hash(`used:${s.id}`) % 180) + (s.provenance.bestOfTheBest ? 120 : 0);
-}
-
 /** Access rules from the v3 table: Viewer sees Approved; Editor adds Suggested; Curator adds Retired. */
 export function canSeeTier(tier: Tier, caps: ReadonlySet<string>): boolean {
   if (tier === 'Approved') return true;
