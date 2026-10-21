@@ -39,6 +39,9 @@ test.beforeEach(async ({ page }) => {
     // of this suite is about the real app behind it, so sign in a demo profile here; the
     // login/pick screens themselves get their own accessibility test below.
     localStorage.setItem('slidevault:profile', 'Anna Wintour');
+    // The quick tour starts by itself on a first sign-in and dims the page; mark it seen so these
+    // tests reach the app. The tour gets its own test below.
+    localStorage.setItem('slidevault:tip:tour', '1');
   });
 });
 
