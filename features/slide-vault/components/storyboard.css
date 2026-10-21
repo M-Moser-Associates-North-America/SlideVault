@@ -177,16 +177,18 @@
   .slidevault .sb .sb-board-meta { align-items: flex-start; }
 }
 
-/* "How you build proposals" in the profile (FD-25) */
-.slidevault .sb-roles .meta { margin: 0 0 12px; }
-.slidevault .sb-role-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-@container (max-width: 760px) { .slidevault .sb-role-list { grid-template-columns: 1fr; } }
-.slidevault .sb-roles { container-type: inline-size; }
-.slidevault .sb-role { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 16px 16px 16px 44px; border: 1px solid var(--sv-border-strong); border-radius: 14px; background: var(--sv-surface); cursor: pointer; }
-.slidevault .sb-role input { position: absolute; left: 16px; top: 18px; accent-color: var(--sv-brand); width: 16px; height: 16px; }
-.slidevault .sb-role.is-on { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
-.slidevault .sb-role:focus-within { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+/* "Your role" at the top of My decks (FD-25): one line, opening to the choices. Rules, not boxes. */
+.slidevault .sb-roles { margin: 4px 0 24px; padding: 12px 0; border-top: 1px solid var(--sv-border); border-bottom: 1px solid var(--sv-border); }
+.slidevault .sb-roles-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin: 0; }
+.slidevault .sb-roles-line b { font-weight: 600; color: var(--sv-text); }
+.slidevault .sb-roles-line .muted { font-size: var(--sv-text-small); }
+.slidevault .sb-role-list { display: grid; gap: 2px; margin-top: 10px; }
+.slidevault .sb-role { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: baseline; padding: 8px 4px; border-radius: 8px; cursor: pointer; }
+.slidevault .sb-role:hover { background: var(--sv-surface-sunken); }
+.slidevault .sb-role input { accent-color: var(--sv-brand); grid-row: span 2; align-self: start; margin-top: 3px; }
 .slidevault .sb-role-name { font-weight: 600; color: var(--sv-text); }
-.slidevault .sb-role-day { font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
-.slidevault .sb-role-tuned { font-size: var(--sv-text-meta); color: var(--sv-brand-strong); }
+.slidevault .sb-role-day { grid-column: 2; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .sb-role:focus-within { outline: 2px solid var(--sv-brand); outline-offset: 1px; }
 .slidevault .sb-role-line { margin: 12px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .sb-role-pick { font: inherit; font-weight: 600; color: var(--sv-text); background: transparent; border: 0; border-bottom: 1px solid var(--sv-border-strong); padding: 2px 2px; cursor: pointer; }
+.slidevault .sb-role-pick:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }

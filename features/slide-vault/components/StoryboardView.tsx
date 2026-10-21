@@ -29,7 +29,7 @@ const two = (n: number) => String(n).padStart(2, '0');
 
 export function StoryboardView() {
   const { runtime, updateSelection, toast, announce, profile } = useWorkspace();
-  const { role } = useStoryRole(profile);
+  const { role, setRole } = useStoryRole(profile);
   const roleLabel = ROLE_CHOICES.find((c) => c.role === role)?.label ?? null;
   // A brief typed in search arrives here when the person chose "Build a story instead".
   const [situation, setSituation] = useState(() => takeHandedOffBrief() ?? '');
@@ -156,17 +156,18 @@ export function StoryboardView() {
             </button>
           </div>
         </div>
+        {/* Pick or change the role right here, without leaving the page (FD-25). It is the same setting as in My decks. */}
         <p className="sb-role-line">
-          {roleLabel ? (
-            <>
-              Tuned for <b>{roleLabel}</b>.{' '}
-            </>
-          ) : (
-            <>Tell us how you build proposals and every story is tuned to your role. </>
-          )}
-          <Link className="btn-link" to={{ view: 'profile' }}>
-            {roleLabel ? 'Change' : 'Set it in My decks'}
-          </Link>
+          <label htmlFor="sb-role-pick">Tuned for</label>{' '}
+          <select id="sb-role-pick" className="sb-role-pick" value={role ?? ''} onChange={(e) => setRole((e.target.value || null) as typeof role)}>
+            <option value="">Everyone (no role set)</option>
+            {ROLE_CHOICES.map((c) => (
+              <option key={c.role} value={c.role}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          {roleLabel && <span className="muted"> · {ROLE_CHOICES.find((c) => c.role === role)?.tuned}</span>}
         </p>
         {phase === 'error' && (
           <div className="notice danger" role="alert" style={{ marginTop: 16 }}>
