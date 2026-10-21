@@ -682,3 +682,13 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* The dim layer behind the draft deck on phones. */
 .slidevault .cart-scrim { display: none; }
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-scrim { display: block; position: absolute; inset: 0; z-index: 59; padding: 0; border: 0; background: rgba(10, 10, 12, 0.5); cursor: default; }
+
+/* Save as a draft: update the older deck or save a new one. Same look on phone, tablet and desktop. */
+.slidevault .save-opts { margin: 0 0 16px; padding: 0; border: 0; display: grid; gap: 10px; }
+.slidevault .save-opt { display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 12px; row-gap: 2px; align-items: start; padding: 12px 14px; border: 1px solid var(--sv-border-strong); border-radius: 12px; background: var(--sv-surface); cursor: pointer; }
+.slidevault .save-opt.on { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
+.slidevault .save-opt.off { opacity: 0.5; cursor: not-allowed; }
+.slidevault .save-opt:has(input:focus-visible) { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
+.slidevault .save-opt input { grid-row: 1 / span 2; margin: 2px 0 0; width: 18px; height: 18px; accent-color: var(--sv-brand); }
+.slidevault .save-opt .so-t { font-size: var(--sv-text-small); font-weight: 600; color: var(--sv-text); }
+.slidevault .save-opt .so-d { grid-column: 2; font-size: 12.5px; line-height: 1.4; color: var(--sv-text-secondary); }

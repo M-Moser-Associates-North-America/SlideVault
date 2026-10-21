@@ -82,7 +82,12 @@ type Workspace = {
   activityRetentionDays: number | null;
   /** Working drafts: named sets of slides saved from the draft deck, kept under My decks. */
   drafts: Draft[];
-  saveDraft: (name: string, slides: SlideSummary[]) => void;
+  /** Save the draft deck as a new deck in My decks. Resolves to the saved deck's id. */
+  saveDraft: (name: string, slides: SlideSummary[]) => Promise<string | null>;
+  /** Re-save an older deck with the draft deck's slides (and a name). */
+  replaceDraft: (id: string, name: string, slides: SlideSummary[]) => Promise<void>;
+  /** The saved deck the draft deck came from (opened from My decks, or saved from here), while the draft deck has slides in it. */
+  draftOrigin: Draft | null;
   deleteDraft: (id: string) => void;
   /** Replace the draft deck with a saved draft's slides. Returns how many slides were found. */
   loadDraft: (draft: Draft) => number;
@@ -236,13 +241,38 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
   /* Kept on the server for the signed-in person when the database is set up (FD-18). */
   const { ids: savedIds, toggle: toggleSaved } = useSaved(profile, transport);
   const { entries: activity, log: logActivity, optedIn: activityOptedIn, setOptedIn: setActivityOptIn, retentionDays: activityRetentionDays } = useActivity(profile, transport);
-  const { drafts, save: saveDraftStore, remove: deleteDraft } = useDrafts(profile, transport);
-  const saveDraft = useCallback((name: string, slides: SlideSummary[]) => saveDraftStore(name, slides.map((s) => s.id)), [saveDraftStore]);
+  const { drafts, save: saveDraftStore, replace: replaceDraftStore, remove: deleteDraft } = useDrafts(profile, transport);
+  /* Which saved deck the draft deck is "of", so saving again can ask: update that deck, or save a new one? It ends when the draft deck is emptied. */
+  const [originId, setOriginId] = useState<string | null>(null);
+  const [lastCount, setLastCount] = useState(selection.length);
+  if (selection.length !== lastCount) {
+    setLastCount(selection.length);
+    if (selection.length === 0 && originId !== null) setOriginId(null);
+  }
+  const draftOrigin = selection.length > 0 && originId ? (drafts.find((d) => d.id === originId) ?? null) : null;
+  const saveDraft = useCallback(
+    async (name: string, slides: SlideSummary[]) => {
+      const id = await saveDraftStore(name, slides.map((s) => s.id));
+      if (id) setOriginId(id);
+      setDraftTitle(name);
+      return id;
+    },
+    [saveDraftStore],
+  );
+  const replaceDraft = useCallback(
+    async (id: string, name: string, slides: SlideSummary[]) => {
+      setOriginId(await replaceDraftStore(id, name, slides.map((s) => s.id)));
+      setDraftTitle(name);
+    },
+    [replaceDraftStore],
+  );
   const loadDraft = useCallback(
     (draft: Draft) => {
       const all = library.status === 'ready' ? library.slides : [];
       const found = draft.slideIds.map((id) => all.find((s) => s.id === id)).filter((s): s is SlideSummary => s !== undefined);
       updateSelection(() => found);
+      setOriginId(draft.id);
+      setDraftTitle(draft.name);
       return found.length;
     },
     [library, updateSelection],
@@ -295,6 +325,8 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     activityRetentionDays,
     drafts,
     saveDraft,
+    replaceDraft,
+    draftOrigin,
     deleteDraft,
     loadDraft,
   };

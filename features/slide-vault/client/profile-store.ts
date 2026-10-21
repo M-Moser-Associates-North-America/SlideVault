@@ -213,7 +213,6 @@ export function useDrafts(profile: string | null, transport?: Transport) {
   const raw = useStored(key);
   const drafts = key ? parseDrafts(raw) : [];
   const [online, setOnline] = useState(false);
-  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     if (!profile || !transport || !key) return;
@@ -235,18 +234,43 @@ export function useDrafts(profile: string | null, transport?: Transport) {
     return () => {
       live = false;
     };
-  }, [profile, transport, key, reload]);
+  }, [profile, transport, key]);
 
+  /** Save a new deck. Resolves to its id (the server's, once it has one) so the draft deck can stay linked to it. */
   const save = useCallback(
-    (name: string, slideIds: string[]) => {
-      if (!key || !profile) return;
+    async (name: string, slideIds: string[]): Promise<string | null> => {
+      if (!key || !profile) return null;
       const draft: Draft = { id: localId(), name, slideIds, savedAt: Date.now() };
       write(key, JSON.stringify([draft, ...parseDrafts(read(key))]));
-      if (online && transport)
-        userApi
-          .createDraft(transport, profile, name, slideIds)
-          .then(() => setReload((n) => n + 1))
-          .catch(warn('save a deck'));
+      if (!online || !transport) return draft.id;
+      try {
+        const created = await userApi.createDraft(transport, profile, name, slideIds);
+        write(key, JSON.stringify(parseDrafts(read(key)).map((d) => (d.id === draft.id ? created : d))));
+        return created.id;
+      } catch (e) {
+        warn('save a deck')(e);
+        return draft.id;
+      }
+    },
+    [key, profile, online, transport],
+  );
+  /**
+   * Re-save an existing deck with new contents. The server has no edit call, so the new version is saved
+   * first and the old one removed after it, which means a failure never loses the older version. It then
+   * sits at the top of the list (newest first). Resolves to the deck's id.
+   */
+  const replace = useCallback(
+    async (id: string, name: string, slideIds: string[]): Promise<string> => {
+      if (!key || !profile) return id;
+      let finalId = id;
+      let draft: Draft = { id, name, slideIds, savedAt: Date.now() };
+      if (online && transport && SERVER_ID.test(id)) {
+        draft = await userApi.createDraft(transport, profile, name, slideIds); // throws if the server says no; nothing changes then
+        finalId = draft.id;
+        await userApi.deleteDraft(transport, profile, id).catch(warn('remove the older version of a deck'));
+      }
+      write(key, JSON.stringify([draft, ...parseDrafts(read(key)).filter((d) => d.id !== id)]));
+      return finalId;
     },
     [key, profile, online, transport],
   );
@@ -258,5 +282,5 @@ export function useDrafts(profile: string | null, transport?: Transport) {
     },
     [key, profile, online, transport],
   );
-  return { drafts, save, remove };
+  return { drafts, save, replace, remove };
 }
