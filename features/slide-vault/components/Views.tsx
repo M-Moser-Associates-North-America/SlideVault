@@ -39,39 +39,14 @@ function hashString(s: string): number {
   return h;
 }
 
-/** The browse tiles (client, year, category): scrolls sideways and fades out at the edge like the card rows. */
+/** The browse tiles (client, year, category): scroll sideways like the card rows. */
 function TileRow({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [atEnd, setAtEnd] = useState(false);
-  const measure = () => {
-    const el = ref.current;
-    if (el) setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 6);
-  };
-  useEffect(() => {
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  });
-  return (
-    <div ref={ref} className={`tiles${atEnd ? ' at-end' : ''}`} onScroll={measure}>
-      {children}
-    </div>
-  );
+  return <div className="tiles">{children}</div>;
 }
 
 /** One horizontally scrolling row of cards, with "See all". */
 function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; title: string; sub?: string; seeAll?: string; total?: number; sim?: boolean; children: ReactNode }) {
   const ref = useRef<HTMLUListElement>(null);
-  const [atEnd, setAtEnd] = useState(false);
-  const measure = () => {
-    const el = ref.current;
-    if (el) setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 6);
-  };
-  useEffect(() => {
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  });
   const scroll = (dir: -1 | 1) =>
     ref.current?.scrollBy({
       left: dir * ref.current.clientWidth * 0.85,
@@ -108,7 +83,7 @@ function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; tit
           </button>
         </div>
       </div>
-      <ul ref={ref} className={`row-scroller${atEnd ? ' at-end' : ''}`} onScroll={measure}>
+      <ul ref={ref} className="row-scroller">
         {children}
       </ul>
     </section>

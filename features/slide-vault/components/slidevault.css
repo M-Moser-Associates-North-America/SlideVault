@@ -586,8 +586,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100vw - 24px)); }
 .slidevault .page-head .lede { margin-top: 2px; }
 .slidevault .row { margin-top: 22px; }
 .slidevault .try { margin-top: 10px; }
-.slidevault .row-scroller { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); }
-.slidevault .row-scroller.at-end { -webkit-mask-image: none; mask-image: none; }
 
 @media (max-width: 960px) { .slidevault .cart-col { border-top: 0; } }
 /* Try asking: directly under the search box */

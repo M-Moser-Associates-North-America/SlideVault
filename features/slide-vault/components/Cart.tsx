@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type DragEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { Icon } from './icons';
-import { downloadPlan, plural, planSummary } from './library';
+import { downloadPlan, plural } from './library';
 import { Link, Thumb } from './parts';
 import { useWorkspace } from './state';
 
@@ -292,11 +292,18 @@ export function Cart() {
         </div>
         <div className="cart-foot">
           <p className="txt">
-            <strong>
-              {included.length} of {plural(n, 'slide')}
-            </strong>{' '}
-            in the download
-            {included.length ? ` · ${plural(plan.files.length, 'deck')}. Downloads as ${planSummary(plan)}.` : '.'}
+            {none ? (
+              'No slides ticked.'
+            ) : (
+              <>
+                {included.length < n && (
+                  <>
+                    <strong>{included.length} of {n} slides</strong> ticked.{' '}
+                  </>
+                )}
+                Downloads as {plan.zip ? 'a zip, one .pptx per deck' : 'one editable .pptx'}.
+              </>
+            )}
           </p>
           <div className="cart-list-acts">
             {confirming ? (

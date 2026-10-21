@@ -515,8 +515,6 @@
 }
 
 /* The browse tiles fade at the edge like the card rows above them, to show there is more to scroll to. */
-.slidevault .tiles { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); }
-.slidevault .tiles.at-end { -webkit-mask-image: none; mask-image: none; }
 
 /* ---- Quick tour: dimmed page, a spotlight on one thing, a plain-words note beside it ---- */
 /* Tour card (React Joyride places it; these rules only style it). */
@@ -526,3 +524,7 @@
 .slidevault .tour-t { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: var(--sv-text-secondary); }
 .slidevault .tour-acts { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
 .slidevault .tour-nav { display: flex; gap: 8px; }
+
+/* Draft deck, dark mode: the grey secondary text and the name placeholder were hard to read on the dark panel. */
+.slidevault[data-theme="dark"] .cart-col, .dark .slidevault:not([data-theme="light"]) .cart-col { --sv-text-secondary: #d6d6da; }
+.slidevault[data-theme="dark"] .cart-name input::placeholder, .dark .slidevault:not([data-theme="light"]) .cart-name input::placeholder { color: #c9c9ce; opacity: 1; }
