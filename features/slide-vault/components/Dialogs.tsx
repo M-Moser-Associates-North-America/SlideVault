@@ -32,6 +32,22 @@ export function Lightbox() {
   const slide = preview ? preview.list[preview.index] : null;
   const many = !!preview && preview.list.length > 1;
 
+  /* Remember the slide we came from so it slides out while the next slides in (same motion as the slide page). */
+  const [seen, setSeen] = useState<{ list: SlideSummary[] | null; index: number; from: SlideSummary | null; dir: 'next' | 'prev' | null }>({ list: null, index: 0, from: null, dir: null });
+  if (preview && (seen.list !== preview.list || seen.index !== preview.index)) {
+    const sameList = seen.list === preview.list;
+    const diff = preview.index - seen.index;
+    const wrapped = Math.abs(diff) > 1 && preview.list.length > 2;
+    const dir = !sameList || diff === 0 ? null : (diff > 0) !== wrapped ? 'next' : 'prev';
+    setSeen({ list: preview.list, index: preview.index, from: dir && seen.list ? seen.list[seen.index] : null, dir });
+  } else if (!preview && seen.list) {
+    setSeen({ list: null, index: 0, from: null, dir: null });
+  }
+  const preview_img = (sl: SlideSummary) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={runtime.assetUrl(sl.previewPath)} alt={sl === slide ? sl.title : ''} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+  );
+
   return (
     <dialog
       ref={ref}
@@ -61,17 +77,14 @@ export function Lightbox() {
           </div>
           <div className="dlg-body">
             <div className="lb-stage">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={runtime.assetUrl(slide.previewPath)}
-                alt={slide.title}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  display: 'block',
-                }}
-              />
+              {seen.from && seen.dir && (
+                <div key={`out-${seen.from.id}`} className={`slide-layer slide-out-${seen.dir}`} aria-hidden="true">
+                  {preview_img(seen.from)}
+                </div>
+              )}
+              <div key={slide.id} className={`slide-layer${seen.dir ? ` slide-in-${seen.dir}` : ''}`}>
+                {preview_img(slide)}
+              </div>
               {many && (
                 <>
                   <button type="button" className="btn btn-icon lb-nav lb-prev" aria-label="Previous slide" onClick={() => movePreview(-1)}>

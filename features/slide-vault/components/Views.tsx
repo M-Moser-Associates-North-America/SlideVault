@@ -806,6 +806,14 @@ export function SlideView({ id }: { id: string }) {
   const slide = library.status === 'ready' ? library.slides.find((s) => s.id === id) : undefined;
   const deck = library.status === 'ready' && slide ? library.decks.find((d) => d.id === slide.provenance.sourceId) : undefined;
 
+  /* Remember the slide we came from so it can slide out while the new one slides in. */
+  const [step, setStep] = useState<{ id: string; from: SlideSummary | null; dir: 'next' | 'prev' | null }>({ id, from: null, dir: null });
+  if (step.id !== id) {
+    const sibsNow = library.status === 'ready' ? library.decks.find((d) => d.slides.some((s) => s.id === id))?.slides : undefined;
+    const fromSlide = sibsNow?.find((s) => s.id === step.id) ?? null;
+    const dir = fromSlide && sibsNow ? (sibsNow.indexOf(fromSlide) < sibsNow.findIndex((s) => s.id === id) ? 'next' : 'prev') : null;
+    setStep({ id, from: fromSlide, dir });
+  }
   const [detail, setDetail] = useState<{ id: string; slide: SlideDetail } | { id: string; error: string } | null>(null);
   const { request, onSessionExpired } = runtime;
   useEffect(() => {
@@ -868,14 +876,21 @@ export function SlideView({ id }: { id: string }) {
               display: 'block',
               width: '100%',
               padding: 0,
-              cursor: 'zoom-in',
+              cursor: 'pointer',
               background: 'none',
             }}
             aria-label="Open a larger preview"
             onClick={() => openPreview(sibs, i)}
           >
-            <div style={{ aspectRatio: '16 / 9' }}>
-              <Thumb slide={slide} />
+            <div className="slide-stage" style={{ aspectRatio: '16 / 9' }}>
+              {step.from && step.dir && (
+                <div key={`out-${step.from.id}`} className={`slide-layer slide-out-${step.dir}`} aria-hidden="true">
+                  <Thumb slide={step.from} />
+                </div>
+              )}
+              <div key={slide.id} className={`slide-layer${step.dir ? ` slide-in-${step.dir}` : ''}`}>
+                <Thumb slide={slide} />
+              </div>
             </div>
           </button>
           <div className="row-flex" style={{ marginTop: 12, justifyContent: 'center', gap: 14 }}>
