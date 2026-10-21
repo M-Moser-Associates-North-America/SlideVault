@@ -11,6 +11,7 @@ import { CompactSearch } from './CompactSearch';
 import { SearchForm } from './Rail';
 import { WorkspaceProvider, useWorkspace } from './state';
 import { LoginView } from './AuthView';
+import { ActivityOptInAsk } from './ActivityOptIn';
 import { ProfileView } from './ProfileView';
 import { Tour } from './Tour';
 import { UploadView } from './UploadView';
@@ -191,6 +192,7 @@ function Workspace() {
         {announcement}
       </div>
       <Tour />
+      <ActivityOptInAsk />
       <Lightbox />
       <DownloadDialog />
       <AlsoDialog />

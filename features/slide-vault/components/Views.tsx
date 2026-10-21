@@ -11,6 +11,8 @@ import {
   clientOf,
   countBy,
   deckMatches,
+  downloadedNote,
+  downloadsOf,
   filterCount,
   folderLabel,
   removeHint,
@@ -25,7 +27,7 @@ import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { setHeroOut } from '../client/hero-visibility';
 import { shownInFilterRow, withoutChip } from './search-reading';
-import { simTags, simTier, simUsed, TIER_TEXT } from './simulation';
+import { simTags, simTier, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
 
 const ROW_LIMIT = 12;
@@ -443,10 +445,10 @@ function LibraryView() {
             </Row>
           )}
           {popular.length > 0 && (
-            <Row id="popular" title="Most downloaded" sub="Sample counts for now." seeAll="popular" total={popular.length} sim>
+            <Row id="popular" title="Most downloaded" sub="The slides people download most often." seeAll="popular" total={popular.length}>
               {popular.slice(0, ROW_LIMIT).map((s) => (
                 <li key={s.id}>
-                  <SlideCard slide={s} list={popular.slice(0, ROW_LIMIT)} note={`Downloaded ${simUsed(s)} times (sample)`} />
+                  <SlideCard slide={s} list={popular.slice(0, ROW_LIMIT)} note={downloadedNote(s)} />
                 </li>
               ))}
             </Row>
@@ -602,7 +604,7 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
       </div>
       <div className="grid" style={{ marginTop: 8 }}>
         {ids.map((s) => (
-          <SlideCard key={s.id} slide={s} list={ids} note={id === 'popular' ? `Downloaded ${simUsed(s)} times (sample)` : undefined} />
+          <SlideCard key={s.id} slide={s} list={ids} note={id === 'popular' ? downloadedNote(s) : undefined} />
         ))}
       </div>
     </>
@@ -623,7 +625,7 @@ export function ResultsView() {
     if (!result) return [];
     const kept = result.items.filter((i) => slideMatches(i.slide, filters));
     return sort === 'popular'
-      ? [...kept].sort((a, b) => simUsed(b.slide) - simUsed(a.slide))
+      ? [...kept].sort((a, b) => downloadsOf(b.slide) - downloadsOf(a.slide))
       : sort === 'newest'
         ? [...kept].sort((a, b) => (yearOf(b.slide) ?? -1) - (yearOf(a.slide) ?? -1))
         : kept;
@@ -690,7 +692,7 @@ export function ResultsView() {
               Sort
               <select className="select select-sm" value={sort} onChange={(e) => setSort(e.target.value as 'best' | 'popular' | 'newest')}>
                 <option value="best">Best match</option>
-                <option value="popular">Most downloaded (sample)</option>
+                <option value="popular">Most downloaded</option>
                 <option value="newest">Newest first</option>
               </select>
             </label>
@@ -720,7 +722,7 @@ export function ResultsView() {
               </p>
               <div className="grid">
                 {shown.map((i) => (
-                  <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} note={sort === 'popular' ? `Downloaded ${simUsed(i.slide)} times (sample)` : undefined} />
+                  <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} note={sort === 'popular' ? downloadedNote(i.slide) : undefined} />
                 ))}
               </div>
             </>

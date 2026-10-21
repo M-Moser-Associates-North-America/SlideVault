@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ActivityOptInDialog, RETENTION_FALLBACK_DAYS, type OptInMode } from './ActivityOptIn';
 import { Icon } from './icons';
 import { SlideCard } from './parts';
 import { useWorkspace } from './state';
@@ -21,8 +22,10 @@ function timeAgo(at: number): string {
  * for a few hundred people needs this to be simple, not a second app (not pushed, not real auth).
  */
 export function ProfileView() {
-  const { profile, savedIds, activity, library, drafts, loadDraft, deleteDraft, selection, toast } = useWorkspace();
+  const { profile, savedIds, activity, library, drafts, loadDraft, deleteDraft, selection, toast, activityOptedIn, activityRetentionDays } = useWorkspace();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [optInFor, setOptInFor] = useState<OptInMode | null>(null);
+  const days = activityRetentionDays ?? RETENTION_FALLBACK_DAYS;
   /* Arriving from the account menu's "Saved" item: scroll to the Saved section once the page is up. */
   useEffect(() => {
     if (window.location.hash !== '#saved') return;
@@ -121,12 +124,28 @@ export function ProfileView() {
         )}
       </section>
 
+      <section className="row" id="personalize">
+        <div className="row-head">
+          <h2 className="h2">Personalize my Home</h2>
+        </div>
+        <label className="fb-check">
+          <input type="checkbox" checked={activityOptedIn === true} disabled={activityOptedIn === null} onChange={() => setOptInFor(activityOptedIn ? 'off' : 'on')} />
+          <span>Use my activity to personalize my Home (kept {days} days)</span>
+        </label>
+        <p className="meta" style={{ marginTop: 6 }}>
+          {activityOptedIn === null
+            ? 'Not available right now.'
+            : 'Your Top 10 and Suggested for you are ranked from the slides you open, save and download. Only you see this. Turning it off deletes your history.'}
+        </p>
+        <ActivityOptInDialog mode={optInFor} onClose={() => setOptInFor(null)} />
+      </section>
+
       <section className="row">
         <div className="row-head">
           <h2 className="h2">Recent activity</h2>
         </div>
         {activity.length === 0 ? (
-          <p className="meta">Nothing recorded yet. Open or download a slide to see it here.</p>
+          <p className="meta">{activityOptedIn ? 'Nothing recorded yet. Open or download a slide to see it here.' : 'Turn on “Personalize my Home” above to see your activity here.'}</p>
         ) : (
           <ul className="activity-list">
             {activity.map((a, i) => (

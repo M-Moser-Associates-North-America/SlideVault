@@ -9,7 +9,7 @@ import { Link, Thumb, useCartToggle } from './parts';
 import { useWorkspace } from './state';
 
 /** Open and close a native <dialog> from React state. Escape closes it (via the dialog's own close event). */
-function useDialogOpen(ref: RefObject<HTMLDialogElement | null>, open: boolean) {
+export function useDialogOpen(ref: RefObject<HTMLDialogElement | null>, open: boolean) {
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -19,7 +19,7 @@ function useDialogOpen(ref: RefObject<HTMLDialogElement | null>, open: boolean) 
 }
 
 /** A click on the backdrop (the dialog element itself) closes it. */
-const backdropClose = (onClose: () => void) => (e: MouseEvent<HTMLDialogElement>) => {
+export const backdropClose = (onClose: () => void) => (e: MouseEvent<HTMLDialogElement>) => {
   if (e.target === e.currentTarget) onClose();
 };
 

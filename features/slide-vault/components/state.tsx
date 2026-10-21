@@ -78,6 +78,8 @@ type Workspace = {
   activityOptedIn: boolean | null;
   /** Turn tracking on or off. Off deletes everything recorded for this person. */
   setActivityOptIn: (on: boolean) => Promise<void>;
+  /** How long recorded activity is kept, as the server reports it; null until it has answered */
+  activityRetentionDays: number | null;
   /** Working drafts: named sets of slides saved from the draft deck, kept under My decks. */
   drafts: Draft[];
   saveDraft: (name: string, slides: SlideSummary[]) => void;
@@ -233,7 +235,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
      shows a different person's stuff. */
   /* Kept on the server for the signed-in person when the database is set up (FD-18). */
   const { ids: savedIds, toggle: toggleSaved } = useSaved(profile, transport);
-  const { entries: activity, log: logActivity, optedIn: activityOptedIn, setOptedIn: setActivityOptIn } = useActivity(profile, transport);
+  const { entries: activity, log: logActivity, optedIn: activityOptedIn, setOptedIn: setActivityOptIn, retentionDays: activityRetentionDays } = useActivity(profile, transport);
   const { drafts, save: saveDraftStore, remove: deleteDraft } = useDrafts(profile, transport);
   const saveDraft = useCallback((name: string, slides: SlideSummary[]) => saveDraftStore(name, slides.map((s) => s.id)), [saveDraftStore]);
   const loadDraft = useCallback(
@@ -290,6 +292,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     logActivity,
     activityOptedIn,
     setActivityOptIn,
+    activityRetentionDays,
     drafts,
     saveDraft,
     deleteDraft,
