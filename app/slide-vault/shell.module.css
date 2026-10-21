@@ -34,6 +34,9 @@
 }
 
 .headerInner {
+  /* Same width limit and centring as the workspace content below, so the two line up on very wide screens. */
+  max-width: 2200px;
+  margin: 0 auto;
   display: flex;
   align-items: flex-start;
   gap: 18px;

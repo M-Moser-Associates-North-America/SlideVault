@@ -308,11 +308,11 @@
 
 /* ---- Room at the sides and under the Try chips (the mockup centres its content, so on a laptop its side margin is well over 40px) ---- */
 .slidevault { --sv-side: 40px; }
-.slidevault .sv-app[data-size="wide"], .slidevault .sv-app[data-size="wide"] .slidevault { --sv-side: 56px; }
-.slidevault .sv-app[data-size="wide"][data-xl], .slidevault .sv-app[data-size="wide"][data-xl] .slidevault { --sv-side: 80px; }
+/* Side gutters grow with the space (4% of the width, between 40px and 120px), so large screens use their width instead of leaving wide empty margins. */
+.slidevault .sv-app[data-size="wide"], .slidevault .sv-app[data-size="wide"] .slidevault { --sv-side: clamp(40px, calc(var(--sv-w, 1280px) * 0.04), 120px); }
 /* container width: wide */
   .slidevault .sv-app[data-size="wide"] .sv-top .sv-wrap { padding: 0 var(--sv-side); }
-  .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 var(--sv-side); --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 1560px) / 2 + var(--sv-side))); }
+  .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 var(--sv-side); --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 2200px) / 2 + var(--sv-side))); }
 
 .slidevault .home-try { margin-bottom: 36px; }
 
@@ -322,7 +322,7 @@
   .slidevault .sv-app[data-size="wide"] .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
   .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 264px; }
   .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; }
-  .slidevault .sv-app[data-size="wide"] .cart-col { margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 1560px) / 2)); padding: 24px 16px 24px 22px; }
+  .slidevault .sv-app[data-size="wide"] .cart-col { margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 2200px) / 2)); padding: 24px 16px 24px 22px; }
   .slidevault .sv-app[data-size="wide"] .cart-min .cart-col { padding: 24px 4px; }
   .slidevault .sv-app[data-size="wide"] .cart-min .mini-t { font-size: 10px; letter-spacing: 0.04em; text-align: center; }
 
@@ -407,7 +407,7 @@
 .slidevault .cart-pill { display: none; }
 /* container width: wide */
   .slidevault .sv-app[data-size="wide"] .sv-top .sv-wrap { padding: 0 var(--sv-side); }
-  .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 var(--sv-side); --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 1560px) / 2 + var(--sv-side))); }
+  .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 var(--sv-side); --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 2200px) / 2 + var(--sv-side))); }
 
 .slidevault .home-try { margin-bottom: 36px; }
 
@@ -417,7 +417,7 @@
   .slidevault .sv-app[data-size="wide"] .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
   .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 264px; }
   .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; }
-  .slidevault .sv-app[data-size="wide"] .cart-col { margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 1560px) / 2)); padding: 24px 16px 24px 22px; }
+  .slidevault .sv-app[data-size="wide"] .cart-col { margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 2200px) / 2)); padding: 24px 16px 24px 22px; }
   .slidevault .sv-app[data-size="wide"] .cart-min .cart-col { padding: 24px 4px; }
   .slidevault .sv-app[data-size="wide"] .cart-min .mini-t { font-size: 10px; letter-spacing: 0.04em; text-align: center; }
 
@@ -510,7 +510,7 @@
   .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 0; padding-right: var(--sv-side); }
   .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min .center { padding-right: 0; }
 
-  .slidevault .sv-app[data-size="wide"] .cart-col { padding: 0; min-height: 0; background: var(--sv-surface); border-top: 0; border-left: 1px solid var(--sv-brand); box-shadow: -8px 0 24px -12px rgba(20, 20, 20, 0.22); overflow: hidden; margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 1560px) / 2)); }
+  .slidevault .sv-app[data-size="wide"] .cart-col { padding: 0; min-height: 0; background: var(--sv-surface); border-top: 0; border-left: 1px solid var(--sv-brand); box-shadow: -8px 0 24px -12px rgba(20, 20, 20, 0.22); overflow: hidden; margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 2200px) / 2)); }
   .slidevault .sv-app[data-size="wide"] .cart-min .cart-col { padding: 0; width: 0; min-height: 0; max-height: 0; border: 0; background: none; overflow: visible; margin-right: 0; }
   .slidevault .sv-app[data-size="wide"] .cart-col { top: var(--cart-top, 47px); }
   .slidevault .sv-app[data-size="wide"] .cart { gap: 0; height: var(--cart-room, calc(var(--sv-h, 100%) - 179px)); }
