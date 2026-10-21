@@ -30,19 +30,27 @@ export async function recordDownloads(slideIds: string[]): Promise<void> {
   );
 }
 
-/** Download totals for these slides. Slides never downloaded are left out (read as 0). */
-export async function downloadCounts(slideIds: string[]): Promise<Map<string, number>> {
+/**
+ * Download totals for these slides. Slides never downloaded are left out (read as 0). Returns null
+ * when this server has no database, because then the counts are unknown, not zero.
+ */
+export async function downloadCounts(slideIds: string[]): Promise<Map<string, number> | null> {
+  if (!hasMmoserConfig()) return null;
   const ids = [...new Set(slideIds)].filter((id) => id.length <= LIMITS.slideId);
-  if (!ids.length || !hasMmoserConfig()) return new Map();
+  if (!ids.length) return new Map();
   const rows = await sql<{ slide_id: string; downloads: number }>(`select slide_id, downloads from slide_downloads where slide_id = any($1::text[])`, [ids]);
   return new Map(rows.map((r) => [r.slide_id, r.downloads]));
 }
 
-/** Adds `downloads` to each slide. A database problem leaves the slides as they were rather than failing. */
+/**
+ * Adds `downloads` to each slide. With no database, or a database problem, the slides are left as
+ * they were (no `downloads`), so screens can tell "unknown" from "never downloaded".
+ */
 export async function withDownloadCounts<T extends { id: string; downloads?: number }>(slides: T[], onError?: (e: unknown) => void): Promise<T[]> {
   if (!slides.length) return slides;
   try {
     const counts = await downloadCounts(slides.map((s) => s.id));
+    if (!counts) return slides;
     return slides.map((s) => ({ ...s, downloads: counts.get(s.id) ?? 0 }));
   } catch (e) {
     onError?.(e);

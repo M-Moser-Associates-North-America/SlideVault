@@ -21,7 +21,6 @@ export function userOf(request: Request): string | null {
     return null;
   }
   // Control characters anywhere (even ones trim() would hide) mean a malformed name.
-  // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001f\u007f]/.test(decoded)) return null;
   const name = decoded.trim();
   return name && name.length <= 80 ? name : null;

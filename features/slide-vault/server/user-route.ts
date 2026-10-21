@@ -13,6 +13,8 @@ export async function withUser(request: Request, handle: (user: string) => Promi
   const limited = rateLimit(request, RATE_POLICIES.userData);
   if (limited) return limited;
   const user = userOf(request);
+  // 400, not 401, on purpose: the app treats any 401 as "session expired" and reloads, and this
+  // only means the request didn't name a signed-in person (see principal.ts).
   if (!user) return fail(400, 'SIGNED_OUT', 'Sign in to keep saved slides, decks and activity.');
   if (!hasMmoserConfig()) return fail(503, 'UNAVAILABLE', 'Saved slides and decks need the database, which is not set up on this server.', false);
   try {

@@ -48,10 +48,16 @@ check(userOf(req()) === null && userOf(req({ 'x-slidevault-user': '%0Abad' })) =
 // ---- Most downloaded
 await data.recordDownloads(['s1', 's2', 's1']);
 await data.recordDownloads(['s1']);
-const counts = await data.downloadCounts(['s1', 's2', 's3']);
+const counts = (await data.downloadCounts(['s1', 's2', 's3'])) ?? new Map<string, number>();
 check(counts.get('s1') === 2 && counts.get('s2') === 1 && !counts.has('s3'), 'downloads: counted once per download, per slide', [...counts]);
 const withCounts = await data.withDownloadCounts<{ id: string; downloads?: number }>([{ id: 's1' }, { id: 's3' }]);
 check(withCounts[0].downloads === 2 && withCounts[1].downloads === 0, 'downloads: slides never downloaded read as 0');
+const savedHost = env.SV_DB_HOST;
+delete env.SV_DB_HOST;
+const unknown = await data.downloadCounts(['s1']);
+const untouched = await data.withDownloadCounts<{ id: string; downloads?: number }>([{ id: 's1' }]);
+env.SV_DB_HOST = savedHost;
+check(unknown === null && !('downloads' in untouched[0]), 'downloads: with no database, counts are unknown (left off), not 0');
 const noNames = await sql<{ column_name: string }>(`select column_name from information_schema.columns where table_name = 'slide_downloads'`);
 check(!noNames.some((c) => /user/.test(c.column_name)), 'downloads: the count table stores no names');
 

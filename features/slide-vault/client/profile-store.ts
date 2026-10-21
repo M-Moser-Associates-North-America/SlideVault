@@ -137,15 +137,16 @@ function parseActivity(raw: string | null): ActivityEntry[] {
 /**
  * What this person opened, saved and downloaded, for their own Top 10 and Suggested rows.
  *
- * With the server: nothing is recorded until the person opts in (`setOptedIn(true)`); records are
- * kept 90 days; opting out deletes them. `optedIn` is null while loading or when the server has no
- * database, in which case this falls back to the earlier browser-only history.
+ * Opt-in only (Alina, Oct 20): nothing is recorded or used until the person opts in
+ * (`setOptedIn(true)`); records are kept 90 days on the server; opting out deletes them. `optedIn`
+ * is null while loading or when the server has no database, and then nothing is recorded either,
+ * so the screens show the shared rows instead.
  */
 export function useActivity(profile: string | null, transport?: Transport) {
   const key = profile ? activityKey(profile) : null;
   const raw = useStored(key);
-  const entries = key ? parseActivity(raw) : [];
   const [optedIn, setOptedInState] = useState<boolean | null>(null);
+  const entries = key && optedIn === true ? parseActivity(raw) : [];
   const [retentionDays, setRetentionDays] = useState<number | null>(null);
   const [reload, setReload] = useState(0);
 
@@ -160,7 +161,11 @@ export function useActivity(profile: string | null, transport?: Transport) {
         setRetentionDays(res.retentionDays);
         write(key, JSON.stringify(res.entries));
       })
-      .catch(() => live && setOptedInState(null));
+      .catch(() => {
+        if (!live) return;
+        setOptedInState(null);
+        write(key, null); // never rank from an older browser-only history
+      });
     return () => {
       live = false;
     };
@@ -168,12 +173,11 @@ export function useActivity(profile: string | null, transport?: Transport) {
 
   const log = useCallback(
     (kind: ActivityEntry['kind'], label: string, slideId?: string) => {
-      if (!key || !profile) return;
-      // Server available but this person hasn't opted in: record nothing, anywhere.
-      if (transport && optedIn === false) return;
+      // Only after this person has opted in on the server. Otherwise record nothing, anywhere.
+      if (!key || !profile || !transport || optedIn !== true) return;
       const next = [{ kind, label, at: Date.now(), slideId }, ...parseActivity(read(key))].slice(0, ACTIVITY_LIMIT);
       write(key, JSON.stringify(next));
-      if (transport && optedIn) userApi.recordActivity(transport, profile, { kind, label, slideId }).catch(warn('record activity'));
+      userApi.recordActivity(transport, profile, { kind, label, slideId }).catch(warn('record activity'));
     },
     [key, profile, transport, optedIn],
   );
