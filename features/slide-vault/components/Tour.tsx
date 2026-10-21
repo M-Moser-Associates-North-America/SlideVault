@@ -93,7 +93,7 @@ export function Tour() {
       // On a phone the panel fills the right side, so the note goes under its header instead of beside it.
       target: compact ? '.cart-col .cart-head' : '.cart-col',
       title: 'Your draft deck',
-      content: 'Ticked slides collect here. Name your deck, drag slides into order, then download them, as one combined deck even when they come from different decks, or save the set as a draft.',
+      content: 'Ticked slides collect here. Name your deck, drag slides into order, then download them together or save the set as a draft.',
       placement: compact ? 'bottom' : 'left',
       before: async () => {
         setCartMin(false);
