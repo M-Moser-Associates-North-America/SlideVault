@@ -316,7 +316,7 @@ Revisit trigger: M Moser's sign-in is plugged in (replace userOf); a retention p
 ```
 
 ```text
-Decision ID and title: FD-18 Reasoning map: problem-solving search follows a written map, with a model only as the last resort
+Decision ID and title: FD-20 Reasoning map: problem-solving search follows a written map, with a model only as the last resort
 Status: proposed
 Decision date: 2026-10-20
 Decision owner/reviewer: Schiffon (reasoning design), Alina Pak (review)

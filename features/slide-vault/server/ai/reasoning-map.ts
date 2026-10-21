@@ -2,7 +2,7 @@ import 'server-only';
 
 /**
  * The reasoning map: how someone preparing a proposal thinks, written down once so search can
- * follow it for free instead of asking a model every time (docs/DECISIONS.md FD-18).
+ * follow it for free instead of asking a model every time (docs/DECISIONS.md FD-20).
  *
  *   situation  ->  what they need to show  ->  slide types that show it  ->  slides
  *

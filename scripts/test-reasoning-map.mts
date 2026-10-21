@@ -1,5 +1,5 @@
 /**
- * Reasoning map checks (docs/DECISIONS.md FD-18): the map holds together, and M Moser's own
+ * Reasoning map checks (docs/DECISIONS.md FD-20): the map holds together, and M Moser's own
  * example searches reach the slide type a person would expect. No database, no model.
  *
  *   npm run test:reasoning-map
