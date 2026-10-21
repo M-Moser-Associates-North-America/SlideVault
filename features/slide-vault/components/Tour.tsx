@@ -99,11 +99,19 @@ export function Tour() {
       },
     },
     {
-      target: '.sv-nav',
+      // Only the My decks tab is lit, not the whole row of tabs.
+      target: '.sv-nav a[href$="/profile"]',
       title: 'Find your saved work',
       content: 'My decks keeps your saved slides and drafts. You can replay this tour any time with the ? button at the top of the page.',
       placement: 'bottom',
-      before: toTop,
+      before: async () => {
+        // Where the draft deck covers the page (phone, upright tablet), put it away so the tabs show.
+        if (workspaceSizeOf(document.querySelector('.slidevault .cart-col')) !== 'wide') {
+          setCartMin(true);
+          await new Promise((resolve) => setTimeout(resolve, 320));
+        }
+        await toTop();
+      },
     },
   ];
 
