@@ -303,9 +303,7 @@
 
 
 /* ---- Filter row under the Home search box (FilterBar.tsx) ---- */
-.slidevault .fbar { position: sticky; z-index: 25; margin: 0; padding: 12px 0 4px; background: var(--sv-bg); transition: transform 0.2s ease; }
-.slidevault .fbar.is-hidden { transform: translateY(calc(-100% - 12px)); pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .slidevault .fbar { transition: none; } }
+.slidevault .fbar { position: sticky; z-index: 25; margin: 0; padding: 12px 0 4px; background: var(--sv-bg); }
 .slidevault .fbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: 840px; }
 .slidevault .fb-item { position: relative; }
 .slidevault .fb-btn { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -611,3 +609,23 @@
 
 /* Draft deck button, a little higher on phones. */
 .slidevault .sv-app[data-size="compact"] .cart-min .cart-pill { bottom: calc(32px + env(safe-area-inset-bottom)); }
+
+/* Filters on phones: one swipeable row, every filter opens in a bottom sheet, and a pinned button
+   stays in reach once the row has scrolled away. */
+.slidevault .fb-all, .slidevault .fb-pin { display: none; }
+.slidevault .sv-app[data-size="compact"] .fbar { position: static; padding-top: 8px; }
+.slidevault .sv-app[data-size="compact"] .fbar-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-size="compact"] .fbar-row::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="compact"] .fbar-row > * { flex: none; }
+.slidevault .sv-app[data-size="compact"] .fb-all { display: inline-flex; }
+.slidevault .sv-app[data-size="compact"] .fb-item:has([data-key="more"]) { display: none; }
+.slidevault .sv-app[data-size="compact"] .fb-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-size="compact"] .fb-chips::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="compact"] .fb-chips li { flex: none; }
+.slidevault .sv-app[data-size="compact"] .fb-pin { display: inline-flex; position: fixed; top: 12px; right: 16px; z-index: 45; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.slidevault .sv-app[data-size="compact"] .fb-pin .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
+dialog.slidevault.fb-sheet { margin: auto 0 0; width: 100%; max-width: none; max-height: 86dvh; border-radius: 20px 20px 0 0; border-bottom: 0; }
+dialog.slidevault.fb-sheet .fb-sheet-body { overflow-y: auto; overscroll-behavior: contain; }
+dialog.slidevault.fb-sheet .fb-sheet-body section + section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--sv-border); }
+dialog.slidevault.fb-sheet .fb-list { max-height: 260px; }
+dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }

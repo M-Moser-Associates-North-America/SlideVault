@@ -1,4 +1,4 @@
-import { useLayoutEffect, type RefObject } from 'react';
+import { useLayoutEffect, useSyncExternalStore, type RefObject } from 'react';
 
 /**
  * How much room the workspace has, measured on its own root (not the window), so it adapts the same
@@ -37,4 +37,18 @@ export function useWorkspaceSize(ref: RefObject<HTMLElement | null>, active: boo
 /** The current size of the workspace that contains `from`, for code that cannot use CSS. */
 export function workspaceSizeOf(from: Element | null): WorkspaceSize | null {
   return (from?.closest('.sv-app')?.getAttribute('data-size') as WorkspaceSize | null) ?? null;
+}
+
+const rootEl = () => document.querySelector('.slidevault .sv-app');
+function subscribeToSize(onChange: () => void) {
+  const el = rootEl();
+  if (!el) return () => {};
+  const observer = new MutationObserver(onChange);
+  observer.observe(el, { attributes: true, attributeFilter: ['data-size'] });
+  return () => observer.disconnect();
+}
+
+/** True while the workspace is in its narrow (phone) layout. */
+export function useWorkspaceCompact(): boolean {
+  return useSyncExternalStore(subscribeToSize, () => rootEl()?.getAttribute('data-size') === 'compact', () => false);
 }

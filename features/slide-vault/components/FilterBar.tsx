@@ -1,19 +1,23 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, countBy, filterCount, slideMatches, yearOf, type Filters } from './library';
 import { SimFlag } from './parts';
+import { backdropClose, useDialogOpen } from './Dialogs';
 import type { SmartSearchChip } from '../contracts/dto';
 import { rowReading, withoutChip } from './search-reading';
 import { SIM_PEOPLE, SLIDE_TYPES, TIER_LABEL, simContributor, simHasSlideType, simUploader, visibleTiers, type Tier } from './simulation';
+import { useWorkspaceCompact } from './size';
 import { useWorkspace } from './state';
 
 /**
  * The slim filter row under the Home search box: one icon per filter. Hovering shows the name,
  * clicking opens a small panel where you can type to narrow the list or tick values. Year, client,
  * project type and slide type are always on the row; less-used filters sit behind the last icon
- * ("More"). The row hides while scrolling down and comes back on the slightest scroll up.
+ * ("More"). Wide screens: the row sticks under the tabs and stays visible. Phones: one swipeable row
+ * that scrolls away with the page, a "Filters" button that opens every filter in a bottom sheet, and
+ * a small pinned "Filters" button once the row has scrolled out of view.
  */
 
 type Key = 'year' | 'client' | 'category' | 'slideType' | 'more';
@@ -25,31 +29,6 @@ const YEAR_PRESETS: [number, string][] = [
 ];
 
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-
-/**
- * Once the filter row has scrolled up and stuck to the top, hide it on scroll down and show it on any
- * scroll up. Before that it stays in its place, so it never slides over the search above it.
- */
-function useHideOnScrollDown(onHide: () => void, row: RefObject<HTMLElement | null>, top: number): boolean {
-  const [hidden, setHidden] = useState(false);
-  useEffect(() => {
-    let last = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      const stuck = (row.current?.getBoundingClientRect().top ?? 1) <= top + 1;
-      if (!stuck) setHidden(false);
-      else if (y > last + 4) {
-        setHidden(true);
-        onHide();
-      }
-      else if (y < last - 1) setHidden(false);
-      last = y;
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [onHide, row, top]);
-  return hidden;
-}
 
 /** Height of the pinned tabs bar above, so the filter row can stick right underneath it. */
 function useTopOffset(): number {
@@ -119,10 +98,15 @@ function Picker({
 export function FilterBar() {
   const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search } = useWorkspace();
   const [open, setOpen] = useState<Key | null>(null);
-  const closeOnHide = useCallback(() => setOpen(null), []);
+  /* Phones: the same panels open in a bottom sheet instead of a small popover. */
+  const compact = useWorkspaceCompact();
+  const [sheet, setSheet] = useState<Key | 'all' | null>(null);
+  const sheetRef = useRef<HTMLDialogElement>(null);
+  useDialogOpen(sheetRef, sheet !== null);
   const wrap = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [rowOut, setRowOut] = useState(false);
   const top = useTopOffset();
-  const hidden = useHideOnScrollDown(closeOnHide, wrap, top);
   const nowYear = new Date().getFullYear();
 
   const slides = useMemo(() => (library.status === 'ready' ? library.slides : []), [library]);
@@ -180,6 +164,15 @@ export function FilterBar() {
       document.removeEventListener('keydown', onKey);
     };
   }, [open, close]);
+
+  /* Phones: once the row has scrolled off the top, a small "Filters" button stays pinned there. */
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!compact || !el) return;
+    const observer = new IntersectionObserver(([entry]) => setRowOut(!entry.isIntersecting && entry.boundingClientRect.top < 0));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [compact]);
 
   const yearOn = filters.yfrom !== null || filters.yto !== null;
   const moreCount = filters.uploader.length + filters.contributor.length + filters.status.length + (filters.bestOnly ? 1 : 0);
@@ -318,25 +311,32 @@ export function FilterBar() {
   };
 
   const n = filterCount(filters);
+  const activeTotal = items.reduce((sum, it) => sum + it.active, 0);
+  const openOne = (key: Key) => (compact ? setSheet(key) : setOpen(open === key ? null : key));
 
   return (
-    <div className={`fbar${hidden ? ' is-hidden' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
-      <div className="fbar-row" role="toolbar" aria-label="Filter slides">
+    <div className="fbar" ref={wrap} style={{ top }} role="region" aria-label="Filters">
+      <div className="fbar-row" ref={rowRef} role="toolbar" aria-label="Filter slides">
+        <button type="button" className={`fb-btn fb-all${activeTotal ? ' on' : ''}`} aria-haspopup="dialog" onClick={() => setSheet('all')}>
+          <Icon name="slidersFill" />
+          <span className="fb-lbl">Filters</span>
+          {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
+        </button>
         {items.map((it) => (
           <div key={it.key} className="fb-item">
             <button
               type="button"
               className={`fb-btn${it.active ? ' on' : ''}`}
               data-key={it.key}
-                            aria-haspopup="dialog"
-              aria-expanded={open === it.key}
-              onClick={() => setOpen(open === it.key ? null : it.key)}
+              aria-haspopup="dialog"
+              aria-expanded={compact ? undefined : open === it.key}
+              onClick={() => openOne(it.key)}
             >
               <Icon name={it.icon} />
               <span className="fb-lbl">{it.label}</span>
               {it.active > 0 && <span className="fb-n-on" aria-hidden="true">{it.active}</span>}
             </button>
-            {open === it.key && (
+            {!compact && open === it.key && (
               <div className={`fb-pop${it.key === 'more' ? ' fb-pop-wide' : ''}`} role="dialog" aria-label={it.label}>
                 {panel(it.key)}
               </div>
@@ -368,6 +368,45 @@ export function FilterBar() {
           ))}
         </ul>
       )}
+      {compact && rowOut && sheet === null && (
+        <button type="button" className="fb-pin" onClick={() => setSheet('all')}>
+          <Icon name="slidersFill" />
+          <span>Filters</span>
+          {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
+        </button>
+      )}
+      <dialog
+        ref={sheetRef}
+        className="slidevault sv-dialog fb-sheet"
+        data-theme={runtime.theme}
+        aria-labelledby="sv-sheet-title"
+        onClose={() => setSheet(null)}
+        onClick={backdropClose(() => setSheet(null))}
+      >
+        {sheet !== null && (
+          <>
+            <div className="dlg-head">
+              <h2 id="sv-sheet-title">{sheet === 'all' ? 'Filters' : (items.find((it) => it.key === sheet)?.label ?? 'Filters')}</h2>
+              <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close filters" onClick={() => setSheet(null)}>
+                <Icon name="x" />
+              </button>
+            </div>
+            <div className="dlg-body fb-sheet-body">
+              {sheet === 'all' ? items.map((it) => <section key={it.key}>{panel(it.key)}</section>) : panel(sheet)}
+            </div>
+            <div className="dlg-foot">
+              {n > 0 && (
+                <button type="button" className="btn" onClick={clearFilters}>
+                  Clear all
+                </button>
+              )}
+              <button type="button" className="btn btn-primary" onClick={() => setSheet(null)}>
+                Done
+              </button>
+            </div>
+          </>
+        )}
+      </dialog>
     </div>
   );
 }
