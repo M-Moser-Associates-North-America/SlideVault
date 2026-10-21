@@ -328,3 +328,17 @@ Acceptance evidence / affected PR criteria: Browser check on the sample decks: a
 Documents/contracts changed: components/Tour.tsx, slidevault-extras.css (tour rules), package.json, package-lock.json, docs/DECISIONS.md.
 Revisit trigger: Steps change, or the host platform provides its own onboarding.
 ```
+
+```text
+Decision ID and title: FD-21 Slides from several decks can download as one combined .pptx
+Status: proposed
+Decision date: 2026-10-21
+Decision owner/reviewer: Vincent (build), Khushali (cart screen), Alina Pak (client)
+Context and evidence: FD-09 sends slides from several decks as a .zip of one .pptx per deck, and the cart's "Combine into one deck" is marked as coming later. On Oct 14 we told Alina the final version would combine them into a single editable deck.
+Options considered: (a) copy each slide with everything it depends on (layout, master, theme, images, charts) into one package, the way PowerPoint's "keep source formatting" does; (b) restyle every slide onto one master; (c) convert through LibreOffice.
+Chosen outcome: (a). server/combine-pptx.ts takes the already-trimmed package of each deck (export-pptx.ts, so notes, comments and unpicked slides are already gone), uses the first as the base, copies each other deck's slides and their dependencies under fresh part names, registers the copied masters and slides with fresh unique ids, and puts the slide list in the cart's order across decks. POST /exports does this when the request has combine: true; without it the .zip is unchanged. Decks with different slide sizes (4:3 and 16:9) can't share a file without distortion, so then the .zip is sent and the X-SlideVault-Export-Note header says why.
+Consequences for scope, cost, security and integration: Every slide keeps its own deck's design, so a combined file can contain several masters (normal in PowerPoint). Mixed slide sizes still come as a .zip. Hyperlinks from a slide to an unpicked slide behave as in single-deck exports. The cart button stays disabled until Khushali sends combine: true and shows the header's note when present.
+Acceptance evidence / affected PR criteria: npm run test:combine (25 checks on the sample decks: order across two and three decks, each slide keeps its own master, unique slide/master/layout ids, no broken references or missing content types, chart data kept, nothing from unpicked slides, mixed-size fallback, the file opens and renders every slide in LibreOffice, and python-pptx reads it). Still to check by hand: opening a combined file in PowerPoint and Keynote, and on real Best of the Best decks.
+Documents/contracts changed: server/combine-pptx.ts (new), server/services/export.ts, app/api/slide-vault/v1/exports/route.ts, contracts/dto.ts (ExportRequest.combine), scripts/test-combine.mts (new), package.json.
+Revisit trigger: real decks show a layout or font problem in PowerPoint; M Moser wants mixed sizes converted rather than zipped.
+```
