@@ -21,7 +21,10 @@
  */
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import http from 'node:http';
+import https from 'node:https';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 import { folderInfo } from '../features/slide-vault/server/folder-path';
 
 const args = process.argv.slice(2);
@@ -129,8 +132,8 @@ for (const file of decks) {
 
   const label = `${rel}  [${info.deckYear ?? 'no year'} · ${info.clientName ?? 'no client'} · ${info.category ?? 'no category'}${info.bestOfTheBest ? ' · Best of the Best' : ''}]`;
   try {
-    const res = await fetch(API, { method: 'POST', body: form });
-    const body = (await res.json()) as { data?: { slideCount: number; status: string; alreadyUploaded?: boolean; addedDetails?: string[] }; error?: { code: string; message: string } };
+    const res = await postForm(API, form);
+    const body = JSON.parse(res) as { data?: { slideCount: number; status: string; alreadyUploaded?: boolean; addedDetails?: string[] }; error?: { code: string; message: string } };
     if (body.error?.code === 'DUPLICATE_DECK') {
       tally.skipped++;
       console.log(`SKIP    ${label}\n        ${body.error.message}`);
@@ -152,3 +155,26 @@ for (const file of decks) {
 
 console.log(`\n${tally.uploaded} uploaded, ${tally.updated} filled in from a second copy, ${tally.skipped} already there, ${tally.failed} failed`);
 process.exit(tally.failed ? 1 : 0);
+
+/**
+ * POST a form with no time limit. Big decks (hundreds of MB) take longer than the 5 minutes Node's
+ * built-in fetch waits for an answer, while the app is still busy storing and splitting them.
+ */
+function postForm(url: string, form: FormData): Promise<string> {
+  const encoded = new Request(url, { method: 'POST', body: form }); // builds the multipart body and its header
+  const target = new URL(url);
+  return new Promise((resolve, reject) => {
+    const req = (target.protocol === 'https:' ? https : http).request(
+      target,
+      { method: 'POST', headers: { 'content-type': encoded.headers.get('content-type')! }, timeout: 0 },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c: Buffer) => chunks.push(c));
+        res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        res.on('error', reject);
+      },
+    );
+    req.on('error', reject);
+    Readable.fromWeb(encoded.body as import('node:stream/web').ReadableStream).pipe(req);
+  });
+}

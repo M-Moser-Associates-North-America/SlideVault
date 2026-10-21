@@ -59,9 +59,22 @@ for (const schema of schemas) {
   }
 }
 if (tables.rows.some((r) => r.table_schema === env.SV_DB_SCHEMA && r.table_name === 'decks')) {
-  const decks = await inReadOnly(() => client.query<{ title: string; status: string }>(`select title, status from ${pg.escapeIdentifier(env.SV_DB_SCHEMA)}.decks order by uploaded_at`));
+  const schema = pg.escapeIdentifier(env.SV_DB_SCHEMA);
+  const decks = await inReadOnly(() =>
+    client.query<{ title: string; status: string; best: boolean; slides: number; in_bucket: number; on_laptop: number; error: string | null }>(
+      `select d.title, d.status, d.best_of_the_best as best, d.error,
+              count(s.id)::int as slides,
+              count(s.id) filter (where s.thumbnail_path is not null and s.thumbnail_path not like 'local:%')::int as in_bucket,
+              count(s.id) filter (where s.thumbnail_path like 'local:%')::int as on_laptop
+       from ${schema}.decks d left join ${schema}.slides s on s.deck_id = d.id
+       group by d.id order by d.uploaded_at`,
+    ),
+  );
   console.log(`\nDecks in "${env.SV_DB_SCHEMA}":`);
-  for (const d of decks.rows) console.log(`  ${d.title} (${d.status})`);
+  for (const d of decks.rows) {
+    console.log(`  ${d.title} (${d.status}${d.best ? ', Best of the Best' : ''}): ${d.slides} slides; previews ${d.in_bucket} in the bucket, ${d.on_laptop} on a laptop`);
+    if (d.error) console.log(`    error: ${d.error}`);
+  }
 }
 await client.end();
 console.log('\nNothing was changed.');

@@ -213,15 +213,15 @@ export function useDrafts(profile: string | null, transport?: Transport) {
   const raw = useStored(key);
   const drafts = key ? parseDrafts(raw) : [];
   const [online, setOnline] = useState(false);
-  const [reload, setReload] = useState(0);
 
+  // On sign-in (not on every save): load from the server, moving up once any decks that were
+  // saved only in this browser before the server kept them.
   useEffect(() => {
     if (!profile || !transport || !key) return;
     let live = true;
     userApi
       .listDrafts(transport, profile)
       .then(async (server) => {
-        // Decks saved only in this browser (before the server kept them) are moved up once.
         const localOnly = parseDrafts(read(key)).filter((d) => !SERVER_ID.test(d.id));
         if (localOnly.length) {
           for (const d of [...localOnly].reverse()) await userApi.createDraft(transport, profile, d.name, d.slideIds);
@@ -235,17 +235,18 @@ export function useDrafts(profile: string | null, transport?: Transport) {
     return () => {
       live = false;
     };
-  }, [profile, transport, key, reload]);
+  }, [profile, transport, key]);
 
   const save = useCallback(
     (name: string, slideIds: string[]) => {
       if (!key || !profile) return;
       const draft: Draft = { id: localId(), name, slideIds, savedAt: Date.now() };
       write(key, JSON.stringify([draft, ...parseDrafts(read(key))]));
+      // Swap the browser's temporary copy for the server's, so it's never moved up a second time.
       if (online && transport)
         userApi
           .createDraft(transport, profile, name, slideIds)
-          .then(() => setReload((n) => n + 1))
+          .then((saved) => write(key, JSON.stringify(parseDrafts(read(key)).map((d) => (d.id === draft.id ? saved : d)))))
           .catch(warn('save a deck'));
     },
     [key, profile, online, transport],
