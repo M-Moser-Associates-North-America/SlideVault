@@ -214,13 +214,14 @@ export function useDrafts(profile: string | null, transport?: Transport) {
   const drafts = key ? parseDrafts(raw) : [];
   const [online, setOnline] = useState(false);
 
+  // On sign-in (not on every save): load from the server, moving up once any decks that were
+  // saved only in this browser before the server kept them.
   useEffect(() => {
     if (!profile || !transport || !key) return;
     let live = true;
     userApi
       .listDrafts(transport, profile)
       .then(async (server) => {
-        // Decks saved only in this browser (before the server kept them) are moved up once.
         const localOnly = parseDrafts(read(key)).filter((d) => !SERVER_ID.test(d.id));
         if (localOnly.length) {
           for (const d of [...localOnly].reverse()) await userApi.createDraft(transport, profile, d.name, d.slideIds);

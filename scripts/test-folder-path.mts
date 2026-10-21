@@ -21,6 +21,17 @@ for (const line of readFileSync(path.join(LIBRARY, 'answer_key.csv'), 'utf8').tr
   decks.set(cols[0], cols);
 }
 
+// M Moser's real naming (first real decks, Oct 2026): category/year folders, client in the file name
+for (const [file, want] of [
+  ['Design Consultancy/2026/M Moser_Gusto_SF_2026.pptx', { deckYear: 2026, clientName: 'Gusto', category: 'Design Consultancy' }],
+  ['Design Consultancy 2/2026/M Moser_Airwallex HQ_SF_071526.pptx', { deckYear: 2026, clientName: 'Airwallex HQ', category: 'Design Consultancy' }],
+  ['Design Consultancy/2026/M Moser_Scotiabank_2026.pptx', { deckYear: 2026, clientName: 'Scotiabank', category: 'Design Consultancy' }],
+  ['Design Consultancy/2026/M Moser Notes.pptx', { deckYear: 2026, clientName: null, category: 'Design Consultancy' }],
+] as const) {
+  const got = folderInfo(file);
+  check(got.deckYear === want.deckYear && got.clientName === want.clientName && got.category === want.category && !got.bestOfTheBest, `reads ${file}`, JSON.stringify(got));
+}
+
 for (const [file, [, year, client, , category, , , botb]] of decks) {
   const got = folderInfo(file);
   // Best of the Best/<category>/ has no year folder, so year is honestly unknown there

@@ -127,6 +127,12 @@ export async function markDeckReady(deckId: string, slideCount: number): Promise
   await sql(`update decks set status = 'ready', slide_count = $2, error = null where id = $1`, [deckId, slideCount]);
 }
 
+/** Start processing a deck again after a failed attempt: clear its error and any slides it got. */
+export async function restartDeck(deckId: string): Promise<void> {
+  await sql(`delete from slides where deck_id = $1`, [deckId]);
+  await sql(`update decks set status = 'processing', error = null where id = $1`, [deckId]);
+}
+
 export async function markDeckFailed(deckId: string, reason: string): Promise<void> {
   await sql(`update decks set status = 'failed', error = $2 where id = $1`, [deckId, reason]);
 }

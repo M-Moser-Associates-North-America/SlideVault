@@ -8,7 +8,7 @@ import { renderPreviews } from '../../../../workers/slide-vault/processors/rende
 import type { DeckSummary, UploadDeckMeta } from '../../contracts/dto';
 import { ServiceError } from '../http';
 import { describeChanges, detailsToAdd } from '../deck-details';
-import { createDeck, findDeckByHash, insertSlides, markDeckFailed, markDeckReady, updateDeckDetails } from '../pg-repository';
+import { createDeck, findDeckByHash, insertSlides, markDeckFailed, markDeckReady, restartDeck, updateDeckDetails } from '../pg-repository';
 import { readSlideSize } from '../slide-size';
 import { uploadOriginal, uploadPreview } from '../storage';
 
@@ -30,15 +30,22 @@ export async function processUpload(fileName: string, bytes: Uint8Array, meta: U
 
   const fileHash = sha256(bytes);
   const existing = await findDeckByHash(fileHash);
+  const changes = existing
+    ? detailsToAdd(existing, { client: meta.clientName, year: meta.deckYear, category: meta.category, bestOfTheBest: meta.bestOfTheBest })
+    : {};
+
+  if (existing?.status === 'failed') {
+    // An earlier attempt stored the original but didn't finish (for example a network hiccup while
+    // storing previews). Its original is already in the bucket, which can't be overwritten, so
+    // process it again under the same deck: nothing new is stored for the original.
+    if (describeChanges(changes).length) await updateDeckDetails(existing.id, changes);
+    await restartDeck(existing.id);
+    return processSlides(existing.id, existing.title, bytes);
+  }
+
   if (existing) {
     // Same file from another folder (e.g. a Best of the Best copy of a past submittal): keep one
     // deck and add whatever this folder knows that the first one didn't (deck-details.ts, FD-11).
-    const changes = detailsToAdd(existing, {
-      client: meta.clientName,
-      year: meta.deckYear,
-      category: meta.category,
-      bestOfTheBest: meta.bestOfTheBest,
-    });
     const added = describeChanges(changes);
     if (added.length === 0) throw new ServiceError(409, 'DUPLICATE_DECK', `This file was already uploaded as "${existing.title}".`);
     await updateDeckDetails(existing.id, changes);
@@ -71,27 +78,40 @@ export async function processUpload(fileName: string, bytes: Uint8Array, meta: U
     bestOfTheBest: meta.bestOfTheBest,
     slideSize,
   });
+  return processSlides(deckId, title, bytes);
+}
 
-  // The deck row exists now (status "processing"); failures from here are recorded on
-  // it rather than only returned, so the library can show what went wrong.
+/** Previews stored at the same time. Big decks have 50+ slides; all at once overwhelms the connection. */
+const PREVIEW_UPLOADS_AT_ONCE = 4;
+
+async function inBatches<T, R>(items: T[], size: number, run: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = [];
+  for (let i = 0; i < items.length; i += size) out.push(...(await Promise.all(items.slice(i, i + size).map(run))));
+  return out;
+}
+
+/**
+ * Split a stored deck into slide records with previews. The deck row exists (status "processing");
+ * failures are recorded on it rather than only returned, so the library can show what went wrong
+ * and the same upload can be run again to finish it.
+ */
+async function processSlides(deckId: string, title: string, bytes: Uint8Array): Promise<DeckSummary> {
   try {
     const slides = await extractSlides(bytes);
     const previewDir = mkdtempSync(path.join(tmpdir(), 'slidevault-upload-'));
     try {
       await renderPreviews(bytes, previewDir, (n) => `${n}.png`);
-      const slideInputs = await Promise.all(
-        slides.map(async (slide) => {
-          const previewBytes = new Uint8Array(readFileSync(path.join(previewDir, `${slide.number}.png`)));
-          const thumbnailStorageKey = await uploadPreview(deckId, slide.number, previewBytes);
-          return {
-            slideNumber: slide.number,
-            title: slide.title,
-            extractedText: slide.text,
-            thumbnailStorageKey,
-            isHiddenInSource: slide.hidden,
-          };
-        }),
-      );
+      const slideInputs = await inBatches(slides, PREVIEW_UPLOADS_AT_ONCE, async (slide) => {
+        const previewBytes = new Uint8Array(readFileSync(path.join(previewDir, `${slide.number}.png`)));
+        const thumbnailStorageKey = await uploadPreview(deckId, slide.number, previewBytes);
+        return {
+          slideNumber: slide.number,
+          title: slide.title,
+          extractedText: slide.text,
+          thumbnailStorageKey,
+          isHiddenInSource: slide.hidden,
+        };
+      });
       await insertSlides(deckId, slideInputs);
     } finally {
       rmSync(previewDir, { recursive: true, force: true });

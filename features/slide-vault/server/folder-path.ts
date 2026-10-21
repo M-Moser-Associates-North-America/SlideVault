@@ -5,8 +5,12 @@
  *   Submittals/2024/Northwind Bank/deck.pptx         -> year 2024, client Northwind Bank
  *   Best of the Best/IDD/deck.pptx                   -> Best of the Best, category IDD
  *   Best of the Best/2024/Northwind Bank/deck.pptx   -> Best of the Best, year 2024, client Northwind Bank
+ *   Design Consultancy/2026/M Moser_Gusto_SF_2026.pptx -> category Design Consultancy, year 2026, client Gusto
+ *                                                         (the first real decks, Oct 2026)
  *
- * Falls back to the file name ("Client - Category.pptx") for anything the folders don't say.
+ * Falls back to the file name for anything the folders don't say: "Client - Category.pptx", or
+ * M Moser's own naming, "M Moser_<Client>_<place or RFP>_<date>.pptx" (client = the part after
+ * "M Moser_", kept as written).
  * Anything still unknown comes back null, never guessed. The real folder names are an open
  * question for Alina; adding a layout is a change here only.
  */
@@ -23,7 +27,10 @@ const CATEGORY_NAMES: Record<string, string> = {
   'business proposal': 'Business Proposal',
   'business proposals': 'Business Proposal',
   sme: 'SME',
+  'design consultancy': 'Design Consultancy',
 };
+/** "Design Consultancy 2" is a second folder of the same kind, not a different category. */
+const categoryOf = (folder: string) => CATEGORY_NAMES[folder.trim().toLowerCase().replace(/\s+\d+$/, '')] ?? null;
 
 /** relativePath: the deck's path inside the library, with / or \ between folders. */
 export function folderInfo(relativePath: string): FolderInfo {
@@ -34,7 +41,7 @@ export function folderInfo(relativePath: string): FolderInfo {
   parts.forEach((part, i) => {
     const low = part.trim().toLowerCase();
     if (low === 'best of the best') info.bestOfTheBest = true;
-    else if (CATEGORY_NAMES[low]) info.category = CATEGORY_NAMES[low];
+    else if (categoryOf(part)) info.category = categoryOf(part);
     else if (/^(19|20)\d\d$/.test(part.trim())) {
       info.deckYear = Number(part.trim());
       // The folder after the year is the client or project
@@ -50,5 +57,8 @@ export function folderInfo(relativePath: string): FolderInfo {
     info.clientName ??= nameClient;
     if (!info.category && CATEGORY_NAMES[nameCategory]) info.category = CATEGORY_NAMES[nameCategory];
   }
+  // M Moser's naming: "M Moser_<Client>_<place or RFP>_<date>"
+  const mm = /^m\s*moser\s*_\s*([^_]+?)\s*(?:_|$)/i.exec(stem);
+  if (mm && !info.clientName) info.clientName = mm[1].trim();
   return info;
 }
