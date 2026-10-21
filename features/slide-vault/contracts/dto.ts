@@ -182,3 +182,34 @@ export type ActivityEntry = { kind: ActivityKind; label: string; at: number; sli
 
 /** GET /me/activity: whether tracking is on, and (when it is) the last 90 days, newest first. */
 export type ActivityResponse = { optedIn: boolean; retentionDays: number; entries: ActivityEntry[] };
+
+/* ---- Storyboard (docs/DECISIONS.md FD-22) --------------------------------------------------- */
+
+export type StoryRole = 'client-challenge' | 'insight' | 'strategy' | 'experience' | 'why-us' | 'outcome';
+
+/** A slide placed in one part of the story, with why it supports that part */
+export type StoryboardSlide = { slide: SlideSummary; why: string; matched: string[] };
+
+export type StoryboardSection = {
+  role: StoryRole;
+  /** The standard name for this part of the story, e.g. "Proof we've done this" */
+  label: string;
+  /** A heading in the client's terms */
+  title: string;
+  /** What this part must convince the client of */
+  need: string;
+  items: StoryboardSlide[];
+  /** true when no slide in the library proves this part yet: a new slide is needed */
+  gap: boolean;
+};
+
+/** POST /storyboard: a client situation turned into a story of slides, in order */
+export type StoryboardResult = {
+  /** model: the AI read the situation; rules: the standard story order was used */
+  reader: 'model' | 'rules';
+  readerNote: string | null;
+  summary: string;
+  /** What the storyboard doesn't know yet; answer them and send again for a sharper story */
+  questions: string[];
+  sections: StoryboardSection[];
+};

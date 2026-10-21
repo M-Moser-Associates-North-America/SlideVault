@@ -1,5 +1,7 @@
 import 'server-only';
 import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../ai/reader';
+import type { SearchPlan } from '../ai/search-plan';
+import { openAiCompatibleStoryReader, type StoryReader } from '../ai/storyboard';
 import { groupDuplicates, type SlideText } from '../duplicates';
 import { hasMmoserConfig } from '../config';
 import { loadLibraryIndex } from '../library-repository';
@@ -8,6 +10,7 @@ import { withDownloadCounts } from '../user-data';
 import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
 import { fixtureFilterValues, smartSearchFixtures } from './fixture-smart-search';
 import { smartSearch, type SmartSearchResponse } from './smart-search';
+import { buildStoryboard, type StoryboardResponse } from './storyboard';
 
 /**
  * Quick AI search over the whole library (docs/DECISIONS.md FD-16, FD-17): uploaded decks in
@@ -70,4 +73,26 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   const counted = await withDownloadCounts(badged, (e) => console.error('Download counts unavailable', e));
   const byId = new Map(result.items.map((i) => [i.slide.id, i]));
   return { ...result, items: counted.map((slide) => ({ ...byId.get(slide.id)!, slide })) };
+}
+
+/** The configured storyboard reader, or null for the standard story order. Throws when misconfigured. */
+export function configuredStoryReader(env: Record<string, string | undefined> = process.env): StoryReader | null {
+  const config = readAiConfig(env);
+  if (config.provider === 'none') return null;
+  // Building a whole story is a bigger job than reading a search, and people expect it to take a
+  // moment, so it gets its own, longer limit (SV_AI_STORY_TIMEOUT_MS, default 90 seconds).
+  const storyMs = Number(env.SV_AI_STORY_TIMEOUT_MS || 90000);
+  if (!Number.isInteger(storyMs) || storyMs < 1000 || storyMs > 300000) throw new Error('SV_AI_STORY_TIMEOUT_MS must be a whole number from 1000 to 300000.');
+  return openAiCompatibleStoryReader({ ...config, timeoutMs: Math.max(config.timeoutMs, storyMs) });
+}
+
+/** A client situation turned into a story of slides from the whole library (FD-22). */
+export async function storyboardLibrary(situation: string, opts: { reader: StoryReader | null; read: boolean; answers?: string }): Promise<StoryboardResponse> {
+  const index = await loadLibraryIndex();
+  const search = async (plan: SearchPlan, max: number) =>
+    [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max)].slice(0, max);
+  const result = await buildStoryboard(situation, { reader: opts.reader, search, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers });
+  const all = result.sections.flatMap((s) => s.items.map((i) => i.slide));
+  const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
+  return { ...result, sections: result.sections.map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide })) })) };
 }
