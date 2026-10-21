@@ -130,6 +130,16 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
   check(!called && none.items.length === 0, 'a search with no usable words returns nothing, never the whole library');
 }
 
+// ---- The AI never finds less than typing
+{
+  const phrasey: PlanReader = { name: 'fake', read: async () => cleanPlan({ keywords: ['occupied building', 'working in occupied building'] }, ctx) };
+  const r = await smartSearch('which slides show working in an occupied building?', 10, {
+    context, thisYear: 2026, reader: phrasey,
+    search: async (p) => (p.keywords.includes('building') ? [{ summary: slide('s1'), facts: facts({ title: 'Building programme' }) }] : []),
+  }, { read: true });
+  check(r.items.length === 1 && r.plan.keywords.includes('building'), 'fallback: when the AI\'s words find nothing, the person\'s own words are searched', r.plan.keywords);
+}
+
 // ---- Filters need evidence in the request
 {
   const invented = cleanPlan({ keywords: ['tenant'], category: 'Business Proposal', bestOfTheBest: true, yearFrom: 2024, yearTo: 2026 }, ctx);

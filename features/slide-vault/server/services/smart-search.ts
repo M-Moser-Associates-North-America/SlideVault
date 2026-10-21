@@ -71,6 +71,21 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
     rows = await deps.search(withoutFilters(plan), limit);
     relaxed = rows.length > 0;
   }
+  // The model's reading can miss when the library words it differently ("occupied building" when
+  // slides say "phased move"). Asking the AI should never find less than typing, so fall back to the
+  // person's own words, read by the rules.
+  if (!rows.length && reader === 'model') {
+    const own = standInPlan(query, ctx);
+    if (!own.keywords.length && !hasFilters(own)) own.keywords = literalWords(query);
+    if (own.keywords.length || hasFilters(own)) {
+      const fallback = await deps.search(own, limit);
+      if (fallback.length) {
+        rows = fallback;
+        plan = own;
+        relaxed = false;
+      }
+    }
+  }
 
   return {
     query,
