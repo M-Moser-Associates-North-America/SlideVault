@@ -61,13 +61,13 @@
 .slidevault .sb-load-close svg { width: 22px; height: 22px; }
 .slidevault .sb-load-body { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 12px 28px; }
 .slidevault .sb-load-icon { width: 104px; height: 104px; border-radius: 50%; background: var(--sv-brand-tint); color: var(--sv-brand); display: grid; place-items: center; margin-bottom: 26px; animation: sb-breathe 2.4s ease-in-out infinite; }
-.slidevault .sb-load-icon svg { width: 34px; height: 34px; }
+.slidevault .sb-load-icon svg { width: 44px; height: 44px; }
 .slidevault .sb-load-title { margin: 0 0 18px; font-size: 26px; font-weight: 600; color: var(--sv-text); }
 .slidevault .sb-load-sub { margin: 0 0 20px; font-size: 18px; color: var(--sv-text-secondary); max-width: 46ch; }
 .slidevault .sb-load-dots { display: flex; gap: 14px; margin-bottom: 20px; }
-.slidevault .sb-load-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--sv-surface-muted); animation: sb-dot 1.2s ease-in-out infinite; }
-.slidevault .sb-load-dots i:nth-child(2) { animation-delay: 0.2s; }
-.slidevault .sb-load-dots i:nth-child(3) { animation-delay: 0.4s; }
+.slidevault .sb-load-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--sv-surface-muted); animation: sb-dot 1.5s steps(1, end) infinite; }
+.slidevault .sb-load-dots i:nth-child(2) { animation-delay: 0.5s; }
+.slidevault .sb-load-dots i:nth-child(3) { animation-delay: 1s; }
 .slidevault .sb-load-working { margin: 0; font-size: 16px; color: var(--sv-text-secondary); }
 .slidevault .sb-load-steps { list-style: none; margin: 0; padding: 22px 24px; background: var(--sv-surface-sunken); border-radius: 16px; display: grid; gap: 24px; }
 .slidevault .sb-load-steps li { display: flex; align-items: center; gap: 16px; font-size: 18px; color: var(--sv-text-secondary); transition: color 0.3s; }
@@ -76,7 +76,8 @@
 .slidevault .sb-load-step-ic svg { width: 26px; height: 26px; }
 .slidevault .is-todo .sb-load-step-ic { background: var(--sv-surface-muted); width: 24px; height: 24px; }
 .slidevault .is-active .sb-load-step-ic { width: 22px; height: 22px; border: 2px solid var(--sv-brand-tint); border-top-color: var(--sv-brand); border-right-color: var(--sv-brand); animation: sb-spin 0.9s linear infinite; }
-@keyframes sb-dot { 0%, 100% { background: var(--sv-surface-muted); } 30%, 60% { background: var(--sv-brand); } }
+/* Each dot is orange for two thirds of the cycle, staggered, so two are orange and one grey at any moment. */
+@keyframes sb-dot { 0% { background: var(--sv-brand); } 66.6% { background: var(--sv-surface-muted); } }
 @keyframes sb-spin { to { transform: rotate(360deg); } }
 @keyframes sb-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
 @media (prefers-reduced-motion: reduce) {

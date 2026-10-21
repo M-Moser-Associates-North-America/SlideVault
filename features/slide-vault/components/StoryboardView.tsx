@@ -245,9 +245,9 @@ function LoadingDialog({ elapsed, preparing, onClose }: { elapsed: number; prepa
         <div className="sb-load-body">
           <span className="sb-load-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 10.5c0-2 3.1-3.5 7-3.5s7 1.5 7 3.5z" />
-              <path d="M5 13.5h14" />
-              <path d="M5 16.5h14" />
+              <path d="M4.5 10c0-2.5 3.4-4 7.5-4s7.5 1.5 7.5 4z" />
+              <path d="M4.5 13.5h15" />
+              <path d="M4.5 17h15" />
             </svg>
           </span>
           <h2 id="sb-load-title" className="sb-load-title">
