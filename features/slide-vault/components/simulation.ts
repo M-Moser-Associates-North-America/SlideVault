@@ -206,6 +206,9 @@ const STOP = new Set(
   ),
 );
 
+/** Filler words the rules never search for ("the", "show me", "slides"). */
+export const isStopWord = (w: string) => STOP.has(w);
+
 const norm = (s: string) => s.toLowerCase().replace(/[’']/g, '');
 const esc = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/-/g, '[- ]');
 const hasWord = (text: string, w: string) => new RegExp(`(^|[^a-z0-9])${esc(w)}([^a-z0-9]|$)`).test(text);

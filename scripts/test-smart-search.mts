@@ -8,7 +8,7 @@ import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import { openAiCompatibleReader, parsePlan } from '../features/slide-vault/server/ai/openai-compatible';
 import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../features/slide-vault/server/ai/reader';
 import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/rate-limit';
-import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
+import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, typedCodes, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { fixtureFilterValues, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
 import { smartSearch } from '../features/slide-vault/server/services/smart-search';
 
@@ -113,6 +113,21 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
   check(!standInPlan('our most recent hospitality deck', ctx).keywords.includes('deck'), 'stand-in: "deck" is not a search word');
   const k = standInPlan('whats our most recent bank deck', ctx).keywords;
   check(JSON.stringify(k) === JSON.stringify(['bank']), 'stand-in: "whats our most recent bank deck" searches for "bank" only', k);
+}
+
+// ---- Short codes, and never "everything"
+{
+  const seen: SearchPlan[] = [];
+  const r = await smartSearch('QA/QC', 10, { context, thisYear: 2026, search: async (p) => { seen.push(p); return []; } });
+  check(JSON.stringify(seen[0]?.keywords) === JSON.stringify(['qa/qc', 'qa', 'qc']), 'short codes: "QA/QC" searches for qa/qc, qa and qc', seen[0]?.keywords);
+  const spelled: PlanReader = { name: 'fake', read: async () => cleanPlan({ keywords: ['quality assurance', 'quality control'] }, ctx) };
+  const seenAi: SearchPlan[] = [];
+  await smartSearch('Do we have a QA/QC slide?', 10, { context, thisYear: 2026, reader: spelled, search: async (p) => { seenAi.push(p); return []; } }, { read: true });
+  check(['qa/qc', 'qa', 'qc', 'quality assurance'].every((k) => seenAi[0]?.keywords.includes(k)), 'short codes: the AI path searches "QA/QC" as typed too', seenAi[0]?.keywords);
+  check(JSON.stringify(typedCodes('Can we add the org chart for the MSA?')) === JSON.stringify(['msa']) && typedCodes('which slides for a law firm').length === 0, 'short codes: only words typed as codes count');
+  let called = false;
+  const none = await smartSearch('the deck', 10, { context, thisYear: 2026, search: async () => { called = true; return [{ summary: slide('s1'), facts: facts() }]; } });
+  check(!called && none.items.length === 0, 'a search with no usable words returns nothing, never the whole library');
 }
 
 // ---- Filters need evidence in the request

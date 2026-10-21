@@ -1,6 +1,6 @@
 import type { SlideSummary } from '../../contracts/dto';
 import type { PlanReader } from '../ai/reader';
-import { chipsFor, groundFilters, hasFilters, isBasicQuery, relevantClients, standInPlan, whyItFits, withoutFilters, type Chip, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
+import { chipsFor, groundFilters, hasFilters, isBasicQuery, literalWords, relevantClients, typedCodes, MAX_KEYWORDS, standInPlan, whyItFits, withoutFilters, type Chip, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
 
 /**
  * Quick AI search (docs/DECISIONS.md FD-16, FD-17). The route wires in the configured reader (or
@@ -48,6 +48,8 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
       // The model only sees client names typed in the request, never the whole list.
       plan = groundFilters(await deps.reader.read(query, { ...ctx, clients: relevantClients(query, ctx.clients) }), query);
       reader = 'model';
+      // Codes typed as codes ("QA/QC") are searched as typed too, next to the model's spelled-out words.
+      plan = { ...plan, keywords: [...new Set([...plan.keywords, ...typedCodes(query)])].slice(0, MAX_KEYWORDS) };
     } catch (e) {
       deps.log?.(`AI reader ${deps.reader.name} unavailable, using the stand-in: ${(e as Error).message}`);
       readerNote = 'AI reading is unavailable right now, so this search used simpler rules.';
@@ -58,6 +60,10 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
   }
   // A model or rule that finds nothing to search for still shouldn't lose the person's words.
   if (!plan.keywords.length && !hasFilters(plan)) plan = { ...plan, keywords: standInPlan(query, ctx).keywords };
+  // Short codes the rules skip ("QA/QC", "MSA", "FF&E") are still what the person asked for.
+  if (!plan.keywords.length && !hasFilters(plan)) plan = { ...plan, keywords: literalWords(query) };
+  // Nothing at all to search for means no results, never the whole library.
+  if (!plan.keywords.length && !hasFilters(plan)) return { query, reader, readerNote, plan, chips: chipsFor(plan), relaxed: false, items: [] };
 
   let relaxed = false;
   let rows = await deps.search(plan, limit);

@@ -1,4 +1,4 @@
-import { simParse } from '../../components/simulation';
+import { isStopWord, simParse } from '../../components/simulation';
 
 /**
  * Quick AI search (docs/DECISIONS.md FD-16, FD-17): how a typed request becomes a search, and how
@@ -145,6 +145,29 @@ export function groundFilters(plan: SearchPlan, query: string): SearchPlan {
     yearFrom: asksForYears ? plan.yearFrom : null,
     yearTo: asksForYears ? plan.yearTo : null,
   };
+}
+
+/**
+ * The words exactly as typed, for short codes the rules skip: "QA/QC" gives "qa/qc", "qa" and "qc".
+ * Two letters or more; filler words and words that match every slide are still left out.
+ */
+export function literalWords(query: string): string[] {
+  const out: string[] = [];
+  for (const raw of query.toLowerCase().split(/\s+/)) {
+    const w = raw.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+    if (w.length < 2 || GENERIC_WORDS.has(w) || isStopWord(w)) continue;
+    for (const k of [w, ...(/[/&+-]/.test(w) ? w.split(/[/&+-]+/) : [])]) if (k.length >= 2 && !out.includes(k)) out.push(k);
+  }
+  return out.slice(0, MAX_KEYWORDS);
+}
+
+/**
+ * Codes typed in capitals or with a slash ("QA/QC", "MSA", "FF&E"), as typed. A model tends to
+ * spell them out ("quality assurance"), but slides often only use the code, so both are searched.
+ */
+export function typedCodes(query: string): string[] {
+  const codes = query.split(/\s+/).map((w) => w.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '')).filter((w) => /^[A-Z0-9]{2,6}([/&+-][A-Z0-9]{1,6})*$/.test(w) && /[A-Z]/.test(w));
+  return literalWords(codes.join(' '));
 }
 
 export function hasFilters(p: SearchPlan): boolean {
