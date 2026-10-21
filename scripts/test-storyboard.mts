@@ -72,9 +72,10 @@ check(missingContext('The board and CFO worry about disruption; the goal is a lo
     { role: 'nonsense' as never, title: 'x', need: 'x', words: ['x'] },
   ] }) };
   const r = await buildStoryboard(situation, { search, reader }, { read: true });
-  check(r.reader === 'model' && r.sections.length === 2, 'ai: the model\'s sections are used, and a section with an unknown role is dropped', r.sections.map((s) => s.role));
-  check(r.sections[1].items[0]?.slide.id === 's-case', 'ai: the proof part finds the occupied-building case study');
-  check(r.sections[1].title === 'We have done this in live buildings' && r.sections[1].label === "Proof we've done this", 'ai: the model\'s heading is kept next to the standard label');
+  check(r.reader === 'model' && JSON.stringify(r.sections.map((s) => s.role)) === JSON.stringify(STORY_ROLES), 'ai: the whole story in order, an unknown role dropped and missing parts added', r.sections.map((s) => s.role));
+  const proof = r.sections.find((s) => s.role === 'experience')!;
+  check(proof.items.some((i) => i.slide.id === 's-case'), 'ai: the proof part finds the occupied-building case study', proof.items.map((i) => i.slide.id));
+  check(proof.title === 'We have done this in live buildings' && proof.label === "Proof we've done this", 'ai: the model\'s heading is kept next to the standard label');
 }
 {
   const failing: StoryReader = { name: 'fake', plan: async () => { throw new Error('timeout'); } };
@@ -85,6 +86,21 @@ check(missingContext('The board and CFO worry about disruption; the goal is a lo
 }
 
 // ---- Cleaning whatever a model returns
+{
+  // What Qwen returned for Grant's hospital brief (21 Oct): two roles over and over, nothing else,
+  // with words only about the client. Every part came back empty before this was cleaned.
+  const p = cleanStoryPlan({ summary: 'A hospital group proposal.', questions: [], sections: [
+    { role: 'client-challenge', title: 'Their situation', need: 'x', words: ['hospital group'] },
+    { role: 'insight', title: 'What we learned', need: 'x', words: ['organisation research'] },
+    { role: 'client-challenge', title: 'Their RFP', need: 'x', words: ['rfp'] },
+    { role: 'insight', title: 'More research', need: 'x', words: ['history'] },
+  ] });
+  check(JSON.stringify(p.sections.map((x) => x.role)) === JSON.stringify(STORY_ROLES), 'clean: repeated parts merge into one each, and the missing parts are added', p.sections.map((x) => x.role));
+  const challenge = p.sections[0];
+  check(challenge.title === 'Their situation' && challenge.words.includes('rfp') && challenge.words.includes('challenge'), "clean: a merged part keeps the first heading, both parts' words, and the arc's words", challenge);
+  const r = await buildStoryboard('A hospital group needs a proposal and a clear story.', { search, reader: { name: 'fake', plan: async () => p } }, { read: true });
+  check(r.sections.filter((x) => !x.gap).length >= 4, 'clean: with the arc words kept, most parts find slides', r.sections.map((x) => `${x.role}:${x.items.length}`));
+}
 {
   const p = cleanStoryPlan({ summary: '  x  ', questions: ['ok?', 'Who will be in the room?', 'a', 'b?', 'c?', 'd?'], sections: [] });
   check(p.sections.length === 6, 'clean: no usable sections falls back to the standard story');
@@ -102,7 +118,8 @@ check(standInStory('Sustainability is the client\'s top priority.').sections.fin
   const plan = await reader.plan(situation);
   const rf = sent.response_format as { json_schema: { name: string; strict: boolean } };
   check(rf.json_schema.name === 'storyboard' && rf.json_schema.strict, 'reader: asks for the storyboard JSON schema, strict');
-  check(plan.sections[0].role === 'strategy' && plan.sections[0].words[0] === 'phasing', 'reader: plan read back and cleaned', plan);
+  const how = plan.sections.find((x) => x.role === 'strategy')!;
+  check(plan.sections.length === 6 && how.title === 'How' && how.words[0] === 'phasing', 'reader: plan read back and cleaned', plan);
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll storyboard checks passed');
