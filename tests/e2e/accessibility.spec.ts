@@ -20,6 +20,11 @@ async function openHome(page: Page) {
 /** Search for a word so slide cards are on screen (Home shows deck rows when decks have no year or collection). */
 async function openResults(page: Page, text = 'services') {
   await openHome(page);
+  await searchFor(page, text);
+}
+
+/** Type a word and wait for results. The draft deck keeps its slides between searches. */
+async function searchFor(page: Page, text: string) {
   await page.getByLabel('Search slides').fill(text);
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
 }
@@ -48,22 +53,24 @@ test.beforeEach(async ({ page }) => {
 test('no WCAG 2.2 AA violations on Home, light and dark', async ({ page }) => {
   await openHome(page);
   expect(await axe(page)).toEqual([]);
-  await page.getByRole('button', { name: /Switch to dark theme/ }).click();
+  await page.getByRole('button', { name: /Account menu/ }).click();
+  await page.getByRole('menuitem', { name: 'Dark mode' }).click();
   await expect(page.locator('.slidevault').first()).toHaveAttribute('data-theme', 'dark');
   expect(await axe(page)).toEqual([]);
 });
 
 for (const theme of ['light', 'dark'] as const) {
   test(`no WCAG 2.2 AA violations, ${theme} theme, results with a cart`, async ({ page }) => {
-    await openResults(page, 'e');
-    await page.getByLabel('Select: Services').check({ force: true });
+    await openResults(page, 'services');
+    await page.getByLabel('Add to draft deck: Services').check({ force: true });
     // The first selection expands the slide-selection panel (grid-template-columns transition,
     // --sv-duration = 220ms), which moves every card below it on this page's now-longer layout.
     // Wait for the state change, then the transition itself, or the next force-click's
     // coordinates go stale mid-animation and can land on nothing.
     await expect(page.locator('.cart-h .count')).toHaveText('1');
     await page.waitForTimeout(220);
-    await page.getByLabel('Select: Leadership team').check({ force: true });
+    await searchFor(page, 'leadership');
+    await page.getByLabel('Add to draft deck: Leadership team').check({ force: true });
     await expect(page.locator('.cart-h .count')).toHaveText('2');
     await page.evaluate((t) => document.querySelectorAll('.slidevault').forEach((el) => el.setAttribute('data-theme', t)), theme);
     expect(await axe(page)).toEqual([]);
@@ -104,17 +111,17 @@ test('no violations in the preview and download dialogs, empty results and the d
   );
   await page.getByLabel('Search slides').fill('services');
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
-  await page.getByLabel('Select: Services').check({ force: true });
+  await page.getByLabel('Add to draft deck: Services').check({ force: true });
   await page.getByRole('button', { name: 'Download as pptx' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   expect(await axe(page)).toEqual([]);
   await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).click();
-  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Your slide selection is unchanged');
+  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Your draft deck is unchanged');
   expect(await axe(page)).toEqual([]);
 });
 
 test('every interactive element shows a 2px solid focus outline', async ({ page }) => {
-  await openResults(page, 'e');
+  await openResults(page, 'leadership');
   const seen = new Set<string>();
   for (let i = 0; i < 80; i++) {
     await page.keyboard.press('Tab');
@@ -139,7 +146,7 @@ test('every interactive element shows a 2px solid focus outline', async ({ page 
 
 test('targets are at least 24×24 CSS px', async ({ page }) => {
   await openResults(page, 'services');
-  await page.getByLabel('Select: Services').check({ force: true });
+  await page.getByLabel('Add to draft deck: Services').check({ force: true });
   const small = await page.evaluate(() =>
     [...document.querySelectorAll('.slidevault button, .slidevault input, .slidevault select')]
       .filter((e) => !(e as HTMLElement).hidden)
@@ -153,18 +160,13 @@ test('targets are at least 24×24 CSS px', async ({ page }) => {
 test('primary workflow works with the keyboard alone', async ({ page }) => {
   await openHome(page);
 
-  // Search
-  // Khushali's simulated smart search (FD-14) matches by topic, not literal keyword: "leadership"
-  // now reliably resolves to the whole "Team and people" topic (12 slides), not just one title.
+  // Search, then tick three slides with Space. Each is found with its own search; the draft deck keeps them.
   await page.getByLabel('Search slides').focus();
-  await page.keyboard.type('leadership');
+  await page.keyboard.type('northwind');
   await expect(page.getByText(/^\d+ slides? from \d+ decks?/)).toBeVisible();
-  await page.getByLabel('Search slides').fill('e');
-  await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
-
-  // Tick three slides with Space
-  for (const title of ['Northwind Studio', 'Services', 'Leadership team']) {
-    await page.getByLabel(`Select: ${title}`, { exact: true }).focus();
+  for (const [word, title] of [['northwind', 'Northwind Studio'], ['services', 'Services'], ['leadership', 'Leadership team']]) {
+    await searchFor(page, word);
+    await page.getByLabel(`Add to draft deck: ${title}`, { exact: true }).focus();
     await page.keyboard.press('Space');
   }
   await expect(page.locator('.cart-items li')).toHaveCount(3);
@@ -205,7 +207,7 @@ test('preview: focus moves into the dialog and returns to the opener on Escape',
 });
 
 test('one banner, one main, one h1; no skipped heading levels', async ({ page }) => {
-  await openResults(page, 'e');
+  await openResults(page, 'leadership');
   await expect(page.getByRole('banner')).toHaveCount(1);
   await expect(page.locator('main')).toHaveCount(1);
   await expect(page.locator('h1')).toHaveCount(1);
@@ -215,8 +217,8 @@ test('one banner, one main, one h1; no skipped heading levels', async ({ page })
 
 test('reflows without sideways scrolling at 320 px (400% zoom)', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
-  await openResults(page, 'e');
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  await openResults(page, 'leadership');
+  expect(await page.evaluate(() => document.querySelector('.sv-scroll')!.scrollWidth)).toBeLessThanOrEqual(320);
 });
 
 test('reduced motion turns transitions off', async ({ browser }) => {
@@ -240,4 +242,67 @@ test('no WCAG 2.2 AA violations on the sign-in screen; Sign in goes straight to 
   await expect(page.getByLabel('Email address')).toHaveValue('');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
+});
+
+test('combining slides from several decks asks the server for one file, and shows its fallback note', async ({ page }) => {
+  // The real export counts downloads in the database, so a stand-in answers here and the request is inspected.
+  const requests: { combine?: boolean; items: unknown[] }[] = [];
+  await page.route('**/api/slide-vault/v1/exports', async (route) => {
+    const body = route.request().postDataJSON();
+    requests.push(body);
+    await route.fulfill({
+      status: 200,
+      headers: {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': 'attachment; filename="SlideVault-export.zip"',
+        'X-SlideVault-Export-Note': 'These decks use different slide sizes, so you got a zip with one file per deck instead.',
+      },
+      body: 'stand-in',
+    });
+  });
+  await openHome(page);
+  // One slide from the Northwind deck and one from a different deck.
+  await searchFor(page, 'services');
+  await page.getByLabel('Add to draft deck: Services', { exact: true }).check({ force: true });
+  await searchFor(page, 'approach');
+  await page.getByLabel('Add to draft deck: Our approach', { exact: true }).first().check({ force: true });
+  const option = page.getByLabel('Combine into one deck').first();
+  await expect(option).toBeVisible();
+  await expect(option).not.toBeChecked();
+  await expect(page.locator('.cart-foot')).toContainText('a zip, one .pptx per deck');
+  await option.check();
+  await expect(page.locator('.cart-foot')).toContainText('one editable .pptx');
+  await page.getByRole('button', { name: 'Download as pptx' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByLabel('Combine into one deck')).toBeChecked();
+  expect(await axe(page)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Download', exact: true }).click();
+  await expect(dialog.getByRole('status')).toContainText('different slide sizes');
+  expect(requests).toHaveLength(1);
+  expect(requests[0].combine).toBe(true);
+});
+
+test('phones: tabs along the bottom, the draft deck opens from the last tab, nothing scrolls sideways', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openResults(page, 'leadership');
+  const tabs = page.locator('.sv-bottombar');
+  await expect(tabs).toBeVisible();
+  await expect(tabs.getByRole('link')).toHaveText(['Home', 'Create', 'Upload', 'My decks']);
+  await expect(page.locator('.sv-nav')).toBeHidden();
+  expect(await page.evaluate(() => document.querySelector('.sv-scroll')!.scrollWidth)).toBeLessThanOrEqual(390);
+  expect(await axe(page)).toEqual([]);
+
+  await page.getByLabel('Add to draft deck: Leadership team').check({ force: true });
+  const deck = tabs.getByRole('button', { name: /Draft deck, 1 slide/ });
+  await deck.click();
+  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
+  await expect(deck).toBeFocused();
+
+  // The tabs can go back to the top from the account menu.
+  await page.getByRole('button', { name: /Account menu/ }).click();
+  await page.getByRole('menuitem', { name: 'Tabs at the top' }).click();
+  await expect(page.locator('.sv-nav')).toBeVisible();
+  await expect(tabs).toBeHidden();
 });

@@ -93,7 +93,7 @@
 .slidevault .home-hero-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 7px 7px 7px 24px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); box-shadow: var(--sv-shadow-card); }
 .slidevault .home-hero-field:focus-within { border-color: var(--sv-brand); }
 .slidevault .home-hero-field input { flex: 1; width: 100%; height: 44px; font-size: 18px; font-weight: 400; }
-.slidevault .home-hero-anim { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); font-size: 18px; font-weight: 400; color: color-mix(in srgb, var(--sv-text) 45%, transparent); pointer-events: none; white-space: nowrap; }
+.slidevault .home-hero-anim { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); font-size: 18px; font-weight: 400; color: color-mix(in srgb, var(--sv-text) 64%, transparent); pointer-events: none; white-space: nowrap; }
 .slidevault .home-hero-search .ic { flex: none; color: var(--sv-text-secondary); }
 .slidevault .home-hero-search input {
   flex: 1;
@@ -295,7 +295,7 @@
 .slidevault .home-hero-field input:focus-visible { outline: none; }
 /* Home "Try" suggestions: sized like the mockup's chips (30px high, 12.5px text, light grey fill, thin border). */
 .slidevault .home-hero-try { margin-top: 14px; gap: 8px; }
-.slidevault .home-hero-try > span { font-size: 12px; color: color-mix(in srgb, var(--sv-text) 45%, transparent); }
+.slidevault .home-hero-try > span { font-size: 12px; color: color-mix(in srgb, var(--sv-text) 66%, transparent); }
 .slidevault .home-hero-try button.try-chip { height: 30px; padding: 0 13px; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); color: var(--sv-text-secondary); font-size: 12.5px; font-weight: 500; }
 .slidevault .home-hero-try button.try-chip:hover { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text); }
 .slidevault .home-hero-try button.try-chip[aria-current="true"] { background: var(--sv-brand-tint); border-color: var(--sv-brand); color: var(--sv-text); font-weight: 600; }
