@@ -2,6 +2,7 @@ import 'server-only';
 import { readFile } from 'node:fs/promises';
 import type { ExportRequest } from '../../contracts/dto';
 import { hasMmoserConfig } from '../config';
+import { combineDecks, MixedSlideSizesError } from '../combine-pptx';
 import { bundleDeckFiles, type DeckFile } from '../export-bundle';
 import { exportSelectedSlides, ExportValidationError } from '../export-pptx';
 import { ServiceError } from '../http';
@@ -12,7 +13,14 @@ import { downloadOriginal } from '../storage';
 export const PPTX_TYPE = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 export const ZIP_TYPE = 'application/zip';
 
-export type ExportFile = { bytes: Uint8Array; fileName: string; contentType: string; deckCount: number };
+export type ExportFile = {
+  bytes: Uint8Array;
+  fileName: string;
+  contentType: string;
+  deckCount: number;
+  /** Set when a combined file was asked for but a .zip was sent instead, saying why (FD-21) */
+  note?: string;
+};
 
 /**
  * Where uploaded decks live (Postgres records + the private slide-originals bucket).
@@ -120,5 +128,19 @@ export async function exportSlides(
   }
 
   if (files.length === 1) return { bytes: files[0].bytes, fileName: 'SlideVault-export.pptx', contentType: PPTX_TYPE, deckCount: 1 };
-  return { bytes: await bundleDeckFiles(files), fileName: 'SlideVault-export.zip', contentType: ZIP_TYPE, deckCount: files.length };
+
+  // One combined .pptx across decks, in the selected order (FD-21), when asked for.
+  let note: string | undefined;
+  if (request.combine === true) {
+    const deckIndex = new Map([...groups.keys()].map((key, i) => [key, i]));
+    const order = resolved.map((r) => ({ deck: deckIndex.get(r.deckKey)!, slide: groups.get(r.deckKey)!.slideNumbers.indexOf(r.slideNumber) + 1 }));
+    try {
+      const bytes = await combineDecks(files, order);
+      return { bytes, fileName: 'SlideVault-export.pptx', contentType: PPTX_TYPE, deckCount: files.length };
+    } catch (e) {
+      if (!(e instanceof MixedSlideSizesError)) throw e;
+      note = 'These decks use different slide sizes (4:3 and 16:9), so they come as separate files in a .zip.';
+    }
+  }
+  return { bytes: await bundleDeckFiles(files), fileName: 'SlideVault-export.zip', contentType: ZIP_TYPE, deckCount: files.length, note };
 }
