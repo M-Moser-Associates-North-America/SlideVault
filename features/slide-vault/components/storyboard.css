@@ -46,16 +46,49 @@
 .slidevault .sb-gap { display: flex; gap: 12px; align-items: flex-start; border: 1.5px dashed var(--sv-brand); border-radius: 14px; padding: 16px; background: var(--sv-brand-tint); }
 .slidevault .sb-gap p { margin: 2px 0 0; }
 
-/* While the AI works: the story's parts, empty, with a soft light moving down them in order. */
-.slidevault .sb-status { display: flex; gap: 10px; align-items: center; font-weight: 600; margin: 0 0 4px; }
-.slidevault .sb-wait { margin: 0 0 8px; font-size: var(--sv-text-small); }
-.slidevault .sb-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--sv-brand); animation: sb-pulse 1.4s ease-in-out infinite; }
-.slidevault .sb-ghost-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
-.slidevault .sb-ghost-row span { aspect-ratio: 16 / 9; border-radius: 10px; background: var(--sv-surface-sunken); }
-.slidevault .sb-part-ghost { animation: sb-glow 3.6s ease-in-out infinite; border-left: 3px solid transparent; padding-left: 12px; }
-@keyframes sb-glow { 0%, 100% { border-left-color: transparent; opacity: 0.55; } 15%, 30% { border-left-color: var(--sv-brand); opacity: 1; } }
-@keyframes sb-pulse { 0%, 100% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .slidevault .sb-part-ghost, .slidevault .sb-pulse { animation: none; opacity: 1; } }
+/* Loading screen (Schiffon's design, 21 Oct): one calm card over the page while the AI works. */
+.slidevault .sb-load-backdrop { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(20, 20, 20, 0.28); }
+.slidevault .sb-load { width: min(720px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 24px; padding: 22px 22px 18px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16); }
+.slidevault .sb-load-head { display: flex; align-items: center; gap: 14px; padding-bottom: 20px; border-bottom: 1px solid var(--sv-border); }
+.slidevault .sb-load-mark { width: 52px; height: 52px; border-radius: 12px; background: var(--sv-brand-tint); color: var(--sv-brand); display: grid; place-items: center; flex: none; }
+.slidevault .sb-load-mark svg { width: 26px; height: 26px; }
+.slidevault .sb-load-brand { display: flex; flex-direction: column; gap: 4px; }
+.slidevault .sb-load-brand b { font-size: 22px; font-weight: 600; color: var(--sv-text); line-height: 1.1; }
+.slidevault .sb-load-brand span { font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .sb-load-close { margin-left: auto; background: none; border: 0; padding: 8px; border-radius: 10px; color: var(--sv-text-secondary); cursor: pointer; display: grid; place-items: center; }
+.slidevault .sb-load-close:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
+.slidevault .sb-load-close:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 1px; }
+.slidevault .sb-load-close svg { width: 22px; height: 22px; }
+.slidevault .sb-load-body { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 12px 28px; }
+.slidevault .sb-load-icon { width: 104px; height: 104px; border-radius: 50%; background: var(--sv-brand-tint); color: var(--sv-brand); display: grid; place-items: center; margin-bottom: 26px; animation: sb-breathe 2.4s ease-in-out infinite; }
+.slidevault .sb-load-icon svg { width: 34px; height: 34px; }
+.slidevault .sb-load-title { margin: 0 0 18px; font-size: 26px; font-weight: 600; color: var(--sv-text); }
+.slidevault .sb-load-sub { margin: 0 0 20px; font-size: 18px; color: var(--sv-text-secondary); max-width: 46ch; }
+.slidevault .sb-load-dots { display: flex; gap: 14px; margin-bottom: 20px; }
+.slidevault .sb-load-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--sv-surface-muted); animation: sb-dot 1.2s ease-in-out infinite; }
+.slidevault .sb-load-dots i:nth-child(2) { animation-delay: 0.2s; }
+.slidevault .sb-load-dots i:nth-child(3) { animation-delay: 0.4s; }
+.slidevault .sb-load-working { margin: 0; font-size: 16px; color: var(--sv-text-secondary); }
+.slidevault .sb-load-steps { list-style: none; margin: 0; padding: 22px 24px; background: var(--sv-surface-sunken); border-radius: 16px; display: grid; gap: 24px; }
+.slidevault .sb-load-steps li { display: flex; align-items: center; gap: 16px; font-size: 18px; color: var(--sv-text-secondary); transition: color 0.3s; }
+.slidevault .sb-load-steps li.is-active { color: var(--sv-text); font-weight: 500; }
+.slidevault .sb-load-step-ic { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 50%; color: var(--sv-brand); }
+.slidevault .sb-load-step-ic svg { width: 26px; height: 26px; }
+.slidevault .is-todo .sb-load-step-ic { background: var(--sv-surface-muted); width: 24px; height: 24px; }
+.slidevault .is-active .sb-load-step-ic { width: 22px; height: 22px; border: 2px solid var(--sv-brand-tint); border-top-color: var(--sv-brand); border-right-color: var(--sv-brand); animation: sb-spin 0.9s linear infinite; }
+@keyframes sb-dot { 0%, 100% { background: var(--sv-surface-muted); } 30%, 60% { background: var(--sv-brand); } }
+@keyframes sb-spin { to { transform: rotate(360deg); } }
+@keyframes sb-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+@media (prefers-reduced-motion: reduce) {
+  .slidevault .sb-load-icon, .slidevault .is-active .sb-load-step-ic { animation: none; }
+  .slidevault .sb-load-dots i { animation: none; background: var(--sv-brand); }
+  .slidevault .sb-load-dots i:nth-child(3) { background: var(--sv-surface-muted); }
+}
+@media (max-width: 520px) {
+  .slidevault .sb-load-body { padding: 28px 4px 20px; }
+  .slidevault .sb-load-title { font-size: 22px; }
+  .slidevault .sb-load-sub, .slidevault .sb-load-steps li { font-size: 16px; }
+}
 
 .slidevault .sb-chat { position: sticky; top: 16px; background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 140px); }
 .slidevault .sb-msgs { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 80px; }

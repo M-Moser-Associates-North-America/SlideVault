@@ -16,9 +16,6 @@ import './storyboard.css';
  * similar brief is better. Slides use the same card as Home: click to preview, tick to add.
  */
 
-/** The story order, shown while the AI works so the wait already looks like the result. */
-const PARTS = ["The client's challenge", 'Our insight', 'Our approach', "Proof we've done this", 'Why M Moser', 'What the client gets'];
-const STEPS = ['Reading the situation', 'Shaping the story', 'Finding slides for each part'];
 const EXAMPLES = [
   'A hospital group is merging three campuses. Clinical staff are burnt out, and the board worries about cost overruns after a failed project last year. We need a proposal outline that tells one story across all three sites.',
   'A law firm is moving floors because half its lawyers now work from home. The RFP asks for firm history, process, team CVs, case studies and fees.',
@@ -38,6 +35,9 @@ export function StoryboardView() {
   const [answers, setAnswers] = useState('');
   const [chat, setChat] = useState<Chat[]>([]);
   const [elapsed, setElapsed] = useState(0);
+  /** The AI has answered: "Preparing your results" shows for a moment before the story appears */
+  const [preparing, setPreparing] = useState(false);
+  const before = useRef<'start' | 'ready'>('start');
   const abort = useRef<AbortController | null>(null);
   const headRef = useRef<HTMLHeadingElement>(null);
 
@@ -52,11 +52,17 @@ export function StoryboardView() {
     abort.current?.abort();
     const controller = new AbortController();
     abort.current = controller;
+    before.current = story ? 'ready' : 'start';
     setElapsed(0);
+    setPreparing(false);
     setPhase('building');
     announce('Building your story. This can take a minute.');
     try {
       const result = await buildStory(runtime, situation.trim(), { read, answers: withAnswers }, controller.signal);
+      setPreparing(true);
+      await new Promise((r) => setTimeout(r, PREPARE_MS));
+      if (controller.signal.aborted) return;
+      setPreparing(false);
       setStory(result);
       setPhase('ready');
       setChat((c) => {
@@ -84,6 +90,14 @@ export function StoryboardView() {
     void run(all);
   }
 
+  /** The loading screen's close button: stop waiting and go back to where the person was. */
+  function cancel() {
+    abort.current?.abort();
+    setPreparing(false);
+    setPhase(before.current);
+    announce('Stopped.');
+  }
+
   function startOver() {
     abort.current?.abort();
     setStory(null);
@@ -101,7 +115,9 @@ export function StoryboardView() {
     toast(`Added the story's ${leads.length} lead slides to the draft deck, in story order`);
   }
 
-  if (phase === 'start' || phase === 'error')
+  const loading = phase === 'building' && <LoadingDialog elapsed={elapsed} preparing={preparing} onClose={cancel} />;
+
+  if (phase === 'start' || phase === 'error' || (phase === 'building' && !story))
     return (
       <div className="sv-wrap sb">
         <p className="sb-eyebrow">Storyboard</p>
@@ -140,6 +156,7 @@ export function StoryboardView() {
             </button>
           ))}
         </div>
+        {loading}
       </div>
     );
 
@@ -149,7 +166,7 @@ export function StoryboardView() {
         <div>
           <p className="sb-eyebrow">Storyboard</p>
           <h1 className="h1 sb-title" tabIndex={-1} ref={headRef}>
-            {phase === 'building' && !story ? 'Building your story' : 'Your story'}
+            Your story
           </h1>
           {story?.summary && <p className="lede muted sb-lede">{story.summary}</p>}
         </div>
@@ -175,38 +192,92 @@ export function StoryboardView() {
 
       <div className="sb-layout">
         <div className="sb-story" aria-busy={phase === 'building'}>
-          {phase === 'building' && <Building elapsed={elapsed} />}
-          {phase !== 'building' && story?.sections.map((s, i) => <Part key={s.role} n={i + 1} section={s} list={ordered} topics={story.topics} />)}
+          {story?.sections.map((s, i) => <Part key={s.role} n={i + 1} section={s} list={ordered} topics={story.topics} />)}
         </div>
         <ChatPanel chat={chat} busy={phase === 'building'} onSend={reply} />
       </div>
+      {loading}
     </div>
   );
 }
 
-/** The wait looks like the result: the six parts, in order, with a light moving down the story. */
-function Building({ elapsed }: { elapsed: number }) {
-  const step = Math.min(STEPS.length - 1, Math.floor(elapsed / 12));
+/** How long "Understanding your brief" shows before it is ticked off; reading starts the moment the brief is sent. */
+const UNDERSTAND_S = 3;
+/** How long "Preparing your results" shows once the AI has answered, so the last step is seen. */
+const PREPARE_MS = 700;
+const LOADING_STEPS = ['Understanding your brief', 'Matching relevant projects', 'Preparing your results'];
+
+/**
+ * The loading screen (Schiffon's design, 21 Oct): one calm card while the AI works. The steps
+ * follow the real call: the brief is understood first, matching runs for as long as the AI takes,
+ * and preparing shows when the answer is back. No percentage: the length of the call is unknown.
+ */
+function LoadingDialog({ elapsed, preparing, onClose }: { elapsed: number; preparing: boolean; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => closeRef.current?.focus(), []);
+  const active = preparing ? 2 : elapsed < UNDERSTAND_S ? 0 : 1;
   return (
-    <div className="sb-building">
-      <p className="sb-status" aria-live="polite">
-        <span className="sb-pulse" aria-hidden="true" />
-        {STEPS[step]}… <span className="muted">{elapsed}s</span>
-      </p>
-      {elapsed >= 15 && <p className="muted sb-wait">Still working. On this laptop the AI usually takes under a minute and a half.</p>}
-      {PARTS.map((label, i) => (
-        <div key={label} className="sb-part sb-part-ghost" style={{ animationDelay: `${i * 0.6}s` }}>
-          <div className="sb-part-head">
-            <span className="sb-n">{two(i + 1)}</span>
-            <span className="sb-label">{label}</span>
-          </div>
-          <div className="sb-ghost-row" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
+    <div className="sb-load-backdrop">
+      <div
+        className="sb-load"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sb-load-title"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
+      >
+        <div className="sb-load-head">
+          <span className="sb-load-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 7v14" />
+              <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+            </svg>
+          </span>
+          <span className="sb-load-brand">
+            <b>SlideVault</b>
+            <span>Proposal library</span>
+          </span>
+          <button ref={closeRef} type="button" className="sb-load-close" aria-label="Stop and close" onClick={onClose}>
+            <Icon name="x" />
+          </button>
         </div>
-      ))}
+        <div className="sb-load-body">
+          <span className="sb-load-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 10.5c0-2 3.1-3.5 7-3.5s7 1.5 7 3.5z" />
+              <path d="M5 13.5h14" />
+              <path d="M5 16.5h14" />
+            </svg>
+          </span>
+          <h2 id="sb-load-title" className="sb-load-title">
+            Finding the right slides
+          </h2>
+          <p className="sb-load-sub">Looking across projects for the ideas that fit your brief.</p>
+          <span className="sb-load-dots" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <p className="sb-load-working">Working on your search...</p>
+        </div>
+        <ol className="sb-load-steps" aria-live="polite">
+          {LOADING_STEPS.map((label, i) => (
+            <li key={label} className={i < active ? 'is-done' : i === active ? 'is-active' : 'is-todo'}>
+              <span className="sb-load-step-ic" aria-hidden="true">
+                {i < active && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="m8.5 12 2.5 2.5 4.5-5" />
+                  </svg>
+                )}
+              </span>
+              <span className="sr-only">{i < active ? 'Done: ' : i === active ? 'Now: ' : 'Next: '}</span>
+              {label}
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }
