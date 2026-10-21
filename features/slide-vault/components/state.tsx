@@ -74,6 +74,10 @@ type Workspace = {
   toggleSaved: (slide: SlideSummary) => void;
   activity: ActivityEntry[];
   logActivity: (kind: ActivityEntry['kind'], label: string, slideId?: string) => void;
+  /** Whether this person has turned on activity tracking (FD-18); null while loading or without the server */
+  activityOptedIn: boolean | null;
+  /** Turn tracking on or off. Off deletes everything recorded for this person. */
+  setActivityOptIn: (on: boolean) => Promise<void>;
   /** Working drafts: named sets of slides saved from the draft deck, kept under My decks. */
   drafts: Draft[];
   saveDraft: (name: string, slides: SlideSummary[]) => void;
@@ -227,9 +231,10 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
 
   /* Saved slides and recent activity, scoped per demo profile so switching profiles actually
      shows a different person's stuff. */
-  const { ids: savedIds, toggle: toggleSaved } = useSaved(profile);
-  const { entries: activity, log: logActivity } = useActivity(profile);
-  const { drafts, save: saveDraftStore, remove: deleteDraft } = useDrafts(profile);
+  /* Kept on the server for the signed-in person when the database is set up (FD-18). */
+  const { ids: savedIds, toggle: toggleSaved } = useSaved(profile, transport);
+  const { entries: activity, log: logActivity, optedIn: activityOptedIn, setOptedIn: setActivityOptIn } = useActivity(profile, transport);
+  const { drafts, save: saveDraftStore, remove: deleteDraft } = useDrafts(profile, transport);
   const saveDraft = useCallback((name: string, slides: SlideSummary[]) => saveDraftStore(name, slides.map((s) => s.id)), [saveDraftStore]);
   const loadDraft = useCallback(
     (draft: Draft) => {
@@ -283,6 +288,8 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     toggleSaved,
     activity,
     logActivity,
+    activityOptedIn,
+    setActivityOptIn,
     drafts,
     saveDraft,
     deleteDraft,

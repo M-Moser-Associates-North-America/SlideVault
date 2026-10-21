@@ -13,6 +13,7 @@ import {
   type SlideText,
   withDuplicateBadges,
 } from '@/features/slide-vault/server';
+import { withDownloadCounts } from '@/features/slide-vault/server/user-data';
 
 // GET /search?q=&kind=slide&cursor=&limit= (docs/DATA_AND_API.md)
 //
@@ -61,5 +62,7 @@ export async function GET(request: Request) {
   const collapse = url.searchParams.get('duplicates') !== 'all';
   const items = withDuplicateBadges([...uploadedItems, ...fixtureResult.items], groups, slideDeck, collapse);
 
-  return ok(items, { page: { nextCursor: fixtureResult.nextCursor } });
+  // Real "Most downloaded" counts (FD-18). Without the database, slides simply have no count.
+  const counted = await withDownloadCounts(items, (e) => console.error('Download counts unavailable', e));
+  return ok(counted, { page: { nextCursor: fixtureResult.nextCursor } });
 }

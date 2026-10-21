@@ -4,6 +4,7 @@ import { groupDuplicates, type SlideText } from '../duplicates';
 import { hasMmoserConfig } from '../config';
 import { loadLibraryIndex } from '../library-repository';
 import { listFilterValuesPg, listSlideTextsPg, smartSearchPg } from '../pg-repository';
+import { withDownloadCounts } from '../user-data';
 import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
 import { fixtureFilterValues, smartSearchFixtures } from './fixture-smart-search';
 import { smartSearch, type SmartSearchResponse } from './smart-search';
@@ -65,6 +66,8 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   const texts: SlideText[] = [...fixtureSlideTexts(index), ...(await orWithoutDb('slide text', listSlideTextsPg, [] as SlideText[]))];
   const slideDeck = new Map(texts.map((t) => [t.id, t.sourceId]));
   const badged = withDuplicateBadges(result.items.map((i) => i.slide), groupDuplicates(texts), slideDeck);
+  // Real "Most downloaded" counts (FD-18); left off when there's no database.
+  const counted = await withDownloadCounts(badged, (e) => console.error('Download counts unavailable', e));
   const byId = new Map(result.items.map((i) => [i.slide.id, i]));
-  return { ...result, items: badged.map((slide) => ({ ...byId.get(slide.id)!, slide })) };
+  return { ...result, items: counted.map((slide) => ({ ...byId.get(slide.id)!, slide })) };
 }

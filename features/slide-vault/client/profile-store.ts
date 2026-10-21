@@ -1,18 +1,28 @@
-import { useCallback, useSyncExternalStore } from 'react';
-import type { SlideSummary } from '../contracts/dto';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import type { ActivityEntry, Draft, SlideSummary } from '../contracts/dto';
+import type { Transport } from './api';
+import { userApi } from './user-api';
 
 /**
- * Local design prototype: fake sign-in, saved slides and a simple activity record, all kept in
- * this browser's localStorage. Mirrors selection-store.ts's pattern (docs/DECISIONS.md FD-06 is
- * still the real plan; this is a mockup for the pitch, not a real auth or saved-selection system).
+ * Sign-in name, saved slides, My decks and activity for the signed-in person.
+ *
+ * With a `transport` (the app passes the runtime), saved slides and My decks live on the server, so
+ * they follow the person to any device, and activity is recorded on the server only after the
+ * person opts in (docs/DECISIONS.md FD-18). This browser's localStorage is kept as a fast copy so
+ * screens render instantly, and as the fallback when the server has no database set up: then these
+ * behave exactly as the earlier browser-only prototype did.
+ *
+ * Sign-in itself is still a stand-in (a name kept in this browser) until M Moser's login plugs in.
  */
-export type ActivityEntry = { kind: 'viewed' | 'downloaded'; label: string; at: number; slideId?: string };
+export type { ActivityEntry, Draft };
+
 // Higher than a simple recent-activity list would need, because Top 10 (Views.tsx TopTenRow)
 // counts how often each slide shows up in this history to rank "what this profile uses most."
 const ACTIVITY_LIMIT = 60;
 const PROFILE_KEY = 'slidevault:profile';
 const savedKey = (profile: string) => `slidevault:${profile}:saved`;
 const activityKey = (profile: string) => `slidevault:${profile}:activity`;
+const draftsKey = (profile: string) => `slidevault:${profile}:drafts`;
 
 const listeners = new Set<() => void>();
 const memory = new Map<string, string>();
@@ -45,6 +55,17 @@ function subscribe(onChange: () => void) {
   };
 }
 
+/** Re-reads a localStorage key whenever any SlideVault key changes. */
+function useStored(key: string | null): string | null {
+  return useSyncExternalStore(
+    subscribe,
+    () => (key ? read(key) : null),
+    () => null,
+  );
+}
+
+const warn = (what: string) => (e: unknown) => console.warn(`SlideVault: could not ${what} on the server.`, e);
+
 export function useProfile() {
   const profile = useSyncExternalStore(subscribe, () => read(PROFILE_KEY), () => null);
   const signIn = useCallback((name: string) => write(PROFILE_KEY, name), []);
@@ -61,23 +82,45 @@ function parseStrings(raw: string | null): string[] {
   }
 }
 
-export function useSaved(profile: string | null) {
+/** Saved slides. On the server when it's available; ones saved only in this browser are moved up once. */
+export function useSaved(profile: string | null, transport?: Transport) {
   const key = profile ? savedKey(profile) : null;
-  const raw = useSyncExternalStore(
-    subscribe,
-    () => (key ? read(key) : null),
-    () => null,
-  );
+  const raw = useStored(key);
   const ids = new Set(key ? parseStrings(raw) : []);
+  const [online, setOnline] = useState(false);
+
+  useEffect(() => {
+    if (!profile || !transport || !key) return;
+    let live = true;
+    userApi
+      .listSaved(transport, profile)
+      .then(async (serverIds) => {
+        const localOnly = parseStrings(read(key)).filter((id) => !serverIds.includes(id));
+        if (!serverIds.length && localOnly.length) {
+          await Promise.all(localOnly.map((id) => userApi.setSaved(transport, profile, id, true)));
+          serverIds = localOnly;
+        }
+        if (!live) return;
+        write(key, JSON.stringify(serverIds));
+        setOnline(true);
+      })
+      .catch(() => live && setOnline(false));
+    return () => {
+      live = false;
+    };
+  }, [profile, transport, key]);
+
   const toggle = useCallback(
     (slide: SlideSummary) => {
-      if (!key) return;
+      if (!key || !profile) return;
       const current = new Set(parseStrings(read(key)));
-      if (current.has(slide.id)) current.delete(slide.id);
-      else current.add(slide.id);
+      const saved = !current.has(slide.id);
+      if (saved) current.add(slide.id);
+      else current.delete(slide.id);
       write(key, JSON.stringify([...current]));
+      if (online && transport) userApi.setSaved(transport, profile, slide.id, saved).catch(warn('update a saved slide'));
     },
-    [key],
+    [key, profile, online, transport],
   );
   return { ids, toggle };
 }
@@ -91,28 +134,66 @@ function parseActivity(raw: string | null): ActivityEntry[] {
   }
 }
 
-export function useActivity(profile: string | null) {
+/**
+ * What this person opened, saved and downloaded, for their own Top 10 and Suggested rows.
+ *
+ * Opt-in only (Alina, Oct 20): nothing is recorded or used until the person opts in
+ * (`setOptedIn(true)`); records are kept 90 days on the server; opting out deletes them. `optedIn`
+ * is null while loading or when the server has no database, and then nothing is recorded either,
+ * so the screens show the shared rows instead.
+ */
+export function useActivity(profile: string | null, transport?: Transport) {
   const key = profile ? activityKey(profile) : null;
-  const raw = useSyncExternalStore(
-    subscribe,
-    () => (key ? read(key) : null),
-    () => null,
-  );
-  const entries = key ? parseActivity(raw) : [];
+  const raw = useStored(key);
+  const [optedIn, setOptedInState] = useState<boolean | null>(null);
+  const entries = key && optedIn === true ? parseActivity(raw) : [];
+  const [retentionDays, setRetentionDays] = useState<number | null>(null);
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    if (!profile || !transport || !key) return;
+    let live = true;
+    userApi
+      .getActivity(transport, profile)
+      .then((res) => {
+        if (!live) return;
+        setOptedInState(res.optedIn);
+        setRetentionDays(res.retentionDays);
+        write(key, JSON.stringify(res.entries));
+      })
+      .catch(() => {
+        if (!live) return;
+        setOptedInState(null);
+        write(key, null); // never rank from an older browser-only history
+      });
+    return () => {
+      live = false;
+    };
+  }, [profile, transport, key, reload]);
+
   const log = useCallback(
     (kind: ActivityEntry['kind'], label: string, slideId?: string) => {
-      if (!key) return;
+      // Only after this person has opted in on the server. Otherwise record nothing, anywhere.
+      if (!key || !profile || !transport || optedIn !== true) return;
       const next = [{ kind, label, at: Date.now(), slideId }, ...parseActivity(read(key))].slice(0, ACTIVITY_LIMIT);
       write(key, JSON.stringify(next));
+      userApi.recordActivity(transport, profile, { kind, label, slideId }).catch(warn('record activity'));
     },
-    [key],
+    [key, profile, transport, optedIn],
   );
-  return { entries, log };
-}
 
-/** A named set of slides kept under "My decks" -> Working drafts. */
-export type Draft = { id: string; name: string; slideIds: string[]; savedAt: number };
-const draftsKey = (profile: string) => `slidevault:${profile}:drafts`;
+  const setOptedIn = useCallback(
+    async (on: boolean) => {
+      if (!profile || !transport || !key) return;
+      await userApi.setActivityOptIn(transport, profile, on);
+      if (!on) write(key, null);
+      setReload((n) => n + 1);
+    },
+    [profile, transport, key],
+  );
+
+  return { entries, log, optedIn, setOptedIn, retentionDays };
+}
 
 function parseDrafts(raw: string | null): Draft[] {
   try {
@@ -123,28 +204,59 @@ function parseDrafts(raw: string | null): Draft[] {
   }
 }
 
-export function useDrafts(profile: string | null) {
+const SERVER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const localId = () => `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+/** A named set of slides kept under "My decks". On the server when it's available. */
+export function useDrafts(profile: string | null, transport?: Transport) {
   const key = profile ? draftsKey(profile) : null;
-  const raw = useSyncExternalStore(
-    subscribe,
-    () => (key ? read(key) : null),
-    () => null,
-  );
+  const raw = useStored(key);
   const drafts = key ? parseDrafts(raw) : [];
+  const [online, setOnline] = useState(false);
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    if (!profile || !transport || !key) return;
+    let live = true;
+    userApi
+      .listDrafts(transport, profile)
+      .then(async (server) => {
+        // Decks saved only in this browser (before the server kept them) are moved up once.
+        const localOnly = parseDrafts(read(key)).filter((d) => !SERVER_ID.test(d.id));
+        if (localOnly.length) {
+          for (const d of [...localOnly].reverse()) await userApi.createDraft(transport, profile, d.name, d.slideIds);
+          server = await userApi.listDrafts(transport, profile);
+        }
+        if (!live) return;
+        write(key, JSON.stringify(server));
+        setOnline(true);
+      })
+      .catch(() => live && setOnline(false));
+    return () => {
+      live = false;
+    };
+  }, [profile, transport, key, reload]);
+
   const save = useCallback(
     (name: string, slideIds: string[]) => {
-      if (!key) return;
-      const draft: Draft = { id: `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name, slideIds, savedAt: Date.now() };
+      if (!key || !profile) return;
+      const draft: Draft = { id: localId(), name, slideIds, savedAt: Date.now() };
       write(key, JSON.stringify([draft, ...parseDrafts(read(key))]));
+      if (online && transport)
+        userApi
+          .createDraft(transport, profile, name, slideIds)
+          .then(() => setReload((n) => n + 1))
+          .catch(warn('save a deck'));
     },
-    [key],
+    [key, profile, online, transport],
   );
   const remove = useCallback(
     (id: string) => {
-      if (!key) return;
+      if (!key || !profile) return;
       write(key, JSON.stringify(parseDrafts(read(key)).filter((d) => d.id !== id)));
+      if (online && transport && SERVER_ID.test(id)) userApi.deleteDraft(transport, profile, id).catch(warn('delete a deck'));
     },
-    [key],
+    [key, profile, online, transport],
   );
   return { drafts, save, remove };
 }
