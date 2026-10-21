@@ -1,0 +1,60 @@
+/* Storyboard tab (FD-22, FD-24). Uses the app's own tokens so it sits in Khushali's system:
+   numbered parts in story order, uppercase labels, thin rules, orange only as the accent. */
+.slidevault .sb { padding-bottom: 64px; }
+.slidevault .sb-eyebrow, .slidevault .sb-label { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-brand-strong); margin: 0; }
+.slidevault .sb-title { margin: 6px 0 8px; }
+.slidevault .sb-lede { max-width: 64ch; margin: 0 0 20px; }
+
+.slidevault .sb-compose { background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 16px; padding: 16px; }
+.slidevault .sb-compose textarea, .slidevault .sb-chat textarea { width: 100%; resize: vertical; border: 1px solid var(--sv-border-strong); border-radius: 12px; padding: 12px 14px; font: inherit; color: var(--sv-text); background: var(--sv-surface); }
+.slidevault .sb-compose textarea:focus-visible, .slidevault .sb-chat textarea:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 1px; }
+.slidevault .sb-compose-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
+.slidevault .sb-compose-row .btn-primary { margin-left: auto; }
+.slidevault .sb-toggle { display: inline-flex; gap: 8px; align-items: center; font-size: var(--sv-text-small); }
+
+.slidevault .sb-examples { margin-top: 24px; display: grid; gap: 8px; }
+.slidevault .sb-example { text-align: left; font: inherit; font-size: var(--sv-text-small); color: var(--sv-text); background: var(--sv-surface-sunken); border: 1px solid transparent; border-radius: 12px; padding: 10px 14px; cursor: pointer; }
+.slidevault .sb-example:hover { border-color: var(--sv-border-strong); }
+
+.slidevault .sb-head { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid var(--sv-border); padding-bottom: 16px; margin-bottom: 16px; }
+.slidevault .sb-head-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.slidevault .sb-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+@media (max-width: 1100px) { .slidevault .sb-layout { grid-template-columns: 1fr; } .slidevault .sb-chat { order: -1; position: static !important; } }
+
+.slidevault .sb-part { border-top: 1px solid var(--sv-border); padding: 20px 0 8px; }
+.slidevault .sb-part:first-child { border-top: 0; padding-top: 4px; }
+.slidevault .sb-part-head { display: flex; gap: 10px; align-items: baseline; }
+.slidevault .sb-n { font-weight: 700; color: var(--sv-brand); font-variant-numeric: tabular-nums; }
+.slidevault .sb-part-title { margin: 4px 0 4px; }
+.slidevault .sb-need { margin: 0 0 12px; color: var(--sv-text-secondary); max-width: 70ch; }
+.slidevault .sb-need b { color: var(--sv-text); font-weight: 600; }
+.slidevault .sb-grid { margin-top: 4px; }
+.slidevault .sb-item { display: flex; flex-direction: column; gap: 6px; }
+.slidevault .sb-feedback { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--sv-text-meta); color: var(--sv-text-secondary); }
+.slidevault .sb-feedback span { margin-right: 2px; }
+.slidevault .sb-thanks { font-size: var(--sv-text-meta); color: var(--sv-text-secondary); margin: 2px 0; }
+.slidevault .sb-none { margin-top: 6px; font-size: var(--sv-text-meta); }
+.slidevault .sb-gap { display: flex; gap: 12px; align-items: flex-start; border: 1.5px dashed var(--sv-brand); border-radius: 14px; padding: 16px; background: var(--sv-brand-tint); }
+.slidevault .sb-gap p { margin: 2px 0 0; }
+
+/* While the AI works: the story's parts, empty, with a soft light moving down them in order. */
+.slidevault .sb-status { display: flex; gap: 10px; align-items: center; font-weight: 600; margin: 0 0 4px; }
+.slidevault .sb-wait { margin: 0 0 8px; font-size: var(--sv-text-small); }
+.slidevault .sb-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--sv-brand); animation: sb-pulse 1.4s ease-in-out infinite; }
+.slidevault .sb-ghost-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+.slidevault .sb-ghost-row span { aspect-ratio: 16 / 9; border-radius: 10px; background: var(--sv-surface-sunken); }
+.slidevault .sb-part-ghost { animation: sb-glow 3.6s ease-in-out infinite; border-left: 3px solid transparent; padding-left: 12px; }
+@keyframes sb-glow { 0%, 100% { border-left-color: transparent; opacity: 0.55; } 15%, 30% { border-left-color: var(--sv-brand); opacity: 1; } }
+@keyframes sb-pulse { 0%, 100% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .slidevault .sb-part-ghost, .slidevault .sb-pulse { animation: none; opacity: 1; } }
+
+.slidevault .sb-chat { position: sticky; top: 16px; background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 140px); }
+.slidevault .sb-msgs { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 80px; }
+.slidevault .sb-msg { margin: 0; padding: 8px 12px; border-radius: 14px; font-size: var(--sv-text-small); max-width: 92%; }
+.slidevault .sb-msg-ai { background: var(--sv-surface-sunken); align-self: flex-start; border-bottom-left-radius: 4px; }
+.slidevault .sb-msg-you { background: var(--sv-brand-tint); align-self: flex-end; border-bottom-right-radius: 4px; }
+.slidevault .sb-typing { letter-spacing: 0.2em; }
+.slidevault .sb-chat-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.slidevault .sb-chat-row textarea { flex: 1 1 160px; }
+.slidevault .sb-mic.is-on { border-color: var(--sv-brand); color: var(--sv-brand-strong); background: var(--sv-brand-tint); }

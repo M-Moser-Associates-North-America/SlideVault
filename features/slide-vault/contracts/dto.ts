@@ -188,7 +188,16 @@ export type ActivityResponse = { optedIn: boolean; retentionDays: number; entrie
 export type StoryRole = 'client-challenge' | 'insight' | 'strategy' | 'experience' | 'why-us' | 'outcome';
 
 /** A slide placed in one part of the story, with why it supports that part */
-export type StoryboardSlide = { slide: SlideSummary; why: string; matched: string[] };
+export type StoryboardSlide = {
+  slide: SlideSummary;
+  why: string;
+  matched: string[];
+  /** What colleagues said about this slide in this part, for similar briefs (FD-24); absent when no one has yet */
+  learned?: { useful: number; notRight: number };
+};
+
+/** "Was this helpful?" on a storyboard: a slide is useful or not right for its part, or nothing in a part fits */
+export type StoryFeedbackVerdict = 'useful' | 'not-right' | 'nothing-fits';
 
 export type StoryboardSection = {
   role: StoryRole;
@@ -212,4 +221,6 @@ export type StoryboardResult = {
   /** What the storyboard doesn't know yet; answer them and send again for a sharper story */
   questions: string[];
   sections: StoryboardSection[];
+  /** The brief's topic words, sent back with any feedback so it can help similar briefs (never the brief itself) */
+  topics: string[];
 };

@@ -98,3 +98,16 @@ create table if not exists activity_events (
 );
 create index if not exists activity_user_at_idx on activity_events (user_key, at desc);
 create index if not exists activity_at_idx on activity_events (at);
+
+-- "Was this helpful?" on storyboards (docs/DECISIONS.md FD-24): which slides really do each part of
+-- a story, for which kinds of brief. No person and never the brief, only its topic words, so it
+-- needs no opt-in and helps everyone's next storyboard.
+create table if not exists story_feedback (
+  id bigint generated always as identity primary key,
+  role text not null check (role in ('client-challenge', 'insight', 'strategy', 'experience', 'why-us', 'outcome')),
+  slide_id text,
+  verdict text not null check (verdict in ('useful', 'not-right', 'nothing-fits')),
+  topics text[] not null default '{}',
+  at timestamptz not null default now()
+);
+create index if not exists story_feedback_slide_idx on story_feedback (slide_id);

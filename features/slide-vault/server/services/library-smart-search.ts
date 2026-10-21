@@ -13,6 +13,7 @@ import { fixtureFilterValues, smartSearchFixtures } from './fixture-smart-search
 import { smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, type StoryboardResponse } from './storyboard';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
+import { learnedForTopics } from '../story-feedback';
 
 /**
  * Quick AI search over the whole library (docs/DECISIONS.md FD-16, FD-17): uploaded decks in
@@ -93,7 +94,7 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   const index = await loadLibraryIndex();
   const search = async (plan: SearchPlan, max: number) =>
     [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max)].slice(0, max);
-  const result = await buildStoryboard(situation, { reader: opts.reader, search, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers });
+  const result = await buildStoryboard(situation, { reader: opts.reader, search, learned: learnedForTopics, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers });
   const all = result.sections.flatMap((s) => s.items.map((i) => i.slide));
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
   return { ...result, sections: result.sections.map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide })) })) };

@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, SmartSearchResult, UploadDeckMeta } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRole, UploadDeckMeta } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -113,4 +113,35 @@ export async function uploadDeck(runtime: Transport, file: File, meta: UploadDec
   const res = await runtime.request({ path: '/uploads', method: 'POST', body: form });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<DeckSummary>).data;
+}
+
+/* ---- Storyboard (FD-22, FD-24) ---------------------------------------------------------------- */
+
+/** A client situation turned into a story of slides. `read` lets the configured AI read it (slower). */
+export async function buildStory(runtime: Transport, situation: string, opts: { read: boolean; answers?: string }, signal?: AbortSignal): Promise<StoryboardResult> {
+  const res = await runtime.request({ path: '/storyboard', method: 'POST', body: { situation, read: opts.read, answers: opts.answers || undefined }, signal });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<StoryboardResult>).data;
+}
+
+/** "Was this helpful?": saved without a name or the brief, used to rank the next similar storyboard. */
+export async function sendStoryFeedback(runtime: Transport, feedback: { role: StoryRole; slideId: string | null; verdict: StoryFeedbackVerdict; topics: string[] }): Promise<void> {
+  const res = await runtime.request({ path: '/storyboard/feedback', method: 'POST', body: feedback });
+  if (!res.ok) return failure(runtime, res);
+}
+
+/** Whether talking instead of typing is set up on this server. */
+export async function speechAvailable(runtime: Transport): Promise<boolean> {
+  const res = await runtime.request({ path: '/speech', method: 'GET' });
+  if (!res.ok) return false;
+  return ((await res.json()) as ApiOk<{ available: boolean }>).data.available;
+}
+
+/** A WAV recording -> the words said. */
+export async function transcribe(runtime: Transport, wav: Blob, signal?: AbortSignal): Promise<string> {
+  const form = new FormData();
+  form.append('audio', wav, 'speech.wav');
+  const res = await runtime.request({ path: '/speech', method: 'POST', body: form, signal });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ text: string }>).data.text;
 }

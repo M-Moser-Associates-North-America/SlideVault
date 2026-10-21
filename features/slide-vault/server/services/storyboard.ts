@@ -18,6 +18,8 @@ export type StoryboardDeps = {
   reader?: StoryReader | null;
   search: (plan: SearchPlan, limit: number) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]>;
   log?: (message: string) => void;
+  /** What colleagues said about slides per part for briefs with these topics, keyed "role:slideId" (FD-24) */
+  learned?: (topics: string[]) => Promise<Map<string, { useful: number; notRight: number }>>;
 };
 
 /** The situation's own words, searched on their own and used to rank every part. */
@@ -71,6 +73,9 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   const slidesWith = new Map(topics.keywords.map((k) => [k, onTopicRows.filter((r) => whyItFits({ ...topics, keywords: [k] }, r.facts).matched.length).length]));
   const weight = (k: string) => 1 / Math.max(1, slidesWith.get(k) ?? 1);
 
+  // The firm's memory: slides marked useful for this part on similar briefs lead, ones marked not
+  // right go last. A failure here never stops the storyboard.
+  const learned = deps.learned ? await deps.learned(topics.keywords).catch((e) => (deps.log?.(`Story feedback unavailable: ${(e as Error).message}`), new Map())) : new Map();
   const used = new Set<string>();
   const sections: StoryboardSection[] = [];
   for (const section of plan.sections) {
@@ -79,23 +84,28 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     const seen = new Set<string>();
     const ranked = [...onTopicRows, ...storyRows]
       .filter((row) => !seen.has(row.summary.id) && seen.add(row.summary.id))
-      .map((row, order) => ({ row, order, onTopic: whyItFits(topics, row.facts).matched.reduce((sum, k) => sum + weight(k), 0), inPart: whyItFits(story, row.facts).matched.length }))
-      // A slide must do this part's job; among those, the ones about this client's situation lead.
-      .filter((r) => r.inPart > 0)
-      .sort((a, b) => b.onTopic - a.onTopic || b.inPart - a.inPart || a.order - b.order);
+      .map((row, order) => {
+        const l = learned.get(`${section.role}:${row.summary.id}`);
+        return { row, order, l, said: Math.sign((l?.useful ?? 0) - (l?.notRight ?? 0)), onTopic: whyItFits(topics, row.facts).matched.reduce((sum, k) => sum + weight(k), 0), inPart: whyItFits(story, row.facts).matched.length };
+      })
+      // A slide must do this part's job (or colleagues said it does); among those, what colleagues
+      // found useful leads, then the ones about this client's situation.
+      .filter((r) => r.inPart > 0 || r.said > 0)
+      .sort((a, b) => b.said - a.said || b.onTopic - a.onTopic || b.inPart - a.inPart || a.order - b.order);
     const items: StoryboardSlide[] = [];
-    for (const { row } of ranked) {
+    for (const { row, l } of ranked) {
       const { summary, facts } = row;
       if (used.has(summary.id)) continue;
       // The reason names the client's most telling topics on this slide first, then this part's words.
       const telling = whyItFits(topics, facts).matched.sort((a, b) => weight(b) - weight(a)).slice(0, 4);
       const fit = whyItFits(cleanPlan({ keywords: [...telling, ...story.keywords] }, NO_FILTERS), facts);
       used.add(summary.id);
-      items.push({ slide: summary, why: `${section.need} ${fit.why}`, matched: fit.matched });
+      const said = l?.useful ? ` Colleagues marked it useful for this part on ${l.useful === 1 ? 'a similar brief' : `${l.useful} similar briefs`}.` : '';
+      items.push({ slide: summary, why: `${section.need} ${fit.why}${said}`, matched: fit.matched, ...(l ? { learned: l } : {}) });
       if (items.length >= SLIDES_PER_SECTION) break;
     }
     const label = STORY_ARC.find((a) => a.role === section.role)!.label;
     sections.push({ role: section.role, label, title: section.title, need: section.need, items, gap: items.length === 0 });
   }
-  return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections };
+  return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords };
 }

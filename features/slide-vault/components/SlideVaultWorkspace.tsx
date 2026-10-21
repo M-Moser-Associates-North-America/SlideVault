@@ -20,6 +20,7 @@ import { useWorkspaceSize } from './size';
 import { Tour } from './Tour';
 import { UploadView } from './UploadView';
 import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './Views';
+import { StoryboardView } from './StoryboardView';
 import './slidevault.css';
 import './slidevault-extras.css';
 
@@ -38,7 +39,7 @@ export function SlideVaultWorkspace({ runtime, header }: SlideVaultWorkspaceProp
 }
 
 const TABS: {
-  view: 'pages' | 'create' | 'upload';
+  view: 'pages' | 'story' | 'create' | 'upload';
   label: string;
   icon: IconName;
   tip: string;
@@ -48,6 +49,12 @@ const TABS: {
     label: 'Home',
     icon: 'library',
     tip: 'Browse and search every slide',
+  },
+  {
+    view: 'story',
+    label: 'Storyboard',
+    icon: 'sparkle',
+    tip: "Turn a client's situation into a story of your slides",
   },
   {
     view: 'create',
@@ -190,6 +197,7 @@ function Workspace({ header }: { header?: ReactNode }) {
             {view === 'browse' && <BrowseView id={loc.id ?? ''} />}
             {view === 'deck' && <DeckView id={loc.id ?? ''} />}
             {view === 'slide' && <SlideView id={loc.id ?? ''} />}
+            {view === 'story' && <StoryboardView />}
             {view === 'create' && <CreateView />}
             {view === 'upload' && <UploadView />}
             {view === 'profile' && <ProfileView />}
