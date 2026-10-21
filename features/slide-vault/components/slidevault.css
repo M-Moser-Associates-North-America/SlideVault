@@ -370,7 +370,8 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .tier-table th { font-size: 12px; color: var(--sv-text-secondary); }
 
 /* Create placeholder */
-.slidevault .ph-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 18px; max-width: 760px; }
+/* Cards keep a card's width (up to 360px) instead of stretching across the page, and sit side by side when there are several. */
+.slidevault .ph-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 360px)); gap: 16px; margin-top: 18px; max-width: 760px; }
 .slidevault .ph-cards .card { padding: 18px; gap: 8px; border-style: dashed; box-shadow: none; }
 .slidevault .ph-cards .card .ic-big { width: 28px; height: 28px; color: var(--sv-text-secondary); }
 
