@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SlideSummary, StoryboardResult, StoryboardSection, StoryFeedbackVerdict, StoryRole } from '../contracts/dto';
 import { buildStory, sendStoryFeedback, speechAvailable, transcribe } from '../client/api';
+import { ROLE_CHOICES, useStoryRole } from '../client/role-store';
 import { takeHandedOffBrief } from '../client/story-handoff';
 import { startRecording, type Recording } from '../client/wav-recorder';
 import { Icon } from './icons';
@@ -27,7 +28,9 @@ type Chat = { who: 'ai' | 'you'; text: string };
 const two = (n: number) => String(n).padStart(2, '0');
 
 export function StoryboardView() {
-  const { runtime, updateSelection, toast, announce } = useWorkspace();
+  const { runtime, updateSelection, toast, announce, profile } = useWorkspace();
+  const { role } = useStoryRole(profile);
+  const roleLabel = ROLE_CHOICES.find((c) => c.role === role)?.label ?? null;
   // A brief typed in search arrives here when the person chose "Build a story instead".
   const [situation, setSituation] = useState(() => takeHandedOffBrief() ?? '');
   const [read, setRead] = useState(true);
@@ -45,7 +48,7 @@ export function StoryboardView() {
   function say(role: StoryRole, slideId: string | null, verdict: StoryFeedbackVerdict) {
     if (!story) return;
     setSaid((cur) => ({ ...cur, [`${role}:${slideId ?? '_part'}`]: verdict }));
-    sendStoryFeedback(runtime, { role, slideId, verdict, topics: story.topics }).catch(() => toast("Couldn't save that. Please try again."));
+    sendStoryFeedback(runtime, { role, slideId, verdict, topics: story.topics, by: story.role }).catch(() => toast("Couldn't save that. Please try again."));
   }
   const abort = useRef<AbortController | null>(null);
   const headRef = useRef<HTMLHeadingElement>(null);
@@ -67,7 +70,7 @@ export function StoryboardView() {
     setPhase('building');
     announce('Building your story. This can take a minute.');
     try {
-      const result = await buildStory(runtime, situation.trim(), { read, answers: withAnswers }, controller.signal);
+      const result = await buildStory(runtime, situation.trim(), { read, answers: withAnswers, role }, controller.signal);
       setPreparing(true);
       await new Promise((r) => setTimeout(r, PREPARE_MS));
       if (controller.signal.aborted) return;
@@ -153,6 +156,18 @@ export function StoryboardView() {
             </button>
           </div>
         </div>
+        <p className="sb-role-line">
+          {roleLabel ? (
+            <>
+              Tuned for <b>{roleLabel}</b>.{' '}
+            </>
+          ) : (
+            <>Tell us how you build proposals and every story is tuned to your role. </>
+          )}
+          <Link className="btn-link" to={{ view: 'profile' }}>
+            {roleLabel ? 'Change' : 'Set it in My decks'}
+          </Link>
+        </p>
         {phase === 'error' && (
           <div className="notice danger" role="alert" style={{ marginTop: 16 }}>
             <Icon name="alert" />
@@ -186,6 +201,7 @@ export function StoryboardView() {
           <div className="sb-board-meta">
             <p>
               <span className="sb-accent">{story.reader === 'model' ? 'Read by AI' : 'Standard story order'}</span> · {story.sections.length} parts
+              {story.role && <> · For {ROLE_CHOICES.find((c) => c.role === story.role)?.label}</>}
             </p>
             <div className="sb-head-actions">
               <button type="button" className="btn" onClick={addStory}>

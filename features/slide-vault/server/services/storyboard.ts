@@ -2,6 +2,8 @@ import type { SlideSummary, StoryboardResult, StoryboardSection, StoryboardSlide
 import { cleanPlan, MAX_KEYWORDS, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
 import { isStopWord } from '../../components/simulation';
 import { missingContext, STORY_ARC, standInStory, type StoryPlan, type StoryReader } from '../ai/storyboard';
+import { DEFAULT_SLIDES_PER_PART, ROLE_TUNING } from '../ai/roles';
+import type { StoryUserRole } from '../../contracts/dto';
 
 /**
  * Storyboard (docs/DECISIONS.md FD-22): a client situation in, a story out. Each part of the story
@@ -10,7 +12,7 @@ import { missingContext, STORY_ARC, standInStory, type StoryPlan, type StoryRead
  * match. The route wires in the configured reader and the library search; tests pass fakes.
  */
 
-export const SLIDES_PER_SECTION = 3;
+export const SLIDES_PER_SECTION = DEFAULT_SLIDES_PER_PART;
 
 const quoted = (words: string[]) => words.map((w) => `“${w}”`).join(', ');
 
@@ -21,7 +23,7 @@ export type StoryboardDeps = {
   search: (plan: SearchPlan, limit: number) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]>;
   log?: (message: string) => void;
   /** What colleagues said about slides per part for briefs with these topics, keyed "role:slideId" (FD-24) */
-  learned?: (topics: string[]) => Promise<Map<string, { useful: number; notRight: number }>>;
+  learned?: (topics: string[], role: StoryUserRole | null) => Promise<Map<string, { useful: number; notRight: number }>>;
 };
 
 /** The situation's own words, searched on their own and used to rank every part. */
@@ -48,7 +50,12 @@ export function situationTopics(text: string): string[] {
 /** No client or category filters in a storyboard: the story decides what each part needs. */
 const NO_FILTERS: PlanContext = { clients: [], categories: [], thisYear: new Date().getFullYear() };
 
-export async function buildStoryboard(situation: string, deps: StoryboardDeps, opts: { read?: boolean; answers?: string } = {}): Promise<StoryboardResponse> {
+export async function buildStoryboard(situation: string, deps: StoryboardDeps, opts: { read?: boolean; answers?: string; role?: StoryUserRole | null } = {}): Promise<StoryboardResponse> {
+  // The same engine for everyone; the role only changes what parts look for, how many options they
+  // offer and what is worth asking (FD-25).
+  const role = opts.role ?? null;
+  const tuning = role ? ROLE_TUNING[role] : null;
+  const perPart = tuning?.slidesPerPart ?? SLIDES_PER_SECTION;
   const text = [situation.trim(), opts.answers?.trim()].filter(Boolean).join('\n\n');
   let plan: StoryPlan;
   let reader: StoryboardResponse['reader'] = 'rules';
@@ -69,7 +76,10 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   // looks like): a model left alone asks about things the brief states plainly. Once the person has
   // answered, don't ask again.
   const missing = missingContext(text).length;
-  plan = { ...plan, questions: opts.answers?.trim() ? [] : plan.questions.slice(0, missing) };
+  const roleAsks = (tuning?.asks ?? []).filter((a) => !a.told.test(text)).map((a) => a.ask);
+  // The role's own question first: it's the one only this person can answer best.
+  const questions = [...roleAsks, ...plan.questions.slice(0, missing)].slice(0, tuning?.maxQuestions ?? missing + roleAsks.length);
+  plan = { ...plan, questions: opts.answers?.trim() ? [] : questions };
 
   // What's specific to this client ("hybrid", "sustainability", "desks") is searched on its own and
   // leads every part; the story words ("approach", "case study") decide which part a slide belongs to.
@@ -81,12 +91,13 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
 
   // The firm's memory: slides marked useful for this part on similar briefs lead, ones marked not
   // right go last. A failure here never stops the storyboard.
-  const learned = deps.learned ? await deps.learned(topics.keywords).catch((e) => (deps.log?.(`Story feedback unavailable: ${(e as Error).message}`), new Map())) : new Map();
+  const learned = deps.learned ? await deps.learned(topics.keywords, role).catch((e) => (deps.log?.(`Story feedback unavailable: ${(e as Error).message}`), new Map())) : new Map();
   const used = new Set<string>();
   const sections: StoryboardSection[] = [];
   for (const section of plan.sections) {
-    const story = cleanPlan({ keywords: section.words }, NO_FILTERS);
-    const storyRows = story.keywords.length ? await deps.search(story, SLIDES_PER_SECTION * 8) : [];
+    // The role's words go first: the search keeps the first twelve.
+    const story = cleanPlan({ keywords: [...(tuning?.words[section.role] ?? []), ...section.words] }, NO_FILTERS);
+    const storyRows = story.keywords.length ? await deps.search(story, perPart * 8) : [];
     const seen = new Set<string>();
     const ranked = [...onTopicRows, ...storyRows]
       .filter((row) => !seen.has(row.summary.id) && seen.add(row.summary.id))
@@ -116,10 +127,10 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       ].filter(Boolean).join(' ');
       used.add(summary.id);
       items.push({ slide: summary, why, matched: fit.matched, reasons: { brief, part, from }, ...(l ? { learned: l } : {}) });
-      if (items.length >= SLIDES_PER_SECTION) break;
+      if (items.length >= perPart) break;
     }
     const label = STORY_ARC.find((a) => a.role === section.role)!.label;
     sections.push({ role: section.role, label, title: section.title, need: section.need, items, gap: items.length === 0 });
   }
-  return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords };
+  return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords, role };
 }

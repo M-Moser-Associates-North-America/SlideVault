@@ -1,7 +1,7 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
 import { cleanFeedback, recordStoryFeedback } from '@/features/slide-vault/server/story-feedback';
 
-// POST /storyboard/feedback { role, slideId, verdict, topics } (docs/DECISIONS.md FD-24)
+// POST /storyboard/feedback { role, slideId, verdict, topics, by? } (docs/DECISIONS.md FD-24, FD-25)
 // "Was this helpful?": a slide is useful or not right for its part of the story, or nothing in a
 // part fits. Saved without a name or the brief, and used to rank the next storyboard for a similar brief.
 export async function POST(request: Request) {

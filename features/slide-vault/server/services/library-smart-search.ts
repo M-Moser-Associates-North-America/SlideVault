@@ -14,6 +14,7 @@ import { smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, type StoryboardResponse } from './storyboard';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
+import type { StoryUserRole } from '../../contracts/dto';
 
 /**
  * Quick AI search over the whole library (docs/DECISIONS.md FD-16, FD-17): uploaded decks in
@@ -90,11 +91,11 @@ export function configuredStoryReader(env: Record<string, string | undefined> = 
 }
 
 /** A client situation turned into a story of slides from the whole library (FD-22). */
-export async function storyboardLibrary(situation: string, opts: { reader: StoryReader | null; read: boolean; answers?: string }): Promise<StoryboardResponse> {
+export async function storyboardLibrary(situation: string, opts: { reader: StoryReader | null; read: boolean; answers?: string; role?: StoryUserRole | null }): Promise<StoryboardResponse> {
   const index = await loadLibraryIndex();
   const search = async (plan: SearchPlan, max: number) =>
     [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max)].slice(0, max);
-  const result = await buildStoryboard(situation, { reader: opts.reader, search, learned: learnedForTopics, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers });
+  const result = await buildStoryboard(situation, { reader: opts.reader, search, learned: learnedForTopics, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
   const all = result.sections.flatMap((s) => s.items.map((i) => i.slide));
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
   return { ...result, sections: result.sections.map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide })) })) };

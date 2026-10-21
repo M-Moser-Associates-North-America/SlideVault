@@ -1,15 +1,16 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
 import type { StoryReader } from '@/features/slide-vault/server/ai/storyboard';
+import { roleOf } from '@/features/slide-vault/server/ai/roles';
 import { configuredStoryReader, storyboardLibrary } from '@/features/slide-vault/server/services/library-smart-search';
 
-// POST /storyboard { situation, answers?, read? } (docs/DECISIONS.md FD-22)
+// POST /storyboard { situation, answers?, read?, role? } (docs/DECISIONS.md FD-22, FD-25)
 // A client situation (an RFP, notes or an outline) in; the story of slides out, part by part,
 // with gaps where no slide proves a part yet and questions about what the story still needs.
 // read: true lets the configured AI read the situation; otherwise the standard story order is used.
 export async function POST(request: Request) {
   const limited = rateLimit(request, RATE_POLICIES.smartSearch);
   if (limited) return limited;
-  let body: { situation?: unknown; answers?: unknown; read?: unknown };
+  let body: { situation?: unknown; answers?: unknown; read?: unknown; role?: unknown };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    return ok(await storyboardLibrary(situation, { reader, read: body.read === true, answers }));
+    return ok(await storyboardLibrary(situation, { reader, read: body.read === true, answers, role: roleOf(body.role) }));
   } catch (e) {
     console.error('Storyboard failed', e);
     return fail(503, 'LIBRARY_NOT_READY', 'The storyboard is unavailable right now. Please try again.', true);

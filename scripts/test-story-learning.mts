@@ -8,6 +8,7 @@ import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import type { SearchPlan, SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { openAiCompatibleTranscriber, readSpeechConfig } from '../features/slide-vault/server/ai/speech';
 import { cleanFeedback, learnedFrom } from '../features/slide-vault/server/story-feedback';
+import { ROLE_TUNING, roleOf } from '../features/slide-vault/server/ai/roles';
 import { buildStoryboard } from '../features/slide-vault/server/services/storyboard';
 
 let failures = 0;
@@ -69,6 +70,40 @@ const search = async (plan: SearchPlan) =>
   check(proof.items[0]?.learned?.useful === 2, 'learning: the counts are returned for the screen', proof.items[0]?.learned);
   const broken = await buildStoryboard(situation, { search, learned: async () => { throw new Error('db down'); } });
   check(broken.sections.length === 6, 'learning: if the feedback store fails, the storyboard still works');
+}
+
+// ---- Tuned per role (FD-25): Grant's three groups, one engine
+check(roleOf('director') === 'director' && roleOf('ceo') === null && roleOf(undefined) === null, 'roles: only the three known roles are accepted');
+check(cleanFeedback({ role: 'outcome', slideId: 's1', verdict: 'useful', topics: [], by: 'director' })?.by === 'director' && cleanFeedback({ role: 'outcome', slideId: 's1', verdict: 'useful', topics: [], by: 'admin' })?.by === null, 'roles: feedback keeps who gave it by role only, and drops an unknown role');
+{
+  const mixed = [
+    { role: 'outcome' as const, slideId: 'a', verdict: 'useful' as const, topics: [], by: 'director' as const, at },
+    { role: 'outcome' as const, slideId: 'a', verdict: 'useful' as const, topics: [], by: 'bd-support' as const, at },
+  ];
+  check(learnedFrom(mixed, [], 'director').get('outcome:a')?.useful === 3, 'roles: a verdict from the same role counts double, others still count', learnedFrom(mixed, [], 'director').get('outcome:a'));
+  check(learnedFrom(mixed, []).get('outcome:a')?.useful === 2, 'roles: without a role every verdict counts once');
+}
+{
+  const MANY = Array.from({ length: 7 }, (_, i) => ({ id: `s-case-${i}`, title: `Case study ${i}: project`, text: 'Project completed with results.' }));
+  const MONEY = [{ id: 's-fees', title: 'Fees and value', text: 'Our fees, savings and value for money.' }, { id: 's-outcome', title: 'Outcome', text: 'The outcome for the client.' }];
+  const lib = [...MANY, ...MONEY];
+  const roleSearch = async (plan: SearchPlan) =>
+    lib.filter((s) => plan.keywords.some((k) => `${s.title} ${s.text}`.toLowerCase().includes(k))).map((s) => ({
+      summary: slide(s.id, s.title),
+      facts: { title: s.title, text: s.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts,
+    }));
+  const brief = 'A bank is consolidating two offices into one.';
+  const support = await buildStoryboard(brief, { search: roleSearch }, { role: 'bd-support' });
+  const dev = await buildStoryboard(brief, { search: roleSearch }, { role: 'business-developer' });
+  check(support.sections.find((s) => s.role === 'experience')!.items.length === ROLE_TUNING['bd-support'].slidesPerPart && dev.sections.find((s) => s.role === 'experience')!.items.length === 3, 'roles: BD support gets 5 options per part, a business developer 3', [support, dev].map((r) => r.sections.find((s) => s.role === 'experience')!.items.length));
+  check(support.role === 'bd-support' && support.questions.length <= 1, 'roles: BD support is asked at most one question', support.questions);
+  const director = await buildStoryboard(brief, { search: roleSearch }, { role: 'director' });
+  check(director.sections.find((s) => s.role === 'outcome')!.items[0]?.slide.id === 's-fees', 'roles: a director\'s outcome part leads with fees and value', director.sections.find((s) => s.role === 'outcome')!.items.map((i) => i.slide.id));
+  check(director.questions.some((q) => /budget|fee/i.test(q)), 'roles: a director is asked about budget and sign-off when the brief does not say', director.questions);
+  check(!(await buildStoryboard(`${brief} The budget is fixed and the CFO signs off.`, { search: roleSearch }, { role: 'director' })).questions.some((q) => /budget|fee/i.test(q)), 'roles: not asked when the brief already says it');
+  let askedBy: unknown = 'unset';
+  await buildStoryboard(brief, { search: roleSearch, learned: async (_t, r) => ((askedBy = r), new Map()) }, { role: 'director' });
+  check(askedBy === 'director', 'roles: learning is asked for this role', askedBy);
 }
 
 // ---- Talking instead of typing: one setting, any OpenAI-compatible speech service

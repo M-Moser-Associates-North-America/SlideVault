@@ -187,6 +187,9 @@ export type ActivityResponse = { optedIn: boolean; retentionDays: number; entrie
 
 export type StoryRole = 'client-challenge' | 'insight' | 'strategy' | 'experience' | 'why-us' | 'outcome';
 
+/** Who is building the story (FD-25): Grant's three groups, set once in the profile */
+export type StoryUserRole = 'business-developer' | 'director' | 'bd-support';
+
 /** A slide placed in one part of the story, with why it supports that part */
 export type StoryboardSlide = {
   slide: SlideSummary;
@@ -225,4 +228,6 @@ export type StoryboardResult = {
   sections: StoryboardSection[];
   /** The brief's topic words, sent back with any feedback so it can help similar briefs (never the brief itself) */
   topics: string[];
+  /** The role the story was tuned for, or null for the standard tuning (FD-25) */
+  role: StoryUserRole | null;
 };

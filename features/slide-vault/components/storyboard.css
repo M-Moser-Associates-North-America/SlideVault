@@ -176,3 +176,17 @@
   .slidevault .sb .sb-board { grid-template-columns: 1fr; }
   .slidevault .sb .sb-board-meta { align-items: flex-start; }
 }
+
+/* "How you build proposals" in the profile (FD-25) */
+.slidevault .sb-roles .meta { margin: 0 0 12px; }
+.slidevault .sb-role-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@container (max-width: 760px) { .slidevault .sb-role-list { grid-template-columns: 1fr; } }
+.slidevault .sb-roles { container-type: inline-size; }
+.slidevault .sb-role { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 16px 16px 16px 44px; border: 1px solid var(--sv-border-strong); border-radius: 14px; background: var(--sv-surface); cursor: pointer; }
+.slidevault .sb-role input { position: absolute; left: 16px; top: 18px; accent-color: var(--sv-brand); width: 16px; height: 16px; }
+.slidevault .sb-role.is-on { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
+.slidevault .sb-role:focus-within { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .sb-role-name { font-weight: 600; color: var(--sv-text); }
+.slidevault .sb-role-day { font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .sb-role-tuned { font-size: var(--sv-text-meta); color: var(--sv-brand-strong); }
+.slidevault .sb-role-line { margin: 12px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }

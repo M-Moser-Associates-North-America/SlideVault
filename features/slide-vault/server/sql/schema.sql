@@ -111,3 +111,5 @@ create table if not exists story_feedback (
   at timestamptz not null default now()
 );
 create index if not exists story_feedback_slide_idx on story_feedback (slide_id);
+-- Who gave the verdict, by role only (FD-25): business-developer, director or bd-support.
+alter table story_feedback add column if not exists by_role text;

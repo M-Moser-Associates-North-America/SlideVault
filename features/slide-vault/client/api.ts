@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRole, UploadDeckMeta } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRole, StoryUserRole, UploadDeckMeta } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -118,14 +118,14 @@ export async function uploadDeck(runtime: Transport, file: File, meta: UploadDec
 /* ---- Storyboard (FD-22, FD-24) ---------------------------------------------------------------- */
 
 /** A client situation turned into a story of slides. `read` lets the configured AI read it (slower). */
-export async function buildStory(runtime: Transport, situation: string, opts: { read: boolean; answers?: string }, signal?: AbortSignal): Promise<StoryboardResult> {
-  const res = await runtime.request({ path: '/storyboard', method: 'POST', body: { situation, read: opts.read, answers: opts.answers || undefined }, signal });
+export async function buildStory(runtime: Transport, situation: string, opts: { read: boolean; answers?: string; role?: StoryUserRole | null }, signal?: AbortSignal): Promise<StoryboardResult> {
+  const res = await runtime.request({ path: '/storyboard', method: 'POST', body: { situation, read: opts.read, answers: opts.answers || undefined, role: opts.role ?? undefined }, signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<StoryboardResult>).data;
 }
 
 /** "Was this helpful?": saved without a name or the brief, used to rank the next similar storyboard. */
-export async function sendStoryFeedback(runtime: Transport, feedback: { role: StoryRole; slideId: string | null; verdict: StoryFeedbackVerdict; topics: string[] }): Promise<void> {
+export async function sendStoryFeedback(runtime: Transport, feedback: { role: StoryRole; slideId: string | null; verdict: StoryFeedbackVerdict; topics: string[]; by?: StoryUserRole | null }): Promise<void> {
   const res = await runtime.request({ path: '/storyboard/feedback', method: 'POST', body: feedback });
   if (!res.ok) return failure(runtime, res);
 }

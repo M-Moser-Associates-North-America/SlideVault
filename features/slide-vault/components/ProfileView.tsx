@@ -5,6 +5,7 @@ import { Icon } from './icons';
 import { timeAgo } from './library';
 import { SlideCard } from './parts';
 import { useWorkspace } from './state';
+import { StoryRoleSetting } from './StoryRoleSetting';
 
 /**
  * Local design prototype: a profile dashboard -- saved slides plus a simple activity record,
@@ -32,6 +33,8 @@ export function ProfileView() {
           <p className="lede">Your saved slides and working drafts. Signed in as {profile}.</p>
         </div>
       </div>
+
+      <StoryRoleSetting />
 
       <section className="row" id="saved">
         <div className="row-head">
