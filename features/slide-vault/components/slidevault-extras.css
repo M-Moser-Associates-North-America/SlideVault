@@ -732,3 +732,19 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .sv-bottombar .bb-deck { border-radius: 0; box-shadow: none; }
 .slidevault .sv-bottombar .bb-deck:focus-visible { border-radius: 0; outline-offset: -4px; outline-color: var(--sv-brand); }
 .slidevault .sv-bottombar .bb-deck .bb-n { top: 7px; }
+
+/* Stepping through a deck: the old slide leaves and the new one enters from the side; the page stays put. */
+.slidevault .slide-stage { position: relative; overflow: hidden; }
+.slidevault .slide-layer { position: absolute; inset: 0; }
+.slidevault .slide-in-next { animation: sv-in-next 280ms cubic-bezier(0.2, 0, 0, 1) both; }
+.slidevault .slide-in-prev { animation: sv-in-prev 280ms cubic-bezier(0.2, 0, 0, 1) both; }
+.slidevault .slide-out-next { animation: sv-out-next 280ms cubic-bezier(0.2, 0, 0, 1) both; pointer-events: none; }
+.slidevault .slide-out-prev { animation: sv-out-prev 280ms cubic-bezier(0.2, 0, 0, 1) both; pointer-events: none; }
+@keyframes sv-in-next { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes sv-in-prev { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes sv-out-next { from { transform: none; } to { transform: translateX(-100%); } }
+@keyframes sv-out-prev { from { transform: none; } to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .slidevault .slide-in-next, .slidevault .slide-in-prev, .slidevault .slide-out-next, .slidevault .slide-out-prev { animation: none; }
+  .slidevault .slide-out-next, .slidevault .slide-out-prev { display: none; }
+}

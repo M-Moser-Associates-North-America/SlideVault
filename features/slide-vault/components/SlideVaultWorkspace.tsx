@@ -88,14 +88,19 @@ function Workspace({ header }: { header?: ReactNode }) {
   const key = `${view}/${loc.id ?? ''}`;
   const mainRef = useRef<HTMLElement>(null);
   const first = useRef(true);
+  const previousView = useRef(view);
   useEffect(() => {
+    const was = previousView.current;
+    previousView.current = view;
     if (first.current) {
       first.current = false;
       return;
     }
+    /* Stepping through a deck slide by slide keeps the page where it is; the slide itself slides. */
+    if (was === 'slide' && view === 'slide') return;
     scrollRef.current?.scrollTo(0, 0);
     mainRef.current?.querySelector<HTMLElement>('h1')?.focus({ preventScroll: true });
-  }, [key]);
+  }, [key, view]);
 
   const toHome = () => runtime.navigate({ view: 'pages' });
 
