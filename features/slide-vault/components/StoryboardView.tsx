@@ -305,7 +305,9 @@ function BackHome() {
 
 function LoadingDialog({ elapsed, preparing, onClose }: { elapsed: number; preparing: boolean; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => closeRef.current?.focus(), []);
+  useEffect(() => {
+    closeRef.current?.focus();
+  }, []);
   const active = preparing ? 2 : elapsed < UNDERSTAND_S ? 0 : 1;
   return (
     <div className="sb-load-backdrop">
@@ -542,7 +544,11 @@ function Feedback({ verdict, onSay }: { verdict?: StoryFeedbackVerdict; onSay: (
 function ChatPanel({ chat, busy, onSend }: { chat: Chat[]; busy: boolean; onSend: (text: string) => void }) {
   const [text, setText] = useState('');
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => end.current?.scrollIntoView({ block: 'nearest' }), [chat.length]);
+  // Braces matter: newer browsers return a promise from scrollIntoView, and React would take a
+  // returned value for a clean-up function and crash ("destroy is not a function").
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: 'nearest' });
+  }, [chat.length]);
   const send = () => {
     onSend(text);
     setText('');
