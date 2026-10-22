@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Icon } from './icons';
 import { useWorkspaceSize } from './size';
 import { useWorkspace } from './state';
@@ -19,7 +19,32 @@ export function LoginView() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const screen = useRef<HTMLDivElement>(null);
+  const col = useRef<HTMLDivElement>(null);
   useWorkspaceSize(screen, true);
+
+  /* Sign-in never scrolls: if the window is too short for the whole card (logo included), shrink it to fit. */
+  useEffect(() => {
+    const box = screen.current;
+    const el = col.current;
+    if (!box || !el) return;
+    const fit = () => {
+      el.style.transform = '';
+      const cs = getComputedStyle(box);
+      const room = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      const scale = Math.min(1, room / Math.max(el.offsetHeight, el.scrollHeight));
+      el.style.transform = scale < 1 ? `scale(${scale})` : '';
+    };
+    const stay = () => { box.scrollTop = 0; };
+    box.addEventListener('scroll', stay);
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(box);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      box.removeEventListener('scroll', stay);
+    };
+  }, [isSignUp]);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -28,7 +53,7 @@ export function LoginView() {
 
   return (
     <div className="auth-screen" ref={screen}>
-      <div className="auth-col">
+      <div className="auth-col" ref={col}>
         <div className="auth-brand">
           <Icon name="logoFill" className="ic" />
           <span className="auth-wordmark">SLIDEVAULT</span>
