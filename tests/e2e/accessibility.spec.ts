@@ -36,13 +36,20 @@ async function axe(page: Page) {
   return violations.map((v) => `${v.id} (${v.impact}): ${v.help} — ${v.nodes.length} element(s)`);
 }
 
+// The API rate-limits per caller (FD-17: 60 searches a minute, keyed on X-Forwarded-For). The whole
+// suite runs from one address in under a minute, so give each test its own documentation-range
+// address and its own limit; otherwise the last tests see "Too many requests" instead of the app.
+let caller = 0;
+
 test.beforeEach(async ({ page }) => {
+  caller += 1;
+  await page.context().setExtraHTTPHeaders({ 'x-forwarded-for': `198.51.100.${(caller % 250) + 1}` });
   await page.goto('/slide-vault/pages');
   await page.evaluate(() => {
     localStorage.clear();
-    // Local design prototype: a fake sign-in now gates the app (SlideVaultWorkspace.tsx). Most
-    // of this suite is about the real app behind it, so sign in a demo profile here; the
-    // login/pick screens themselves get their own accessibility test below.
+    // The placeholder sign-in gates the app (SlideVaultWorkspace.tsx). Most of this suite is
+    // about the app behind it, so sign in a demo profile here; the sign-in screen itself gets
+    // its own accessibility test below.
     localStorage.setItem('slidevault:profile', 'Anna Wintour');
     // The quick tour starts by itself on a first sign-in and dims the page; mark it seen so these
     // tests reach the app. The tour gets its own test below.
