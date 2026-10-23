@@ -5,7 +5,6 @@ import type { SlideSummary } from '../contracts/dto';
 import type { Location } from '../contracts/runtime';
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, plural, yearOf, type Deck, folderLabel } from './library';
-import { simTier, TIER_LABEL, TIER_TEXT, type Tier } from './simulation';
 import { useWorkspace } from './state';
 
 /** A link that goes through the host's navigation (runtime.navigate), keeping real hrefs for new tabs. */
@@ -135,25 +134,7 @@ export function useCartToggle() {
   return { isSelected, set };
 }
 
-/** Orange mark for anything simulated on the front end only (FD-14). */
-export function SimFlag({ children = 'Simulated' }: { children?: ReactNode }) {
-  return <span className="sim-flag">{children}</span>;
-}
-
-/** Approval status (simulated): Approved, Awaiting approval or Out of date. */
-export function StatusBadge({ tier }: { tier: Tier }) {
-  return (
-    <span className="badge sim" title={`${TIER_TEXT[tier]} (Simulated)`}>
-      <span className="sr-only">Status: </span>
-      <span className={`tier-ic tier-ic-${tier.toLowerCase()}`} aria-hidden="true">
-        <Icon name={tier === 'Approved' ? 'check' : tier === 'Suggested' ? 'clock' : 'minus'} className="ic-sm" />
-      </span>
-      {TIER_LABEL[tier]}
-    </span>
-  );
-}
-
-/** Local design prototype: save a slide to the signed-in demo profile (not pushed). */
+/** Save or unsave a slide for the signed-in person (kept on the server when there is a database, FD-18). */
 export function useSavedToggle() {
   const { savedIds, toggleSaved, announce } = useWorkspace();
   const isSaved = (id: string) => savedIds.has(id);
@@ -168,7 +149,6 @@ export function useSavedToggle() {
 /** Slide card: preview, tick-to-add, where it came from, "also in N other decks". */
 export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; list: SlideSummary[]; why?: string; note?: string }) {
   const { openPreview, openAlso } = useWorkspace();
-  const tier = simTier(slide);
   const { isSelected, set } = useCartToggle();
   const { isSaved, toggle: toggleSave } = useSavedToggle();
   const sel = isSelected(slide.id);
@@ -197,21 +177,18 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
             <Icon name="expand" className="ic-sm" />
           </span>
         </button>
-        {tier !== 'Retired' && (
-          <label className="pick">
-            <input type="checkbox" checked={sel} onChange={(e) => set(slide, e.target.checked)} aria-label={`Add to draft deck: ${slide.title}`} />
-            <span className="box" aria-hidden="true">
-              <Icon name="check" />
-            </span>
-            <span className="pick-tip" aria-hidden="true">
-              {sel ? 'Remove from draft deck' : 'Add to draft deck'}
-            </span>
-          </label>
-        )}
-        {(tier !== 'Approved' || slide.hiddenInSource) && (
+        <label className="pick">
+          <input type="checkbox" checked={sel} onChange={(e) => set(slide, e.target.checked)} aria-label={`Add to draft deck: ${slide.title}`} />
+          <span className="box" aria-hidden="true">
+            <Icon name="check" />
+          </span>
+          <span className="pick-tip" aria-hidden="true">
+            {sel ? 'Remove from draft deck' : 'Add to draft deck'}
+          </span>
+        </label>
+        {slide.hiddenInSource && (
           <span className="thumb-badge">
-            {tier !== 'Approved' && <StatusBadge tier={tier} />}
-            {slide.hiddenInSource && <span className="badge">Hidden in source</span>}
+            <span className="badge">Hidden in source</span>
           </span>
         )}
         <button
@@ -244,7 +221,7 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
           </button>
         )}
         {note && (
-          <div className="sim-note">
+          <div className="card-note">
             <Icon name="download" className="ic-sm" />
             {note}
           </div>

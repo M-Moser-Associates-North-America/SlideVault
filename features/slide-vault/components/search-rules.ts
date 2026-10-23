@@ -1,55 +1,16 @@
 import type { SlideSummary } from '../contracts/dto';
 
 /**
- * SIMULATED features, front end only (decision FD-14). The backend has no approval status, AI labels,
- * download counts or AI search yet, so these are worked out here from the slide's own id and text so
- * they stay the same on every visit. Every place that shows one carries the orange "Simulated" mark.
- * Nothing here is saved, sent anywhere, or read from a model.
+ * Rules-based reading of searches and slides: no model, no randomness. It matches fixed topic words
+ * against what a person typed and against each slide's own title, deck name and category. The server
+ * uses parseQuery as the stand-in reader when no AI provider is set or the model fails (FD-17), and
+ * the filter row uses the same topics for "Slide type". FD-14's simulated features (approval statuses,
+ * sample people, suggested labels) were removed from this file; see FD-14 in docs/DECISIONS.md.
  */
 
-export type Tier = 'Approved' | 'Suggested' | 'Retired';
+/* --------------------------------------------------------------- Slide types */
 
-/** Plain-language names shown to people. The internal names (Suggested, Retired) stay in the code. */
-export const TIER_LABEL: Record<Tier, string> = {
-  Approved: 'Approved',
-  Suggested: 'Awaiting approval',
-  Retired: 'Out of date',
-};
-
-export const TIER_TEXT: Record<Tier, string> = {
-  Approved: 'Approved: checked by a person and cleared for client use.',
-  Suggested: 'Awaiting approval: added or labelled by AI. Not yet checked by a person.',
-  Retired: 'Out of date: kept for records only. Can’t be downloaded.',
-};
-
-function hash(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
-export function simTier(s: SlideSummary): Tier {
-  if (s.provenance.bestOfTheBest) return 'Approved';
-  const n = hash(`tier:${s.id}`) % 100;
-  return n < 80 ? 'Approved' : n < 95 ? 'Suggested' : 'Retired';
-}
-
-/** Access rules from the v3 table: Viewer sees Approved; Editor adds Suggested; Curator adds Retired. */
-export function canSeeTier(tier: Tier, caps: ReadonlySet<string>): boolean {
-  if (tier === 'Approved') return true;
-  if (tier === 'Suggested') return caps.has('metadata.edit');
-  return caps.has('content.retire');
-}
-
-export const visibleTiers = (caps: ReadonlySet<string>): Tier[] => (['Approved', 'Suggested', 'Retired'] as Tier[]).filter((t) => canSeeTier(t, caps));
-
-/* ------------------------------------------------------- Slide types and people */
-
-/**
- * Fixed list of slide types for the filter bar for now (the label the AI would suggest, matched to
- * the labels worked out below). When real decks are uploaded, this list grows from the tags added
- * to each upload.
- */
+/** The slide types the filter row offers, each matched by a topic word on the slide (see topicTags). */
 export const SLIDE_TYPES: { label: string; tag: string }[] = [
   { label: 'About us', tag: 'about us' },
   { label: 'Services', tag: 'services' },
@@ -68,19 +29,13 @@ export const SLIDE_TYPES: { label: string; tag: string }[] = [
   { label: 'Portfolio', tag: 'portfolio' },
 ];
 
-/** Does this slide carry the given slide-type label (simulated AI label)? */
-export function simHasSlideType(s: SlideSummary, label: string): boolean {
+/** Does this slide's title, deck name or category contain a topic word for the given slide type? */
+export function hasSlideType(s: SlideSummary, label: string): boolean {
   const tag = SLIDE_TYPES.find((t) => t.label === label)?.tag;
-  return !!tag && simTags(s).includes(tag);
+  return !!tag && topicTags(s).includes(tag);
 }
 
-/** Sample names for "Uploaded by" and "Contributed by". Real names come from sign-in later. */
-export const SIM_PEOPLE = ['Person A', 'Person B', 'Person C', 'Person D'];
-
-export const simUploader = (s: SlideSummary) => SIM_PEOPLE[hash(`up:${s.provenance.sourceId}`) % SIM_PEOPLE.length];
-export const simContributor = (s: SlideSummary) => SIM_PEOPLE[hash(`con:${s.provenance.sourceId}`) % SIM_PEOPLE.length];
-
-/* ------------------------------------------------------------ Smart search */
+/* --------------------------------------------------------------- Topic rules */
 
 type Concept = { id: string; label: string; words: string[]; tags: string[] };
 
@@ -224,13 +179,10 @@ const fieldsOf = (s: SlideSummary): Fields => ({
 });
 const hayOf = (f: Fields) => norm([f.title, f.deck, f.client ?? '', f.category ?? ''].join(' '));
 
-/** Labels the AI would suggest, worked out from the slide title, deck name and category. */
-export function simTags(s: SlideSummary): string[] {
-  return simTagsFromText(hayOf(fieldsOf(s)), s.provenance.category);
-}
-
-export function simTagsFromText(text: string, category?: string | null): string[] {
-  const hay = norm(text);
+/** Topic words found on the slide's title, deck name and category (rules only). */
+function topicTags(s: SlideSummary): string[] {
+  const hay = hayOf(fieldsOf(s));
+  const category = s.provenance.category;
   const out: string[] = [];
   for (const c of CONCEPTS) {
     if (c.words.some((w) => hasWord(hay, w))) for (const t of c.tags) if (!out.includes(t)) out.push(t);
@@ -255,8 +207,8 @@ export type Parsed = {
   recent: boolean;
 };
 
-/** How the simulated AI "reads" a sentence: topics, a client, a year, and leftover words. */
-export function simParse(q: string, clients: string[]): Parsed {
+/** How the rules read a search: topics, a client, a year, and leftover words. */
+export function parseQuery(q: string, clients: string[]): Parsed {
   const nq = ` ${norm(q)
     .replace(/[^a-z0-9\- ]/g, ' ')
     .replace(/\s+/g, ' ')

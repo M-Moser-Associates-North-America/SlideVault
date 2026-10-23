@@ -77,10 +77,8 @@ function Workspace({ header }: { header?: ReactNode }) {
   const loc = runtime.location;
   const view = loc.view === 'home' || loc.view === 'library' ? 'pages' : loc.view;
   const deep = view === 'deck' || view === 'slide';
-  /* Local design prototype: the whole Home/pages view (browsing or searching) drops the rail in
-     favor of the original reference HTML's hero search (Views.tsx HomeHeader), which stays
-     mounted across that transition so typing never loses focus mid-word. Browse is untouched
-     until reviewed separately. Not pushed, not changing Khushali's build. */
+  /* Home (browsing or searching) uses the reference HTML's hero search (Views.tsx HomeHeader)
+     instead of a side rail; it stays mounted across that transition so typing never loses focus. */
   const noRail = true; // the search bar and filter row now sit at the top of Home and the browse lists
   const narrow = view === 'create' || view === 'upload' || view === 'profile' || view === 'settings';
 

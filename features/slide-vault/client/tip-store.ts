@@ -2,7 +2,7 @@ import { useCallback, useSyncExternalStore } from 'react';
 
 /**
  * Remembers, in this browser, which one-time tips a person has already seen or dismissed.
- * Local design prototype: nothing here goes to a server.
+ * Kept in this browser only; nothing here goes to a server.
  */
 const listeners = new Set<() => void>();
 const memory = new Map<string, string>();

@@ -7,9 +7,9 @@ import { SlideCard } from './parts';
 import { useWorkspace } from './state';
 
 /**
- * Local design prototype: a profile dashboard -- saved slides plus a simple activity record,
- * scoped to whichever demo profile is signed in. Kept deliberately small: a proposal library
- * for a few hundred people needs this to be simple, not a second app (not pushed, not real auth).
+ * Profile page: the person's saved slides and their own recent activity (kept on the server when
+ * there is a database, FD-18). Kept deliberately small: a proposal library for a few hundred people
+ * needs this to be simple, not a second app. Who is signed in comes from the placeholder sign-in.
  */
 export function ProfileView() {
   const { profile, savedIds, library, drafts, loadDraft, deleteDraft, selection, toast } = useWorkspace();

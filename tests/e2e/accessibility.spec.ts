@@ -189,7 +189,7 @@ test('primary workflow works with the keyboard alone', async ({ page }) => {
   await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).focus();
   const download = page.waitForEvent('download');
   await page.keyboard.press('Enter');
-  // With the broader simulated smart search, these three titles can now span multiple decks,
+  // With the broader smart search, these three titles can now span multiple decks,
   // which correctly downloads as a zip (one file per deck) instead of a single .pptx.
   expect((await download).suggestedFilename()).toMatch(/^SlideVault-export\.(pptx|zip)$/);
 });
@@ -238,7 +238,7 @@ test('no WCAG 2.2 AA violations on the sign-in screen; Sign in goes straight to 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
   expect(await axe(page)).toEqual([]);
-  // The sign-in is simulated: the fields start empty and Sign in works as it is, as the demo profile.
+  // The sign-in is a placeholder for M Moser's login: the fields start empty and Sign in works as it is.
   await expect(page.getByLabel('Email address')).toHaveValue('');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
