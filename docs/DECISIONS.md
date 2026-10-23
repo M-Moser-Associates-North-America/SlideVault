@@ -342,3 +342,17 @@ Acceptance evidence / affected PR criteria: npm run test:combine (25 checks on t
 Documents/contracts changed: server/combine-pptx.ts (new), server/services/export.ts, app/api/slide-vault/v1/exports/route.ts, contracts/dto.ts (ExportRequest.combine), scripts/test-combine.mts (new), package.json.
 Revisit trigger: real decks show a layout or font problem in PowerPoint; M Moser wants mixed sizes converted rather than zipped.
 ```
+
+```text
+Decision ID and title: FD-27 Hidden-in-source slides left out by default; archived decks; year from "<Category> <Year>" folders
+Status: proposed
+Decision date: 2026-10-22
+Decision owner/reviewer: Vincent (build), Khushali (screens and archive in the app), Grant Christofely and Alina Pak (21 Oct check-in)
+Context and evidence: At the 21 Oct check-in Grant agreed that slides hidden in the original decks are usually internal notes or checklists, and that showing them only on request is "a good solution". The Kestrel Law test deck from setup needs to leave the app, but M Moser's bucket can't delete files. Alina added Design Consultancy 2025, IDD, MSA and SME folders to the Drive.
+Options considered: hidden slides: (a) leave them out unless asked for, (b) rank them lower, (c) warn on download. Taking decks out of view: (a) an archived_at column, (b) deleting rows (the file would stay in the bucket, orphaned), (c) a new status value (needs a schema check change).
+Chosen outcome: (a) and (a). GET /search and GET /smart-search leave out hiddenInSource slides unless hidden=include; client/api.ts listLibrary and smartSearch take includeHidden for a future "Show hidden slides" switch. decks.archived_at: archived decks are left out of every library, search, filter and duplicate query; scripts/archive-deck.mts (npm run deck:archive) archives or restores by title, with a dry run unless --yes. folder-path.ts adds MSA and reads the year from a folder named like "Design Consultancy 2025".
+Consequences for scope, cost, security and integration: Hidden slides no longer appear anywhere in the app until the UI offers the switch (Khushali), including on deck pages, so a deck's slide numbers can skip. Archiving hides, never deletes, and can be undone. Khushali's archive-in-the-app work can build on the same column.
+Acceptance evidence / affected PR criteria: test:folder-path (new folder cases), typecheck, lint and the existing tests; the archive script and hidden filtering checked against a local Postgres set up like M Moser's.
+Documents/contracts changed: server/sql/schema.sql (decks.archived_at), server/pg-repository.ts, search and smart-search routes, client/api.ts, server/folder-path.ts, scripts/archive-deck.mts (new), scripts/check-mmoser-db.mts, scripts/test-folder-path.mts, package.json.
+Revisit trigger: M Moser wants some hidden slides searchable by default; archive moves into the app.
+```

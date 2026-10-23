@@ -24,6 +24,7 @@ export type FolderInfo = {
 
 const CATEGORY_NAMES: Record<string, string> = {
   idd: 'IDD',
+  msa: 'MSA',
   'business proposal': 'Business Proposal',
   'business proposals': 'Business Proposal',
   sme: 'SME',
@@ -41,7 +42,12 @@ export function folderInfo(relativePath: string): FolderInfo {
   parts.forEach((part, i) => {
     const low = part.trim().toLowerCase();
     if (low === 'best of the best') info.bestOfTheBest = true;
-    else if (categoryOf(part)) info.category = categoryOf(part);
+    else if (categoryOf(part)) {
+      info.category = categoryOf(part);
+      // "Design Consultancy 2025": a category folder for one year (M Moser's Drive, Oct 2026)
+      const year = /\s((?:19|20)\d\d)$/.exec(part.trim());
+      if (year && !info.deckYear) info.deckYear = Number(year[1]);
+    }
     else if (/^(19|20)\d\d$/.test(part.trim())) {
       info.deckYear = Number(part.trim());
       // The folder after the year is the client or project
