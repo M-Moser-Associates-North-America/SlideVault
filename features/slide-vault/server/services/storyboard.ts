@@ -14,6 +14,14 @@ import type { StoryRole, StoryUserRole } from '../../contracts/dto';
 
 export const SLIDES_PER_SECTION = DEFAULT_SLIDES_PER_PART;
 
+/**
+ * Up to how many slides each part offers: about 30 in all, weighted the way a proposal is. The
+ * approach and the proof carry the most; the firm's own pitch (why us) stays short so it never buries
+ * the client's story. A part only fills as far as it has strong slides. A role that wants more
+ * options per part (FD-25) gets at least its own number.
+ */
+export const PART_SLIDES: Record<StoryRole, number> = { 'client-challenge': 4, insight: 3, strategy: 8, experience: 8, 'why-us': 4, outcome: 3 };
+
 const quoted = (words: string[]) => words.map((w) => `“${w}”`).join(', ');
 
 /** How a slide the local model read as doing a part is described in its reason. */
@@ -105,7 +113,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   // offer and what is worth asking (FD-25).
   const role = opts.role ?? null;
   const tuning = role ? ROLE_TUNING[role] : null;
-  const perPart = tuning?.slidesPerPart ?? SLIDES_PER_SECTION;
+  const slidesFor = (part: StoryRole) => Math.max(PART_SLIDES[part], tuning?.slidesPerPart ?? 0);
   const text = [situation.trim(), opts.answers?.trim()].filter(Boolean).join('\n\n');
   let plan: StoryPlan;
   let reader: StoryboardResponse['reader'] = 'rules';
@@ -152,6 +160,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   const used = new Set<string>();
   const sections: StoryboardSection[] = [];
   for (const section of plan.sections) {
+    const perPart = slidesFor(section.role);
     // The role's words go first: the search keeps the first twelve.
     const story = cleanPlan({ keywords: [...(tuning?.words[section.role] ?? []), ...section.words] }, NO_FILTERS);
     const storyRows = story.keywords.length ? await deps.search(story, perPart * 8) : [];

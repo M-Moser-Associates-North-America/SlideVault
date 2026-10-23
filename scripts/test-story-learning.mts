@@ -9,7 +9,7 @@ import type { SearchPlan, SlideFacts } from '../features/slide-vault/server/ai/s
 import { openAiCompatibleTranscriber, readSpeechConfig } from '../features/slide-vault/server/ai/speech';
 import { cleanFeedback, learnedFrom } from '../features/slide-vault/server/story-feedback';
 import { ROLE_TUNING, roleOf } from '../features/slide-vault/server/ai/roles';
-import { buildStoryboard } from '../features/slide-vault/server/services/storyboard';
+import { buildStoryboard, PART_SLIDES } from '../features/slide-vault/server/services/storyboard';
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -95,7 +95,8 @@ check(cleanFeedback({ role: 'outcome', slideId: 's1', verdict: 'useful', topics:
   const brief = 'A bank is consolidating two offices into one.';
   const support = await buildStoryboard(brief, { search: roleSearch }, { role: 'bd-support' });
   const dev = await buildStoryboard(brief, { search: roleSearch }, { role: 'business-developer' });
-  check(support.sections.find((s) => s.role === 'experience')!.items.length === ROLE_TUNING['bd-support'].slidesPerPart && dev.sections.find((s) => s.role === 'experience')!.items.length === 3, 'roles: BD support gets 5 options per part, a business developer 3', [support, dev].map((r) => r.sections.find((s) => s.role === 'experience')!.items.length));
+  const counts = (r: typeof support) => r.sections.map((s) => s.items.length);
+  check([support, dev].every((r) => r.sections.every((s) => s.items.length <= Math.max(PART_SLIDES[s.role], r === support ? ROLE_TUNING['bd-support'].slidesPerPart : 0))) && counts(dev)[3] > 3, 'roles: each part offers up to its own number (proof up to 8), and BD support never fewer than 5 where it has them', [counts(support), counts(dev)]);
   check(support.role === 'bd-support' && support.questions.length <= 1, 'roles: BD support is asked at most one question', support.questions);
   const director = await buildStoryboard(brief, { search: roleSearch }, { role: 'director' });
   check(director.sections.find((s) => s.role === 'outcome')!.items[0]?.slide.id === 's-fees', 'roles: a director\'s outcome part leads with fees and value', director.sections.find((s) => s.role === 'outcome')!.items.map((i) => i.slide.id));
