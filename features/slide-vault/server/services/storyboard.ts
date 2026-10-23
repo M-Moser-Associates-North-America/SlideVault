@@ -65,7 +65,7 @@ const neverInStory = (k: { reuse?: string; flags?: string[] } | undefined) =>
 /** The situation's own words, searched on their own and used to rank every part. */
 const MAX_TOPICS = MAX_KEYWORDS;
 /** Words that describe the pitch, not the client's need ("we just won a contract for the client"). */
-const SITUATION_FILLER = new Set(['just', 'won', 'win', 'already', 'another', 'client', 'clients', 'firm', 'company', 'wants', 'want', 'would', 'could', 'pitching', 'pitch', 'proposal', 'contract', 'new', 'their', 'they', 'them', 'will', 'also', 'need', 'needs', 'help', 'make', 'work', 'working', 'way', 'ways', 'losing', 'lose', 'own', 'worries', 'worried', 'move', 'moving', 'wants', 'board', 'worri', 'will', 'their', 'pitching']);
+const SITUATION_FILLER = new Set(['just', 'won', 'win', 'already', 'another', 'client', 'clients', 'firm', 'company', 'wants', 'want', 'would', 'could', 'pitching', 'pitch', 'proposal', 'contract', 'new', 'their', 'they', 'them', 'will', 'also', 'need', 'needs', 'help', 'make', 'work', 'working', 'way', 'ways', 'losing', 'lose', 'own', 'worries', 'worried', 'move', 'moving', 'wants', 'board', 'worri', 'will', 'their', 'pitching', 'group', 'three', 'last', 'year', 'story', 'across', 'tell', 'tells', 'one', 'project', 'site', 'outline', 'face', 'facing', 'concern']);
 
 /**
  * The words in a situation that describe this client's need ("hybrid", "sustainability", "desks"),
@@ -99,6 +99,41 @@ const SECTOR_WORDS: [string, RegExp][] = [
   ['professional services', /\b(consult\w+|accounting|professional services)\b/],
   ['resources', /\b(mining|energy|oil|gas|resources)\b/],
 ];
+
+/**
+ * The needs a brief can name, each read from the brief's plain words and found on slides by the
+ * words decks use for it ("burnt out" in a brief, "wellbeing" on a slide). Every slide in a storyboard
+ * must speak to this brief, so a slide that only does a part's job (a résumé as "why us", another
+ * sector's case study as proof) never stands in for this client's story (FD-29). Rules only, no
+ * model, so it holds when the AI is off.
+ */
+const NEEDS: { name: string; told: RegExp; finds: RegExp }[] = [
+  { name: 'healthcare', told: /\b(hospitals?|clinics?|clinical|patients?|health ?care|medical|nurses?|doctors?|life sciences)\b/, finds: /\b(hospitals?|health ?care|clinics?|clinical|patients?|medical|life sciences?)\b/ },
+  { name: 'bringing sites together', told: /\b(merg\w*|campus\w*|consolidat\w*|multi-?site|sites|locations|integrat\w*|acquisitions?)\b/, finds: /\b(campus\w*|multi-?site|consolidat\w*|merg\w*|portfolio|across (all|multiple|three|several) (sites|locations|offices|campuses))\b/ },
+  { name: 'staff wellbeing', told: /\b(burn ?out|burnt out|exhaust\w*|stress\w*|morale|well-?being|wellness|retention|turnover|fatigue|attrition)\b/, finds: /\b(burn ?out|well-?being|wellness|stress|mental health|staff experience|employee experience|retention|fatigue|morale)\b/ },
+  { name: 'the board', told: /\b(board|stakeholders?|leadership|executives?|c-suite|investors?)\b/, finds: /\b(board|stakeholders?|governance)\b/ },
+  { name: 'cost and budget', told: /\b(costs?|overruns?|budgets?|spend\w*|afford\w*|savings?)\b/, finds: /\b(budgets?|overruns?|cost certainty|cost control|cost plan\w*|on budget|on time|value engineering|costs?|savings?)\b/ },
+  { name: 'a past project gone wrong', told: /\b(failed|failure|went wrong|delays?|delayed|lost trust|bad experience)\b/, finds: /\b(risk management|de-?risk\w*|certainty|delivered on time|lessons learned)\b/ },
+  { name: 'hybrid work', told: /\b(hybrid|remote|return to (the )?office|flexib\w*)\b/, finds: /\b(hybrid|remote|return to (the )?office|flexib\w*|agile working|activity[- ]based)\b/ },
+  { name: 'sustainability', told: /\b(sustainab\w*|net zero|carbon|esg|green|leed|well building)\b/, finds: /\b(sustainab\w*|net zero|carbon|esg|leed|well (building|certif\w*))\b/ },
+  { name: 'culture and brand', told: /\b(culture|brand\w*|identity|values)\b/, finds: /\b(culture|brand\w*|identity|values)\b/ },
+  { name: 'growth', told: /\b(grow\w*|expan\w*|scal\w*|headcount)\b/, finds: /\b(grow\w*|expan\w*|scal\w*|future-?proof\w*)\b/ },
+];
+
+/** The needs a brief names, in the order of the list. */
+export function briefNeeds(text: string): string[] {
+  const t = text.toLowerCase();
+  return NEEDS.filter((n) => n.told.test(t)).map((n) => n.name);
+}
+
+/** Which of the brief's needs a slide speaks to, from its words and what was read on it. */
+function needsMet(needs: string[], text: string): string[] {
+  const t = text.toLowerCase();
+  return NEEDS.filter((n) => needs.includes(n.name) && n.finds.test(t)).map((n) => n.name);
+}
+
+/** The same slide copied into several decks: same title and opening words. */
+const sameSlideKey = (f: SlideFacts) => `${f.title} ${f.text}`.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 160);
 
 export function clientSectors(text: string): string[] {
   const t = text.toLowerCase();
@@ -143,6 +178,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   // leads every part; the story words ("approach", "case study") decide which part a slide belongs to.
   const topics = cleanPlan({ keywords: situationTopics(text) }, NO_FILTERS);
   const sectors = clientSectors(text);
+  const needs = briefNeeds(text);
   const onTopicRows = topics.keywords.length ? await deps.search(topics, 60) : [];
   // A slide's words plus what the local model read on it, so the brief can match what a slide is
   // about ("a hospital merger") as well as what it literally says.
@@ -157,8 +193,15 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   // The firm's memory: slides marked useful for this part on similar briefs lead, ones marked not
   // right go last. A failure here never stops the storyboard.
   const learned = deps.learned ? await deps.learned(topics.keywords, role).catch((e) => (deps.log?.(`Story feedback unavailable: ${(e as Error).message}`), new Map())) : new Map();
+  // A need on few slides ("healthcare") says more than one on most ("cost"), so rarer needs weigh more.
+  const needCount = new Map<string, number>();
+  const needScore = (met: string[]) => met.reduce((sum, n) => sum + 1 / Math.max(1, needCount.get(n) ?? 1), 0);
   const used = new Set<string>();
+  const usedCopies = new Set<string>();
   const sections: StoryboardSection[] = [];
+  // First every part ranks what could fill it; then each part fills in story order, leaving a slide
+  // for a later part when it fits that part better (fees and value belong in the outcome, not in why us).
+  const candidates = [];
   for (const section of plan.sections) {
     const perPart = slidesFor(section.role);
     // The role's words go first: the search keeps the first twelve.
@@ -166,15 +209,17 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     const storyRows = story.keywords.length ? await deps.search(story, perPart * 8) : [];
     const readRows = deps.knowledge ? await deps.knowledge.forPart(section.role, perPart * 8).catch(() => []) : [];
     const seen = new Set<string>();
-    const ranked = [...onTopicRows, ...storyRows, ...readRows]
+    const pool = [...onTopicRows, ...storyRows, ...readRows]
       .filter((row) => !seen.has(row.summary.id) && seen.add(row.summary.id))
       .map((row, order) => {
         const l = learned.get(`${section.role}:${row.summary.id}`);
         const known = deps.knowledge?.of(row.summary.id);
         const readAs = known?.role;
         const facts = read(row.facts, row.summary.id);
-        const sameSector = sectors.length > 0 && !!known?.sectors?.some((x) => sectors.some((f) => x.toLowerCase().startsWith(f))) ? 1 : 0;
-        return { row, order, l, readAs, known, sameSector, said: Math.sign((l?.useful ?? 0) - (l?.notRight ?? 0)), onTopic: whyItFits(topics, facts).matched.reduce((sum, k) => sum + weight(k), 0), inPart: whyItFits(story, row.facts).matched.length, readHere: readAs === section.role ? 1 : 0 };
+        // Same sector: the reviewed metadata says so, or the slide's own words name the client's sector.
+        const sameSector = !!known?.sectors?.some((x) => sectors.some((f) => x.toLowerCase().startsWith(f))) || SECTOR_WORDS.some(([name, re]) => sectors.includes(name) && re.test(`${facts.title} ${facts.text}`.toLowerCase())) ? 1 : 0;
+        const met = needsMet(needs, `${facts.title} ${facts.text}`);
+        return { row, order, l, readAs, known, sameSector, met, said: Math.sign((l?.useful ?? 0) - (l?.notRight ?? 0)), onTopic: whyItFits(topics, facts).matched.reduce((sum, k) => sum + weight(k), 0), inPart: whyItFits(story, row.facts).matched.length, readHere: readAs === section.role ? 1 : 0 };
       })
       // A slide must do this part's job: its words say so, it was read that way, or colleagues said
       // it does. A slide whose role is known (reviewed metadata, FD-28, or a confident reading by the
@@ -185,15 +230,31 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       // read as doing this part.
       .filter((r) => {
         if (neverInStory(r.known)) return false;
+        // Reviewed as page furniture (a résumé, an admin page): never a part of the story, whatever the votes.
+        if (r.known?.reviewed && NOT_PROOF.has(r.known.role)) return false;
+        // It must speak to this brief (FD-29): a need the brief names, the client's sector, the
+        // brief's own words, or colleagues said so. Doing the part's job alone is not enough.
+        if (!(r.said > 0 || r.sameSector > 0 || r.met.length > 0 || r.onTopic > 0 || !topics.keywords.length)) return false;
         if (r.known && (r.known.reviewed || !r.known.uncertain)) return r.readHere > 0 || r.said > 0;
         return (r.inPart > 0 || r.readHere > 0 || r.said > 0) && !(r.readAs && NOT_PROOF.has(r.readAs) && r.said <= 0);
-      })
-      .sort((a, b) => b.said - a.said || b.sameSector - a.sameSector || b.onTopic - a.onTopic || b.readHere - a.readHere || b.inPart - a.inPart || a.order - b.order);
+      });
+    needCount.clear();
+    for (const r of pool) for (const n of r.met) needCount.set(n, (needCount.get(n) ?? 0) + 1);
+    // In the proof, past work for the same kind of client leads: "have you done this for a hospital?"
+    const sectorFirst = section.role === 'experience' ? 1 : 0;
+    const ranked = pool.sort((a, b) => b.said - a.said || sectorFirst * (b.sameSector - a.sameSector) || needScore(b.met) - needScore(a.met) || b.sameSector - a.sameSector || b.onTopic - a.onTopic || b.readHere - a.readHere || b.inPart - a.inPart || a.order - b.order);
+    candidates.push({ section, perPart, story, ranked });
+  }
+  const partFit = (r: { inPart: number; readHere: number; said: number }) => r.said * 100 + r.readHere * 10 + r.inPart;
+  const bestFit = new Map<string, number>();
+  for (const { ranked } of candidates) for (const r of ranked) bestFit.set(r.row.summary.id, Math.max(bestFit.get(r.row.summary.id) ?? -Infinity, partFit(r)));
+  for (const { section, perPart, story, ranked } of candidates) {
     const items: StoryboardSlide[] = [];
-    for (const { row, l, readHere, sameSector } of ranked) {
+    for (const r of ranked) {
+      const { row, l, readHere, sameSector, met } = r;
       const { summary } = row;
       const facts = read(row.facts, summary.id);
-      if (used.has(summary.id)) continue;
+      if (used.has(summary.id) || usedCopies.has(sameSlideKey(row.facts)) || partFit(r) < (bestFit.get(summary.id) ?? -Infinity)) continue;
       // The reason shows its working, from the slide and its deck only: which of the brief's words
       // are on it (most telling first), what on it does this part's job, and where it comes from.
       const brief = whyItFits(topics, facts).matched.sort((a, b) => weight(b) - weight(a)).slice(0, 3);
@@ -201,6 +262,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       const fit = whyItFits(cleanPlan({ keywords: [...brief, ...story.keywords] }, NO_FILTERS), facts);
       const from = [facts.bestOfTheBest ? 'Best of the Best' : null, facts.category, facts.year ? String(facts.year) : null].filter((x): x is string => !!x);
       const why = [
+        met.length ? `Speaks to: ${met.join(', ')}.` : null,
         brief.length ? `Matches your brief: ${quoted(brief)}.` : null,
         part.length ? `Does this part's job: ${quoted(part)} on the slide.` : null,
         readHere ? `Read as: ${READ_AS[section.role]}.` : null,
@@ -209,6 +271,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
         l?.useful ? `Colleagues marked it useful for this part on ${l.useful === 1 ? 'a similar brief' : `${l.useful} similar briefs`}.` : null,
       ].filter(Boolean).join(' ');
       used.add(summary.id);
+      usedCopies.add(sameSlideKey(row.facts));
       items.push({ slide: summary, why, matched: fit.matched, reasons: { brief, part, from }, ...(l ? { learned: l } : {}) });
       if (items.length >= perPart) break;
     }

@@ -84,8 +84,8 @@ check(cleanFeedback({ role: 'outcome', slideId: 's1', verdict: 'useful', topics:
   check(learnedFrom(mixed, []).get('outcome:a')?.useful === 2, 'roles: without a role every verdict counts once');
 }
 {
-  const MANY = Array.from({ length: 7 }, (_, i) => ({ id: `s-case-${i}`, title: `Case study ${i}: project`, text: 'Project completed with results.' }));
-  const MONEY = [{ id: 's-fees', title: 'Fees and value', text: 'Our fees, savings and value for money.' }, { id: 's-outcome', title: 'Outcome', text: 'The outcome for the client.' }];
+  const MANY = Array.from({ length: 7 }, (_, i) => ({ id: `s-case-${i}`, title: `Case study ${i}: project`, text: 'Consolidating offices: project completed with results.' }));
+  const MONEY = [{ id: 's-fees', title: 'Fees and value', text: 'Our fees, savings and value for money when consolidating offices.' }, { id: 's-outcome', title: 'Outcome', text: 'The outcome for the client after consolidating.' }];
   const lib = [...MANY, ...MONEY];
   const roleSearch = async (plan: SearchPlan) =>
     lib.filter((s) => plan.keywords.some((k) => `${s.title} ${s.text}`.toLowerCase().includes(k))).map((s) => ({

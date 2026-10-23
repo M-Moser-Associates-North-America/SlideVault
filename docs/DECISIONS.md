@@ -437,3 +437,11 @@ Acceptance evidence / affected PR criteria: npm run test:storyboard (metadata ch
 Documents/contracts changed: server/slide-knowledge.ts, server/services/storyboard.ts, scripts/test-storyboard.mts, docs/DECISIONS.md.
 Revisit trigger: the other decks' files are added; the metadata moves to Postgres; upload suggests these fields (FD-23).
 ```
+
+## FD-29: Every storyboard slide must speak to the brief (2026-10-23)
+
+Context and evidence: On Grant's hospital brief, parts were filled with slides that only did the part's job: a case study for another sector as proof, an architect's profile as "why us", a résumé a colleague had marked useful as the client's challenge, and one slide copied into two decks shown twice. The six parts were deciding what went in; the brief was not.
+
+Chosen outcome: The brief is read for the needs it names (healthcare, bringing sites together, staff wellbeing, the board, cost and budget, a past project gone wrong, and a few others), each found on slides by the words decks use for it. A slide fills a part only if it does that part's job and speaks to the brief: a need it names, the client's sector, the brief's own words, or colleagues' votes. Rarer needs weigh more than common ones ("healthcare" over "cost"); in the proof, same-sector work leads. A slide reviewed as page furniture (résumé, admin) is never voted into a story. Copies of one slide are shown once, and a slide that fits several parts goes to the part it fits best. Each slide says "Speaks to: ..." so the reason is visible. Parts offer up to 30 slides in all, weighted: approach and proof up to 8, challenge and why us 4, insight and outcome 3.
+
+Consequences: Parts with nothing about this brief stay short or empty rather than padded. The need words are a hand-made list; the AI choosing and ordering from the shortlist is the next step.

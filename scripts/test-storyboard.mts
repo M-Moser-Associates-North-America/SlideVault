@@ -7,7 +7,7 @@
 import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import type { SearchPlan, SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { cleanStoryPlan, missingContext, openAiCompatibleStoryReader, standInStory, STORY_ROLES, type StoryReader } from '../features/slide-vault/server/ai/storyboard';
-import { buildStoryboard, clientSectors, situationTopics } from '../features/slide-vault/server/services/storyboard';
+import { briefNeeds, buildStoryboard, clientSectors, situationTopics } from '../features/slide-vault/server/services/storyboard';
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -17,7 +17,7 @@ function check(ok: boolean, label: string, detail: unknown = '') {
 
 // A tiny fake library: each slide is found when the search asks for any word in its title.
 const LIB = [
-  { id: 's-challenge', title: 'Understanding your objectives and challenge', text: 'Your goals for the new headquarters.' },
+  { id: 's-challenge', title: 'Understanding your objectives and challenge', text: 'Your goals for a refit while another tenant stays in the building.' },
   { id: 's-phasing', title: 'Phasing and programme', text: 'A phased approach keeps the business running.' },
   { id: 's-case', title: 'Case study: occupied building refurbishment', text: 'Project completed with results for the client.' },
   { id: 's-case2', title: 'Case study: hospital project', text: 'Results after the project completed.' },
@@ -136,6 +136,28 @@ check(JSON.stringify(situationTopics('Hospital campuses need studies and process
   check(Boolean(proof.items[0]?.why.includes('Same sector as your client')), 'sector: the slide says why it leads', proof.items[0]?.why);
 }
 
+{
+  // FD-29: every slide must speak to this brief; doing the part's job is not enough.
+  const LIB5 = [
+    { id: 'n-resume', title: 'Our architect', text: 'Twenty years designing workplaces for technology clients.' },
+    { id: 'n-wellbeing', title: 'Designing for staff wellbeing', text: 'Spaces that reduce stress and help clinical staff recover.' },
+    { id: 'n-wellbeing-copy', title: 'Designing for staff wellbeing', text: 'Spaces that reduce stress and help clinical staff recover.' },
+    { id: 'n-budget', title: 'Cost certainty', text: 'How we keep a multi-site programme on budget.' },
+  ];
+  const rowOf = (s: (typeof LIB5)[number]) => ({ summary: slide(s.id, s.title), facts: { title: s.title, text: s.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const roles = new Map([['n-resume', 'why-us'], ['n-wellbeing', 'client-challenge'], ['n-wellbeing-copy', 'client-challenge'], ['n-budget', 'strategy']]);
+  const knowledge = { of: (id: string) => ({ role: roles.get(id)!, topics: [], about: '', reviewed: true, reuse: 'reusable' }), forPart: async (role: string) => LIB5.filter((x) => roles.get(x.id) === role).map(rowOf) };
+  const search5 = async (plan: SearchPlan) => LIB5.filter((x) => plan.keywords.some((k) => `${x.title} ${x.text}`.toLowerCase().includes(k))).map(rowOf);
+  const brief = 'A hospital group is merging three campuses. Clinical staff are burnt out, and the board worries about cost overruns.';
+  check(JSON.stringify(briefNeeds(brief)) === JSON.stringify(['healthcare', 'bringing sites together', 'staff wellbeing', 'the board', 'cost and budget']), 'needs: the brief reads as healthcare, bringing sites together, staff wellbeing, the board, and cost', briefNeeds(brief));
+  const r = await buildStoryboard(brief, { search: search5, knowledge });
+  const placed = r.sections.flatMap((x) => x.items.map((i) => i.slide.id));
+  check(!placed.includes('n-resume'), 'needs: a "why us" slide about nothing in the brief is left out', placed);
+  check(r.sections.find((x) => x.role === 'client-challenge')!.items[0]?.slide.id === 'n-wellbeing', 'needs: burnt-out staff finds the wellbeing slide for the challenge', placed);
+  check(!placed.includes('n-wellbeing-copy'), 'needs: the same slide copied into another deck is shown once', placed);
+  check(r.sections.find((x) => x.role === 'strategy')!.items[0]?.why.includes('Speaks to: bringing sites together, cost and budget'), 'needs: each slide says which of the brief\'s needs it speaks to', r.sections.find((x) => x.role === 'strategy')!.items[0]?.why);
+}
+
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
 check(missingContext('The board and CFO worry about disruption; the goal is a low-cost, fast fit-out.').length === 0, 'questions: a situation that already says them gets no questions');
@@ -178,8 +200,8 @@ check(missingContext('The board and CFO worry about disruption; the goal is a lo
   check(JSON.stringify(p.sections.map((x) => x.role)) === JSON.stringify(STORY_ROLES), 'clean: repeated parts merge into one each, and the missing parts are added', p.sections.map((x) => x.role));
   const challenge = p.sections[0];
   check(challenge.title === 'Their situation' && challenge.words.includes('rfp') && challenge.words.includes('challenge'), "clean: a merged part keeps the first heading, both parts' words, and the arc's words", challenge);
-  const r = await buildStoryboard('A hospital group needs a proposal and a clear story.', { search, reader: { name: 'fake', plan: async () => p } }, { read: true });
-  check(r.sections.filter((x) => !x.gap).length >= 4, 'clean: with the arc words kept, most parts find slides', r.sections.map((x) => `${x.role}:${x.items.length}`));
+  const r = await buildStoryboard(situation, { search, reader: { name: 'fake', plan: async () => p } }, { read: true });
+  check(r.sections.filter((x) => !x.gap).length >= 2, 'clean: with the arc words kept, the parts with slides about this brief find them', r.sections.map((x) => `${x.role}:${x.items.length}`));
 }
 {
   const p = cleanStoryPlan({ summary: '  x  ', questions: ['ok?', 'Who will be in the room?', 'a', 'b?', 'c?', 'd?'], sections: [] });
