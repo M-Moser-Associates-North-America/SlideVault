@@ -1,0 +1,116 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Icon } from './icons';
+import { timeAgo } from './library';
+import { SlideCard } from './parts';
+import { useWorkspace } from './state';
+
+/**
+ * Profile page: the person's saved slides and their own recent activity (kept on the server when
+ * there is a database, FD-18). Kept deliberately small: a proposal library for a few hundred people
+ * needs this to be simple, not a second app. Who is signed in comes from the placeholder sign-in.
+ */
+export function ProfileView() {
+  const { profile, savedIds, library, drafts, loadDraft, deleteDraft, selection, toast } = useWorkspace();
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  /* Arriving from the account menu's "Saved" item: scroll to the Saved section once the page is up. */
+  useEffect(() => {
+    if (window.location.hash !== '#saved') return;
+    const t = setTimeout(() => document.getElementById('saved')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+    return () => clearTimeout(t);
+  }, []);
+  const saved = library.status === 'ready' ? library.slides.filter((s) => savedIds.has(s.id)) : [];
+
+  return (
+    <div className="sv-wrap profile-wrap">
+      <div className="page-head">
+        <div>
+          <h1 className="h1" tabIndex={-1}>
+            My decks
+          </h1>
+          <p className="lede">Your saved slides and working drafts. Signed in as {profile}.</p>
+        </div>
+      </div>
+
+      <section className="row" id="saved">
+        <div className="row-head">
+          <h2 className="h2">Saved</h2>
+        </div>
+        {saved.length === 0 ? (
+          <p className="meta">Nothing saved yet. Tap the heart on any slide to keep it here for later.</p>
+        ) : (
+          <ul className="row-scroller">
+            {saved.map((s) => (
+              <li key={s.id}>
+                <SlideCard slide={s} list={saved} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="row" id="drafts">
+        <div className="row-head">
+          <h2 className="h2">Working drafts</h2>
+        </div>
+        {drafts.length === 0 ? (
+          <p className="meta">No drafts yet. In your draft deck, choose Save as draft to keep a set of slides here.</p>
+        ) : (
+          <ul className="draft-list">
+            {drafts.map((d) => (
+              <li key={d.id} className="draft-item">
+                <span className="draft-ic" aria-hidden="true">
+                  <Icon name="folder" />
+                </span>
+                <div className="draft-txt">
+                  <strong>{d.name}</strong>
+                  <span className="meta">
+                    {d.slideIds.length === 1 ? '1 slide' : `${d.slideIds.length} slides`} · saved {timeAgo(d.savedAt)}
+                  </span>
+                </div>
+                {confirmDelete === d.id ? (
+                  <div className="cart-confirm" role="group" aria-label={`Confirm deleting ${d.name}`}>
+                    <span className="cc-q">Are you sure?</span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-icon cc-yes"
+                      aria-label={`Yes, delete ${d.name}`}
+                      onClick={() => {
+                        deleteDraft(d.id);
+                        setConfirmDelete(null);
+                        toast(`Deleted “${d.name}”`);
+                      }}
+                    >
+                      <Icon name="check" />
+                    </button>
+                    <button type="button" className="btn btn-sm btn-icon" aria-label="No, keep it" onClick={() => setConfirmDelete(null)}>
+                      <Icon name="x" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="draft-acts">
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      title={selection.length ? 'Replaces what is in your draft deck now' : undefined}
+                      onClick={() => {
+                        const found = loadDraft(d);
+                        toast(found === d.slideIds.length ? `Opened “${d.name}” in your draft deck` : `Opened “${d.name}”. ${d.slideIds.length - found} slide(s) are no longer in the library.`);
+                      }}
+                    >
+                      Open in draft deck
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(d.id)}>
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}

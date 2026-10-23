@@ -1,0 +1,67 @@
+import 'server-only';
+import { openAiCompatibleReader } from './openai-compatible';
+import type { PlanContext, SearchPlan } from './search-plan';
+
+/**
+ * Provider-neutral request reader (docs/DECISIONS.md FD-17). A reader only turns a typed request
+ * into a SearchPlan. Retrieval, authorization and "why it fits" never depend on it, so swapping
+ * the provider is a server setting with no UI or database change.
+ */
+export type PlanReader = {
+  /** Short provider label for logs, e.g. "openai-compatible:qwen3:8b". Never includes a key. */
+  name: string;
+  /** Returns a cleaned plan, or throws (smartSearch falls back to the rules-only stand-in). */
+  read(query: string, ctx: PlanContext): Promise<SearchPlan>;
+};
+
+export type AiConfig =
+  | { provider: 'none' }
+  | { provider: 'openai-compatible'; baseUrl: string; apiKey: string | null; model: string; timeoutMs: number; reasoningEffort: string | null };
+
+/**
+ * SV_AI_PROVIDER picks the reader:
+ *  - none (default): rules only, nothing leaves the server
+ *  - openai-compatible: any /chat/completions endpoint, e.g. a local Ollama running Qwen3
+ *    (SV_AI_BASE_URL=http://localhost:11434/v1) or OpenAI (https://api.openai.com/v1)
+ * A provider that is named but not fully configured is an error, never a silent fallback.
+ */
+export function readAiConfig(env: Record<string, string | undefined> = process.env): AiConfig {
+  const provider = env.SV_AI_PROVIDER?.trim() || 'none';
+  if (provider === 'none') return { provider: 'none' };
+  if (provider !== 'openai-compatible') throw new Error(`Unknown SV_AI_PROVIDER "${provider}". Use none or openai-compatible.`);
+  const baseUrl = env.SV_AI_BASE_URL?.trim().replace(/\/+$/, '');
+  const model = env.SV_AI_MODEL?.trim();
+  if (!baseUrl || !model) throw new Error('SV_AI_PROVIDER=openai-compatible needs SV_AI_BASE_URL and SV_AI_MODEL. See env.example.');
+  const timeoutMs = Number(env.SV_AI_TIMEOUT_MS || 15000);
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 60000) throw new Error('SV_AI_TIMEOUT_MS must be a whole number from 1000 to 60000.');
+  return { provider, baseUrl, apiKey: env.SV_AI_API_KEY?.trim() || null, model, timeoutMs, reasoningEffort: env.SV_AI_REASONING_EFFORT?.trim() || null };
+}
+
+/** The configured reader, or null for rules only. */
+export function readerFromConfig(config: AiConfig = readAiConfig()): PlanReader | null {
+  return config.provider === 'none' ? null : openAiCompatibleReader(config);
+}
+
+/**
+ * Remembers recent readings, so the same request costs one model call per hour, not one per
+ * search. Counts live in this server process (like rate-limit.ts). The key includes the allowed
+ * client names, so a reading is never reused for a request that could see different clients.
+ */
+export function cachedReader(reader: PlanReader, opts: { max?: number; ttlMs?: number; now?: () => number } = {}): PlanReader {
+  const max = opts.max ?? 500;
+  const ttlMs = opts.ttlMs ?? 60 * 60 * 1000;
+  const now = opts.now ?? Date.now;
+  const memo = new Map<string, { plan: SearchPlan; until: number }>();
+  return {
+    name: reader.name,
+    async read(query, ctx) {
+      const key = JSON.stringify([query.trim().toLowerCase().replace(/\s+/g, ' '), ctx.clients, ctx.categories, ctx.thisYear]);
+      const hit = memo.get(key);
+      if (hit && hit.until > now()) return hit.plan;
+      const plan = await reader.read(query, ctx);
+      if (memo.size >= max) memo.delete(memo.keys().next().value as string);
+      memo.set(key, { plan, until: now() + ttlMs });
+      return plan;
+    },
+  };
+}

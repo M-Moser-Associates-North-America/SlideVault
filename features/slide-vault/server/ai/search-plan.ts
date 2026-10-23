@@ -1,0 +1,239 @@
+import { isStopWord, parseQuery } from '../../components/search-rules';
+
+/**
+ * Quick AI search (docs/DECISIONS.md FD-16, FD-17): how a typed request becomes a search, and how
+ * each result gets its "why it fits" note. No network here, so it's easy to test.
+ *
+ *   1. Read the request into a SearchPlan: keywords (with likely synonyms) plus optional filters.
+ *      The configured AI reader does this (ai/reader.ts); with none configured, or if it fails, the
+ *      stand-in below does, using the same rules as the filter row (components/search-rules.ts).
+ *   2. Search Postgres for slides matching ANY keyword, inside the filters, best match first.
+ *   3. Explain each result from what actually matched. The note is worked out from the slide's
+ *      own words, not written by the model, so it can't claim something the slide doesn't say.
+ */
+
+export type SearchPlan = {
+  /** One plain sentence: what we think the person is looking for */
+  summary: string;
+  /** Words or short phrases likely to appear on a matching slide, synonyms included */
+  keywords: string[];
+  /** Short labels for what the request is about, shown as chips ("Team", "Cost savings") */
+  topics: string[];
+  client: string | null;
+  yearFrom: number | null;
+  yearTo: number | null;
+  category: string | null;
+  bestOfTheBest: boolean | null;
+};
+
+/** What the reader is allowed to pick from, so filters always match real values. */
+export type PlanContext = { clients: string[]; categories: string[]; thisYear: number };
+
+export type Chip = { kind: 'Topic' | 'Client' | 'Year' | 'Category' | 'Collection'; label: string };
+
+export const MAX_KEYWORDS = 12;
+
+/**
+ * Words that describe every slide in the library, so they can't tell one from another. A search
+ * that matches only these ("our most recent hospitality deck" -> "deck") would return slides that
+ * look like answers but aren't, so they are never search words.
+ */
+const GENERIC_WORDS = new Set(['deck', 'decks', 'slide', 'slides', 'page', 'pages', 'proposal', 'proposals', 'presentation', 'presentations', 'pitch', 'ppt', 'pptx', 'powerpoint', 'm moser', 'mmoser']);
+
+/** Rules-only reader, used when no AI reader is configured or it can't be reached. */
+export function standInPlan(query: string, ctx: PlanContext): SearchPlan {
+  const p = parseQuery(query, ctx.clients);
+  const q = ` ${query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ')} `;
+  const keywords = [...p.tokens, ...p.concepts.flatMap((c) => c.words)];
+  // The rules pick a client from any word of its name, so "a bank pitch" would become
+  // the client "Northgate Bank". Only keep the client if its first word (the distinctive one) was
+  // typed; otherwise put the words back as keywords.
+  if (p.client) {
+    const words = p.client.toLowerCase().split(/\s+/);
+    if (!q.includes(` ${words[0]} `)) {
+      keywords.unshift(...words.filter((w) => q.includes(` ${w} `)));
+      p.client = null;
+    }
+  }
+  const category = ctx.categories.find((c) => q.includes(` ${c.toLowerCase()} `)) ?? null;
+  const bestOfTheBest = /best of (the )?best|\bbotb\b/.test(q) ? true : null;
+  const yearFrom = p.year ?? (p.recent ? ctx.thisYear - 2 : null);
+  const yearTo = p.year ?? null;
+  const parts = [
+    p.concepts.length ? p.concepts.map((c) => c.label.toLowerCase()).join(' and ') : null,
+    p.client ? `for ${p.client}` : null,
+    p.year ? `from ${p.year}` : p.recent ? 'from the last few years' : null,
+  ].filter(Boolean);
+  return cleanPlan(
+    {
+      summary: parts.length ? `Slides about ${parts.join(' ')}.` : `Slides that mention ${p.tokens.slice(0, 3).join(', ') || 'your words'}.`,
+      keywords: category ? keywords.filter((k) => k !== category.toLowerCase()) : keywords,
+      topics: p.concepts.map((c) => c.label),
+      client: p.client,
+      yearFrom,
+      yearTo,
+      category,
+      bestOfTheBest,
+    },
+    ctx,
+  );
+}
+
+/**
+ * Make any plan (the stand-in's or a model's) safe to run: filters must be real values, years
+ * sensible, keywords short and de-duplicated. Anything that doesn't fit is dropped, not guessed.
+ */
+export function cleanPlan(raw: Partial<SearchPlan>, ctx: PlanContext): SearchPlan {
+  const pick = (v: unknown, from: string[]) =>
+    typeof v === 'string' ? (from.find((x) => x.toLowerCase() === v.trim().toLowerCase()) ?? null) : null;
+  const year = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 1990 && v <= ctx.thisYear + 1 ? v : null);
+  const words = (v: unknown, max: number) =>
+    Array.isArray(v)
+      ? [...new Set(v.filter((x): x is string => typeof x === 'string').map((x) => x.trim().toLowerCase().replace(/["]/g, '')).filter((x) => x.length >= 2 && x.length <= 60))].slice(0, max)
+      : [];
+  let yearFrom = year(raw.yearFrom);
+  let yearTo = year(raw.yearTo);
+  if (yearFrom && yearTo && yearFrom > yearTo) [yearFrom, yearTo] = [yearTo, yearFrom];
+  return {
+    summary: typeof raw.summary === 'string' ? raw.summary.trim().slice(0, 200) : '',
+    keywords: words(raw.keywords, MAX_KEYWORDS + GENERIC_WORDS.size).filter((k) => !GENERIC_WORDS.has(k)).slice(0, MAX_KEYWORDS),
+    topics: [...new Set((Array.isArray(raw.topics) ? raw.topics : []).filter((x): x is string => typeof x === 'string').map((x) => x.trim()).filter((x) => x && x.length <= 40))].slice(0, 4),
+    client: pick(raw.client, ctx.clients),
+    yearFrom,
+    yearTo,
+    category: pick(raw.category, ctx.categories),
+    bestOfTheBest: raw.bestOfTheBest === true ? true : null,
+  };
+}
+
+/**
+ * The client names a reader may see for this request: only those whose first (distinctive) word
+ * was typed, the same rule the stand-in uses, so "a bank pitch" sends no client names at all. The
+ * full client list never leaves the server; a client not named here can't become a filter anyway.
+ */
+export function relevantClients(query: string, clients: string[]): string[] {
+  const typed = new Set(query.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+  return clients.filter((c) => typed.has(c.toLowerCase().split(/[^a-z0-9]+/).find(Boolean) ?? ''));
+}
+
+/**
+ * Basic searches ("team", "Kestrel Law 2024", "recent IDD decks") never go to a model: the rules
+ * read them just as well, instantly and for free. Only a sentence or a question does, e.g. "which
+ * slides should I use for a 30-day fit-out in a shared building?".
+ */
+const QUESTION = /\?|^(how|what|which|why|when|where|who|should|can|could|do|does|is|are)\b|\b(need|needs|want|looking for|should i|should we|help me|we just|i just)\b/;
+export const BASIC_MAX_WORDS = 4;
+
+export function isBasicQuery(query: string): boolean {
+  const q = query.toLowerCase().trim();
+  const words = q.split(/\s+/).filter(Boolean);
+  return words.length <= BASIC_MAX_WORDS && !QUESTION.test(q);
+}
+
+/**
+ * Keep only the filters the request actually asks for. Models like to add helpful-looking filters
+ * (a category, a year range, Best of the Best) that nobody typed, which would silently hide good
+ * results; the person's own words are the evidence. Clients are already limited by relevantClients.
+ */
+export function groundFilters(plan: SearchPlan, query: string): SearchPlan {
+  const q = ` ${query.toLowerCase().replace(/[^a-z0-9/ ]/g, ' ').replace(/\s+/g, ' ')} `;
+  const asksForYears = /\b(19|20)\d\d\b/.test(q) || /\b(recent|latest|newest|newer|last (few|two|three|\d+) years?|this year|last year)\b/.test(q);
+  return {
+    ...plan,
+    category: plan.category && q.includes(` ${plan.category.toLowerCase()} `) ? plan.category : null,
+    bestOfTheBest: plan.bestOfTheBest && /best of (the )?best|\bbotb\b/.test(q) ? true : null,
+    yearFrom: asksForYears ? plan.yearFrom : null,
+    yearTo: asksForYears ? plan.yearTo : null,
+  };
+}
+
+/**
+ * The words exactly as typed, for short codes the rules skip: "QA/QC" gives "qa/qc", "qa" and "qc".
+ * Two letters or more; filler words and words that match every slide are still left out.
+ */
+export function literalWords(query: string): string[] {
+  const out: string[] = [];
+  for (const raw of query.toLowerCase().split(/\s+/)) {
+    const w = raw.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+    if (w.length < 2 || GENERIC_WORDS.has(w) || isStopWord(w)) continue;
+    for (const k of [w, ...(/[/&+-]/.test(w) ? w.split(/[/&+-]+/) : [])]) if (k.length >= 2 && !out.includes(k)) out.push(k);
+  }
+  return out.slice(0, MAX_KEYWORDS);
+}
+
+/**
+ * Codes typed in capitals or with a slash ("QA/QC", "MSA", "FF&E"), as typed. A model tends to
+ * spell them out ("quality assurance"), but slides often only use the code, so both are searched.
+ */
+export function typedCodes(query: string): string[] {
+  const codes = query.split(/\s+/).map((w) => w.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '')).filter((w) => /^[A-Z0-9]{2,6}([/&+-][A-Z0-9]{1,6})*$/.test(w) && /[A-Z]/.test(w));
+  return literalWords(codes.join(' '));
+}
+
+export function hasFilters(p: SearchPlan): boolean {
+  return Boolean(p.client || p.yearFrom || p.yearTo || p.category || p.bestOfTheBest);
+}
+
+/** The same plan with every filter removed, for when the filters leave nothing. */
+export function withoutFilters(p: SearchPlan): SearchPlan {
+  return { ...p, client: null, yearFrom: null, yearTo: null, category: null, bestOfTheBest: null };
+}
+
+/** Chips for the search box, so people can see (and later remove) how their words were read. */
+export function chipsFor(p: SearchPlan): Chip[] {
+  const chips: Chip[] = p.topics.map((label) => ({ kind: 'Topic' as const, label }));
+  if (p.client) chips.push({ kind: 'Client', label: p.client });
+  if (p.yearFrom || p.yearTo) {
+    const label = p.yearFrom === p.yearTo ? String(p.yearFrom) : p.yearTo ? `${p.yearFrom ?? 'Up'} to ${p.yearTo}` : `${p.yearFrom} or later`;
+    chips.push({ kind: 'Year', label });
+  }
+  if (p.category) chips.push({ kind: 'Category', label: p.category });
+  if (p.bestOfTheBest) chips.push({ kind: 'Collection', label: 'Best of the Best' });
+  return chips;
+}
+
+/**
+ * Postgres web-search syntax: any keyword can match ("a or b or \"two words\""). websearch_to_tsquery
+ * never throws on odd input, and the text goes in as a query parameter, so this is safe.
+ */
+export function anyOfQuery(keywords: string[]): string {
+  return keywords
+    .map((k) => k.replace(/["\\]/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .map((k) => (k.includes(' ') ? `"${k}"` : k))
+    .join(' or ');
+}
+
+export type SlideFacts = {
+  title: string;
+  text: string;
+  client: string | null;
+  year: number | null;
+  category: string | null;
+  bestOfTheBest: boolean;
+};
+
+/** A short "why it fits" line, built only from what this slide and its deck actually contain. */
+export function whyItFits(plan: SearchPlan, slide: SlideFacts): { why: string; matched: string[] } {
+  const title = slide.title.toLowerCase();
+  const text = slide.text.toLowerCase();
+  const has = (hay: string, k: string) => new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i').test(hay);
+  const inTitle = plan.keywords.filter((k) => has(title, k));
+  const inText = plan.keywords.filter((k) => !inTitle.includes(k) && has(text, k));
+  const matched = [...inTitle, ...inText];
+
+  const bits: string[] = [];
+  if (inTitle.length) bits.push(`Has ${quoteList(inTitle.slice(0, 2))} in its title`);
+  if (inText.length) bits.push(`${inTitle.length ? 'mentions' : 'Mentions'} ${quoteList(inText.slice(0, 2))}`);
+  const deck: string[] = [];
+  if (plan.client && slide.client === plan.client) deck.push(`from the ${slide.client} deck`);
+  if ((plan.yearFrom || plan.yearTo) && slide.year) deck.push(`from ${slide.year}`);
+  if (plan.category && slide.category === plan.category) deck.push(`filed under ${slide.category}`);
+  if (slide.bestOfTheBest) deck.push('in Best of the Best');
+  let why = bits.join(' and ');
+  if (deck.length) why = why ? `${why}, ${deck.join(', ')}` : capitalize(deck.join(', '));
+  return { why: why ? `${why}.` : 'Close match on the deck it comes from.', matched };
+}
+
+const quoteList = (xs: string[]) => xs.map((x) => `“${x}”`).join(' and ');
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

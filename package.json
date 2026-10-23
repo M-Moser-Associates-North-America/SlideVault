@@ -1,0 +1,49 @@
+{
+  "name": "slidevault",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "ingest": "tsx --conditions=react-server scripts/ingest.mts",
+    "test:export": "tsx --conditions=react-server scripts/test-export.mts",
+    "test:combine": "tsx --conditions=react-server scripts/test-combine.mts",
+    "test:duplicates": "tsx --conditions=react-server scripts/test-duplicates.mts",
+    "test:folder-path": "tsx scripts/test-folder-path.mts",
+    "test:deck-details": "tsx scripts/test-deck-details.mts",
+    "test:v3": "tsx --conditions=react-server scripts/test-v3-live.mts",
+    "test:smart-search": "tsx --conditions=react-server scripts/test-smart-search.mts",
+    "test:user-data": "tsx --conditions=react-server scripts/test-user-data.mts",
+    "upload:library": "tsx scripts/upload-library.mts",
+    "score:search": "tsx --conditions=react-server scripts/score-search.mts",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:a11y": "playwright test",
+    "db:setup": "tsx scripts/db-setup.mts",
+    "db:check": "tsx scripts/check-mmoser-db.mts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
+    "@types/pg": "^8.23.1",
+    "@xmldom/xmldom": "^0.9.12",
+    "jszip": "^3.10.2",
+    "next": "16.4.2",
+    "pg": "^8.23.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-joyride": "3.2.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}
