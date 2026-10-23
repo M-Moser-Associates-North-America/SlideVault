@@ -423,3 +423,17 @@ Acceptance evidence / affected PR criteria: npm run test:storyboard (knowledge c
 Documents/contracts changed: server/slide-knowledge.ts (new), server/services/storyboard.ts, server/services/library-smart-search.ts, server/services/fixture-smart-search.ts (fixtureRowsWhere), server/folder-path.ts (MSA folders), scripts/test-storyboard.mts.
 Revisit trigger: the scan runs at upload; readings move to Postgres; the regrouped categories become tags.
 ```
+
+```text
+Decision ID and title: FD-28 Reviewed slide metadata guides the storyboard: roles that hold, and slides that never go in a story
+Status: proposed
+Decision date: 2026-10-23
+Decision owner/reviewer: Schiffon (metadata and reasoning), Vincent (where it lives once on the server), Alina Pak (review)
+Context and evidence: Testing Grant's hospital brief on real decks, the storyboard placed a team member's résumé as "the client's challenge": the résumé listed hospital projects, so it matched the brief's words, and nothing said what kind of slide it was. Schiffon built a reviewed metadata file for 13 real decks (919 slides): slide type, story role, reuse status (reusable, check currency, client-specific, internal - never show), flags (a leftover client name, text only in an image), themes, sectors, projects, near-duplicate groups and slide packs. Across those decks 3% of slides speak to the client's challenge and 24% are admin pages.
+Options considered: (a) load the metadata beside the local model's reading (FD-26) and let a reviewed role decide which part a slide may fill; (b) keep word matching and down-rank admin slides; (c) wait for the metadata to live in Postgres.
+Chosen outcome: (a). A data-prep step (outside the repo, because it reads real decks) matches each CSV deck to a library file by content, then each row to a slide by number, and writes slide-metadata.json beside library.json. server/slide-knowledge.ts merges it with discover-scan.json: the reviewed role wins, and themes, sectors and projects join the topics. In buildStoryboard a slide with a reviewed role only fills that part unless colleagues marked it useful elsewhere (FD-24 still leads); "internal - never show" slides and slides flagged as naming another client never appear, whatever the votes; covers and contents join dividers and admin as never-proof. The client's sector is read from plain words in the brief ("hospital" -> healthcare, rules only) and proof from that sector leads its part, after colleagues' votes; each such slide says "Same sector as your client".
+Consequences for scope, cost, security and integration: No model calls. Slides without reviewed metadata behave as before. The metadata covers only decks whose files are in the library: 6 of the 13 for now (310 slides). On the hosted app the fields belong in Postgres beside each slide (Vincent), filled at upload and confirmed by a person.
+Acceptance evidence / affected PR criteria: npm run test:storyboard (metadata checks: a résumé matching the brief is never placed, an internal-only slide never appears, a slide naming another client never appears even with votes, reviewed slides fill only their own part, colleagues' votes still override a reviewed role).
+Documents/contracts changed: server/slide-knowledge.ts, server/services/storyboard.ts, scripts/test-storyboard.mts, docs/DECISIONS.md.
+Revisit trigger: the other decks' files are added; the metadata moves to Postgres; upload suggests these fields (FD-23).
+```

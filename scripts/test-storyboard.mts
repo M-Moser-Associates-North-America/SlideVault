@@ -7,7 +7,7 @@
 import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import type { SearchPlan, SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { cleanStoryPlan, missingContext, openAiCompatibleStoryReader, standInStory, STORY_ROLES, type StoryReader } from '../features/slide-vault/server/ai/storyboard';
-import { buildStoryboard, situationTopics } from '../features/slide-vault/server/services/storyboard';
+import { buildStoryboard, clientSectors, situationTopics } from '../features/slide-vault/server/services/storyboard';
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -82,6 +82,58 @@ check(JSON.stringify(situationTopics('Hospital campuses need studies and process
   check(/Read as: shows the client's challenge/.test(challenge(withIt).items[0]?.why ?? '') && /Matches your brief: .*hospital/.test(challenge(withIt).items[0]?.why ?? ''), 'knowledge: the reason says how it was read, and the brief matches what the slide is about', challenge(withIt).items[0]?.why);
   const proof = withIt.sections.find((x) => x.role === 'experience')!;
   check(!withIt.sections.some((x) => x.items.some((i) => i.slide.id === 'k-divider')) && proof.items[0]?.slide.id === 'k-case', 'knowledge: a divider titled "Case studies" is never used as proof', proof.items.map((i) => i.slide.id));
+}
+
+// ---- Reviewed slide metadata (FD-28): roles that hold, and slides that never go in a story
+{
+  const LIB3 = [
+    { id: 'm-resume', title: 'Designer profile', text: 'Hospital merging campuses challenge: led three hospital campus projects.' },
+    { id: 'm-worksheet', title: 'RFP worksheet', text: 'Hospital merging campuses challenge: internal submission checklist.' },
+    { id: 'm-leftover', title: 'Case study: hospital campus', text: 'Hospital merging campuses project for another client, completed with results.' },
+    { id: 'm-challenge', title: 'Three campuses, one hospital', text: 'Hospital merging campuses: what is at stake for staff.' },
+    { id: 'm-case', title: 'Case study: clinic network', text: 'Hospital campus project completed with results.' },
+  ];
+  const readings = new Map<string, { role: string; topics: string[]; about: string; reviewed?: boolean; reuse?: string; flags?: string[] }>([
+    ['m-resume', { role: 'admin', topics: [], about: '', reviewed: true, reuse: 'reusable - check currency' }],
+    ['m-worksheet', { role: 'admin', topics: [], about: '', reviewed: true, reuse: 'internal - never show' }],
+    ['m-leftover', { role: 'experience', topics: ['healthcare'], about: '', reviewed: true, reuse: 'reusable', flags: ['names another client / leftover placeholder'] }],
+    ['m-challenge', { role: 'client-challenge', topics: [], about: '', reviewed: true, reuse: 'client-specific - reference only' }],
+    ['m-case', { role: 'experience', topics: ['healthcare'], about: '', reviewed: true, reuse: 'reusable' }],
+  ]);
+  const rowOf = (s: (typeof LIB3)[number]) => ({ summary: slide(s.id, s.title), facts: { title: s.title, text: s.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const search3 = async (plan: SearchPlan) => LIB3.filter((s) => plan.keywords.some((k) => `${s.title} ${s.text}`.toLowerCase().includes(k))).map(rowOf);
+  const knowledge = { of: (id: string) => readings.get(id), forPart: async (role: string) => LIB3.filter((s) => readings.get(s.id)?.role === role).map(rowOf) };
+  const r = await buildStoryboard('A hospital group is merging three campuses.', { search: search3, knowledge });
+  const placed = r.sections.flatMap((x) => x.items.map((i) => `${x.role}:${i.slide.id}`));
+  const part = (role: string) => r.sections.find((x) => x.role === role)!.items.map((i) => i.slide.id);
+  check(!placed.some((p) => p.endsWith(':m-resume')), "metadata: a team résumé that matches the brief's words is never placed in the story", placed);
+  check(!placed.some((p) => p.endsWith(':m-worksheet')), 'metadata: an "internal - never show" slide never appears', placed);
+  check(!placed.some((p) => p.endsWith(':m-leftover')), 'metadata: a slide that still names another client never appears', placed);
+  check(JSON.stringify(part('client-challenge')) === '["m-challenge"]' && part('experience').includes('m-case'), 'metadata: reviewed slides fill only their own part', placed);
+  const learned = async () => new Map([['client-challenge:m-case', { useful: 2, notRight: 0 }]]);
+  const r2 = await buildStoryboard('A hospital group is merging three campuses.', { search: search3, knowledge, learned });
+  const leftoverAfterVotes = await buildStoryboard('A hospital group is merging three campuses.', { search: search3, knowledge, learned: async () => new Map([['experience:m-leftover', { useful: 5, notRight: 0 }]]) });
+  check(r2.sections.find((x) => x.role === 'client-challenge')!.items.some((i) => i.slide.id === 'm-case'), 'metadata: colleagues marking a slide useful for a part still overrides its reviewed role', r2.sections.map((x) => [x.role, x.items.map((i) => i.slide.id)]));
+  check(!leftoverAfterVotes.sections.some((x) => x.items.some((i) => i.slide.id === 'm-leftover')), 'metadata: no number of votes brings back a slide that names another client');
+}
+{
+  // Proof from the client's own sector leads, even when another case study matches more words.
+  const LIB4 = [
+    { id: 'p-bank', title: 'Case study: bank campus', text: 'Merging campuses project completed with results: three campuses, one story, on budget.' },
+    { id: 'p-health', title: 'Case study: clinic network', text: 'Campus project completed with results.' },
+  ];
+  const sectors = new Map([['p-bank', 'financial services'], ['p-health', 'healthcare / life sciences']]);
+  const rowOf = (s: (typeof LIB4)[number]) => ({ summary: slide(s.id, s.title), facts: { title: s.title, text: s.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const search4 = async (plan: SearchPlan) => LIB4.filter((s) => plan.keywords.some((k) => `${s.title} ${s.text}`.toLowerCase().includes(k))).map(rowOf);
+  const knowledge = {
+    of: (id: string) => (sectors.has(id) ? { role: 'experience', topics: [], about: '', reviewed: true, reuse: 'reusable', sectors: [sectors.get(id)!] } : undefined),
+    forPart: async (role: string) => (role === 'experience' ? LIB4.map(rowOf) : []),
+  };
+  check(JSON.stringify(clientSectors('A hospital group is merging three campuses.')) === '["healthcare"]', 'sector: "hospital" reads as a healthcare client');
+  const r = await buildStoryboard('A hospital group is merging three campuses on budget.', { search: search4, knowledge });
+  const proof = r.sections.find((x) => x.role === 'experience')!;
+  check(proof.items[0]?.slide.id === 'p-health', 'sector: a healthcare case study leads the proof for a hospital client', proof.items.map((i) => i.slide.id));
+  check(Boolean(proof.items[0]?.why.includes('Same sector as your client')), 'sector: the slide says why it leads', proof.items[0]?.why);
 }
 
 // ---- Clarifying questions
