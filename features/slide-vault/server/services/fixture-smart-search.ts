@@ -18,7 +18,11 @@ export type SearchKnowledge = { about: (slideId: string) => string; boost: (slid
 
 export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan, limit: number, known?: SearchKnowledge): { summary: SlideSummary; facts: SlideFacts }[] {
   if (!index) return [];
-  const starts = plan.keywords.map((k) => new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i'));
+  // A word of three letters must be the whole word ("app" is not "approach"); a longer one may start a word ("team" finds "teamwork").
+  const starts = plan.keywords.map((k) => { const e = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return new RegExp(k.length <= 3 ? `\\b${e}s?\\b` : `\\b${e}`, 'i'); });
+  // A word on few slides says more than one on most: each keyword weighs by how rare it is in the library.
+  const all = index.sources.flatMap((source) => source.slides);
+  const weight = starts.map((re) => { const n = all.filter((sl) => re.test(sl.title) || re.test(sl.text)).length; return Math.log(1 + all.length / Math.max(1, n)); });
   const scored: { summary: SlideSummary; facts: SlideFacts; score: number }[] = [];
   for (const source of index.sources) {
     for (const slide of source.slides) {
@@ -31,7 +35,7 @@ export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan
       if (plan.bestOfTheBest && !p.bestOfTheBest) continue;
       // A title hit counts double, like ts_rank weighting the title in Postgres.
       const about = known?.about(slide.id) ?? '';
-      const words = starts.reduce((n, re) => n + (re.test(slide.title) ? 2 : re.test(slide.text) || (about && re.test(about)) ? 1 : 0), 0);
+      const words = starts.reduce((n, re, i) => n + weight[i] * (re.test(slide.title) ? 2 : re.test(slide.text) || (about && re.test(about)) ? 1 : 0), 0);
       const answers = known?.answers(slide.id) ?? false;
       if (starts.length && words === 0 && !answers) continue;
       const score = words + (known?.boost(slide.id) ?? 0);

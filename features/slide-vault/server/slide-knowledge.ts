@@ -36,10 +36,12 @@ export type SlideReading = {
   themes?: string[];
   /** The sector of the client the slide's deck was made for, e.g. "healthcare / medtech" (reviewed metadata) */
   clientSector?: string;
+  /** Slides that only work together share a pack (reviewed metadata), e.g. a team intro and its people */
+  pack?: string;
 };
 
 type ScanRow = { role?: unknown; topics?: unknown; shows?: unknown; convinces?: unknown; confidence?: unknown };
-type MetaRow = { role?: unknown; type?: unknown; reuse?: unknown; flags?: unknown; themes?: unknown; proofSectors?: unknown; projects?: unknown; clientSector?: unknown };
+type MetaRow = { role?: unknown; type?: unknown; reuse?: unknown; flags?: unknown; themes?: unknown; proofSectors?: unknown; projects?: unknown; clientSector?: unknown; pack?: unknown };
 
 const SCAN = 'discover-scan.json';
 /** The same reading for PDF pages, keyed by the page IDs ingest gives them. */
@@ -89,6 +91,7 @@ export async function loadSlideReadings(dataDir = readConfig().dataDir): Promise
       projects,
       themes: strings(m.themes),
       clientSector: typeof m.clientSector === 'string' ? m.clientSector : undefined,
+      pack: typeof m.pack === 'string' && m.pack ? m.pack : undefined,
     });
   }
   cache = { key, map };

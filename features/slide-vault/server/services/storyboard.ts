@@ -48,7 +48,7 @@ export type StoryboardDeps = {
    * slides it read as doing that part of a story, so a part can find a slide that never uses its words.
    */
   knowledge?: {
-    of: (slideId: string) => { role: string; topics: string[]; about: string; reviewed?: boolean; uncertain?: boolean; reuse?: string; flags?: string[]; sectors?: string[]; type?: string; projects?: string[]; themes?: string[] } | undefined;
+    of: (slideId: string) => { role: string; topics: string[]; about: string; reviewed?: boolean; uncertain?: boolean; reuse?: string; flags?: string[]; sectors?: string[]; type?: string; projects?: string[]; themes?: string[]; pack?: string } | undefined;
     /** `first`, when given, picks which slides come first, so the client's own sector isn't crowded out by library order. */
     forPart: (role: StoryRole, limit: number, first?: (slideId: string) => boolean) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]>;
   };
@@ -83,10 +83,13 @@ const NOT_PROOF = new Set(['divider', 'admin', 'intro']);
 const neverInStory = (k: { reuse?: string; flags?: string[] } | undefined) =>
   k?.reuse === 'internal - never show' || !!k?.flags?.some((f) => /names another client|leftover/i.test(f));
 
+/** Three-letter words that say nothing about a client's need */
+const SHORT_FILLER = new Set(['new', 'two', 'six', 'ten', 'his', 'her', 'him', 'she', 'who', 'how', 'why', 'all', 'any', 'can', 'get', 'got', 'let', 'say', 'see', 'use', 'way', 'yet', 'via', 'per', 'out', 'off', 'too', 'now', 'day', 'big']);
+
 /** The situation's own words, searched on their own and used to rank every part. */
 const MAX_TOPICS = MAX_KEYWORDS;
 /** Words that describe the pitch, not the client's need ("we just won a contract for the client"). */
-const SITUATION_FILLER = new Set(['just', 'won', 'win', 'already', 'another', 'client', 'clients', 'firm', 'company', 'wants', 'want', 'would', 'could', 'pitching', 'pitch', 'proposal', 'contract', 'new', 'their', 'they', 'them', 'will', 'also', 'need', 'needs', 'help', 'make', 'work', 'working', 'way', 'ways', 'losing', 'lose', 'own', 'worries', 'worried', 'move', 'moving', 'wants', 'board', 'worri', 'will', 'their', 'pitching', 'group', 'three', 'last', 'year', 'story', 'across', 'tell', 'tells', 'one', 'project', 'site', 'outline', 'face', 'facing', 'concern']);
+const SITUATION_FILLER = new Set(['just', 'won', 'win', 'already', 'another', 'client', 'clients', 'firm', 'company', 'wants', 'want', 'would', 'could', 'pitching', 'pitch', 'proposal', 'contract', 'new', 'their', 'they', 'them', 'will', 'also', 'need', 'needs', 'help', 'make', 'work', 'working', 'way', 'ways', 'losing', 'lose', 'own', 'worries', 'worried', 'move', 'moving', 'wants', 'board', 'worri', 'will', 'their', 'pitching', 'group', 'three', 'last', 'year', 'story', 'across', 'tell', 'tells', 'one', 'project', 'site', 'outline', 'face', 'facing', 'concern', 'those', 'these', 'please', 'tell', 'were', 'assigned']);
 
 /**
  * The words in a situation that describe this client's need ("hybrid", "sustainability", "desks"),
@@ -96,7 +99,8 @@ const SITUATION_FILLER = new Set(['just', 'won', 'win', 'already', 'another', 'c
 export function situationTopics(text: string): string[] {
   const out: string[] = [];
   for (const raw of text.toLowerCase().split(/[^a-z0-9/-]+/)) {
-    if (raw.length < 4 || isStopWord(raw) || SITUATION_FILLER.has(raw)) continue;
+    // Three letters is enough when the word means something ("app", "lab"); filler and stop words never count.
+    if (raw.length < 3 || isStopWord(raw) || SITUATION_FILLER.has(raw) || SHORT_FILLER.has(raw)) continue;
     // Plurals made singular: "desks" -> "desk", "studies" -> "study", "campuses" -> "campus"; "process", "analysis" stay.
     const w = raw.length <= 4 ? raw : raw.endsWith('ies') ? `${raw.slice(0, -3)}y` : /(s|x|ch|sh)es$/.test(raw) ? raw.slice(0, -2) : raw.endsWith('s') && !/(ss|us|is)$/.test(raw) ? raw.slice(0, -1) : raw;
     if (!SITUATION_FILLER.has(w) && !out.includes(w)) out.push(w);
@@ -201,7 +205,8 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   const topics = cleanPlan({ keywords: situationTopics(text) }, NO_FILTERS);
   const sectors = clientSectors(text);
   const needs = briefNeeds(text);
-  const onTopicRows = topics.keywords.length ? await deps.search(topics, 60) : [];
+  // A wide first cut: in a library of thousands, a slide that answers the brief can sit past the first 60.
+  const onTopicRows = topics.keywords.length ? await deps.search(topics, 120) : [];
   // A slide's words plus what the local model read on it, so the brief can match what a slide is
   // about ("a hospital merger") as well as what it literally says.
   const read = (facts: SlideFacts, id: string): SlideFacts => {
@@ -266,6 +271,12 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
         if (r.known && (r.known.reviewed || !r.known.uncertain)) return r.readHere > 0 || r.said > 0;
         return (r.inPart > 0 || r.readHere > 0 || r.said > 0) && !(r.readAs && NOT_PROOF.has(r.readAs) && r.said <= 0);
       });
+    // Don't pad a part with weak matches (24 Oct, the builders' story): a slide must score near the
+    // best in its part on the brief's words, unless it meets a need, is the client's sector or their
+    // own deck, or colleagues said it helps here.
+    const bestOnTopic = Math.max(0, ...pool.map((r) => r.onTopic));
+    const strong = (r: (typeof pool)[number]) => r.said > 0 || r.theirs > 0 || r.sameSector > 0 || r.met.length > 0 || r.onTopic >= bestOnTopic * 0.3;
+    pool.splice(0, pool.length, ...pool.filter(strong));
     for (const r of pool) considered.add(r.row.summary.id);
     needCount.clear();
     for (const r of pool) for (const n of r.met) needCount.set(n, (needCount.get(n) ?? 0) + 1);
@@ -279,11 +290,16 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   for (const { ranked } of candidates) for (const r of ranked) bestFit.set(r.row.summary.id, Math.max(bestFit.get(r.row.summary.id) ?? -Infinity, partFit(r)));
   for (const { section, perPart, story, ranked } of candidates) {
     const items: StoryboardSlide[] = [];
+    const packsHere = new Set<string>();
     for (const r of ranked) {
       const { row, l, readHere, sameSector, met, theirs } = r;
       const { summary } = row;
       const facts = read(row.facts, summary.id);
       if (used.has(summary.id) || usedCopies.has(sameSlideKey(row.facts)) || partFit(r) < (bestFit.get(summary.id) ?? -Infinity)) continue;
+      // A full part still takes the rest of a pack it has started: slides that only work together stay together.
+      const pack = deps.knowledge?.of(summary.id)?.pack;
+      if (items.length >= perPart && !(pack && packsHere.has(pack))) continue;
+      if (pack) packsHere.add(pack);
       // The reason shows its working, from the slide and its deck only: which of the brief's words
       // are on it (most telling first), what on it does this part's job, and where it comes from.
       const brief = whyItFits(topics, facts).matched.sort((a, b) => weight(b) - weight(a)).slice(0, 3);
@@ -303,7 +319,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       used.add(summary.id);
       usedCopies.add(sameSlideKey(row.facts));
       items.push({ slide: summary, why, matched: fit.matched, reasons: { brief, part, from }, needs: met, ...(l ? { learned: l } : {}) });
-      if (items.length >= perPart) break;
+
     }
     const label = STORY_ARC.find((a) => a.role === section.role)!.label;
     sections.push({ role: section.role, label, title: section.title, need: section.need, items, gap: items.length === 0 });

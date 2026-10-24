@@ -132,10 +132,15 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   // A new story about clients we already have decks for: those decks are context for it.
   const theirIds = new Set(asked.mode === 'build' ? asked.context.flatMap((d) => index?.sources.find((x) => x.id === d.id)?.slides.map((x) => x.id) ?? []) : []);
   const context = asked.mode === 'build' && theirIds.size ? { decks: asked.context.map((d) => ({ id: d.id, title: d.title })), rows: fixtureRowsWhere(index, (id) => theirIds.has(id), theirIds.size) } : undefined;
-  const search = async (plan: SearchPlan, max: number) =>
-    [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max)].slice(0, max);
   // What the local model read on each slide (FD-26), when the scan has been run on this library.
   const readings = await loadSlideReadings();
+  // The brief's words are searched in what was read on each slide too, as home search does (FD-33):
+  // a slide that says "builders" can answer a brief about the people who built an app.
+  const readText: SearchKnowledge | undefined = readings.size
+    ? { about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; }, boost: () => 0, answers: () => false }
+    : undefined;
+  const search = async (plan: SearchPlan, max: number) =>
+    [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max, readText)].slice(0, max);
   const knowledge = readings.size
     ? { of: (id: string) => readings.get(id), forPart: async (role: string, limit: number, first?: (id: string) => boolean) => {
           const inPart = (id: string) => readings.get(id)?.role === role;

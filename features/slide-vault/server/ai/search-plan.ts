@@ -217,7 +217,8 @@ export type SlideFacts = {
 export function whyItFits(plan: SearchPlan, slide: SlideFacts): { why: string; matched: string[] } {
   const title = slide.title.toLowerCase();
   const text = slide.text.toLowerCase();
-  const has = (hay: string, k: string) => new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i').test(hay);
+  // A short word must be the whole word ("app" is not "approach"), as in the search itself.
+  const has = (hay: string, k: string) => { const e = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return new RegExp(k.length <= 3 ? `\\b${e}s?\\b` : `\\b${e}`, 'i').test(hay); };
   const inTitle = plan.keywords.filter((k) => has(title, k));
   const inText = plan.keywords.filter((k) => !inTitle.includes(k) && has(text, k));
   const matched = [...inTitle, ...inText];
