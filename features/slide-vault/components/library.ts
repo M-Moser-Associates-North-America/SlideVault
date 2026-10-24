@@ -17,6 +17,8 @@ export type Deck = {
   year: number | null;
   category: string | null;
   bestOfTheBest: boolean;
+  /** Where the client is (FD-35), or null */
+  location?: string | null;
   slides: SlideSummary[];
 };
 
@@ -53,6 +55,7 @@ export function groupDecks(slides: SlideSummary[]): Deck[] {
         year: p.deckYear ?? null,
         category: p.category ?? null,
         bestOfTheBest: !!p.bestOfTheBest,
+        location: p.location ?? null,
         slides: [],
       };
       map.set(p.sourceId, deck);

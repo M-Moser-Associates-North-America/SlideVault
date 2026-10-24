@@ -16,6 +16,8 @@ export type FindableDeck = {
   clientName: string | null;
   year: number | null;
   category: string | null;
+  /** Where the client is, e.g. "Vancouver" or "Waterloo / Americas" (FD-35) */
+  location?: string | null;
   /** The same file copied into the library twice shares a version: shown once. */
   versionId?: string;
 };
@@ -27,6 +29,8 @@ export type DeckFind<D extends FindableDeck> = {
   years: number[];
   /** Asked for a year the client has no deck from: the client's other decks are shown instead */
   yearMissing: boolean;
+  /** The places the request named that decks are from ("proposals in Vancouver") */
+  places: string[];
   /**
    * Honest misses (FD-34): a name asked for as a deck that no deck goes by ("Google proposal"), and
    * years asked for that the library has no decks from ("proposals from 2019"). Never guessed at.
@@ -114,7 +118,7 @@ function namedIn(q: string, name: string): boolean {
 /** The decks a request asks for, or none when it isn't asking for a deck. */
 export function findDecks<D extends FindableDeck>(query: string, decks: D[], thisYear = new Date().getFullYear()): DeckFind<D> {
   const q = norm(query);
-  const none: DeckFind<D> = { decks: [], clients: [], years: [], yearMissing: false, missing: { name: null, years: [] } };
+  const none: DeckFind<D> = { decks: [], clients: [], years: [], yearMissing: false, places: [], missing: { name: null, years: [] } };
   if (!q) return none;
   const years = yearsIn(q, thisYear);
   const yearsWithout = years.filter((y) => !decks.some((d) => d.year === y));
@@ -126,14 +130,23 @@ export function findDecks<D extends FindableDeck>(query: string, decks: D[], thi
   if (byClient.length) {
     const inYear = years.length ? byClient.filter((d) => d.year !== null && years.includes(d.year)) : byClient;
     const clients = [...new Set(byClient.map((d) => d.clientName).filter((c): c is string => !!c))];
-    return { decks: newestFirst(ofKind(inYear.length ? inYear : byClient)), clients, years, yearMissing: years.length > 0 && inYear.length === 0, missing: { name: null, years: [] } };
+    return { ...none, decks: newestFirst(ofKind(inYear.length ? inYear : byClient)), clients, years, yearMissing: years.length > 0 && inYear.length === 0 };
   }
   // No client named: a year with deck words ("all proposals from 2025"), or a year on its own.
   const onlyYear = q.replace(/\b(19|20)\d\d\b/g, '').replace(/\b(show|me|all|our|the|from|in|of|every|list|find|give|pull|up|last|this|year)\b/g, '').trim();
+  // A place the decks are from ("proposals in Vancouver"), when no client is named: the client always
+  // wins, so "New York Times" is never read as New York.
+  const placeOf = (d: D) => (d.location ?? '').split('/').map((x) => norm(x)).filter((x) => x.length >= 2);
+  // Only when decks are asked for, or the place follows "in", "from" or "at": "global delivery approach" is a slide search.
+  const places = [...new Set(unique.flatMap(placeOf))].filter((p) => namedIn(q, p) && (DECK_WORDS.test(q) || new RegExp(`\\b(in|from|at)\\s+${p}\\b`).test(q)));
+  if (places.length) {
+    const here = unique.filter((d) => placeOf(d).some((p) => places.includes(p)) && (!years.length || (d.year !== null && years.includes(d.year))));
+    return { ...none, decks: newestFirst(ofKind(here)), years, places: places.map((p) => unique.flatMap((d) => (d.location ?? '').split('/').map((x) => x.trim())).find((x) => norm(x) === p) ?? p) };
+  }
   const name = askedName(query);
   if (name) return { ...none, years, missing: { name, years: [] } };
   if (years.length && (DECK_WORDS.test(q) || !onlyYear)) {
-    return { decks: newestFirst(ofKind(unique.filter((d) => d.year !== null && years.includes(d.year)))), clients: [], years, yearMissing: false, missing: { name: null, years: yearsWithout } };
+    return { ...none, decks: newestFirst(ofKind(unique.filter((d) => d.year !== null && years.includes(d.year)))), years, missing: { name: null, years: yearsWithout } };
   }
   return none;
 }

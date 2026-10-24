@@ -612,7 +612,9 @@ export function ResultsView() {
           sub={
             found.yearMissing
               ? `No ${found.clients.join(', ')} deck from ${found.years.join(', ')}. Here is what there is.`
-              : `The original ${found.decks.length === 1 ? 'deck' : 'decks'}, as saved. Open one to see every slide.`
+              : found.places.length
+                ? `Decks for clients in ${found.places.join(' or ')}, as saved. Open one to see every slide.`
+                : `The original ${found.decks.length === 1 ? 'deck' : 'decks'}, as saved. Open one to see every slide.`
           }
         >
           {found.decks.map((d) => (

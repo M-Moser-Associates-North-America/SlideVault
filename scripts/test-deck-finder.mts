@@ -11,13 +11,14 @@ function check(ok: boolean, label: string, detail: unknown = '') {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${!ok && detail ? ` — ${JSON.stringify(detail)}` : ''}`);
 }
 
-const deck = (id: string, fileName: string, clientName: string | null, year: number | null, category: string | null, versionId = id): FindableDeck => ({ id, title: id, fileName, clientName, year, category, versionId });
+const deck = (id: string, fileName: string, clientName: string | null, year: number | null, category: string | null, versionId = id, location: string | null = null): FindableDeck => ({ id, title: id, fileName, clientName, year, category, versionId, location });
 const DECKS = [
   deck('kestrel-25', "Proposals/PDF/M Moser_Kestrel's_RFP_06202025.pdf", "Kestrel's", 2025, 'RFP'),
   deck('kestrel-26', 'Proposals/M Moser_Kestrel_MSA_2026.pptx', "Kestrel's", 2026, 'MSA'),
-  deck('tailwind', 'Proposals/M Moser_TailwindGames_Vancouver_2025.pdf', 'Tailwind Games', 2025, 'RFP'),
+  deck('tailwind', 'Proposals/M Moser_TailwindGames_Vancouver_2025.pdf', 'Tailwind Games', 2025, 'RFP', 'tailwind', 'Vancouver'),
   deck('fabrikam', 'Proposals/M Moser_Fabri_RFP_Global MSA_07022026.pptx', 'Fabrikam', 2026, 'MSA'),
-  deck('contoso', 'Proposals/M Moser_Project Lime_NY_RFP_2025.pdf', 'Contoso (Project Lime)', 2025, 'RFP'),
+  deck('contoso', 'Proposals/M Moser_Project Lime_NY_RFP_2025.pdf', 'Contoso (Project Lime)', 2025, 'RFP', 'contoso', 'New York'),
+  deck('newyork-co', 'Proposals/M Moser_New York Herald_2026.pptx', 'New York Herald', 2026, null, 'nyh', 'New York'),
   deck('northwind-a', 'Proposals/M Moser_Northwind_2025 (1).pptx', 'Northwind', 2025, null, 'v-north'),
   deck('northwind-b', 'Proposals/M Moser_Northwind_2025.pptx', 'Northwind', 2025, null, 'v-north'),
   deck('old', 'Archive/1995/Litware/M Moser_Litware_1995.pptx', 'Litware', 1995, null),
@@ -45,6 +46,15 @@ check(JSON.stringify(ids("Kestrel's from last year")) === '["kestrel-25"]', '"la
 check(ids('hospital campus case study').length === 0, 'a slide search names no deck: no decks');
 check(ids('workplace strategy 2025').length === 0, 'a topic with a year is a slide search, not every deck from that year');
 check(!deckNames(DECKS[0]).includes('moser'), 'the firm\'s own name is never a client name');
+
+// ---- Where the client is (FD-35)
+{
+  check(JSON.stringify(ids('proposals in Vancouver')) === '["tailwind"]', 'a place finds the decks for clients there');
+  check(JSON.stringify(ids('New York proposals').sort()) === '["contoso","newyork-co"]', 'a place before the deck word works too');
+  check(JSON.stringify(ids('New York Herald')) === '["newyork-co"]', 'a client named after a place is the client, not the place');
+  check(ids('Vancouver studio design approach').length === 0, 'a place in a slide search is not a deck request');
+  check(JSON.stringify(ids('proposals in New York 2026')) === '["newyork-co"]', 'a place and a year narrow it');
+}
 
 // ---- Honest misses (FD-34)
 {

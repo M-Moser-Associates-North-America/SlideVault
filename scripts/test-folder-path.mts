@@ -57,5 +57,14 @@ const bare = folderInfo('random deck.pptx');
 check(bare.deckYear === null && bare.clientName === null && bare.category === null && !bare.bestOfTheBest,
   'a loose file with no folders or naming pattern stays unknown, not guessed', JSON.stringify(bare));
 
+// Where the client is, from a city code in M Moser's file names (FD-35)
+for (const [file, place] of [
+  ['Proposals/M Moser_Acme_NY_RFP_2025.pdf', 'New York'],
+  ['Proposals/M Moser_Acme_MSA_TO_2025.pptx', 'Toronto'],
+  ['Proposals/MMoser_Acme_RFP Response_SFO_2025.pdf', 'San Francisco'],
+  ['Proposals/M Moser_Acme_VC_2025.pdf', 'Vancouver'],
+  ['Proposals/M Moser_Acme_RFP_06202025.pdf', null],
+] as const) check(folderInfo(file).location === place, `reads where the client is from ${file}`, String(folderInfo(file).location));
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll folder-path checks passed');
 process.exit(failures ? 1 : 0);

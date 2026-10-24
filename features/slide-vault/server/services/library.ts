@@ -14,7 +14,7 @@ export function fixtureLibrary(index: LibraryIndex | null): { decks: LibraryDeck
       // The same deck facts as every slide summary, so browsing and search agree (FD-31).
       const f = deckFacts(s);
       return {
-        id: s.id, title: f.title, client: f.clientName, year: f.deckYear, category: f.category, bestOfTheBest: f.bestOfTheBest,
+        id: s.id, title: f.title, client: f.clientName, year: f.deckYear, category: f.category, bestOfTheBest: f.bestOfTheBest, location: f.location,
         slideSize: null, versionId: s.versionId, uploadedAt: null, source: 'fixture' as const,
       };
     }),

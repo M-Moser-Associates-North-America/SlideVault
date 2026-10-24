@@ -15,7 +15,7 @@ export const MAX_LIMIT = 100;
 /** What is known about a deck: the deck catalog first (reviewed client, year, kind), then its folder and file name (FD-31). */
 export function deckFacts(source: IndexedSource) {
   const named = folderInfo(source.fileName);
-  const facts = { ...named, clientName: source.deck?.clientName ?? named.clientName, deckYear: source.deck?.deckYear ?? named.deckYear, category: source.deck?.category ?? named.category };
+  const facts = { ...named, clientName: source.deck?.clientName ?? named.clientName, deckYear: source.deck?.deckYear ?? named.deckYear, category: source.deck?.category ?? named.category, location: source.deck?.location ?? named.location };
   // A deck is named for what it is ("Moody's · RFP · 2025"), not its file name or a cover left as "Title of deck here".
   const title = source.deck?.title ?? (facts.clientName ? [facts.clientName, facts.category, facts.deckYear].filter(Boolean).join(' · ') : source.title);
   return { ...facts, title };
@@ -42,6 +42,7 @@ export function toSummary(source: IndexedSource, slide: IndexedSlide): SlideSumm
       clientName: deck.clientName,
       deckYear: deck.deckYear,
       category: deck.category,
+      location: deck.location,
       bestOfTheBest: deck.bestOfTheBest,
     },
   };

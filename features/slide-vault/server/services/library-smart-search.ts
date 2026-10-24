@@ -116,7 +116,7 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   // An existing deck asked for by name (FD-31): open it as saved, or retell it with all its slides.
   const decks = (index?.sources ?? []).map((src) => {
     const f = deckFacts(src);
-    return { id: src.id, title: f.title, fileName: src.fileName, clientName: f.clientName, year: f.deckYear, category: f.category, versionId: src.versionId, slideCount: src.slides.length };
+    return { id: src.id, title: f.title, fileName: src.fileName, clientName: f.clientName, year: f.deckYear, category: f.category, location: f.location, versionId: src.versionId, slideCount: src.slides.length };
   });
   const asked = deckRequest(situation, decks, opts.mode);
   if (asked.mode === 'missing') {

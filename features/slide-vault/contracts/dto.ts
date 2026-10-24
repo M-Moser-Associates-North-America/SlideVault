@@ -54,6 +54,8 @@ export type Provenance = {
   deckYear?: number | null;
   category?: string | null;
   bestOfTheBest?: boolean;
+  /** Where the deck's client is, e.g. "Vancouver" or "Global" (FD-35); null when unknown */
+  location?: string | null;
 };
 
 /** The same (or nearly the same) slide also appears in other decks (duplicate grouping, PRD P1). */
@@ -124,6 +126,8 @@ export type LibraryDeck = {
   year: number | null;
   category: string | null;
   bestOfTheBest: boolean;
+  /** Where the deck's client is (FD-35); null when unknown */
+  location?: string | null;
   /** "16:9", "4:3" or null when unknown */
   slideSize: string | null;
   /** Same value as provenance.sourceVersionId, needed to download */

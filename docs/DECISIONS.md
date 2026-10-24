@@ -491,3 +491,11 @@ Context and evidence: Vince's test searches (24 Oct): "Google proposal" returned
 Chosen outcome: deck-finder.ts reports what a deck request asks for that the library doesn't have: a name written like a name ("Google") that no deck goes by, and years with no decks. Lower-case words are topics ("hospital proposal") and a place after "in"/"at" is a location ("proposals in Vancouver"), so neither is ever reported as a missing client; a name with no deck word ("Google") stays a slide search. Home search says "No Google deck in the library." above the results, adding "The slides below mention it." when slides do; "No decks from 2019 in the library." for years. The storyboard answers a request for a deck we don't have with that same sentence and "Build a new story instead" (mode=build, which builds whatever the request names), never with a story in its place. A new pitch to a client we have no deck for still builds.
 
 Consequences: A name typed in lower case ("google proposal") is read as a topic, so it gets slide results without the miss sentence. Locations become deck facts in a later step.
+
+## FD-35: Where the client is, as a deck fact (2026-10-24)
+
+Context and evidence: Vince's test "proposals in Vancouver" found nothing: the app did not know where any deck's client was, although the reviewed metadata has a location for every deck it covers and M Moser's file names often carry a city code (M Moser_Intuit_NY_RFP_2025, M Moser_Scotiabank_MSA_TO_2025).
+
+Chosen outcome: Location joins client, year and kind as a deck fact: the deck catalog's reviewed location first, then a city code or name in the file name (NY, SF/SFO, TO, VC, Vancouver, Global and a few more). It is carried on every slide's provenance and the library listing. The deck finder finds decks by place ("proposals in Vancouver", "New York proposals", "decks from Toronto", with a year too) when the request asks for decks or the place follows "in", "from" or "at"; a named client always wins, so "New York Times" is never read as New York, and a place in a slide search ("global delivery approach") shows no decks.
+
+Consequences: Decks with neither a reviewed location nor a city code in the file name have no location (Cognizant, Design Build) rather than a guessed one.

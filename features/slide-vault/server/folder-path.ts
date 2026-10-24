@@ -21,6 +21,18 @@ export type FolderInfo = {
   deckYear: number | null;
   category: string | null;
   bestOfTheBest: boolean;
+  /** Where the client is, from a city code or name in the file name ("NY", "SF", "Vancouver"); null when it doesn't say */
+  location: string | null;
+};
+
+/** City codes and names M Moser's file names use for where the client is */
+const PLACES: Record<string, string> = {
+  ny: 'New York', nyc: 'New York', 'new york': 'New York',
+  sf: 'San Francisco', sfo: 'San Francisco', 'san francisco': 'San Francisco',
+  to: 'Toronto', toronto: 'Toronto',
+  vc: 'Vancouver', van: 'Vancouver', vancouver: 'Vancouver',
+  la: 'Los Angeles', chi: 'Chicago', chicago: 'Chicago', bos: 'Boston', boston: 'Boston', sea: 'Seattle', seattle: 'Seattle',
+  global: 'Global', americas: 'Americas',
 };
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -50,7 +62,7 @@ function yearFromName(tokens: string[]): number | null {
 export function folderInfo(relativePath: string): FolderInfo {
   const parts = relativePath.split(/[\\/]+/).filter(Boolean);
   const fileName = parts.pop() ?? '';
-  const info: FolderInfo = { folderPath: [...parts, fileName].join('/'), clientName: null, deckYear: null, category: null, bestOfTheBest: false };
+  const info: FolderInfo = { folderPath: [...parts, fileName].join('/'), clientName: null, deckYear: null, category: null, bestOfTheBest: false, location: null };
 
   parts.forEach((part, i) => {
     const low = part.trim().toLowerCase();
@@ -84,6 +96,7 @@ export function folderInfo(relativePath: string): FolderInfo {
     const tokens = stem.split('_').map((t) => t.replace(/\(\d+\)/g, '').trim());
     if (!info.clientName && /^mmoser$/i.test(tokens[0]) && tokens[1]) info.clientName = tokens[1];
     info.deckYear ??= yearFromName(tokens);
+    info.location ??= tokens.slice(2).map((t) => PLACES[t.toLowerCase()] ?? null).find(Boolean) ?? null;
     info.category ??= tokens.slice(1).map((t) => CATEGORY_NAMES[t.toLowerCase().replace(/msa$/, 'msa').split(' ').pop() ?? ''] ?? null).find(Boolean) ?? null;
   }
   return info;
