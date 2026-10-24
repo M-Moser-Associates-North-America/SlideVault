@@ -1,5 +1,5 @@
 import type { StoryBeat, StoryboardSection, StoryboardSlide, StoryRole } from '../../contracts/dto';
-import type { ComposeCandidate, StoryReader } from '../ai/storyboard';
+import { wholeSentences, type ComposeCandidate, type StoryReader } from '../ai/storyboard';
 
 /**
  * The story told slide by slide (docs/DECISIONS.md FD-30). The rules have already found the slides
@@ -106,7 +106,7 @@ function bridgeAll(beats: StoryBeat[], keep: (b: StoryBeat, i: number) => boolea
 
 const firstSentence = (text: string, max = 260) => {
   const t = text.replace(/\s+/g, ' ').trim();
-  return (t.match(/^.{20,}?[.!?](?=\s|$)/)?.[0] ?? t).slice(0, max);
+  return wholeSentences(t.match(/^.{20,}?[.!?](?=\s|$)/)?.[0] ?? t, max);
 };
 
 /** Without the AI the story is named from the brief's opening words: "A hospital group is merging three campuses". */

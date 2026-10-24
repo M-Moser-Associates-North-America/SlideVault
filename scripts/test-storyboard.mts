@@ -288,6 +288,16 @@ check(wholeSentences('We start with you. Then we plan every site together with y
   check(m.beats.find((b) => b.role === 'strategy')?.bridge === 'From their situation to the plan.', "story: a bridge whose neighbour didn't move is the AI's own", m.beats.map((b) => [b.role, b.bridge]));
 }
 
+{
+  // Seen on the Moody's story (24 Oct): the summary stopped at "and", "why this slide" at "st".
+  const long = 'This beat sets the stage by framing the client as a forward-thinking global leader, aligning with the firm\'s ability to deliver high-impact, strategic workplaces. It also shows we know their market and their people in detail.';
+  const c = cleanComposition({ title: 'A very long title that goes on and on well past the point where any heading should have stopped talking', thesis: long, beats: [1, 2, 3].map((n) => ({ role: 'strategy', title: 't', bridge: long, lead: `s${n}`, more: [], narration: long, why: long, matches: [] })) }, new Map([['s1', 'strategy'], ['s2', 'strategy'], ['s3', 'strategy']]));
+  const ends = (t: string) => /[.!?…]$/.test(t) || t === long;
+  check(c.beats.every((b) => ends(b.why) && ends(b.narration) && ends(b.bridge)) && ends(c.thesis), 'text: every AI line ends on a whole sentence or a whole word, never mid-word', c.beats[0].why);
+  check(!/\bst$/.test(c.beats[0].why) && c.title.endsWith('…') && !c.title.endsWith(' …'), 'text: a long title stops at a whole word', c.title);
+  check(cleanStoryPlan({ summary: long + ' ' + long, questions: [], sections: [] }).summary.endsWith('.'), 'text: the summary under the title ends on a whole sentence');
+}
+
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
 check(missingContext('The board and CFO worry about disruption; the goal is a low-cost, fast fit-out.').length === 0, 'questions: a situation that already says them gets no questions');

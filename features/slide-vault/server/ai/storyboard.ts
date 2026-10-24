@@ -64,14 +64,15 @@ export function cleanStoryPlan(raw: Partial<StoryPlan> & { sections?: unknown; q
     const words = (Array.isArray(r.words) ? r.words : []).map((w) => lower(w, 40).toLowerCase()).filter((w) => w.length >= 3);
     const seen = byRole.get(arc.role);
     if (seen) seen.words.push(...words);
-    else byRole.set(arc.role, { role: arc.role, title: lower(r.title, 80) || arc.label, need: lower(r.need, 200) || arc.need, words });
+    else byRole.set(arc.role, { role: arc.role, title: wholeSentences(lower(r.title, 300), 90) || arc.label, need: wholeSentences(lower(r.need, 600), 220) || arc.need, words });
   }
   const sections = STORY_ARC.map((arc) => {
     const s = byRole.get(arc.role) ?? { role: arc.role, title: arc.label, need: arc.need, words: [] };
     return { ...s, words: [...new Set([...s.words.slice(0, MAX_MODEL_WORDS), ...arc.words])] };
   });
   const questions = (Array.isArray(raw.questions) ? raw.questions : []).map((q) => lower(q, 200)).filter((q) => q.length > 8).slice(0, MAX_QUESTIONS);
-  return { summary: lower(raw.summary, 240).replace(LABEL, ''), questions, sections };
+  // Shown to people: a long answer ends on a whole sentence (or word), never mid-word.
+  return { summary: wholeSentences(lower(raw.summary, 1200).replace(LABEL, ''), 320), questions, sections };
 }
 
 function defaultSections(): StorySection[] {
@@ -186,13 +187,13 @@ export function cleanComposition(raw: unknown, codes: Map<string, StoryRole>): C
     const more = (Array.isArray(x.more) ? x.more : []).map(take).filter((c): c is string => !!c).slice(0, MAX_MORE);
     const role = STORY_ROLES.includes(x.role as StoryRole) ? (x.role as StoryRole) : codes.get(lead)!;
     const matches = (Array.isArray(x.matches) ? x.matches : []).map((m) => lower(m, 30).toLowerCase()).filter(Boolean).slice(0, 2);
-    beats.push({ told: beats.length, role, title: lower(x.title, 70), bridge: wholeSentences(lower(x.bridge, 300), 160), narration: wholeSentences(lower(x.narration, 600), 320), why: lower(x.why, 140), matches, lead, more });
+    beats.push({ told: beats.length, role, title: wholeSentences(lower(x.title, 300), 90), bridge: wholeSentences(lower(x.bridge, 600), 200), narration: wholeSentences(lower(x.narration, 1200), 360), why: wholeSentences(lower(x.why, 800), 240), matches, lead, more });
     if (beats.length >= MAX_BEATS) break;
   }
   if (beats.length < 3) throw new Error(`The model's story had ${beats.length} usable beats.`);
   const at = (role: StoryRole) => STORY_ROLES.indexOf(role);
   beats.sort((a, b) => at(a.role) - at(b.role));
-  return { title: lower(r.title, 70).replace(LABEL, ''), thesis: wholeSentences(lower(r.thesis, 400), 220), beats };
+  return { title: wholeSentences(lower(r.title, 300).replace(LABEL, ''), 90), thesis: wholeSentences(lower(r.thesis, 1000), 260), beats };
 }
 
 const COMPOSE_SCHEMA = {
