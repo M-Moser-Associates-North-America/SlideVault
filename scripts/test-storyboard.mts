@@ -84,6 +84,14 @@ check(JSON.stringify(situationTopics('Hospital campuses need studies and process
   check(!withIt.sections.some((x) => x.items.some((i) => i.slide.id === 'k-divider')) && proof.items[0]?.slide.id === 'k-case', 'knowledge: a divider titled "Case studies" is never used as proof', proof.items.map((i) => i.slide.id));
 }
 
+{
+  // The client's own sector is gathered first, so library order can't crowd it out.
+  let asked: ((id: string) => boolean) | undefined;
+  const knowledge = { of: (id: string) => ({ role: 'experience', topics: [], about: '', sectors: [id === 'h' ? 'healthcare' : 'media'] }), forPart: async (_r: string, _l: number, first?: (id: string) => boolean) => ((asked = first), []) };
+  await buildStoryboard('A hospital group is merging three campuses.', { search: async () => [], knowledge });
+  check(!!asked && asked('h') && !asked('m'), 'sector: proof candidates from the client\'s own sector are asked for first');
+}
+
 // ---- Reviewed slide metadata (FD-28): roles that hold, and slides that never go in a story
 {
   const LIB3 = [
@@ -130,6 +138,7 @@ check(JSON.stringify(situationTopics('Hospital campuses need studies and process
     forPart: async (role: string) => (role === 'experience' ? LIB4.map(rowOf) : []),
   };
   check(JSON.stringify(clientSectors('A hospital group is merging three campuses.')) === '["healthcare"]', 'sector: "hospital" reads as a healthcare client');
+  check(!clientSectors('A bank wants smart building technology.').includes('technology'), 'sector: a theme like smart building technology does not make the client a tech company');
   const r = await buildStoryboard('A hospital group is merging three campuses on budget.', { search: search4, knowledge });
   const proof = r.sections.find((x) => x.role === 'experience')!;
   check(proof.items[0]?.slide.id === 'p-health', 'sector: a healthcare case study leads the proof for a hospital client', proof.items.map((i) => i.slide.id));

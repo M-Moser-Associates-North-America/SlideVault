@@ -49,7 +49,8 @@ export type StoryboardDeps = {
    */
   knowledge?: {
     of: (slideId: string) => { role: string; topics: string[]; about: string; reviewed?: boolean; uncertain?: boolean; reuse?: string; flags?: string[]; sectors?: string[]; type?: string; projects?: string[] } | undefined;
-    forPart: (role: StoryRole, limit: number) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]>;
+    /** `first`, when given, picks which slides come first, so the client's own sector isn't crowded out by library order. */
+    forPart: (role: StoryRole, limit: number, first?: (slideId: string) => boolean) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]>;
   };
 };
 
@@ -93,7 +94,8 @@ const SECTOR_WORDS: [string, RegExp][] = [
   ['healthcare', /\b(hospitals?|clinics?|clinical|patients?|health ?care|healthcare|medical|pharma\w*|biotech|life sciences|medtech|nurses?|doctors?)\b/],
   ['financial services', /\b(banks?|banking|financial|insurers?|insurance|asset manag\w+|investment|fintech|wealth)\b/],
   ['legal', /\b(law firms?|legal|lawyers?|attorneys?)\b/],
-  ['technology', /\b(tech|technology|software|saas|semiconductors?)\b/],
+  // \"Smart building technology\" is a theme, not a sector: only a tech client counts.
+  ['technology', /\b((tech|technology) (company|companies|firm|client|group)|software|saas|semiconductors?)\b/],
   ['media', /\b(media|broadcast\w*|publish\w*|newsroom|studios?)\b/],
   ['retail', /\b(retail\w*|consumer brands?|fashion|apparel)\b/],
   ['gaming', /\b(gaming|games|game studio)\b/],
@@ -209,7 +211,8 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     // The role's words go first: the search keeps the first twelve.
     const story = cleanPlan({ keywords: [...(tuning?.words[section.role] ?? []), ...section.words] }, NO_FILTERS);
     const storyRows = story.keywords.length ? await deps.search(story, perPart * 8) : [];
-    const readRows = deps.knowledge ? await deps.knowledge.forPart(section.role, perPart * 8).catch(() => []) : [];
+    const ownSector = (id: string) => !!deps.knowledge?.of(id)?.sectors?.some((x) => sectors.some((f) => x.toLowerCase().startsWith(f)));
+    const readRows = deps.knowledge ? await deps.knowledge.forPart(section.role, perPart * 8, sectors.length ? ownSector : undefined).catch(() => []) : [];
     const seen = new Set<string>();
     const pool = [...onTopicRows, ...storyRows, ...readRows]
       .filter((row) => !seen.has(row.summary.id) && seen.add(row.summary.id))
@@ -219,7 +222,8 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
         const readAs = known?.role;
         const facts = read(row.facts, row.summary.id);
         // Same sector: the reviewed metadata says so, or the slide's own words name the client's sector.
-        const sameSector = !!known?.sectors?.some((x) => sectors.some((f) => x.toLowerCase().startsWith(f))) || SECTOR_WORDS.some(([name, re]) => sectors.includes(name) && re.test(`${facts.title} ${facts.text}`.toLowerCase())) ? 1 : 0;
+        // Reviewed slides go by their reviewed sectors only; others by their own words.
+        const sameSector = (known?.reviewed ? !!known.sectors?.some((x) => sectors.some((f) => x.toLowerCase().startsWith(f))) : SECTOR_WORDS.some(([name, re]) => sectors.includes(name) && re.test(`${facts.title} ${facts.text}`.toLowerCase()))) ? 1 : 0;
         const met = needsMet(needs, `${facts.title} ${facts.text}`);
         return { row, order, l, readAs, known, sameSector, met, said: Math.sign((l?.useful ?? 0) - (l?.notRight ?? 0)), onTopic: whyItFits(topics, facts).matched.reduce((sum, k) => sum + weight(k), 0), inPart: whyItFits(story, row.facts).matched.length, readHere: readAs === section.role ? 1 : 0 };
       })

@@ -99,7 +99,11 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   // What the local model read on each slide (FD-26), when the scan has been run on this library.
   const readings = await loadSlideReadings();
   const knowledge = readings.size
-    ? { of: (id: string) => readings.get(id), forPart: async (role: string, limit: number) => fixtureRowsWhere(index, (id) => readings.get(id)?.role === role, limit) }
+    ? { of: (id: string) => readings.get(id), forPart: async (role: string, limit: number, first?: (id: string) => boolean) => {
+          const inPart = (id: string) => readings.get(id)?.role === role;
+          const lead = first ? fixtureRowsWhere(index, (id) => inPart(id) && first(id), limit) : [];
+          return [...lead, ...fixtureRowsWhere(index, (id) => inPart(id) && !lead.some((r) => r.summary.id === id), limit - lead.length)];
+        } }
     : undefined;
   const result = await buildStoryboard(situation, { reader: opts.reader, search, learned: learnedForTopics, knowledge, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
   const all = result.sections.flatMap((s) => s.items.map((i) => i.slide));
