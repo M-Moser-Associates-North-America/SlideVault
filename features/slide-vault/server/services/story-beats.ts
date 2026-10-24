@@ -73,6 +73,24 @@ export function rulesThesis(needs: string[]): string {
   return list.length ? `Show them we understand ${joined(list)}, have a clear plan, and have done it before.` : 'Show them we understand their situation, have a clear plan, and have done it before.';
 }
 
+/** The story's last words, when the AI isn't writing them: what the client gets, from the needs the brief names. */
+export function rulesClose(needs: string[]): string {
+  const gets = needs.map((n) => NEED_WORDS[n]?.get).filter((x): x is string => !!x).slice(0, 3);
+  return gets.length ? `In the end, they get ${joined(gets)}.` : '';
+}
+
+/**
+ * Why a case study is in this client's story, when the AI isn't writing it: direct when it's work for
+ * the same kind of client, transferable otherwise, and either way what it shows for them (24 Oct: every
+ * deck we read left the proof untied to the client).
+ */
+export function proofWhy(item: StoryboardSlide): string {
+  const same = item.why.includes('Same sector as your client');
+  const need = (item.needs ?? []).find((n) => n !== 'healthcare') ?? item.needs?.[0];
+  const shows = need ? `it shows we know ${said(need)}` : 'say what carries over to them';
+  return same ? `Direct: the same kind of client, and ${shows}.` : `Transferable: a different kind of client, but ${shows}.`;
+}
+
 /** How a beat follows from the one before, when the AI isn't writing it: the turn the story takes from one part to the next. */
 export function rulesBridge(prev: StoryRole | null, role: StoryRole, needs: string[]): string {
   const on = needs[0] ? `, this time on ${said(needs[0])}` : '';
@@ -137,7 +155,7 @@ export function rulesBeats(sections: StoryboardSection[], known: (id: string) =>
       // The AI's heading for the part is in the client's terms; the standard label is not.
       const partTitle = s.title !== s.label ? s.title : ROLE_TITLE[s.role];
       const title = i === 0 ? partTitle : s.role === 'experience' && k?.projects?.[0] ? k.projects[0] : (TYPE_TITLE[k?.type ?? ''] ?? partTitle);
-      beats.push({ role: s.role, title, bridge: '', narration: k?.about ? firstSentence(k.about) : '', why: asWhy(s.need), matches: (lead.needs?.length ? lead.needs : lead.reasons.brief).slice(0, 2), lead, more: more.slice(0, MAX_MORE) });
+      beats.push({ role: s.role, title, bridge: '', narration: k?.about ? firstSentence(k.about) : '', why: s.role === 'experience' ? proofWhy(lead) : asWhy(s.need), matches: (lead.needs?.length ? lead.needs : lead.reasons.brief).slice(0, 2), lead, more: more.slice(0, MAX_MORE) });
     });
   }
   return beats;
@@ -148,13 +166,13 @@ export async function composeStory(
   sections: StoryboardSection[],
   known: (id: string) => KnownSlide,
   opts: { reader?: StoryReader | null; read?: boolean; log?: (m: string) => void; needs?: string[] },
-): Promise<{ title: string; thesis: string; beats: StoryBeat[]; composer: 'model' | 'rules' }> {
+): Promise<{ title: string; thesis: string; close: string; beats: StoryBeat[]; composer: 'model' | 'rules' }> {
   // The brief's own needs, in the order it names them (the slides only add what they speak to)
   const briefNeeds = opts.needs ?? [...new Set(sections.flatMap((s) => s.items.flatMap((i) => i.needs ?? [])))];
   const rules = () => {
     const beats = rulesBeats(sections, known);
     bridgeAll(beats);
-    return { title: rulesTitle(brief), thesis: rulesThesis(briefNeeds), beats, composer: 'rules' as const };
+    return { title: rulesTitle(brief), thesis: rulesThesis(briefNeeds), close: rulesClose(briefNeeds), beats, composer: 'rules' as const };
   };
   const compose = opts.reader?.compose;
   if (!opts.read || !compose) return rules();
@@ -180,7 +198,7 @@ export async function composeStory(
         title: b.title || (section.title !== section.label ? section.title : ROLE_TITLE[section.role]),
         bridge: b.bridge,
         narration: b.narration,
-        why: b.why || asWhy(section.need),
+        why: b.why || (section.role === 'experience' ? proofWhy(lead) : asWhy(section.need)),
         // Only words the brief really uses; anything else (a slide code, a made-up theme) falls back to the needs.
         matches: b.matches.filter((m) => brief.toLowerCase().includes(m)).length ? b.matches.filter((m) => brief.toLowerCase().includes(m)) : (lead.needs ?? []).slice(0, 2),
         lead,
@@ -203,7 +221,7 @@ export async function composeStory(
     const codeOf = new Map([...byCode].map(([code, v]) => [v.item.slide.id, code]));
     const position = (b: StoryBeat) => told.get(codeOf.get(b.lead.slide.id) ?? '') ?? -1;
     bridgeAll(beats, (b, i) => !!b.bridge && position(b) >= 0 && (i === 0 ? position(b) === 0 : position(beats[i - 1]) === position(b) - 1));
-    return { title: story.title || rulesTitle(brief), thesis: story.thesis || rulesThesis(briefNeeds), beats, composer: 'model' };
+    return { title: story.title || rulesTitle(brief), thesis: story.thesis || rulesThesis(briefNeeds), close: story.close || rulesClose(briefNeeds), beats, composer: 'model' };
   } catch (e) {
     opts.log?.(`Story composer unavailable, using the rules' order: ${(e as Error).message}`);
     return rules();
@@ -274,7 +292,7 @@ export async function weaveDeck(
   fills: Map<StoryRole, StoryboardSlide[]>,
   known: (id: string) => KnownSlide,
   opts: { reader?: StoryReader | null; read?: boolean; log?: (m: string) => void; needs: string[]; order: StoryRole[]; client?: string; themes?: string[] },
-): Promise<{ title: string; thesis: string; beats: StoryBeat[]; composer: 'model' | 'rules' }> {
+): Promise<{ title: string; thesis: string; close: string; beats: StoryBeat[]; composer: 'model' | 'rules' }> {
   // The deck's sections: a new one at each divider, and wherever it turns from story to required pages or from one part to the next.
   const sections: Section[] = [];
   let last: StoryRole = opts.order[0];
@@ -324,11 +342,11 @@ export async function weaveDeck(
     }
     const k = known(lead.slide.id);
     const title = first ? ROLE_TITLE[s.role] : s.role === 'experience' && k?.projects?.[0] ? k.projects[0] : (TYPE_TITLE[k?.type ?? ''] ?? ROLE_TITLE[s.role]);
-    return { role: s.role, title, bridge: weaveLine(s.role, needs.length ? needs : opts.needs), narration: k?.about ? firstSentence(k.about) : '', why: PART_WHY[s.role], matches: needs.slice(0, 2), lead, more };
+    return { role: s.role, title, bridge: weaveLine(s.role, needs.length ? needs : opts.needs), narration: k?.about ? firstSentence(k.about) : '', why: s.role === 'experience' ? proofWhy(lead) : PART_WHY[s.role], matches: needs.slice(0, 2), lead, more };
   });
   // No needs named ("the story of Moody's"): the thesis comes from what the deck itself is about.
   const thesis = opts.needs.length || !opts.themes?.length ? rulesThesis(opts.needs) : `Show ${opts.client ?? 'them'} we understand what matters to them (${joined(opts.themes)}), have a clear plan, and have done it before.`;
-  const rules = { title: rulesTitle(brief), thesis, beats, composer: 'rules' as const };
+  const rules = { title: rulesTitle(brief), thesis, close: rulesClose(opts.needs), beats, composer: 'rules' as const };
 
   const weave = opts.reader?.weave;
   if (!opts.read || !weave) return rules;
@@ -344,7 +362,7 @@ export async function weaveDeck(
       if (!w) return b;
       return { ...b, title: w.title || b.title, bridge: w.bridge || b.bridge, narration: b.kind === 'required' ? '' : w.narration || b.narration, why: w.why || b.why };
     });
-    return { title: woven.title || rules.title, thesis: woven.thesis || rules.thesis, beats: out, composer: 'model' };
+    return { title: woven.title || rules.title, thesis: woven.thesis || rules.thesis, close: woven.close || rules.close, beats: out, composer: 'model' };
   } catch (e) {
     opts.log?.(`Story weaver unavailable, using the rules' lines: ${(e as Error).message}`);
     return rules;

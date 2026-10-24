@@ -236,6 +236,8 @@ export function StoryboardView() {
           <Beat key={`${b.role}:${b.lead.slide.id}`} n={i + 1} beat={b} deck={deck} said={said} onSay={(id, v) => say(b.role, id, v)} />
         ))}
       </ol>
+      {/* The story's last words: what the client gets */}
+      {story.close && <p className="sb-close">{story.close}</p>}
       <Sharpen questions={story.questions} onSend={sharpen} />
     </div>
   );

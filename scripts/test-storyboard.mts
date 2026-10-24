@@ -290,6 +290,9 @@ check(wholeSentences('We start with you. Then we plan every site together with y
   check(r.thesis.startsWith('Show them we understand how a hospital works, what it takes to bring their sites together and what their people are going through'), 'story: the thesis says what this brief needs, in plain words, in the brief\'s order', r.thesis);
   const proof = r.beats.find((b) => b.role === 'experience');
   check(!!proof && proof.bridge.includes('done it before'), 'story: proof is introduced as backing the plan', proof?.bridge);
+  check(!!proof && /^(Direct|Transferable): /.test(proof.why) && proof.why.includes('it shows we know'), 'story: a case study says whether it is direct or transferable, and what it shows for this client', proof?.why);
+  check(r.close === 'In the end, they get one organisation across every site, a place their people want to work and a plan their board can sign off.', 'story: it closes on what the client gets', r.close);
+  check((await buildStoryboard('We need a proposal outline.', { search: search8, knowledge })).close === '', 'story: no close is made up when the brief names nothing they want');
 
   // The AI wrote proof first; the app tells it client first, so bridges written after the wrong beat are rewritten.
   const reader: StoryReader = {
@@ -303,6 +306,7 @@ check(wholeSentences('We start with you. Then we plan every site together with y
   };
   const m = await buildStoryboard(`${hospital} Our phased plan, a hospital case study, and our team.`, { search: search8, knowledge, reader }, { read: true });
   check(m.composer === 'model' && m.thesis.startsWith('Show them we can merge'), "story: the AI's thesis is kept", m.thesis);
+  check(m.close.startsWith('In the end, they get'), "story: when the AI writes no close, the rules' close is used", m.close);
   check(m.beats[0].role === 'client-challenge' && m.beats[0].bridge.startsWith('Start with them'), 'story: a bridge written after a beat that moved is rewritten', m.beats.map((b) => [b.role, b.bridge]));
   check(m.beats.find((b) => b.role === 'strategy')?.bridge === 'From their situation to the plan.', "story: a bridge whose neighbour didn't move is the AI's own", m.beats.map((b) => [b.role, b.bridge]));
 }

@@ -104,7 +104,7 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   const asked = deckRequest(situation, decks, opts.mode);
   const named = asked.mode === 'build' ? null : { id: asked.deck.id, title: asked.deck.title, slideCount: asked.deck.slideCount };
   if (asked.mode === 'retrieve' && named) {
-    return { reader: 'rules', readerNote: null, summary: '', questions: [], sections: [], topics: [], role: opts.role ?? null, title: named.title, thesis: '', beats: [], composer: 'rules', considered: 0, mode: 'retrieve', deck: named };
+    return { reader: 'rules', readerNote: null, summary: '', questions: [], sections: [], topics: [], role: opts.role ?? null, title: named.title, thesis: '', close: '', beats: [], composer: 'rules', considered: 0, mode: 'retrieve', deck: named };
   }
   const sourceIds = new Set(asked.mode === 'reimagine' ? (index?.sources.find((x) => x.id === asked.deck.id)?.slides.map((x) => x.id) ?? []) : []);
   const source = named && sourceIds.size ? { deck: named, rows: fixtureRowsWhere(index, (id) => sourceIds.has(id), sourceIds.size) } : undefined;

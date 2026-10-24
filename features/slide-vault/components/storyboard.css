@@ -52,6 +52,7 @@
 /* How a beat follows from the one before: one quiet line, so the slides read as one argument */
 .slidevault .sb-bridge { margin: 0 0 12px; padding-left: 14px; border-left: 2px solid var(--sv-brand); font-size: var(--sv-text-small); font-style: italic; line-height: 1.5; color: var(--sv-text-secondary); max-width: 62ch; }
 .slidevault .sb-thesis { color: var(--sv-text); }
+.slidevault .sb-close { max-width: 760px; margin: 36px auto 0; padding: 18px 0 0; border-top: 2px solid var(--sv-brand); font-size: clamp(18px, 2.2vw, 21px); line-height: 1.5; color: var(--sv-text); }
 .slidevault .sb-kind { margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
 .slidevault .is-suggested .sb-kind { color: var(--sv-brand-strong); }
 .slidevault .is-suggested .sb-beat-pic { outline: 2px dashed var(--sv-brand); outline-offset: 3px; }

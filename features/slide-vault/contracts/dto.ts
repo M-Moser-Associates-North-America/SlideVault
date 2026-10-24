@@ -263,6 +263,8 @@ export type StoryboardResult = {
   title: string;
   /** The story in one line: what the whole deck has to convince the client of. Every beat serves it. */
   thesis: string;
+  /** The story's last words: what the client gets, in their terms (empty when nothing can be said honestly) */
+  close: string;
   /** The story told slide by slide, in order (FD-30) */
   beats: StoryBeat[];
   /** model: the AI chose, ordered and narrated the slides; rules: the ranked slides in story order */
