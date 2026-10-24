@@ -253,6 +253,41 @@ check(wholeSentences('We start with you. Then we plan every site together with y
   check(r.mode === 'build' && r.context?.[0]?.title === 'Kestrel · RFP · 2025', 'context: the story names the decks it drew on');
 }
 
+// ---- One argument, not a list (FD-30, 24 Oct): a thesis, and a bridge from each beat to the next
+{
+  const hospital = 'A hospital group is merging three campuses. Clinical staff are burnt out, and the board worries about cost overruns.';
+  const LIB8 = [
+    { id: 'b1', title: 'Your staff, your campuses', text: 'Burnt out clinical staff across three hospital campuses.', role: 'client-challenge' },
+    { id: 'b2', title: 'Our phased plan', text: 'A phased plan to keep cost certainty across campuses.', role: 'strategy' },
+    { id: 'b3', title: 'Case study: hospital merger', text: 'Hospital campuses merged on budget, completed with results.', role: 'experience' },
+    { id: 'b4', title: 'Your team', text: 'Healthcare leadership and the board.', role: 'why-us' },
+  ];
+  const rowOf = (x: { id: string; title: string; text: string }) => ({ summary: slide(x.id, x.title), facts: { title: x.title, text: x.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const knowledge = { of: (id: string) => { const x = LIB8.find((d) => d.id === id); return x && { role: x.role, topics: [], about: '', reviewed: true, reuse: 'reusable' }; }, forPart: async (role: string) => LIB8.filter((x) => x.role === role).map(rowOf) };
+  const search8 = async (plan: SearchPlan) => LIB8.filter((x) => plan.keywords.some((k) => `${x.title} ${x.text}`.toLowerCase().includes(k))).map(rowOf);
+  const r = await buildStoryboard(hospital, { search: search8, knowledge });
+  check(r.beats.length >= 3 && r.beats.every((b) => b.bridge.length > 10), 'story: every beat says how it follows from the one before', r.beats.map((b) => b.bridge));
+  check(r.beats[0].bridge.startsWith('Start with them'), 'story: the first beat says why the story starts there', r.beats[0].bridge);
+  check(r.thesis.startsWith('Show them we understand how a hospital works, what it takes to bring their sites together and what their people are going through'), 'story: the thesis says what this brief needs, in plain words, in the brief\'s order', r.thesis);
+  const proof = r.beats.find((b) => b.role === 'experience');
+  check(!!proof && proof.bridge.includes('done it before'), 'story: proof is introduced as backing the plan', proof?.bridge);
+
+  // The AI wrote proof first; the app tells it client first, so bridges written after the wrong beat are rewritten.
+  const reader: StoryReader = {
+    name: 'fake',
+    plan: async (t) => standInStory(t),
+    compose: async (_b, c) => cleanComposition({ title: 'One hospital', thesis: 'Show them we can merge three campuses without burning out their staff.', beats: [
+      { role: 'experience', title: 'Done before', bridge: 'We open with proof.', lead: c.find((x) => x.role === 'experience')!.code, more: [], narration: 'n', why: 'w', matches: [] },
+      { role: 'client-challenge', title: 'Your staff', bridge: 'After the proof, their situation.', lead: c.find((x) => x.role === 'client-challenge')!.code, more: [], narration: 'n', why: 'w', matches: [] },
+      { role: 'strategy', title: 'The plan', bridge: 'From their situation to the plan.', lead: c.find((x) => x.role === 'strategy')!.code, more: [], narration: 'n', why: 'w', matches: [] },
+    ] }, new Map(c.map((x) => [x.code, x.role]))),
+  };
+  const m = await buildStoryboard(`${hospital} Our phased plan, a hospital case study, and our team.`, { search: search8, knowledge, reader }, { read: true });
+  check(m.composer === 'model' && m.thesis.startsWith('Show them we can merge'), "story: the AI's thesis is kept", m.thesis);
+  check(m.beats[0].role === 'client-challenge' && m.beats[0].bridge.startsWith('Start with them'), 'story: a bridge written after a beat that moved is rewritten', m.beats.map((b) => [b.role, b.bridge]));
+  check(m.beats.find((b) => b.role === 'strategy')?.bridge === 'From their situation to the plan.', "story: a bridge whose neighbour didn't move is the AI's own", m.beats.map((b) => [b.role, b.bridge]));
+}
+
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
 check(missingContext('The board and CFO worry about disruption; the goal is a low-cost, fast fit-out.').length === 0, 'questions: a situation that already says them gets no questions');

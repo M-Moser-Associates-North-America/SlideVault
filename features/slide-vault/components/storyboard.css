@@ -49,6 +49,9 @@
 .slidevault .sb-add:hover { border-color: var(--sv-brand); }
 .slidevault .sb-beats { list-style: none; padding: 0; margin-top: 0; margin-bottom: 0; }
 .slidevault .sb-beat { padding: 36px 0 32px; border-bottom: 1px solid var(--sv-border); }
+/* How a beat follows from the one before: one quiet line, so the slides read as one argument */
+.slidevault .sb-bridge { margin: 0 0 12px; padding-left: 14px; border-left: 2px solid var(--sv-brand); font-size: var(--sv-text-small); font-style: italic; line-height: 1.5; color: var(--sv-text-secondary); max-width: 62ch; }
+.slidevault .sb-thesis { color: var(--sv-text); }
 .slidevault .sb-beat-title { display: flex; gap: 14px; align-items: baseline; margin: 0 0 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text); }
 .slidevault .sb-beat-title .sb-n { font-size: 12px; }
 .slidevault .sb-beat-frame { position: relative; }

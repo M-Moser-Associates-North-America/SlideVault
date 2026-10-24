@@ -190,7 +190,12 @@ export function StoryboardView() {
         <h1 className="sb-board-title" tabIndex={-1} ref={headRef}>
           {story.title}
         </h1>
-        {story.summary && !story.summary.startsWith(story.title.replace(/…$/, '')) && <p className="sb-story-summary">{story.summary}</p>}
+        {/* The story in one line: what every beat below is building towards */}
+        {story.thesis ? (
+          <p className="sb-story-summary sb-thesis">{story.thesis}</p>
+        ) : (
+          story.summary && !story.summary.startsWith(story.title.replace(/…$/, '')) && <p className="sb-story-summary">{story.summary}</p>
+        )}
         {story.context && story.context.length > 0 && (
           <p className="sb-story-from">
             Using what we already made for them:{' '}
@@ -262,6 +267,7 @@ function Beat({ n, beat, deck, said, onSay }: { n: number; beat: StoryBeat; deck
   const verdict = (slideId: string) => said[`${beat.role}:${slideId}`];
   return (
     <li className="sb-beat" aria-labelledby={id}>
+      {beat.bridge && <p className="sb-bridge">{beat.bridge}</p>}
       <h2 className="sb-beat-title" id={id}>
         <span className="sb-n">{two(n)}</span> {beat.title}
       </h2>

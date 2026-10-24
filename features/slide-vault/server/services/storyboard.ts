@@ -309,7 +309,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     sections.push({ role: section.role, label, title: section.title, need: section.need, items, gap: items.length === 0 });
   }
   const known = (id: string) => deps.knowledge?.of(id);
-  const compose = { reader: deps.reader, read: opts.read && reader === 'model', log: deps.log };
+  const compose = { reader: deps.reader, read: opts.read && reader === 'model', log: deps.log, needs };
   if (deps.source) {
     // Reimagine (FD-31): the deck's own slides, every one, placed by what each one does.
     const { deck, rows } = deps.source;

@@ -214,6 +214,8 @@ export type StoryBeat = {
   title: string;
   /** What to say to the client over this slide, in one short paragraph */
   narration: string;
+  /** How this beat follows from the one before (for the first: why the story starts here), so the slides read as one story */
+  bridge: string;
   /** Why this slide is here, for the person building the deck */
   why: string;
   /** What in the brief this beat answers, e.g. "healthcare", "reuse" */
@@ -253,6 +255,8 @@ export type StoryboardResult = {
   role: StoryUserRole | null;
   /** The story's name in the client's terms, e.g. "Three campuses, one hospital" (FD-30) */
   title: string;
+  /** The story in one line: what the whole deck has to convince the client of. Every beat serves it. */
+  thesis: string;
   /** The story told slide by slide, in order (FD-30) */
   beats: StoryBeat[];
   /** model: the AI chose, ordered and narrated the slides; rules: the ranked slides in story order */
