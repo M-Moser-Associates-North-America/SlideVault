@@ -15,7 +15,7 @@ import { smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, type StoryboardResponse } from './storyboard';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
-import type { StoryUserRole } from '../../contracts/dto';
+import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
 
 /**
  * Quick AI search over the whole library (docs/DECISIONS.md FD-16, FD-17): uploaded decks in
@@ -104,7 +104,12 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   const result = await buildStoryboard(situation, { reader: opts.reader, search, learned: learnedForTopics, knowledge, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
   const all = result.sections.flatMap((s) => s.items.map((i) => i.slide));
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
-  return { ...result, sections: result.sections.map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide })) })) };
+  const withCounts = <T extends { slide: SlideSummary }>(i: T): T => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide });
+  return {
+    ...result,
+    sections: result.sections.map((s) => ({ ...s, items: s.items.map(withCounts) })),
+    beats: result.beats.map((b) => ({ ...b, lead: withCounts(b.lead), more: b.more.map(withCounts) })),
+  };
 }
 
 /** The configured deck-facts reader (FD-23), or null when no AI provider is set up. */

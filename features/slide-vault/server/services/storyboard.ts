@@ -3,6 +3,7 @@ import { cleanPlan, MAX_KEYWORDS, whyItFits, type PlanContext, type SearchPlan, 
 import { isStopWord } from '../../components/simulation';
 import { missingContext, STORY_ARC, standInStory, type StoryPlan, type StoryReader } from '../ai/storyboard';
 import { DEFAULT_SLIDES_PER_PART, ROLE_TUNING } from '../ai/roles';
+import { composeStory } from './story-beats';
 import type { StoryRole, StoryUserRole } from '../../contracts/dto';
 
 /**
@@ -47,7 +48,7 @@ export type StoryboardDeps = {
    * slides it read as doing that part of a story, so a part can find a slide that never uses its words.
    */
   knowledge?: {
-    of: (slideId: string) => { role: string; topics: string[]; about: string; reviewed?: boolean; uncertain?: boolean; reuse?: string; flags?: string[]; sectors?: string[] } | undefined;
+    of: (slideId: string) => { role: string; topics: string[]; about: string; reviewed?: boolean; uncertain?: boolean; reuse?: string; flags?: string[]; sectors?: string[]; type?: string; projects?: string[] } | undefined;
     forPart: (role: StoryRole, limit: number) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]>;
   };
 };
@@ -198,6 +199,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   const needScore = (met: string[]) => met.reduce((sum, n) => sum + 1 / Math.max(1, needCount.get(n) ?? 1), 0);
   const used = new Set<string>();
   const usedCopies = new Set<string>();
+  const considered = new Set<string>();
   const sections: StoryboardSection[] = [];
   // First every part ranks what could fill it; then each part fills in story order, leaving a slide
   // for a later part when it fits that part better (fees and value belong in the outcome, not in why us).
@@ -238,6 +240,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
         if (r.known && (r.known.reviewed || !r.known.uncertain)) return r.readHere > 0 || r.said > 0;
         return (r.inPart > 0 || r.readHere > 0 || r.said > 0) && !(r.readAs && NOT_PROOF.has(r.readAs) && r.said <= 0);
       });
+    for (const r of pool) considered.add(r.row.summary.id);
     needCount.clear();
     for (const r of pool) for (const n of r.met) needCount.set(n, (needCount.get(n) ?? 0) + 1);
     // In the proof, past work for the same kind of client leads: "have you done this for a hospital?"
@@ -272,11 +275,13 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       ].filter(Boolean).join(' ');
       used.add(summary.id);
       usedCopies.add(sameSlideKey(row.facts));
-      items.push({ slide: summary, why, matched: fit.matched, reasons: { brief, part, from }, ...(l ? { learned: l } : {}) });
+      items.push({ slide: summary, why, matched: fit.matched, reasons: { brief, part, from }, needs: met, ...(l ? { learned: l } : {}) });
       if (items.length >= perPart) break;
     }
     const label = STORY_ARC.find((a) => a.role === section.role)!.label;
     sections.push({ role: section.role, label, title: section.title, need: section.need, items, gap: items.length === 0 });
   }
-  return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords, role };
+  // The story told slide by slide (FD-30): the AI chooses and narrates from this shortlist when it is on.
+  const story = await composeStory(text, sections, (id) => deps.knowledge?.of(id), { reader: deps.reader, read: opts.read && reader === 'model', log: deps.log });
+  return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords, role, ...story, considered: considered.size };
 }

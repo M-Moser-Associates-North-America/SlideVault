@@ -30,6 +30,8 @@ export type SlideReading = {
   flags?: string[];
   /** Sectors the slide proves experience in, e.g. "healthcare / life sciences" (reviewed metadata). */
   sectors?: string[];
+  /** Projects a case study shows, so its slides are told together (reviewed metadata). */
+  projects?: string[];
 };
 
 type ScanRow = { role?: unknown; topics?: unknown; shows?: unknown; convinces?: unknown; confidence?: unknown };
@@ -77,6 +79,7 @@ export async function loadSlideReadings(dataDir = readConfig().dataDir): Promise
       reuse: typeof m.reuse === 'string' ? m.reuse : undefined,
       flags: strings(m.flags),
       sectors: strings(m.proofSectors),
+      projects,
     });
   }
   cache = { key, map };

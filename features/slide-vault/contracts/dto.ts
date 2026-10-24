@@ -199,6 +199,27 @@ export type StoryboardSlide = {
   reasons: { brief: string[]; part: string[]; from: string[] };
   /** What colleagues said about this slide in this part, for similar briefs (FD-24); absent when no one has yet */
   learned?: { useful: number; notRight: number };
+  /** Which of the brief's needs the slide speaks to, e.g. "healthcare", "staff wellbeing" (FD-29) */
+  needs?: string[];
+};
+
+/**
+ * One beat of the story as the client will hear it (FD-30): a lead slide shown large, the other
+ * slides behind it (shown on click), a title in the client's terms and what to say. The parts of the
+ * story (challenge, approach, proof...) only decide the order; they are never shown.
+ */
+export type StoryBeat = {
+  /** The part of the story this beat serves: never shown, kept so feedback teaches the right part */
+  role: StoryRole;
+  title: string;
+  /** What to say to the client over this slide, in one short paragraph */
+  narration: string;
+  /** Why this slide is here, for the person building the deck */
+  why: string;
+  /** What in the brief this beat answers, e.g. "healthcare", "reuse" */
+  matches: string[];
+  lead: StoryboardSlide;
+  more: StoryboardSlide[];
 };
 
 /** "Was this helpful?" on a storyboard: a slide is useful or not right for its part, or nothing in a part fits */
@@ -230,4 +251,12 @@ export type StoryboardResult = {
   topics: string[];
   /** The role the story was tuned for, or null for the standard tuning (FD-25) */
   role: StoryUserRole | null;
+  /** The story's name in the client's terms, e.g. "Three campuses, one hospital" (FD-30) */
+  title: string;
+  /** The story told slide by slide, in order (FD-30) */
+  beats: StoryBeat[];
+  /** model: the AI chose, ordered and narrated the slides; rules: the ranked slides in story order */
+  composer: 'model' | 'rules';
+  /** How many slides were weighed for this story */
+  considered: number;
 };

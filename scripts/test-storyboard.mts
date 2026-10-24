@@ -6,7 +6,7 @@
  */
 import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import type { SearchPlan, SlideFacts } from '../features/slide-vault/server/ai/search-plan';
-import { cleanStoryPlan, missingContext, openAiCompatibleStoryReader, standInStory, STORY_ROLES, type StoryReader } from '../features/slide-vault/server/ai/storyboard';
+import { cleanComposition, cleanStoryPlan, wholeSentences, missingContext, openAiCompatibleStoryReader, standInStory, STORY_ROLES, type StoryReader } from '../features/slide-vault/server/ai/storyboard';
 import { briefNeeds, buildStoryboard, clientSectors, situationTopics } from '../features/slide-vault/server/services/storyboard';
 
 let failures = 0;
@@ -157,6 +157,43 @@ check(JSON.stringify(situationTopics('Hospital campuses need studies and process
   check(!placed.includes('n-wellbeing-copy'), 'needs: the same slide copied into another deck is shown once', placed);
   check(r.sections.find((x) => x.role === 'strategy')!.items[0]?.why.includes('Speaks to: bringing sites together, cost and budget'), 'needs: each slide says which of the brief\'s needs it speaks to', r.sections.find((x) => x.role === 'strategy')!.items[0]?.why);
 }
+
+// ---- The story told slide by slide (FD-30)
+{
+  const codes = new Map<string, (typeof STORY_ROLES)[number]>([['s1', 'experience'], ['s2', 'client-challenge'], ['s3', 'strategy'], ['s4', 'experience']]);
+  const c = cleanComposition({ title: 'Three campuses, one hospital', beats: [
+    { role: 'experience', title: 'Work like this', lead: 's1', more: ['s4', 's1', 'nope'], narration: 'x', why: 'y', matches: ['healthcare'] },
+    { role: 'client-challenge', title: 'Your staff', lead: 's2', more: [], narration: 'x', why: 'y', matches: [] },
+    { role: 'strategy', title: 'One plan', lead: 'made-up', more: [], narration: 'x', why: 'y', matches: [] },
+    { role: 'strategy', title: 'One plan', lead: 's3', more: [], narration: 'x', why: 'y', matches: [] },
+  ] }, codes);
+  check(JSON.stringify(c.beats.map((b) => b.role)) === '["client-challenge","strategy","experience"]', 'compose: the beats are told client first, whatever order the model gave', c.beats.map((b) => b.role));
+  check(JSON.stringify(c.beats.find((b) => b.lead === 's1')?.more) === '["s4"]', 'compose: only shortlisted slides, each used once; made-up codes are dropped', c.beats);
+  let threw = false;
+  try { cleanComposition({ beats: [{ lead: 's1' }] }, codes); } catch { threw = true; }
+  check(threw, 'compose: too little to be a story is refused, so the rules take over');
+
+  const reader: StoryReader = {
+    name: 'fake',
+    plan: async (t) => standInStory(t),
+    compose: async (_brief, candidates) => cleanComposition({ title: 'A bank that keeps working', beats: candidates.slice(0, 3).map((x) => ({ role: x.role, title: `About ${x.code}`, lead: x.code, more: [], narration: 'We keep you working.', why: 'Proof.', matches: ['bank'] })) }, new Map(candidates.map((x) => [x.code, x.role]))),
+  };
+  const codeMatches: StoryReader = { ...reader, compose: async (_b, c) => cleanComposition({ title: 'x', beats: c.slice(0, 3).map((x) => ({ role: x.role, title: 't', lead: x.code, more: [], narration: 'n', why: 'w', matches: ['s1', 'bank'] })) }, new Map(c.map((x) => [x.code, x.role]))) };
+  const fuller = `${situation} It needs phasing, an occupied building case study, and our leadership team.`;
+  const r = await buildStoryboard(fuller, { search, reader }, { read: true });
+  const withCodes = await buildStoryboard(fuller, { search, reader: codeMatches }, { read: true });
+  const r0matches = () => withCodes.beats.every((x) => !x.matches.includes('s1')) && withCodes.beats.some((x) => x.matches.includes('bank'));
+  check(cleanComposition({ title: "Client's Situation: Three campuses", beats: [1, 2, 3].map((n) => ({ role: 'strategy', title: 't', lead: `s${n}`, more: [], narration: 'x', why: 'y', matches: [] })) }, codes).title === 'Three campuses', 'compose: a label before the story\'s name is dropped');
+  check(r0matches(), 'compose: matches are words from the brief, never slide codes');
+  check(r.composer === 'model' && r.title === 'A bank that keeps working' && r.beats.length === 3 && r.beats[0].narration === 'We keep you working.', 'compose: with the AI on, it names, orders and narrates the story', { composer: r.composer, title: r.title, beats: r.beats.length });
+  const rules = await buildStoryboard(situation, { search });
+  check(rules.composer === 'rules' && rules.beats.length > 0 && rules.title.startsWith('We just won'), 'compose: without the AI the rules still tell the story in order', { composer: rules.composer, title: rules.title });
+  const broken = await buildStoryboard(situation, { search, reader: { ...reader, compose: async () => { throw new Error('timeout'); } }, log: () => {} }, { read: true });
+  check(broken.composer === 'rules' && broken.beats.length > 0, 'compose: if the AI fails while composing, the rules story is shown');
+  check(rules.considered >= rules.beats.length, 'compose: the number of slides weighed is reported', rules.considered);
+}
+
+check(wholeSentences('We start with you. Then we plan every site together with your board and staff.', 40) === 'We start with you.', 'compose: long narration is cut at a whole sentence');
 
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
