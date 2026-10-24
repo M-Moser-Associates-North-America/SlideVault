@@ -41,6 +41,8 @@ const squash = (s: string) => norm(s).replace(/ /g, '');
 
 /** Words that say "a deck" without saying which one */
 const DECK_WORDS = /\b(proposals?|decks?|presentations?|pitch(es)?|rfps?|msas?|submissions?|responses?|originals?|portfolios?)\b/;
+/** First words too common to stand for a client on their own ("American bank", "next year") */
+const COMMON_FIRST = new Set(['american', 'national', 'international', 'united', 'general', 'global', 'digital', 'health', 'capital', 'design', 'project', 'first', 'royal', 'british', 'canadian', 'pacific', 'atlantic', 'western', 'eastern', 'northern', 'southern', 'central', 'new', 'next', 'the']);
 /** Never a client name on its own */
 const NOT_A_NAME = new Set(['m', 'moser', 'mmoser', 'the', 'and', 'of', 'x', 'rfp', 'msa', 'global', 'response', 'resumes', 'project', 'group', 'design', 'build', 'proposal']);
 
@@ -52,7 +54,12 @@ export function deckNames(d: FindableDeck): string[] {
     if (n.length >= 3 && !NOT_A_NAME.has(n)) names.add(n);
   };
   add(d.clientName);
-  for (const part of (d.clientName ?? '').split(/[()]/)) add(part);
+  for (const part of (d.clientName ?? '').split(/[()]/)) {
+    add(part);
+    // "Siemens" for Siemens Healthineers: a distinctive first word stands for the whole name.
+    const first = norm(part).split(' ');
+    if (first.length > 1 && first[0].length >= 6 && !COMMON_FIRST.has(first[0])) add(first[0]);
+  }
   // The file's name for the client: the part after "M Moser_" ("Marvel", "NYT(2)", "NextLevelGames")
   const file = d.fileName.split('/').pop() ?? '';
   const fromFile = /^m\s*moser\s*_\s*([^_]+)/i.exec(file)?.[1] ?? (file.includes(' - ') ? file.split(' - ')[0] : null);

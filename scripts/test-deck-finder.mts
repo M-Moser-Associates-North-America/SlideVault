@@ -32,6 +32,8 @@ check(JSON.stringify(ids("Kestrel's")) === '["kestrel-26","kestrel-25"]', "a cli
   const r = findDecks("Kestrel's proposal 2024", DECKS, 2026);
   check(r.yearMissing && r.decks.length === 2, "a year the client has no deck from shows its other decks and says so", r);
 }
+check(JSON.stringify(ids('Tailwind')) === '["tailwind"]', 'a distinctive first word stands for a longer client name');
+check(ids('Contoso')[0] === 'contoso' && ids('Project').length === 0, 'a common first word never does');
 check(JSON.stringify(ids('Tailwind Games')) === '["tailwind"]', 'a client written with spaces matches a file name without them');
 check(JSON.stringify(ids('the Fabri deck')) === '["fabrikam"]', "the file's own name for a client finds it too");
 check(JSON.stringify(ids('project lime')) === '["contoso"]', 'a project name in the client finds the deck');
