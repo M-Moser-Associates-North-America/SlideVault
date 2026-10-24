@@ -22,7 +22,9 @@
     "test:a11y": "playwright test",
     "db:setup": "tsx scripts/db-setup.mts",
     "db:check": "tsx scripts/check-mmoser-db.mts",
-    "deck:archive": "tsx scripts/archive-deck.mts"
+    "deck:archive": "tsx scripts/archive-deck.mts",
+    "story:import": "tsx scripts/import-story-data.mts",
+    "deck:unstick": "tsx scripts/unstick-deck.mts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
