@@ -99,7 +99,7 @@ create table if not exists activity_events (
 create index if not exists activity_user_at_idx on activity_events (user_key, at desc);
 create index if not exists activity_at_idx on activity_events (at);
 
--- Archived decks (docs/DECISIONS.md FD-27): hidden from the app, search and AI without deleting
+-- Archived decks (docs/DECISIONS.md FD-32): hidden from the app, search and AI without deleting
 -- anything (the bucket can't delete). Set by scripts/archive-deck.mts for now; archive in the app
 -- (Khushali's archive and delete work) builds on this same column.
 alter table decks add column if not exists archived_at timestamptz;

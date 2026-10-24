@@ -61,7 +61,7 @@ export async function GET(request: Request) {
   // duplicates=all keeps every copy so a deck's page can list all its slides; the badge is still added.
   const collapse = url.searchParams.get('duplicates') !== 'all';
   // Slides hidden in the original deck are usually internal notes or checklists, so they're left out
-  // unless the request asks for them with hidden=include (Grant, 21 Oct; docs/DECISIONS.md FD-27).
+  // unless the request asks for them with hidden=include (Grant, 21 Oct; docs/DECISIONS.md FD-32).
   const includeHidden = url.searchParams.get('hidden') === 'include';
   const visible = [...uploadedItems, ...fixtureResult.items].filter((s) => includeHidden || !s.hiddenInSource);
   const items = withDuplicateBadges(visible, groups, slideDeck, collapse);
