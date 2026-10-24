@@ -38,8 +38,9 @@ export async function searchSlides(runtime: Transport, query: string, signal?: A
  * Quick AI search (FD-16, FD-17). `read` is true only when the person submitted the search; while
  * they type, the server reads with rules only, so a long question never calls the AI mid-sentence.
  */
-export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal): Promise<SmartSearchResult> {
+export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean } = {}): Promise<SmartSearchResult> {
   const params = new URLSearchParams({ q: query.trim(), limit: '100' });
+  if (opts.includeHidden) params.set('hidden', 'include'); // slides hidden in the original deck (FD-32)
   if (read) params.set('read', '1');
   const res = await runtime.request({ path: `/smart-search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
@@ -53,11 +54,13 @@ const MAX_LIBRARY_PAGES = 30;
  * Follows the cursor until the server says there are no more pages. Slides can repeat across pages
  * (uploaded decks are returned on every page for now), so they are de-duplicated by id.
  */
-export async function listLibrary(runtime: Transport, signal?: AbortSignal): Promise<SlideSummary[]> {
+/** Slides hidden in their original deck are left out unless includeHidden is set (FD-32). */
+export async function listLibrary(runtime: Transport, signal?: AbortSignal, opts: { includeHidden?: boolean } = {}): Promise<SlideSummary[]> {
   const byId = new Map<string, SlideSummary>();
   let cursor: string | null = null;
   for (let page = 0; page < MAX_LIBRARY_PAGES; page++) {
     const params = new URLSearchParams({ kind: 'slide', limit: '1000', duplicates: 'all' });
+    if (opts.includeHidden) params.set('hidden', 'include');
     if (cursor) params.set('cursor', cursor);
     const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
     if (!res.ok) return failure(runtime, res);

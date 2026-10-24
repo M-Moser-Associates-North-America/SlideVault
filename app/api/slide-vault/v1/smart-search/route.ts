@@ -27,7 +27,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    return ok(await searchLibrary(query, limit, { reader, read: url.searchParams.get('read') === '1' }));
+    const result = await searchLibrary(query, limit, { reader, read: url.searchParams.get('read') === '1' });
+    // Hidden-in-source slides (usually internal notes) only when asked for (FD-32).
+    if (url.searchParams.get('hidden') !== 'include') result.items = result.items.filter((i) => !i.slide.hiddenInSource);
+    return ok(result);
   } catch (e) {
     console.error('Smart search failed', e);
     return fail(503, 'LIBRARY_NOT_READY', 'Search is unavailable right now. Please try again.', true);

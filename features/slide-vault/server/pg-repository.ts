@@ -193,11 +193,11 @@ export async function searchSlidesPg(query: string, limit: number): Promise<Slid
   const q = query.trim();
   const rows = q
     ? await sql<SlideWithDeck>(
-        `${SLIDE_WITH_DECK} where d.status = 'ready' and s.search_text @@ plainto_tsquery('english', $1)
+        `${SLIDE_WITH_DECK} where d.status = 'ready' and d.archived_at is null and s.search_text @@ plainto_tsquery('english', $1)
          order by ts_rank(s.search_text, plainto_tsquery('english', $1)) desc, d.title, s.slide_number limit $2`,
         [q, limit],
       )
-    : await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where d.status = 'ready' order by d.uploaded_at desc, s.slide_number limit $1`, [limit]);
+    : await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where d.status = 'ready' and d.archived_at is null order by d.uploaded_at desc, s.slide_number limit $1`, [limit]);
   return rows.map(toSlideSummary);
 }
 
@@ -206,7 +206,7 @@ export async function searchSlidesPg(query: string, limit: number): Promise<Slid
  * match first. With no keywords, the filters alone decide (newest decks first).
  */
 export async function smartSearchPg(plan: SearchPlan, limit: number): Promise<{ summary: SlideSummary; facts: SlideFacts }[]> {
-  const where: string[] = [`d.status = 'ready'`];
+  const where: string[] = [`d.status = 'ready' and d.archived_at is null`];
   const values: unknown[] = [];
   const add = (v: unknown) => {
     values.push(v);
@@ -241,8 +241,8 @@ export async function smartSearchPg(plan: SearchPlan, limit: number): Promise<{ 
 /** Client names and categories that exist, so search filters can only use real values. */
 export async function listFilterValuesPg(): Promise<{ clients: string[]; categories: string[] }> {
   const rows = await sql<{ kind: string; value: string }>(
-    `select distinct 'client' as kind, client as value from decks where status = 'ready' and client is not null and client <> 'Unknown client'
-     union select distinct 'category', category from decks where status = 'ready' and category is not null
+    `select distinct 'client' as kind, client as value from decks where status = 'ready' and archived_at is null and client is not null and client <> 'Unknown client'
+     union select distinct 'category', category from decks where status = 'ready' and archived_at is null and category is not null
      order by 1, 2`,
   );
   return {
@@ -284,14 +284,14 @@ export async function getSlidesForExport(slideIds: string[]): Promise<Exportable
 /** Title and text of every slide in a ready deck, for duplicate grouping. */
 export async function listSlideTextsPg(): Promise<SlideText[]> {
   const rows = await sql<{ id: string; deck_id: string; title: string | null; text: string | null }>(
-    `select s.id, s.deck_id, s.title, s.text from slides s join decks d on d.id = s.deck_id where d.status = 'ready' order by s.id`,
+    `select s.id, s.deck_id, s.title, s.text from slides s join decks d on d.id = s.deck_id where d.status = 'ready' and d.archived_at is null order by s.id`,
   );
   return rows.map((r) => ({ id: r.id, sourceId: r.deck_id, title: r.title ?? '', text: r.text ?? '' }));
 }
 
 /** Every ready uploaded deck and its slides (GET /library). */
 export async function listLibraryPg(): Promise<{ decks: LibraryDeck[]; slides: Omit<LibrarySlide, 'duplicateGroupId'>[] }> {
-  const deckRows = await sql<DeckRow & { uploaded_at: Date | string | null }>(`select * from decks where status = 'ready' order by uploaded_at desc`);
+  const deckRows = await sql<DeckRow & { uploaded_at: Date | string | null }>(`select * from decks where status = 'ready' and archived_at is null order by uploaded_at desc`);
   const decks: LibraryDeck[] = deckRows.map((d) => ({
     id: d.id,
     title: d.title,
@@ -306,7 +306,7 @@ export async function listLibraryPg(): Promise<{ decks: LibraryDeck[]; slides: O
   }));
   const rows = await sql<{ id: string; deck_id: string; slide_number: number; title: string | null; text: string | null; is_hidden_in_source: boolean }>(
     `select s.id, s.deck_id, s.slide_number, s.title, s.text, s.is_hidden_in_source
-     from slides s join decks d on d.id = s.deck_id where d.status = 'ready' order by s.deck_id, s.slide_number`,
+     from slides s join decks d on d.id = s.deck_id where d.status = 'ready' and d.archived_at is null order by s.deck_id, s.slide_number`,
   );
   const slides = rows.map((r) => ({
     id: r.id,

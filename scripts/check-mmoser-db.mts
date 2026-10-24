@@ -61,8 +61,8 @@ for (const schema of schemas) {
 if (tables.rows.some((r) => r.table_schema === env.SV_DB_SCHEMA && r.table_name === 'decks')) {
   const schema = pg.escapeIdentifier(env.SV_DB_SCHEMA);
   const decks = await inReadOnly(() =>
-    client.query<{ title: string; status: string; best: boolean; slides: number; in_bucket: number; on_laptop: number; error: string | null }>(
-      `select d.title, d.status, d.best_of_the_best as best, d.error,
+    client.query<{ title: string; status: string; best: boolean; archived: boolean; slides: number; in_bucket: number; on_laptop: number; error: string | null }>(
+      `select d.title, d.status, d.best_of_the_best as best, d.error, (to_jsonb(d) ->> 'archived_at') is not null as archived,
               count(s.id)::int as slides,
               count(s.id) filter (where s.thumbnail_path is not null and s.thumbnail_path not like 'local:%')::int as in_bucket,
               count(s.id) filter (where s.thumbnail_path like 'local:%')::int as on_laptop
@@ -72,7 +72,7 @@ if (tables.rows.some((r) => r.table_schema === env.SV_DB_SCHEMA && r.table_name 
   );
   console.log(`\nDecks in "${env.SV_DB_SCHEMA}":`);
   for (const d of decks.rows) {
-    console.log(`  ${d.title} (${d.status}${d.best ? ', Best of the Best' : ''}): ${d.slides} slides; previews ${d.in_bucket} in the bucket, ${d.on_laptop} on a laptop`);
+    console.log(`  ${d.title} (${d.status}${d.best ? ', Best of the Best' : ''}${d.archived ? ', ARCHIVED: hidden from the app' : ''}): ${d.slides} slides; previews ${d.in_bucket} in the bucket, ${d.on_laptop} on a laptop`);
     if (d.error) console.log(`    error: ${d.error}`);
   }
 }
