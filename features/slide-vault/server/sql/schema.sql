@@ -103,3 +103,63 @@ create index if not exists activity_at_idx on activity_events (at);
 -- anything (the bucket can't delete). Set by scripts/archive-deck.mts for now; archive in the app
 -- (Khushali's archive and delete work) builds on this same column.
 alter table decks add column if not exists archived_at timestamptz;
+
+-- ---------------------------------------------------------------------------------------------
+-- Story data (docs/DECISIONS.md FD-33): what each slide does in a proposal, slide packs and
+-- free-form tags. Filled by scripts/import-story-data.mts from the team's reviewed metadata and
+-- the AI's reading of each slide, and later at upload. Alina's rule: anything the AI suggested
+-- stays "suggested" until a person confirms it.
+--
+-- Deck details from the SharePoint-style view (author, office, uploaded by, dates) are Khushali's
+-- and go in their own block, so the two don't collide. project_location below is where the
+-- client's project is (New York, Vancouver), not the M Moser office that made the deck.
+
+alter table decks add column if not exists deck_kind text;          -- e.g. "RFP - HQ fit-out", "Resume appendix"
+alter table decks add column if not exists client_sector text;      -- e.g. "financial services"
+alter table decks add column if not exists project_location text;   -- e.g. "New York", "Global"
+alter table decks add column if not exists outcome text check (outcome in ('won', 'lost', 'pending'));
+
+alter table slides add column if not exists story_role text;        -- client challenge, insight, approach, proof, why us, outcome, intro, admin, divider
+alter table slides add column if not exists reuse_status text;      -- reusable, reusable - check currency, client-specific - reference only, internal - never show
+alter table slides add column if not exists image_kind text;        -- e.g. built project photography, headshots, plan / diagram
+alter table slides add column if not exists themes text[] not null default '{}';         -- e.g. sustainability / net zero
+alter table slides add column if not exists proof_sectors text[] not null default '{}';  -- sectors a case study proves experience in
+alter table slides add column if not exists projects text[] not null default '{}';       -- projects a case study shows
+alter table slides add column if not exists flags text[] not null default '{}';          -- e.g. names another client / leftover placeholder
+alter table slides add column if not exists shows text;             -- one line: what the slide shows
+alter table slides add column if not exists convinces text;         -- one line: what it convinces the client of
+alter table slides add column if not exists story_status text check (story_status in ('suggested', 'confirmed'));
+alter table slides add column if not exists story_confirmed_by text;
+alter table slides add column if not exists ai_uncertain boolean not null default false; -- the AI's second reading disagreed with its first
+
+-- Slide packs: slides that only work together (Grant, 21 Oct). Suggested at upload or import,
+-- confirmed by the person uploading. Picking one slide brings the rest, in order.
+create table if not exists slide_packs (
+  id uuid primary key default gen_random_uuid(),
+  deck_id uuid not null references decks (id) on delete cascade,
+  label text,
+  status text not null default 'suggested' check (status in ('suggested', 'confirmed')),
+  source text not null default 'import' check (source in ('import', 'upload', 'person')),
+  created_at timestamptz not null default now()
+);
+create table if not exists slide_pack_members (
+  pack_id uuid not null references slide_packs (id) on delete cascade,
+  slide_id uuid not null references slides (id) on delete cascade,
+  position integer not null,
+  primary key (pack_id, slide_id)
+);
+create index if not exists slide_pack_members_slide_idx on slide_pack_members (slide_id);
+create index if not exists slide_packs_deck_idx on slide_packs (deck_id);
+
+-- Free-form tags anyone can add to a deck or slide (Alina, 21 Oct), kept apart from the AI's.
+create table if not exists free_tags (
+  id bigint generated always as identity primary key,
+  target_kind text not null check (target_kind in ('deck', 'slide')),
+  target_id uuid not null,
+  tag text not null check (length(trim(tag)) between 1 and 60),
+  added_by text not null,
+  added_at timestamptz not null default now()
+);
+create unique index if not exists free_tags_one_per_target on free_tags (target_kind, target_id, lower(tag));
+create index if not exists free_tags_tag_idx on free_tags (lower(tag));
+create index if not exists slides_story_role_idx on slides (story_role);

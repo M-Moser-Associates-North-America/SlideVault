@@ -356,3 +356,17 @@ Acceptance evidence / affected PR criteria: test:folder-path (new folder cases),
 Documents/contracts changed: server/sql/schema.sql (decks.archived_at), server/pg-repository.ts, search and smart-search routes, client/api.ts, server/folder-path.ts, scripts/archive-deck.mts (new), scripts/check-mmoser-db.mts, scripts/test-folder-path.mts, package.json.
 Revisit trigger: M Moser wants some hidden slides searchable by default; archive moves into the app.
 ```
+
+```text
+Decision ID and title: FD-33 Story data lives in M Moser's Supabase: story fields on slides, slide packs, free-form tags, and an import from the reviewed metadata
+Status: proposed
+Decision date: 2026-10-24
+Decision owner/reviewer: Vincent (build), Schiffon (the metadata and the storyboard that reads it), Khushali (screens for tags and packs), Alina Pak (21 Oct check-in)
+Context and evidence: The storyboard (FD-22 to FD-31) reads each slide's role, reuse status, themes and flags from files on one laptop (slide-metadata.json, discover-scan.json, deck-catalog.json), because the real decks can't leave it. Alina only sees what is in her Supabase. At the 21 Oct check-in Grant asked for slide packs and Alina for her categories plus free-form tags she can filter and sort by; her rule from 19 Oct is that AI labels only count once a person confirms them.
+Options considered: (a) columns on slides and decks plus slide_packs and free_tags tables, filled by an import script that matches slides exactly; (b) one JSON column per slide holding whatever the files have; (c) keep the files and copy them to M Moser by hand.
+Chosen outcome: (a). slides gains story_role, reuse_status, image_kind, themes, proof_sectors, projects, flags, shows, convinces, story_status (suggested or confirmed), story_confirmed_by and ai_uncertain; decks gains deck_kind, client_sector, project_location and outcome (won, lost or pending). New tables slide_packs and slide_pack_members (status suggested or confirmed, source import, upload or person) and free_tags (deck or slide, one copy of a tag per item, who added it). scripts/import-story-data.mts (npm run story:import) matches each slide by the storyboard's own id, which comes from the deck file's SHA-256 and the slide number, against decks.file_hash, so no names are guessed. Reviewed metadata is written as confirmed; the AI's reading alone stays suggested. Slide packs and deck kind, sector and location come from the reviewed CSV. Dry run unless --yes; one transaction; safe to run again (confirmed packs and people's tags are never replaced).
+Consequences for scope, cost, security and integration: No AI calls and no slide text leaves the database. PDF decks aren't in Supabase, so their readings wait. Deck details from the SharePoint view (author, office, uploaded by, dates) are Khushali's and stay in their own block of schema.sql; project_location is where the client's project is, not the M Moser office. Meaning-based search (pgvector) is a separate step, because the extension has to be switched on in the project first.
+Acceptance evidence / affected PR criteria: db:setup run twice on a local Postgres set up like M Moser's; the import's dry run, write and second write checked there (exact matches, confirmed vs suggested, one pack after two runs); typecheck.
+Documents/contracts changed: server/sql/schema.sql, scripts/import-story-data.mts (new), package.json.
+Revisit trigger: the storyboard reads from Supabase instead of the files; upload suggests these fields (FD-23); M Moser records which proposals won.
+```
