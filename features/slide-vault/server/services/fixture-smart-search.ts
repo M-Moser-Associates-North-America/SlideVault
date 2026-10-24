@@ -9,7 +9,14 @@ import { toSummary } from './search';
  * keyword can match (title or text, at a word start), inside the plan's filters, best match first.
  * Lets one search cover sample decks and uploaded decks together, like GET /search does.
  */
-export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan, limit: number): { summary: SlideSummary; facts: SlideFacts }[] {
+/**
+ * `known`, when given (FD-33), adds what is known about each slide beyond its words: `about` is also
+ * searched (what the local model read on it), `boost` ranks slides of the kind, sector and theme the
+ * search asks for higher, and `answers` lets such a slide in even when none of its words match.
+ */
+export type SearchKnowledge = { about: (slideId: string) => string; boost: (slideId: string) => number; answers: (slideId: string) => boolean };
+
+export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan, limit: number, known?: SearchKnowledge): { summary: SlideSummary; facts: SlideFacts }[] {
   if (!index) return [];
   const starts = plan.keywords.map((k) => new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i'));
   const scored: { summary: SlideSummary; facts: SlideFacts; score: number }[] = [];
@@ -23,8 +30,11 @@ export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan
       if (plan.category && p.category?.toLowerCase() !== plan.category.toLowerCase()) continue;
       if (plan.bestOfTheBest && !p.bestOfTheBest) continue;
       // A title hit counts double, like ts_rank weighting the title in Postgres.
-      const score = starts.reduce((n, re) => n + (re.test(slide.title) ? 2 : re.test(slide.text) ? 1 : 0), 0);
-      if (starts.length && score === 0) continue;
+      const about = known?.about(slide.id) ?? '';
+      const words = starts.reduce((n, re) => n + (re.test(slide.title) ? 2 : re.test(slide.text) || (about && re.test(about)) ? 1 : 0), 0);
+      const answers = known?.answers(slide.id) ?? false;
+      if (starts.length && words === 0 && !answers) continue;
+      const score = words + (known?.boost(slide.id) ?? 0);
       scored.push({
         summary,
         score,

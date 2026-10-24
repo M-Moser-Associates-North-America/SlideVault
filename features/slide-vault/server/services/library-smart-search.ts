@@ -9,7 +9,8 @@ import { loadLibraryIndex } from '../library-repository';
 import { listFilterValuesPg, listSlideTextsPg, smartSearchPg } from '../pg-repository';
 import { withDownloadCounts } from '../user-data';
 import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
-import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from './fixture-smart-search';
+import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures, type SearchKnowledge } from './fixture-smart-search';
+import { answersIntent, asksForAnything, intentScore, intentWhy, searchIntent } from './slide-intent';
 import { loadSlideReadings } from '../slide-knowledge';
 import { smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, type StoryboardResponse } from './storyboard';
@@ -54,6 +55,17 @@ async function orWithoutDb<T>(what: string, run: () => Promise<T>, fallback: T):
 
 export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean }): Promise<SmartSearchResponse> {
   const index = await loadLibraryIndex();
+  // What the search asks for beyond its words (FD-33): a kind of slide, a sector, a theme, matched
+  // against the reviewed metadata and the local model's reading of each slide.
+  const readings = await loadSlideReadings();
+  const intent = searchIntent(query);
+  const known: SearchKnowledge | undefined = readings.size
+    ? {
+        about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
+        boost: (id) => intentScore(intent, readings.get(id)),
+        answers: (id) => asksForAnything(intent) && answersIntent(intent, readings.get(id)),
+      }
+    : undefined;
   const result = await smartSearch(
     query,
     limit,
@@ -67,7 +79,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
         };
       },
       reader: opts.reader,
-      search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max)].slice(0, max),
+      search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
       log: (m) => console.warn(m),
     },
     { read: opts.read },
@@ -79,7 +91,12 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   // Real "Most downloaded" counts (FD-18); left off when there's no database.
   const counted = await withDownloadCounts(badged, (e) => console.error('Download counts unavailable', e));
   const byId = new Map(result.items.map((i) => [i.slide.id, i]));
-  return { ...result, items: counted.map((slide) => ({ ...byId.get(slide.id)!, slide })) };
+  // Say what each slide is in the search's terms, ahead of the words it matched.
+  const said = (id: string, why: string) => {
+    const kind = intentWhy(intent, readings.get(id));
+    return kind ? `${kind} ${why}`.trim() : why;
+  };
+  return { ...result, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide, why: said(slide.id, item.why) }; }) };
 }
 
 /** The configured storyboard reader, or null for the standard story order. Throws when misconfigured. */
