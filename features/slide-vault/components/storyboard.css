@@ -61,21 +61,26 @@
 .slidevault .sb-beat { padding: 36px 0 32px; border-bottom: 1px solid var(--sv-border); }
 .slidevault .sb-beat-title { display: flex; gap: 14px; align-items: baseline; margin: 0 0 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text); }
 .slidevault .sb-beat-title .sb-n { font-size: 12px; }
-.slidevault .sb-beat-pic { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); cursor: pointer; overflow: hidden; }
+.slidevault .sb-beat-frame { position: relative; }
+.slidevault .sb-beat-pic { display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); cursor: zoom-in; overflow: hidden; }
 .slidevault .sb-beat-pic img, .slidevault .sb-set-pic img { width: 100%; height: 100%; object-fit: contain; background: #fff; display: block; }
-.slidevault .sb-beat-more { position: absolute; right: 10px; bottom: 10px; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--sv-text) 78%, transparent); color: #fff; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.slidevault .sb-beat-more { position: absolute; right: 10px; bottom: 10px; min-width: 44px; min-height: 32px; padding: 4px 12px; border: 0; border-radius: 999px; background: color-mix(in srgb, var(--sv-text) 78%, transparent); color: #fff; font: inherit; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
+.slidevault .sb-beat-more:hover, .slidevault .sb-beat-more[aria-expanded='true'] { background: var(--sv-brand-strong); }
+.slidevault .sb-beat-more:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .sb-verdict { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; }
+.slidevault .sb-verdict.is-small .sb-icon-btn { font-size: 11px; padding: 4px 2px; }
 .slidevault .sb-beat-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin-top: 10px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sv-text-secondary); }
 .slidevault .sb-beat-set { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 14px; }
 .slidevault .sb-beat-set li { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .slidevault .sb-set-pic { width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); cursor: zoom-in; overflow: hidden; }
-.slidevault .sb-set-note { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sv-brand-strong); padding: 6px 4px; }
 .slidevault .sb-beat-say { margin: 22px 0 10px; font-size: clamp(18px, 2.2vw, 21px); line-height: 1.5; color: var(--sv-text); max-width: 62ch; }
 .slidevault .sb-beat-why { margin: 0; font-size: 12px; letter-spacing: 0.04em; color: var(--sv-text-secondary); }
 .slidevault .sb-beat-why b { font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; }
-.slidevault .sb-beat-actions { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 14px; }
 .slidevault .sb-icon-btn { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sv-text-secondary); background: none; border: 0; padding: 6px 2px; cursor: pointer; }
-.slidevault .sb-icon-btn:hover:not(:disabled), .slidevault .sb-icon-btn[aria-expanded='true'] { color: var(--sv-text); }
-.slidevault .sb-icon-btn[aria-pressed='true'] { color: var(--sv-brand-strong); cursor: default; }
+.slidevault .sb-icon-btn:hover:not(:disabled) { color: var(--sv-text); }
+.slidevault .sb-icon-btn[aria-pressed='true'] { color: var(--sv-brand-strong); }
+.slidevault .sb-icon-btn:disabled { cursor: default; }
+.slidevault .sb-icon-btn:disabled:not([aria-pressed='true']) { opacity: 0.45; }
 .slidevault .sb-sharpen { margin-top: 40px; }
 .slidevault .sb-questions { margin: 10px 0 12px; padding-left: 18px; color: var(--sv-text-secondary); }
 .slidevault .sb-questions li { margin: 4px 0; }

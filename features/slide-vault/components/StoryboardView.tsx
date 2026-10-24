@@ -17,7 +17,7 @@ import './storyboard.css';
  * in, the client's story out, told slide by slide like the deck it will become. The parts of the
  * story (challenge, approach, proof...) only order it behind the scenes; the page shows the story:
  * a title, then each beat's slide, what it matches in the brief, what to say and why it is there.
- * Clicking a slide shows every other slide behind that beat. Keep, swap and remove teach the next
+ * The "+2" on a slide opens the slides behind that beat. Useful / Not useful teach the next
  * storyboard for a similar brief.
  */
 
@@ -37,7 +37,6 @@ export function StoryboardView() {
   const [phase, setPhase] = useState<'start' | 'building' | 'ready' | 'error'>('start');
   const [error, setError] = useState('');
   const [story, setStory] = useState<StoryboardResult | null>(null);
-  const [beats, setBeats] = useState<StoryBeat[]>([]);
   const [answers, setAnswers] = useState('');
   const [elapsed, setElapsed] = useState(0);
   const { stories: saved, save } = useSavedStories(profile);
@@ -62,7 +61,6 @@ export function StoryboardView() {
 
   function show(result: StoryboardResult) {
     setStory(result);
-    setBeats(result.beats);
     setSaid({});
     setPhase('ready');
     requestAnimationFrame(() => headRef.current?.focus());
@@ -106,32 +104,14 @@ export function StoryboardView() {
   function startOver() {
     abort.current?.abort();
     setStory(null);
-    setBeats([]);
     setAnswers('');
     setPhase('start');
   }
 
   function addStory() {
-    const leads = beats.map((b) => b.lead.slide);
+    const leads = story ? story.beats.map((b) => b.lead.slide) : [];
     updateSelection((cur) => [...cur, ...leads.filter((l) => !cur.some((c) => c.id === l.id))]);
     toast(`Added the story's ${leads.length} slides to the draft deck, in story order`);
-  }
-
-  /** Lead the beat with another of its slides: the old lead was not right here, the new one is. */
-  function swap(i: number, to: SlideSummary) {
-    const beat = beats[i];
-    const next = beat.more.find((m) => m.slide.id === to.id);
-    if (!next) return;
-    say(beat.role, beat.lead.slide.id, 'not-right');
-    say(beat.role, to.id, 'useful');
-    setBeats((cur) => cur.map((b, j) => (j === i ? { ...b, lead: next, more: [b.lead, ...b.more.filter((m) => m !== next)] } : b)));
-  }
-
-  function remove(i: number) {
-    const beat = beats[i];
-    say(beat.role, beat.lead.slide.id, 'not-right');
-    setBeats((cur) => cur.filter((_, j) => j !== i));
-    announce(`Removed “${beat.title}” from the story.`);
   }
 
   if (phase === 'building') return <Composing elapsed={elapsed} onStop={cancel} />;
@@ -212,6 +192,7 @@ export function StoryboardView() {
       </div>
     );
 
+  const beats = story.beats;
   const deck = beats.flatMap((b) => [b.lead.slide, ...b.more.map((m) => m.slide)]);
   return (
     <div className="sv-wrap sb">
@@ -239,58 +220,56 @@ export function StoryboardView() {
       )}
       <ol className="sb-beats">
         {beats.map((b, i) => (
-          <Beat key={`${b.role}:${b.lead.slide.id}`} n={i + 1} beat={b} deck={deck} said={said} onKeep={() => say(b.role, b.lead.slide.id, 'useful')} onSwap={(to) => swap(i, to)} onRemove={() => remove(i)} />
+          <Beat key={`${b.role}:${b.lead.slide.id}`} n={i + 1} beat={b} deck={deck} said={said} onSay={(id, v) => say(b.role, id, v)} />
         ))}
       </ol>
-      {beats.length === 0 && <p className="muted">Every slide was removed. Start over, or tell it more below.</p>}
       <Sharpen questions={story.questions} onSend={sharpen} />
     </div>
   );
 }
 
-/** One moment of the story: its slide large, what it matches, what to say, and why it's here. */
-function Beat({ n, beat, deck, said, onKeep, onSwap, onRemove }: { n: number; beat: StoryBeat; deck: SlideSummary[]; said: Record<string, StoryFeedbackVerdict>; onKeep: () => void; onSwap: (to: SlideSummary) => void; onRemove: () => void }) {
+/**
+ * One moment of the story: its slide large, what it matches, what to say, and why it's here. The
+ * slides behind it open from the "+2" on the picture. Useful / Not useful on any of them teaches the
+ * next storyboard for a similar brief (FD-24).
+ */
+function Beat({ n, beat, deck, said, onSay }: { n: number; beat: StoryBeat; deck: SlideSummary[]; said: Record<string, StoryFeedbackVerdict>; onSay: (slideId: string, v: StoryFeedbackVerdict) => void }) {
   const { openPreview } = useWorkspace();
   const [open, setOpen] = useState(false);
   const { lead, more } = beat;
-  const kept = said[`${beat.role}:${lead.slide.id}`] === 'useful';
   const preview = (s: SlideSummary) => openPreview(deck, Math.max(0, deck.findIndex((x) => x.id === s.id)));
   const id = `sb-beat-${n}`;
+  const verdict = (slideId: string) => said[`${beat.role}:${slideId}`];
   return (
     <li className="sb-beat" aria-labelledby={id}>
       <h2 className="sb-beat-title" id={id}>
         <span className="sb-n">{two(n)}</span> {beat.title}
       </h2>
-      <button
-        type="button"
-        className="sb-beat-pic"
-        aria-expanded={more.length ? open : undefined}
-        aria-label={more.length ? `${lead.slide.title}: show the ${more.length} other slides behind this` : `Preview: ${lead.slide.title}`}
-        onClick={() => (more.length ? setOpen((o) => !o) : preview(lead.slide))}
-      >
-        <Thumb slide={lead.slide} />
-        {more.length > 0 && <span className="sb-beat-more">+{more.length}</span>}
-      </button>
+      <div className="sb-beat-frame">
+        <button type="button" className="sb-beat-pic" aria-label={`Preview: ${lead.slide.title}`} onClick={() => preview(lead.slide)}>
+          <Thumb slide={lead.slide} />
+        </button>
+        {more.length > 0 && (
+          <button type="button" className="sb-beat-more" aria-expanded={open} aria-label={open ? 'Hide the other slides' : `Show ${more.length} more slides`} onClick={() => setOpen((o) => !o)}>
+            +{more.length}
+          </button>
+        )}
+      </div>
       <div className="sb-beat-caption">
         <span>
           {lead.slide.provenance.sourceTitle}, slide {lead.slide.provenance.slideNumber}
         </span>
         {beat.matches.length > 0 && <span className="sb-accent">Matches {beat.matches.map((m) => `“${m}”`).join(', ')}</span>}
       </div>
+      <Verdict value={verdict(lead.slide.id)} onSay={(v) => onSay(lead.slide.id, v)} />
       {open && (
-        <ul className="sb-beat-set" aria-label="Every slide behind this moment">
-          {[lead, ...more].map(({ slide }) => (
+        <ul className="sb-beat-set" aria-label="More slides for this moment">
+          {more.map(({ slide }) => (
             <li key={slide.id}>
               <button type="button" className="sb-set-pic" aria-label={`Preview: ${slide.title}`} onClick={() => preview(slide)}>
                 <Thumb slide={slide} />
               </button>
-              {slide.id === lead.slide.id ? (
-                <span className="sb-set-note">Leading</span>
-              ) : (
-                <button type="button" className="sb-text-btn" onClick={() => onSwap(slide)}>
-                  Lead with this
-                </button>
-              )}
+              <Verdict value={verdict(slide.id)} onSay={(v) => onSay(slide.id, v)} small />
             </li>
           ))}
         </ul>
@@ -299,23 +278,23 @@ function Beat({ n, beat, deck, said, onKeep, onSwap, onRemove }: { n: number; be
       <p className="sb-beat-why">
         <b>Why this slide</b> — {beat.why}
       </p>
-      <div className="sb-beat-actions">
-        <button type="button" className="sb-icon-btn" aria-pressed={kept} onClick={onKeep} disabled={kept}>
-          <Icon name="check" className="ic-sm" />
-          {kept ? 'Kept' : 'Keep'}
-        </button>
-        {more.length > 0 && (
-          <button type="button" className="sb-icon-btn" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-            <Icon name="swap" className="ic-sm" />
-            Swap
-          </button>
-        )}
-        <button type="button" className="sb-icon-btn" onClick={onRemove}>
-          <Icon name="x" className="ic-sm" />
-          Remove
-        </button>
-      </div>
     </li>
+  );
+}
+
+/** Useful / Not useful on one slide; once said, it stays said for this story. */
+function Verdict({ value, onSay, small }: { value?: StoryFeedbackVerdict; onSay: (v: StoryFeedbackVerdict) => void; small?: boolean }) {
+  return (
+    <div className={`sb-verdict${small ? ' is-small' : ''}`} role="group" aria-label="Was this slide useful?">
+      <button type="button" className="sb-icon-btn" aria-pressed={value === 'useful'} disabled={!!value} onClick={() => onSay('useful')}>
+        <Icon name="check" className="ic-sm" />
+        Useful
+      </button>
+      <button type="button" className="sb-icon-btn" aria-pressed={value === 'not-right'} disabled={!!value} onClick={() => onSay('not-right')}>
+        <Icon name="x" className="ic-sm" />
+        Not useful
+      </button>
+    </div>
   );
 }
 
