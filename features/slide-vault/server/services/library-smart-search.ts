@@ -126,14 +126,13 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   // library what a missing part should be about, when the request is only "the story of Moody's".
   const brief = source ? `${situation}\n${source.deck.title.replace(/ · /g, ', ')}` : situation;
   const result = await buildStoryboard(brief, { reader: opts.reader, search, learned: learnedForTopics, knowledge, source, context, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
-  const all = [...result.sections.flatMap((s) => s.items.map((i) => i.slide)), ...(result.appendix ?? []).map((i) => i.slide)];
+  const all = [...result.sections.flatMap((s) => s.items.map((i) => i.slide)), ...result.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide))];
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
   const withCounts = <T extends { slide: SlideSummary }>(i: T): T => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide });
   return {
     ...result,
     sections: result.sections.map((s) => ({ ...s, items: s.items.map(withCounts) })),
     beats: result.beats.map((b) => ({ ...b, lead: withCounts(b.lead), more: b.more.map(withCounts) })),
-    ...(result.appendix ? { appendix: result.appendix.map(withCounts) } : {}),
   };
 }
 

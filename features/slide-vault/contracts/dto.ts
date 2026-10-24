@@ -222,6 +222,12 @@ export type StoryBeat = {
   matches: string[];
   lead: StoryboardSlide;
   more: StoryboardSlide[];
+  /**
+   * Retelling a deck (FD-32): "required" marks a section of pages the proposal needs that isn't
+   * story (résumés, fees, schedule, legal...), kept where the deck had it; "suggested" marks slides
+   * from other decks offered for a part the deck never had, placed where that part belongs.
+   */
+  kind?: 'required' | 'suggested';
 };
 
 /** "Was this helpful?" on a storyboard: a slide is useful or not right for its part, or nothing in a part fits */
@@ -273,6 +279,4 @@ export type StoryboardResult = {
   deck?: { id: string; title: string; slideCount: number };
   /** Build: the decks we already made for clients the brief names, used for the parts about them */
   context?: { id: string; title: string }[];
-  /** Reimagine: the deck's pages that aren't part of the story (résumés, fees, schedule, legal...), in their original order */
-  appendix?: StoryboardSlide[];
 };

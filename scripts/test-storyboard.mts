@@ -6,7 +6,7 @@
  */
 import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import type { SearchPlan, SlideFacts } from '../features/slide-vault/server/ai/search-plan';
-import { cleanComposition, cleanStoryPlan, wholeSentences, missingContext, openAiCompatibleStoryReader, standInStory, STORY_ROLES, type StoryReader } from '../features/slide-vault/server/ai/storyboard';
+import { cleanComposition, cleanStoryPlan, cleanWeave, wholeSentences, missingContext, openAiCompatibleStoryReader, standInStory, STORY_ROLES, type StoryReader } from '../features/slide-vault/server/ai/storyboard';
 import { briefNeeds, buildStoryboard, clientSectors, situationTopics } from '../features/slide-vault/server/services/storyboard';
 
 let failures = 0;
@@ -222,13 +222,32 @@ check(wholeSentences('We start with you. Then we plan every site together with y
   const knowledge = { of: (id: string) => { const x = all.find((d) => d.id === id); return x && { role: x.role, topics: [], about: '', reviewed: true, reuse: 'reusable', type: x.type }; }, forPart: async (role: string) => all.filter((x) => x.role === role).map(rowOf) };
   const search6 = async (plan: SearchPlan) => all.filter((x) => plan.keywords.some((k) => `${x.title} ${x.text}`.toLowerCase().includes(k))).map(rowOf);
   const r = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge, source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } });
-  const inStory = r.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id));
-  const after = (r.appendix ?? []).map((i) => i.slide.id);
-  check(r.mode === 'reimagine' && DECK.every((d) => inStory.includes(d.id) || after.includes(d.id)), 'retell: every slide of the deck is used', { inStory, after });
-  check(JSON.stringify(after) === '["d1","d5","d6"]', 'retell: cover, résumés and fees follow the story, in the deck\'s order', after);
-  check(JSON.stringify([...new Set(r.beats.map((b) => b.role))]) === JSON.stringify(['client-challenge', 'strategy', 'experience', 'why-us', 'outcome']), 'retell: the story runs client first, not in the deck\'s why-us-first order', r.beats.map((b) => b.role));
-  const filled = r.beats.find((b) => b.role === 'client-challenge');
-  check(!!filled && filled.lead.slide.id === 'o1' && filled.lead.why.startsWith('Not in the original'), 'retell: a part the deck never had is filled from another deck, and says so', filled?.lead.why);
+  const shown = r.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id));
+  const fromDeck = shown.filter((id) => id.startsWith('d'));
+  check(r.mode === 'reimagine' && JSON.stringify(fromDeck) === JSON.stringify(DECK.map((d) => d.id)), "retell (FD-32): every slide is used, in the deck's own order", fromDeck);
+  const kinds = r.beats.map((b) => `${b.kind ?? b.role}:${[b.lead, ...b.more].map((i) => i.slide.id).join('+')}`);
+  check(JSON.stringify(kinds) === JSON.stringify(['required:d1', 'suggested:o1', 'why-us:d2', 'experience:d3', 'strategy:d4', 'required:d5+d6', 'experience:d7', 'outcome:d8']), 'retell: required pages stay where they were; a part the deck never had is suggested where it belongs', kinds);
+  const suggested = r.beats.find((b) => b.kind === 'suggested');
+  check(!!suggested && suggested.bridge.startsWith('Suggested addition: the original never') && suggested.lead.why.startsWith('Not in the original'), 'retell: a suggestion says what gap it fills and where it came from', suggested?.bridge);
+  check(r.beats.every((b) => b.bridge.length > 10) && r.beats.find((b) => b.kind === 'required' && b.lead.slide.id === 'd5')!.bridge.includes('résumés, fees'), 'retell: every section opens with a line, and required pages say what they are', r.beats.map((b) => b.bridge));
+  check(r.beats.find((b) => b.role === 'experience')!.bridge.includes('each project should say what it shows for them'), 'retell: the proof is asked to tie back to the client');
+  {
+    const themed = { ...knowledge, of: (id: string) => { const k = knowledge.of(id); return k && { ...k, themes: id === 'd3' || id === 'd7' ? ['health & wellbeing'] : id === 'd4' ? ['cost certainty & risk'] : [] }; } };
+    const t = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge: themed, source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } });
+    check(t.thesis === 'Show Kestrel we understand what matters to them (health & wellbeing and cost certainty & risk), have a clear plan, and have done it before.', "retell: with no needs in the request, the thesis comes from the deck's own themes", t.thesis);
+  }
+
+  // The AI writes the lines; it can never drop or move a section.
+  const weaver: StoryReader = {
+    name: 'fake',
+    plan: async (t) => standInStory(t),
+    weave: async (_b, secs) => cleanWeave({ title: 'Kestrel, accountable everywhere', thesis: 'Show Kestrel one firm can be accountable for every site.', sections: [...secs].reverse().slice(0, secs.length - 1).map((x) => ({ code: x.code, title: `T ${x.code}`, bridge: `Ties ${x.code} back to accountability.`, narration: 'n', why: 'w' })).concat([{ code: 'made-up', title: 'x', bridge: 'x', narration: 'x', why: 'x' }]) }, new Set(secs.map((x) => x.code))),
+  };
+  const w = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge, reader: weaver, source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } }, { read: true });
+  const wShown = w.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)).filter((id) => id.startsWith('d'));
+  check(w.composer === 'model' && w.thesis.startsWith('Show Kestrel one firm') && JSON.stringify(wShown) === JSON.stringify(DECK.map((d) => d.id)), "retell: the AI's thesis, in the deck's order whatever order it answered in", wShown);
+  check(w.beats.slice(1).every((b) => b.bridge.startsWith('Ties w')) && !w.beats[0].bridge.startsWith('Ties'), "retell: the AI's lines where it wrote them, the rules' for the one it skipped", w.beats.map((b) => b.bridge));
+  check(w.beats.find((b) => b.kind === 'required')!.narration === '', 'retell: required pages get no narration');
 }
 
 // ---- A new story about clients we already have decks for (FD-31): their decks lead the parts about them

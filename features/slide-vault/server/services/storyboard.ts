@@ -3,7 +3,7 @@ import { cleanPlan, MAX_KEYWORDS, whyItFits, type PlanContext, type SearchPlan, 
 import { isStopWord } from '../../components/search-rules';
 import { missingContext, STORY_ARC, standInStory, type StoryPlan, type StoryReader } from '../ai/storyboard';
 import { DEFAULT_SLIDES_PER_PART, ROLE_TUNING } from '../ai/roles';
-import { composeStory } from './story-beats';
+import { composeStory, weaveDeck } from './story-beats';
 import type { StoryRole, StoryUserRole } from '../../contracts/dto';
 
 /**
@@ -48,7 +48,7 @@ export type StoryboardDeps = {
    * slides it read as doing that part of a story, so a part can find a slide that never uses its words.
    */
   knowledge?: {
-    of: (slideId: string) => { role: string; topics: string[]; about: string; reviewed?: boolean; uncertain?: boolean; reuse?: string; flags?: string[]; sectors?: string[]; type?: string; projects?: string[] } | undefined;
+    of: (slideId: string) => { role: string; topics: string[]; about: string; reviewed?: boolean; uncertain?: boolean; reuse?: string; flags?: string[]; sectors?: string[]; type?: string; projects?: string[]; themes?: string[] } | undefined;
     /** `first`, when given, picks which slides come first, so the client's own sector isn't crowded out by library order. */
     forPart: (role: StoryRole, limit: number, first?: (slideId: string) => boolean) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]>;
   };
@@ -68,8 +68,8 @@ export type StoryboardDeps = {
 /** The parts of a story about the client, where its own decks lead */
 const ABOUT_THE_CLIENT = new Set<StoryRole>(['client-challenge', 'insight', 'strategy']);
 
-/** Pages a proposal needs that aren't part of its story: they follow it, in the deck's own order. */
-const AFTER_THE_STORY = /^(cover|cover_letter|table_of_contents|section_divider|rfp_worksheet|team_resume|team_time_allocation|fees_commercial|schedule|legal_admin|scope_assumptions|blank_or_placeholder)$/;
+/** Pages a proposal needs that aren't story (FD-32): a retold deck keeps them where they were. */
+const REQUIRED_PAGES = /^(cover|cover_letter|table_of_contents|section_divider|rfp_worksheet|team_resume|team_time_allocation|fees_commercial|schedule|legal_admin|scope_assumptions|blank_or_placeholder)$/;
 /** Parts a reimagined deck fills from elsewhere when it has nothing for them */
 const FILL_PER_GAP = 2;
 
@@ -316,7 +316,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     const inDeck = new Set(rows.map((r) => r.summary.id));
     const partOf = (id: string): StoryRole | null => {
       const k = known(id);
-      if (!k || NOT_PROOF.has(k.role) || (k.type && AFTER_THE_STORY.test(k.type))) return null;
+      if (!k || NOT_PROOF.has(k.role) || (k.type && REQUIRED_PAGES.test(k.type))) return null;
       return (STORY_ARC.some((a) => a.role === k.role) ? k.role : null) as StoryRole | null;
     };
     const asItem = (row: { summary: SlideSummary; facts: SlideFacts }, why: string): StoryboardSlide => ({
@@ -326,20 +326,28 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       reasons: { brief: [], part: [], from: [] },
       needs: needsMet(needs, `${row.facts.title} ${row.facts.text} ${known(row.summary.id)?.about ?? ''}`),
     });
+    // Retold without breaking it (FD-32): every slide stays where the deck had it, because it may
+    // answer an RFP whose required pages and order we can't see. The story is woven through instead.
+    const items = rows.map((r) => asItem(r, `From the original ${deck.title}.`));
+    const owned = new Set(rows.map((r) => partOf(r.summary.id)).filter((x): x is StoryRole => !!x));
+    // Slides from other decks for a part the deck never had: offered, never slipped in.
+    const fills = new Map(
+      plan.sections
+        .filter((sec) => !owned.has(sec.role))
+        .map((sec) => [sec.role, (sections.find((x) => x.role === sec.role)?.items ?? []).filter((i) => !inDeck.has(i.slide.id)).slice(0, FILL_PER_GAP).map((i) => ({ ...i, why: `Not in the original: from ${i.slide.provenance.sourceTitle}. ${i.why}` }))] as const),
+    );
     const fromDeck = plan.sections.map((sec): StoryboardSection => {
-      const own = rows.filter((r) => partOf(r.summary.id) === sec.role).map((r) => asItem(r, `From the original ${deck.title}.`));
-      const fill = own.length
-        ? []
-        : (sections.find((x) => x.role === sec.role)?.items ?? [])
-            .filter((i) => !inDeck.has(i.slide.id))
-            .slice(0, FILL_PER_GAP)
-            .map((i) => ({ ...i, why: `Not in the original: from ${i.slide.provenance.sourceTitle}. ${i.why}` }));
       const label = STORY_ARC.find((a) => a.role === sec.role)!.label;
-      return { role: sec.role, label, title: sec.title, need: sec.need, items: [...own, ...fill], gap: own.length + fill.length === 0 };
+      const own = items.filter((i) => partOf(i.slide.id) === sec.role);
+      const offered = fills.get(sec.role) ?? [];
+      return { role: sec.role, label, title: sec.title, need: sec.need, items: own.length ? own : offered, gap: own.length + offered.length === 0 };
     });
-    const appendix = rows.filter((r) => partOf(r.summary.id) === null).map((r) => asItem(r, `In the original ${deck.title}.`));
-    const story = await composeStory(text, fromDeck, known, { ...compose, keepAll: true });
-    return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections: fromDeck, topics: topics.keywords, role, ...story, considered: rows.length, mode: 'reimagine', deck, appendix };
+    // What the deck itself is about, for its thesis when the request names no needs ("the story of Moody's")
+    const themeCount = new Map<string, number>();
+    for (const r of rows) for (const t of known(r.summary.id)?.themes ?? []) themeCount.set(t, (themeCount.get(t) ?? 0) + 1);
+    const themes = [...themeCount].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t]) => t);
+    const story = await weaveDeck(text, items, partOf, fills, known, { ...compose, order: plan.sections.map((x) => x.role), client: deck.title.split(' · ')[0], themes });
+    return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections: fromDeck, topics: topics.keywords, role, ...story, considered: rows.length, mode: 'reimagine', deck };
   }
   // The story told slide by slide (FD-30): the AI chooses and narrates from this shortlist when it is on.
   const story = await composeStory(text, sections, known, compose);

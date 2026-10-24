@@ -105,9 +105,11 @@ export function StoryboardView() {
   }
 
   function addStory() {
-    const leads = story ? story.beats.map((b) => b.lead.slide) : [];
-    updateSelection((cur) => [...cur, ...leads.filter((l) => !cur.some((c) => c.id === l.id))]);
-    toast(`Added the story's ${leads.length} slides to the draft deck, in story order`);
+    // A new story adds each beat's lead slide; a retold deck (FD-32) adds every slide, in the deck's own order.
+    const byPage = (a: SlideSummary, b: SlideSummary) => (a.provenance.sourceId === b.provenance.sourceId ? a.provenance.slideNumber - b.provenance.slideNumber : 0);
+    const picked = !story ? [] : story.mode === 'reimagine' ? story.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide).sort(byPage)) : story.beats.map((b) => b.lead.slide);
+    updateSelection((cur) => [...cur, ...picked.filter((l) => !cur.some((c) => c.id === l.id))]);
+    toast(`Added the story's ${picked.length} slides to the draft deck, in story order`);
   }
 
   if (phase === 'building') return <Composing elapsed={elapsed} onStop={cancel} />;
@@ -234,20 +236,6 @@ export function StoryboardView() {
           <Beat key={`${b.role}:${b.lead.slide.id}`} n={i + 1} beat={b} deck={deck} said={said} onSay={(id, v) => say(b.role, id, v)} />
         ))}
       </ol>
-      {story.appendix && story.appendix.length > 0 && (
-        <section className="sb-after" aria-labelledby="sb-after-h">
-          <h2 className="sb-label" id="sb-after-h">
-            Also in the proposal · {story.appendix.length}
-          </h2>
-          <ul className="sb-beat-set">
-            {story.appendix.map(({ slide }) => (
-              <li key={slide.id}>
-                <SetPic slide={slide} deck={[...deck, ...story.appendix!.map((a) => a.slide)]} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
       <Sharpen questions={story.questions} onSend={sharpen} />
     </div>
   );
@@ -266,7 +254,9 @@ function Beat({ n, beat, deck, said, onSay }: { n: number; beat: StoryBeat; deck
   const id = `sb-beat-${n}`;
   const verdict = (slideId: string) => said[`${beat.role}:${slideId}`];
   return (
-    <li className="sb-beat" aria-labelledby={id}>
+    <li className={`sb-beat${beat.kind ? ` is-${beat.kind}` : ''}`} aria-labelledby={id}>
+      {/* Retold decks (FD-32): pages kept as the original had them, and slides offered from other decks */}
+      {beat.kind && <p className="sb-kind">{beat.kind === 'required' ? 'Kept as is' : 'Suggested addition'}</p>}
       {beat.bridge && <p className="sb-bridge">{beat.bridge}</p>}
       <h2 className="sb-beat-title" id={id}>
         <span className="sb-n">{two(n)}</span> {beat.title}
@@ -305,16 +295,6 @@ function Beat({ n, beat, deck, said, onSay }: { n: number; beat: StoryBeat; deck
         <b>Why this slide</b> — {beat.why}
       </p>
     </li>
-  );
-}
-
-/** A small picture of a slide that opens the preview. */
-function SetPic({ slide, deck }: { slide: SlideSummary; deck: SlideSummary[] }) {
-  const { openPreview } = useWorkspace();
-  return (
-    <button type="button" className="sb-set-pic" aria-label={`Preview: ${slide.title}`} onClick={() => openPreview(deck, Math.max(0, deck.findIndex((x) => x.id === slide.id)))}>
-      <Thumb slide={slide} />
-    </button>
   );
 }
 

@@ -119,7 +119,7 @@ export function rulesTitle(brief: string): string {
  * The rules' story: each part in order, its slides grouped into beats by project (a case study and
  * its pictures belong together) or by kind of slide, the best-ranked slide leading each beat.
  */
-export function rulesBeats(sections: StoryboardSection[], known: (id: string) => KnownSlide, keepAll = false): StoryBeat[] {
+export function rulesBeats(sections: StoryboardSection[], known: (id: string) => KnownSlide): StoryBeat[] {
   const beats: StoryBeat[] = [];
   for (const s of sections) {
     const groups = new Map<string, StoryboardSlide[]>();
@@ -137,40 +137,22 @@ export function rulesBeats(sections: StoryboardSection[], known: (id: string) =>
       // The AI's heading for the part is in the client's terms; the standard label is not.
       const partTitle = s.title !== s.label ? s.title : ROLE_TITLE[s.role];
       const title = i === 0 ? partTitle : s.role === 'experience' && k?.projects?.[0] ? k.projects[0] : (TYPE_TITLE[k?.type ?? ''] ?? partTitle);
-      beats.push({ role: s.role, title, bridge: '', narration: k?.about ? firstSentence(k.about) : '', why: asWhy(s.need), matches: (lead.needs?.length ? lead.needs : lead.reasons.brief).slice(0, 2), lead, more: keepAll ? more : more.slice(0, MAX_MORE) });
+      beats.push({ role: s.role, title, bridge: '', narration: k?.about ? firstSentence(k.about) : '', why: asWhy(s.need), matches: (lead.needs?.length ? lead.needs : lead.reasons.brief).slice(0, 2), lead, more: more.slice(0, MAX_MORE) });
     });
   }
   return beats;
-}
-
-/**
- * The AI chose the lead slides and the slides behind them; any slide it left out goes behind the last
- * beat of its own part, or into a new beat for a part it skipped, so nothing from the deck is lost.
- */
-function keepEverySlide(beats: StoryBeat[], sections: StoryboardSection[], known: (id: string) => KnownSlide) {
-  const shown = new Set(beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)));
-  for (const s of sections) {
-    const left = s.items.filter((i) => !shown.has(i.slide.id));
-    if (!left.length) continue;
-    const home = [...beats].reverse().find((b) => b.role === s.role);
-    if (home) home.more.push(...left);
-    else beats.push(...rulesBeats([{ ...s, items: left }], known, true).map((b) => ({ ...b, bridge: '' })));
-  }
-  const at = (r: StoryRole) => sections.findIndex((s) => s.role === r);
-  beats.sort((a, b) => at(a.role) - at(b.role));
 }
 
 export async function composeStory(
   brief: string,
   sections: StoryboardSection[],
   known: (id: string) => KnownSlide,
-  /** keepAll: every shortlisted slide stays in the story (a reimagined deck loses none of its slides) */
-  opts: { reader?: StoryReader | null; read?: boolean; log?: (m: string) => void; keepAll?: boolean; needs?: string[] },
+  opts: { reader?: StoryReader | null; read?: boolean; log?: (m: string) => void; needs?: string[] },
 ): Promise<{ title: string; thesis: string; beats: StoryBeat[]; composer: 'model' | 'rules' }> {
   // The brief's own needs, in the order it names them (the slides only add what they speak to)
   const briefNeeds = opts.needs ?? [...new Set(sections.flatMap((s) => s.items.flatMap((i) => i.needs ?? [])))];
   const rules = () => {
-    const beats = rulesBeats(sections, known, opts.keepAll);
+    const beats = rulesBeats(sections, known);
     bridgeAll(beats);
     return { title: rulesTitle(brief), thesis: rulesThesis(briefNeeds), beats, composer: 'rules' as const };
   };
@@ -217,7 +199,6 @@ export async function composeStory(
         proof.matches = (better.needs ?? proof.matches).slice(0, 2);
       }
     }
-    if (opts.keepAll) keepEverySlide(beats, sections, known);
     // The AI's bridge only holds where its beat still follows the beat it was written after.
     const codeOf = new Map([...byCode].map(([code, v]) => [v.item.slide.id, code]));
     const position = (b: StoryBeat) => told.get(codeOf.get(b.lead.slide.id) ?? '') ?? -1;
@@ -226,5 +207,146 @@ export async function composeStory(
   } catch (e) {
     opts.log?.(`Story composer unavailable, using the rules' order: ${(e as Error).message}`);
     return rules();
+  }
+}
+
+/* ---- Retelling a deck without breaking it (FD-32) ------------------------------------------ */
+
+/** Kinds of page a proposal needs that aren't story, as a person would name them */
+const REQUIRED_PAGE: Record<string, string> = {
+  cover: 'cover',
+  cover_letter: 'cover letter',
+  table_of_contents: 'contents',
+  section_divider: 'divider',
+  rfp_worksheet: 'RFP forms',
+  team_resume: 'résumés',
+  team_time_allocation: 'team time',
+  fees_commercial: 'fees',
+  schedule: 'schedule',
+  legal_admin: 'legal',
+  scope_assumptions: 'scope',
+  blank_or_placeholder: 'blank page',
+};
+/** What a deck is missing when it has nothing for a part of the story */
+const NEVER: Record<StoryRole, string> = {
+  'client-challenge': "sets out the client's situation",
+  insight: 'says what we see in their situation',
+  strategy: 'lays out how we would do it',
+  experience: 'shows proof from past work',
+  'why-us': 'introduces who they would work with',
+  outcome: 'closes on what they get',
+};
+const PART_WHY: Record<StoryRole, string> = {
+  'client-challenge': 'Shows we understand their situation before talking about ourselves.',
+  insight: 'Shows what we see in their situation that others might miss.',
+  strategy: 'Shows how we would solve it, step by step.',
+  experience: 'Proves we have done this before.',
+  'why-us': 'Shows the people and what sets us apart.',
+  outcome: 'Shows what the client gets.',
+};
+const NOT_A_LEAD = /^(cover|section_divider|table_of_contents|blank_or_placeholder)$/;
+
+/** The line that opens a story section and ties it back to the thesis, when the AI isn't writing it */
+export function weaveLine(role: StoryRole, needs: string[]): string {
+  const key = needs[0] ? said(needs[0]) : 'what they need';
+  return {
+    'client-challenge': 'Their situation, in their terms: everything after this answers it.',
+    insight: 'What we see in it that others might miss: the thread for the rest of the deck.',
+    strategy: `How we would do it, tied back to ${key}.`,
+    experience: `Proof we've done this before${needs[0] ? `, ${proven(needs[0])}` : ''}: each project should say what it shows for them.`,
+    'why-us': `Who they would work with, and why that matters for ${key}.`,
+    outcome: 'What they get, in their terms: close on it.',
+  }[role];
+}
+
+type Section = { code: string; role: StoryRole; kind?: 'required' | 'suggested'; items: StoryboardSlide[] };
+
+/**
+ * An existing deck, retold without breaking it (FD-32): every slide stays where it was, in the
+ * deck's own sections, because the proposal may answer an RFP whose required pages and order we
+ * can't see. The story is woven through instead: a thesis, and a line opening each section that ties
+ * it back. A part the deck never had is offered as a suggested addition where that part belongs.
+ */
+export async function weaveDeck(
+  brief: string,
+  deck: StoryboardSlide[],
+  partOf: (id: string) => StoryRole | null,
+  fills: Map<StoryRole, StoryboardSlide[]>,
+  known: (id: string) => KnownSlide,
+  opts: { reader?: StoryReader | null; read?: boolean; log?: (m: string) => void; needs: string[]; order: StoryRole[]; client?: string; themes?: string[] },
+): Promise<{ title: string; thesis: string; beats: StoryBeat[]; composer: 'model' | 'rules' }> {
+  // The deck's sections: a new one at each divider, and wherever it turns from story to required pages or from one part to the next.
+  const sections: Section[] = [];
+  let last: StoryRole = opts.order[0];
+  for (const item of deck) {
+    const part = partOf(item.slide.id);
+    const kind = part ? undefined : ('required' as const);
+    const role = part ?? last;
+    const prev = sections[sections.length - 1];
+    const divider = known(item.slide.id)?.type === 'section_divider';
+    if (!prev || divider || prev.kind !== kind || (!kind && prev.role !== role)) sections.push({ code: '', role, kind, items: [item] });
+    else prev.items.push(item);
+    if (part) last = part;
+  }
+  // A divider opens the section after it: keep it with that section, not on its own.
+  for (let i = sections.length - 2; i >= 0; i--) {
+    const s = sections[i];
+    if (s.items.length === 1 && known(s.items[0].slide.id)?.type === 'section_divider' && sections[i + 1]) {
+      sections[i + 1].items.unshift(...s.items);
+      sections.splice(i, 1);
+    }
+  }
+  // Parts the deck never had, offered where they belong in the story.
+  const told = new Set(sections.filter((s) => !s.kind).map((s) => s.role));
+  for (const role of opts.order) {
+    const offer = fills.get(role);
+    if (told.has(role) || !offer?.length) continue;
+    const at = opts.order.indexOf(role);
+    const before = sections.findIndex((s) => !s.kind && opts.order.indexOf(s.role) > at);
+    const lastStory = sections.map((s) => !s.kind).lastIndexOf(true);
+    sections.splice(before >= 0 ? before : lastStory + 1, 0, { code: '', role, kind: 'suggested', items: offer });
+  }
+  sections.forEach((s, i) => (s.code = `w${i + 1}`));
+
+  const firstOfRole = new Set<string>();
+  const beats = sections.map((s): StoryBeat => {
+    const lead = s.items.find((i) => !NOT_A_LEAD.test(known(i.slide.id)?.type ?? '')) ?? s.items[0];
+    const more = s.items.filter((i) => i !== lead);
+    const needs = lead.needs ?? [];
+    const pages = [...new Set(s.items.map((i) => REQUIRED_PAGE[known(i.slide.id)?.type ?? '']).filter(Boolean))];
+    const first = !firstOfRole.has(s.role) && !s.kind;
+    if (!s.kind) firstOfRole.add(s.role);
+    if (s.kind === 'required')
+      return { role: s.role, kind: 'required', title: pages.length ? pages.slice(0, 3).join(', ').replace(/^./, (c) => c.toUpperCase()) : 'Required pages', bridge: `Pages the proposal needs${pages.length ? ` (${pages.join(', ')})` : ''}: kept where they were, as they are.`, narration: '', why: 'Required pages stay as the original had them.', matches: [], lead, more };
+    if (s.kind === 'suggested') {
+      const from = [...new Set(s.items.map((i) => i.slide.provenance.sourceTitle))].join(', ');
+      return { role: s.role, kind: 'suggested', title: `Suggested: ${ROLE_TITLE[s.role].toLowerCase()}`, bridge: `Suggested addition: the original never ${NEVER[s.role]}. These slides from ${from} could fill it here.`, narration: '', why: PART_WHY[s.role], matches: needs.slice(0, 2), lead, more };
+    }
+    const k = known(lead.slide.id);
+    const title = first ? ROLE_TITLE[s.role] : s.role === 'experience' && k?.projects?.[0] ? k.projects[0] : (TYPE_TITLE[k?.type ?? ''] ?? ROLE_TITLE[s.role]);
+    return { role: s.role, title, bridge: weaveLine(s.role, needs.length ? needs : opts.needs), narration: k?.about ? firstSentence(k.about) : '', why: PART_WHY[s.role], matches: needs.slice(0, 2), lead, more };
+  });
+  // No needs named ("the story of Moody's"): the thesis comes from what the deck itself is about.
+  const thesis = opts.needs.length || !opts.themes?.length ? rulesThesis(opts.needs) : `Show ${opts.client ?? 'them'} we understand what matters to them (${joined(opts.themes)}), have a clear plan, and have done it before.`;
+  const rules = { title: rulesTitle(brief), thesis, beats, composer: 'rules' as const };
+
+  const weave = opts.reader?.weave;
+  if (!opts.read || !weave) return rules;
+  try {
+    const woven = await weave.call(
+      opts.reader,
+      brief,
+      sections.map((s, i) => ({ code: s.code, role: s.role, required: s.kind === 'required', suggested: s.kind === 'suggested', slides: s.items.length, title: beats[i].lead.slide.title, reading: known(beats[i].lead.slide.id)?.about ?? '' })),
+    );
+    // The AI's words where it wrote them; the slides and their order are never its to change.
+    const out = beats.map((b, i) => {
+      const w = woven.sections.get(sections[i].code);
+      if (!w) return b;
+      return { ...b, title: w.title || b.title, bridge: w.bridge || b.bridge, narration: b.kind === 'required' ? '' : w.narration || b.narration, why: w.why || b.why };
+    });
+    return { title: woven.title || rules.title, thesis: woven.thesis || rules.thesis, beats: out, composer: 'model' };
+  } catch (e) {
+    opts.log?.(`Story weaver unavailable, using the rules' lines: ${(e as Error).message}`);
+    return rules;
   }
 }
