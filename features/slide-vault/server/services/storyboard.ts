@@ -1,6 +1,6 @@
 import type { SlideSummary, StoryboardResult, StoryboardSection, StoryboardSlide } from '../../contracts/dto';
 import { cleanPlan, MAX_KEYWORDS, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
-import { isStopWord } from '../../components/simulation';
+import { isStopWord } from '../../components/search-rules';
 import { missingContext, STORY_ARC, standInStory, type StoryPlan, type StoryReader } from '../ai/storyboard';
 import { DEFAULT_SLIDES_PER_PART, ROLE_TUNING } from '../ai/roles';
 import { composeStory } from './story-beats';

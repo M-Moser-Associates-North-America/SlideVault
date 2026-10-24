@@ -247,7 +247,7 @@ Revisit trigger: When the Postgres read path replaces the file index, when a /de
 
 ```text
 Decision ID and title: FD-14 Simulated approval tiers, AI labels and smart search in the real front end (front end only)
-Status: proposed
+Status: retired (2026-10-23)
 Decision date: (pending)
 Decision owner/reviewer: (pending: UX lead + technical lead)
 Context and evidence: FD-13 left the v3 approval tiers, Access switch, AI "why it fits" lines, AI labels, most-downloaded rows and the upload label queue out of /slide-vault because the backend has no data for them. The client demo needs to show the intended experience.
@@ -256,7 +256,7 @@ Chosen outcome: (a). components/simulation.ts derives status (Approved, Suggeste
 Consequences for scope, cost, security and integration: No data is saved, sent or read from a model. Statuses are not real approvals and must never be presented as such. Visibility by tier is a display filter only; authoritative authorization stays on the server (AGENTS.md). Replace simulation.ts with real review state, labels and AI search when D-03 and D-12 are decided.
 Acceptance evidence / affected PR criteria: axe checks clean in light and dark on Home, results, deck dialog, slide, Upload and Create. Typecheck and lint pass. Not a PR-05 implementation.
 Documents/contracts changed: components/simulation.ts, Access switch in app/slide-vault, docs/DECISIONS.md.
-Revisit trigger: When review tiers, AI labels or an AI provider are approved (D-03, D-12), or when the Postgres read path lands.
+Revisit trigger: Retired 2026-10-23. Following Alina's review (2026-10-19: statuses and AI labels only if real), every simulated feature was removed: approval statuses (badges, the Status filter, the "Awaiting approval" and "Out of date" rows, and the tier filter that hid some real slides and blocked their download), the sample "Uploaded by" / "Contributed by" people, the suggested labels on the slide page and the simulated upload queue. Download counts, saved slides and My decks were already real (FD-18), and the smart search reader is real (FD-16, FD-17). The rules that remain (topic words for the stand-in reader and the "Slide type" filter) moved to components/search-rules.ts. "Your Top 10" and "Suggested for you" now show only when there is real activity or a saved slide behind them.
 ```
 
 ```text

@@ -1,5 +1,5 @@
 import type { SlideSummary } from '../contracts/dto';
-import { simContributor, simHasSlideType, simTier, simUploader, type Tier } from './simulation';
+import { hasSlideType } from './search-rules';
 
 /**
  * Pure helpers over the slides the API returns. Decks, clients, years and categories are all
@@ -24,18 +24,13 @@ export type Filters = {
   category: string[];
   client: string[];
   bestOnly: boolean;
-  /** Simulated approval status (FD-14) */
-  status: Tier[];
   yfrom: number | null;
   yto: number | null;
-  /** Simulated slide type labels, such as "About us" (FD-14) */
+  /** Slide types such as "About us", matched by topic words on the slide (search-rules.ts) */
   slideType: string[];
-  /** Simulated sample names (FD-14) */
-  uploader: string[];
-  contributor: string[];
 };
 
-export const NO_FILTERS: Filters = { category: [], client: [], bestOnly: false, status: [], yfrom: null, yto: null, slideType: [], uploader: [], contributor: [] };
+export const NO_FILTERS: Filters = { category: [], client: [], bestOnly: false, yfrom: null, yto: null, slideType: [] };
 
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -78,7 +73,7 @@ export function folderLabel(d: Pick<Deck, 'bestOfTheBest' | 'year' | 'clientName
 export const yearsOf = (decks: Deck[]) => [...new Set(decks.map((d) => d.year).filter((y): y is number => y !== null))].sort((a, b) => b - a);
 
 export function filterCount(f: Filters): number {
-  return f.category.length + f.client.length + f.status.length + f.slideType.length + f.uploader.length + f.contributor.length + (f.bestOnly ? 1 : 0) + (f.yfrom !== null || f.yto !== null ? 1 : 0);
+  return f.category.length + f.client.length + f.slideType.length + (f.bestOnly ? 1 : 0) + (f.yfrom !== null || f.yto !== null ? 1 : 0);
 }
 
 /** The names of the filters that are on, in the order the filter row shows them. */
@@ -88,9 +83,6 @@ export function filterKinds(f: Filters): string[] {
     ...(f.client.length ? ['Client'] : []),
     ...(f.category.length ? ['Project type'] : []),
     ...(f.slideType.length ? ['Slide type'] : []),
-    ...(f.uploader.length ? ['Uploaded by'] : []),
-    ...(f.contributor.length ? ['Contributed by'] : []),
-    ...(f.status.length ? ['Status'] : []),
     ...(f.bestOnly ? ['Best of the Best'] : []),
   ];
 }
@@ -109,11 +101,8 @@ export function slideMatches(s: SlideSummary, f: Filters): boolean {
   if (f.yto !== null && (year === null || year > f.yto)) return false;
   if (f.bestOnly && !s.provenance.bestOfTheBest) return false;
   if (f.client.length && !f.client.includes(clientOf(s))) return false;
-  if (f.status.length && !f.status.includes(simTier(s))) return false;
   if (f.category.length && !f.category.includes(categoryOf(s) ?? '')) return false;
-  if (f.slideType.length && !f.slideType.some((t) => simHasSlideType(s, t))) return false;
-  if (f.uploader.length && !f.uploader.includes(simUploader(s))) return false;
-  if (f.contributor.length && !f.contributor.includes(simContributor(s))) return false;
+  if (f.slideType.length && !f.slideType.some((t) => hasSlideType(s, t))) return false;
   return true;
 }
 
@@ -155,10 +144,6 @@ export function browseSlides(key: string, all: SlideSummary[]): SlideSummary[] {
       return sortNewest(all);
     case 'popular':
       return all.filter((s) => downloadsOf(s) > 0).sort((a, b) => downloadsOf(b) - downloadsOf(a));
-    case 'suggested':
-      return all.filter((s) => simTier(s) === 'Suggested');
-    case 'retired':
-      return all.filter((s) => simTier(s) === 'Retired');
     case 'client':
       return all.filter((s) => clientOf(s) === value);
     case 'year':
@@ -180,8 +165,6 @@ export function browseTitle(key: string): string {
   if (kind === 'best') return 'Best of the Best';
   if (kind === 'recent') return 'Newest decks';
   if (kind === 'popular') return 'Most downloaded';
-  if (kind === 'suggested') return 'Awaiting approval';
-  if (kind === 'retired') return 'Out of date';
   return 'Browse';
 }
 

@@ -3,13 +3,11 @@
 import { useId, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from 'react';
 import { Icon } from './icons';
 import { categoryOf, clientOf, countBy, filterCount, yearsOf, type Deck } from './library';
-import { visibleTiers, type Tier } from './simulation';
-import { SimFlag } from './parts';
 import { useWorkspace } from './state';
 
 /**
- * Example searches shown under the box. The sentence-style ones are read by the simulated smart
- * search (FD-14); the single words also work with the real keyword search.
+ * Example searches shown under the box. The sentence-style ones are read by the smart search
+ * (FD-16, FD-17); the single words also work with the plain keyword search.
  */
 export const TRY_QUERIES = ['team intro for a law firm pitch', 'cost and fees', 'about us and values', 'recent logistics work', 'process and timeline 2025'];
 
@@ -226,8 +224,7 @@ const PRESETS: [number, string][] = [
 ];
 
 export function FilterPanel({ decks, slidesAll }: { decks: Deck[]; slidesAll: import('../contracts/dto').SlideSummary[] }) {
-  const { runtime, filters, patchFilters, clearFilters } = useWorkspace();
-  const tiers = visibleTiers(runtime.capabilities);
+  const { filters, patchFilters, clearFilters } = useWorkspace();
   const nowYear = new Date().getFullYear();
   const n = filterCount(filters);
   const wide = useIsWide();
@@ -271,31 +268,6 @@ export function FilterPanel({ decks, slidesAll }: { decks: Deck[]; slidesAll: im
                 <input type="checkbox" checked={filters.bestOnly} onChange={(e) => patchFilters({ bestOnly: e.target.checked })} />
                 <span>Best of the Best</span>
               </label>
-            </div>
-          </fieldset>
-        )}
-        {tiers.length > 1 && (
-          <fieldset className="fg sim-group">
-            <legend>
-              Status
-              {filters.status.length > 0 && <span className="n">{filters.status.length}</span>}
-              <SimFlag />
-            </legend>
-            <div className="fchips">
-              {tiers.map((t) => (
-                <label key={t} className="fchip">
-                  <input
-                    type="checkbox"
-                    checked={filters.status.includes(t)}
-                    onChange={() =>
-                      patchFilters({
-                        status: toggle(filters.status, t) as Tier[],
-                      })
-                    }
-                  />
-                  <span>{t}</span>
-                </label>
-              ))}
             </div>
           </fieldset>
         )}

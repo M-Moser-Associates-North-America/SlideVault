@@ -7,7 +7,6 @@ import { useSelection } from '../client/selection-store';
 import type { SlideSummary, SmartSearchResult } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 import { groupDecks, NO_FILTERS, type Deck, type Filters } from './library';
-import { canSeeTier, simTier } from './simulation';
 
 export type LibraryState = { status: 'loading' } | { status: 'ready'; slides: SlideSummary[]; decks: Deck[] } | { status: 'error'; message: string };
 
@@ -15,7 +14,7 @@ export type SearchState = { status: 'idle' } | { status: 'loading' } | { status:
 
 export type Toast = { id: number; message: string };
 
-/** Local design prototype: fake sign-in as one demo profile, no real accounts (not pushed). */
+/** Placeholder sign-in: one demo profile until M Moser's login plugs in (FD-01). */
 export const DEMO_PROFILE = 'Person A';
 export type { ActivityEntry, Draft };
 
@@ -68,8 +67,7 @@ type Workspace = {
   alsoFor: SlideSummary | null;
   openAlso: (slide: SlideSummary) => void;
   closeAlso: () => void;
-  /** Local design prototype: fake sign-in (docs/DECISIONS.md FD-01 is still the real default --
-      this is a mockup for the pitch, not a real auth system). */
+  /** Placeholder sign-in (FD-01): who is signed in until M Moser's login replaces it. */
   profile: string | null;
   submitLogin: () => void;
   signOut: () => void;
@@ -112,7 +110,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
   const transport = useMemo(() => ({ request, onSessionExpired }), [request, onSessionExpired]);
 
   /* The whole library: one request, then filtered and grouped in the browser. */
-  const [rawLibrary, setLibrary] = useState<LibraryState>({
+  const [library, setLibrary] = useState<LibraryState>({
     status: 'loading',
   });
   const [libraryTry, setLibraryTry] = useState(0);
@@ -130,7 +128,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
 
   /* Search text lives in memory, not in the URL (docs/INTEGRATION_CONTRACT.md). */
   const [query, setQueryRaw] = useState('');
-  const [rawSearch, setSearch] = useState<SearchState>({ status: 'idle' });
+  const [search, setSearch] = useState<SearchState>({ status: 'idle' });
   const [searchTry, setSearchTry] = useState(0);
   /* The request the person submitted. Only that one may be read by the AI; typing uses the rules. */
   const [submitted, setSubmitted] = useState('');
@@ -161,24 +159,6 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
       controller.abort();
     };
   }, [transport, query, submitted, searchTry]);
-
-  /* Simulated approval tiers (FD-14): what the signed-in access may see. The server has no tiers yet. */
-  const caps = runtime.capabilities;
-  const library = useMemo<LibraryState>(() => {
-    if (rawLibrary.status !== 'ready') return rawLibrary;
-    const slides = rawLibrary.slides.filter((s) => canSeeTier(simTier(s), caps));
-    return { status: 'ready', slides, decks: groupDecks(slides) };
-  }, [rawLibrary, caps]);
-  const search = useMemo<SearchState>(
-    () =>
-      rawSearch.status === 'ready'
-        ? {
-            status: 'ready',
-            result: { ...rawSearch.result, items: rawSearch.result.items.filter((i) => canSeeTier(simTier(i.slide), caps)) },
-          }
-        : rawSearch,
-    [rawSearch, caps],
-  );
 
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);

@@ -36,13 +36,20 @@ async function axe(page: Page) {
   return violations.map((v) => `${v.id} (${v.impact}): ${v.help} — ${v.nodes.length} element(s)`);
 }
 
+// The API rate-limits per caller (FD-17: 60 searches a minute, keyed on X-Forwarded-For). The whole
+// suite runs from one address in under a minute, so give each test its own documentation-range
+// address and its own limit; otherwise the last tests see "Too many requests" instead of the app.
+let caller = 0;
+
 test.beforeEach(async ({ page }) => {
+  caller += 1;
+  await page.context().setExtraHTTPHeaders({ 'x-forwarded-for': `198.51.100.${(caller % 250) + 1}` });
   await page.goto('/slide-vault/pages');
   await page.evaluate(() => {
     localStorage.clear();
-    // Local design prototype: a fake sign-in now gates the app (SlideVaultWorkspace.tsx). Most
-    // of this suite is about the real app behind it, so sign in a demo profile here; the
-    // login/pick screens themselves get their own accessibility test below.
+    // The placeholder sign-in gates the app (SlideVaultWorkspace.tsx). Most of this suite is
+    // about the app behind it, so sign in a demo profile here; the sign-in screen itself gets
+    // its own accessibility test below.
     localStorage.setItem('slidevault:profile', 'Anna Wintour');
     // The quick tour starts by itself on a first sign-in and dims the page; mark it seen so these
     // tests reach the app. The tour gets its own test below.
@@ -189,7 +196,7 @@ test('primary workflow works with the keyboard alone', async ({ page }) => {
   await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).focus();
   const download = page.waitForEvent('download');
   await page.keyboard.press('Enter');
-  // With the broader simulated smart search, these three titles can now span multiple decks,
+  // With the broader smart search, these three titles can now span multiple decks,
   // which correctly downloads as a zip (one file per deck) instead of a single .pptx.
   expect((await download).suggestedFilename()).toMatch(/^SlideVault-export\.(pptx|zip)$/);
 });
@@ -238,7 +245,7 @@ test('no WCAG 2.2 AA violations on the sign-in screen; Sign in goes straight to 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
   expect(await axe(page)).toEqual([]);
-  // The sign-in is simulated: the fields start empty and Sign in works as it is, as the demo profile.
+  // The sign-in is a placeholder for M Moser's login: the fields start empty and Sign in works as it is.
   await expect(page.getByLabel('Email address')).toHaveValue('');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();

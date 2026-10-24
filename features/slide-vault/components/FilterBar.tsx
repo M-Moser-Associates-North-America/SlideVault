@@ -3,11 +3,10 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, countBy, filterCount, slideMatches, yearOf, type Filters } from './library';
-import { SimFlag } from './parts';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import type { SmartSearchChip } from '../contracts/dto';
 import { rowReading, withoutChip } from './search-reading';
-import { SIM_PEOPLE, SLIDE_TYPES, TIER_LABEL, simContributor, simHasSlideType, simUploader, visibleTiers, type Tier } from './simulation';
+import { SLIDE_TYPES, hasSlideType } from './search-rules';
 import { useRoot } from './root';
 import { useWorkspaceCompact } from './size';
 import { useWorkspace } from './state';
@@ -53,14 +52,12 @@ function Picker({
   picked,
   counts,
   onToggle,
-  simulated,
 }: {
   label: string;
   options: string[];
   picked: string[];
   counts?: Map<string, number>;
   onToggle: (v: string) => void;
-  simulated?: boolean;
 }) {
   const [text, setText] = useState('');
   const shown = options.filter((o) => o.toLowerCase().includes(text.trim().toLowerCase()));
@@ -69,7 +66,6 @@ function Picker({
     <div className="fb-picker">
       <div className="fb-picker-h">
         <span>{label}</span>
-        {simulated && <SimFlag />}
       </div>
       <input
         type="search"
@@ -124,15 +120,12 @@ export function FilterBar() {
   const categoryCounts = useMemo(() => countBy(without({ category: [] }), categoryOf), [without]);
   const typeCounts = useMemo(() => {
     const base = without({ slideType: [] });
-    return new Map(SLIDE_TYPES.map((t) => [t.label, base.filter((s) => simHasSlideType(s, t.label)).length]));
+    return new Map(SLIDE_TYPES.map((t) => [t.label, base.filter((s) => hasSlideType(s, t.label)).length]));
   }, [without]);
-  const uploaderCounts = useMemo(() => countBy(without({ uploader: [] }), simUploader), [without]);
-  const contributorCounts = useMemo(() => countBy(without({ contributor: [] }), simContributor), [without]);
   const yearCounts = useMemo(() => {
     const base = without({ yfrom: null, yto: null });
     return new Map(YEAR_PRESETS.map(([k]) => [k, base.filter((s) => (yearOf(s) ?? -1) >= new Date().getFullYear() - k + 1).length]));
   }, [without]);
-  const tiers = visibleTiers(runtime.capabilities);
 
   /* What the search was read as (client, year, kind of slide), straight from the server, so the
      row and the results header always agree. */
@@ -191,7 +184,7 @@ export function FilterBar() {
   }, [compact, scroll]);
 
   const yearOn = filters.yfrom !== null || filters.yto !== null;
-  const moreCount = filters.uploader.length + filters.contributor.length + filters.status.length + (filters.bestOnly ? 1 : 0);
+  const moreCount = filters.bestOnly ? 1 : 0;
   const items: { key: Key; label: string; icon: IconName; active: number }[] = [
     { key: 'year', label: 'Year', icon: 'calendarFill', active: yearOn || fromYear ? 1 : 0 },
     { key: 'client', label: 'Client', icon: 'buildingFill', active: filters.client.length + (fromClient ? 1 : 0) },
@@ -210,9 +203,6 @@ export function FilterBar() {
     ...filters.client.map((v) => ({ id: `c-${v}`, kind: 'Client', text: v, remove: () => patchFilters({ client: filters.client.filter((x) => x !== v) }) })),
     ...filters.category.map((v) => ({ id: `p-${v}`, kind: 'Project type', text: v, remove: () => patchFilters({ category: filters.category.filter((x) => x !== v) }) })),
     ...filters.slideType.map((v) => ({ id: `t-${v}`, kind: 'Slide type', text: v, remove: () => patchFilters({ slideType: filters.slideType.filter((x) => x !== v) }) })),
-    ...filters.uploader.map((v) => ({ id: `u-${v}`, kind: 'Uploaded by', text: v, remove: () => patchFilters({ uploader: filters.uploader.filter((x) => x !== v) }) })),
-    ...filters.contributor.map((v) => ({ id: `k-${v}`, kind: 'Contributed by', text: v, remove: () => patchFilters({ contributor: filters.contributor.filter((x) => x !== v) }) })),
-    ...filters.status.map((v) => ({ id: `s-${v}`, kind: 'Status', text: TIER_LABEL[v], remove: () => patchFilters({ status: filters.status.filter((x) => x !== v) }) })),
     ...(filters.bestOnly ? [{ id: 'best', kind: 'Collection', text: 'Best of the Best', remove: () => patchFilters({ bestOnly: false }) }] : []),
     ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
     ...(fromClient ? [{ id: 'sc', kind: 'Client', text: fromClient.label, remove: () => removeFromSearch(fromClient), fromSearch: true }] : []),
@@ -291,7 +281,6 @@ export function FilterBar() {
           options={SLIDE_TYPES.map((t) => t.label)}
           picked={[...filters.slideType, ...fromTypes.map((t) => t.label)]}
           counts={typeCounts}
-          simulated
           onToggle={(v) => {
             const fromSearchType = fromTypes.find((t) => t.label === v);
             if (fromSearchType) removeFromSearch(fromSearchType.chip);
@@ -301,23 +290,6 @@ export function FilterBar() {
       );
     return (
       <div className="fb-more">
-        <Picker label="Uploaded by" options={SIM_PEOPLE} picked={filters.uploader} counts={uploaderCounts} simulated onToggle={(v) => patchFilters({ uploader: toggle(filters.uploader, v) })} />
-        <Picker label="Contributed by" options={SIM_PEOPLE} picked={filters.contributor} counts={contributorCounts} simulated onToggle={(v) => patchFilters({ contributor: toggle(filters.contributor, v) })} />
-        {tiers.length > 1 && (
-          <div className="fb-picker">
-            <div className="fb-picker-h">
-              <span>Status</span>
-              <SimFlag />
-            </div>
-            <div className="fb-presets">
-              {tiers.map((t) => (
-                <button key={t} type="button" className="pchip" aria-pressed={filters.status.includes(t)} onClick={() => patchFilters({ status: toggle(filters.status, t) as Tier[] })}>
-                  {TIER_LABEL[t]}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
         <label className="fb-check">
           <input type="checkbox" checked={filters.bestOnly} onChange={(e) => patchFilters({ bestOnly: e.target.checked })} />
           <span>Best of the Best only</span>

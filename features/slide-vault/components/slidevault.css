@@ -86,7 +86,6 @@
 .slidevault .banner.danger { background: var(--svp-danger-tint); border-color: transparent; }
 .slidevault .banner.ok { background: var(--svp-success-tint); border-color: transparent; }
 .slidevault .banner.info { background: var(--sv-surface-sunken); border-color: transparent; }
-.slidevault .sim-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; letter-spacing: .03em; padding: 2px 7px; border-radius: 6px; background: var(--svp-warning-tint); color: var(--sv-text); white-space: nowrap; }
 .slidevault .state { text-align: center; padding: 48px 20px; border: 1px dashed var(--sv-border-strong); border-radius: var(--sv-radius-card); background: var(--sv-surface); }
 .slidevault .state .ic-big { width: 36px; height: 36px; color: var(--sv-text-secondary); }
 .slidevault .state h2 { font-size: 18px; margin: 10px 0 6px; }
@@ -210,13 +209,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .radio-row { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .slidevault .radio-row label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--sv-text-small); min-height: 32px; cursor: pointer; }
 .slidevault .radio-row input { accent-color: var(--sv-brand-strong); width: 16px; height: 16px; margin: 0; }
-.slidevault .queue { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.slidevault .queue li { border: 1px solid var(--sv-border); border-radius: 12px; padding: 12px 14px; background: var(--sv-surface); }
-.slidevault .qsteps { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; margin-top: 6px; }
-.slidevault .qsteps span { display: inline-flex; align-items: center; gap: 5px; color: var(--sv-text-secondary); }
-.slidevault .qsteps span.done { color: var(--sv-text); }
-.slidevault .qsteps span.done .ic { color: var(--sv-success); }
-.slidevault .qsteps span.now { color: var(--sv-text); font-weight: 700; }
 .slidevault .btn-xs { min-height: 28px; min-width: 28px; padding: 0 6px; border-radius: 8px; }
 .slidevault[data-role="viewer"] [data-editor-only] { display: none; }
 
