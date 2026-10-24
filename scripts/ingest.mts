@@ -89,6 +89,9 @@ async function main() {
   // Reviewed facts about each deck (client, year, kind), keyed by its path in the library, when there are any.
   const catalogFile = path.join(dataDir, 'deck-catalog.json');
   const catalog = existsSync(catalogFile) ? (JSON.parse(readFileSync(catalogFile, 'utf8')) as Record<string, IndexedSource['deck']>) : {};
+  // By path inside the library, else by file name alone, so a copy of the library in other folders still matches.
+  const byName = new Map(Object.entries(catalog).map(([k, v]) => [path.basename(k), v]));
+  const deckFacts = (fileName: string) => catalog[fileName] ?? byName.get(path.basename(fileName));
 
   const index: LibraryIndex = { generatedAt: new Date().toISOString(), sources: [] };
   for (const fileName of files) {
@@ -100,7 +103,7 @@ async function main() {
     if (/\.pdf$/i.test(fileName)) {
       const deck = `pdf_${sha256(path.basename(fileName)).slice(0, 12)}`;
       const slides = pdfPages(path.join(libraryDir, fileName), previewDir, (n) => `${deck}_p${n}`);
-      index.sources.push({ id: `src_${sha256(fileName).slice(0, 12)}`, title: humanize(fileName), fileName, versionId, sha256: hash, slides: slides.map((s) => ({ id: `${deck}_p${s.number}`, ...s })), ...(catalog[fileName] ? { deck: catalog[fileName] } : {}) });
+      index.sources.push({ id: `src_${sha256(fileName).slice(0, 12)}`, title: humanize(fileName), fileName, versionId, sha256: hash, slides: slides.map((s) => ({ id: `${deck}_p${s.number}`, ...s })), ...(deckFacts(fileName) ? { deck: deckFacts(fileName) } : {}) });
       console.log(`${fileName}: ${slides.length} pages (PDF)`);
       continue;
     }
@@ -114,7 +117,7 @@ async function main() {
       versionId,
       sha256: hash,
       slides: slides.map((s) => ({ id: slideId(s.number), ...s })),
-      ...(catalog[fileName] ? { deck: catalog[fileName] } : {}),
+      ...(deckFacts(fileName) ? { deck: deckFacts(fileName) } : {}),
     });
     console.log(`${fileName}: ${slides.length} slides`);
     for (const s of slides) console.log(`  ${String(s.number).padStart(2)}${s.hidden ? ' (hidden)' : '         '}  ${s.title}`);
