@@ -111,7 +111,7 @@ export function configuredStoryReader(env: Record<string, string | undefined> = 
 }
 
 /** A client situation turned into a story of slides from the whole library (FD-22). */
-export async function storyboardLibrary(situation: string, opts: { reader: StoryReader | null; read: boolean; answers?: string; role?: StoryUserRole | null; mode?: 'retrieve' | 'reimagine' }): Promise<StoryboardResponse> {
+export async function storyboardLibrary(situation: string, opts: { reader: StoryReader | null; read: boolean; answers?: string; role?: StoryUserRole | null; mode?: 'retrieve' | 'reimagine' | 'build' }): Promise<StoryboardResponse> {
   const index = await loadLibraryIndex();
   // An existing deck asked for by name (FD-31): open it as saved, or retell it with all its slides.
   const decks = (index?.sources ?? []).map((src) => {
@@ -119,6 +119,10 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
     return { id: src.id, title: f.title, fileName: src.fileName, clientName: f.clientName, year: f.deckYear, category: f.category, versionId: src.versionId, slideCount: src.slides.length };
   });
   const asked = deckRequest(situation, decks, opts.mode);
+  if (asked.mode === 'missing') {
+    const what = asked.name ? `No ${asked.name} deck` : `No decks from ${asked.years.join(' or ')}`;
+    return { reader: 'rules', readerNote: null, summary: '', questions: [], sections: [], topics: [], role: opts.role ?? null, title: `${what} in the library`, thesis: '', close: '', beats: [], composer: 'rules', considered: 0, mode: 'retrieve', missing: { name: asked.name, years: asked.years } };
+  }
   const named = asked.mode === 'build' ? null : { id: asked.deck.id, title: asked.deck.title, slideCount: asked.deck.slideCount };
   if (asked.mode === 'retrieve' && named) {
     return { reader: 'rules', readerNote: null, summary: '', questions: [], sections: [], topics: [], role: opts.role ?? null, title: named.title, thesis: '', close: '', beats: [], composer: 'rules', considered: 0, mode: 'retrieve', deck: named };

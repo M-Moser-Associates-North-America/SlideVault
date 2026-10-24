@@ -27,6 +27,11 @@ export type DeckFind<D extends FindableDeck> = {
   years: number[];
   /** Asked for a year the client has no deck from: the client's other decks are shown instead */
   yearMissing: boolean;
+  /**
+   * Honest misses (FD-34): a name asked for as a deck that no deck goes by ("Google proposal"), and
+   * years asked for that the library has no decks from ("proposals from 2019"). Never guessed at.
+   */
+  missing: { name: string | null; years: number[] };
 };
 
 const norm = (s: string) =>
@@ -43,6 +48,31 @@ const squash = (s: string) => norm(s).replace(/ /g, '');
 const DECK_WORDS = /\b(proposals?|decks?|presentations?|pitch(es)?|rfps?|msas?|submissions?|responses?|originals?|portfolios?)\b/;
 /** First words too common to stand for a client on their own ("American bank", "next year") */
 const COMMON_FIRST = new Set(['american', 'national', 'international', 'united', 'general', 'global', 'digital', 'health', 'capital', 'design', 'project', 'first', 'royal', 'british', 'canadian', 'pacific', 'atlantic', 'western', 'eastern', 'northern', 'southern', 'central', 'new', 'next', 'the']);
+/** Words around a deck request that aren't the name of what's asked for */
+const FILLER = new Set(['show', 'me', 'all', 'our', 'the', 'a', 'an', 'for', 'from', 'of', 'to', 'give', 'get', 'pull', 'up', 'open', 'find', 'see', 'retrieve', 'original', 'please', 'last', 'this', 'year', 'years', 'that', 'we', 'did', 'made', 'created', 'wrote', 'sent', 'old', 'can', 'you', 'i', 'want', 'need', 'and', 'x', 'm', 'moser', 'mmoser']);
+/** A word written as a name: capitalized ("Google"), or in capitals ("IBM") */
+const NAME_LIKE = /^[A-Z][\w&.'’-]*$/;
+
+/**
+ * The name a deck request asks for, when it is written like a name: "Google proposal" -> "Google".
+ * Lower-case words are topics ("hospital proposal"), and a place after "in" or "at" is a location
+ * ("proposals in Vancouver"), so neither is ever reported as a client we don't have.
+ */
+function askedName(query: string): string | null {
+  if (!DECK_WORDS.test(norm(query))) return null;
+  const words = query.replace(/[?!.,]/g, ' ').split(/\s+/).filter(Boolean);
+  const name: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    const low = norm(w);
+    if (!low || FILLER.has(low) || DECK_WORDS.test(low) || /^(19|20)\d\d$/.test(low)) continue;
+    if (/^(in|at|near)$/i.test(words[i - 1] ?? '')) continue;
+    if (!NAME_LIKE.test(w)) return null;
+    name.push(w);
+  }
+  return name.length && name.length <= 3 ? name.join(' ') : null;
+}
+
 /** Never a client name on its own */
 const NOT_A_NAME = new Set(['m', 'moser', 'mmoser', 'the', 'and', 'of', 'x', 'rfp', 'msa', 'global', 'response', 'resumes', 'project', 'group', 'design', 'build', 'proposal']);
 
@@ -84,9 +114,10 @@ function namedIn(q: string, name: string): boolean {
 /** The decks a request asks for, or none when it isn't asking for a deck. */
 export function findDecks<D extends FindableDeck>(query: string, decks: D[], thisYear = new Date().getFullYear()): DeckFind<D> {
   const q = norm(query);
-  const none: DeckFind<D> = { decks: [], clients: [], years: [], yearMissing: false };
+  const none: DeckFind<D> = { decks: [], clients: [], years: [], yearMissing: false, missing: { name: null, years: [] } };
   if (!q) return none;
   const years = yearsIn(q, thisYear);
+  const yearsWithout = years.filter((y) => !decks.some((d) => d.year === y));
   const unique = decks.filter((d, i) => !d.versionId || decks.findIndex((x) => x.versionId === d.versionId) === i);
   const byClient = unique.filter((d) => deckNames(d).some((n) => namedIn(q, n)));
   const kind = /\bmsas?\b/.test(q) ? 'MSA' : /\brfps?\b/.test(q) ? 'RFP' : null;
@@ -95,12 +126,14 @@ export function findDecks<D extends FindableDeck>(query: string, decks: D[], thi
   if (byClient.length) {
     const inYear = years.length ? byClient.filter((d) => d.year !== null && years.includes(d.year)) : byClient;
     const clients = [...new Set(byClient.map((d) => d.clientName).filter((c): c is string => !!c))];
-    return { decks: newestFirst(ofKind(inYear.length ? inYear : byClient)), clients, years, yearMissing: years.length > 0 && inYear.length === 0 };
+    return { decks: newestFirst(ofKind(inYear.length ? inYear : byClient)), clients, years, yearMissing: years.length > 0 && inYear.length === 0, missing: { name: null, years: [] } };
   }
   // No client named: a year with deck words ("all proposals from 2025"), or a year on its own.
   const onlyYear = q.replace(/\b(19|20)\d\d\b/g, '').replace(/\b(show|me|all|our|the|from|in|of|every|list|find|give|pull|up|last|this|year)\b/g, '').trim();
+  const name = askedName(query);
+  if (name) return { ...none, years, missing: { name, years: [] } };
   if (years.length && (DECK_WORDS.test(q) || !onlyYear)) {
-    return { decks: newestFirst(ofKind(unique.filter((d) => d.year !== null && years.includes(d.year)))), clients: [], years, yearMissing: false };
+    return { decks: newestFirst(ofKind(unique.filter((d) => d.year !== null && years.includes(d.year)))), clients: [], years, yearMissing: false, missing: { name: null, years: yearsWithout } };
   }
   return none;
 }

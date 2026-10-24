@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const mode = body.mode === 'retrieve' || body.mode === 'reimagine' ? body.mode : undefined;
+    const mode = body.mode === 'retrieve' || body.mode === 'reimagine' || body.mode === 'build' ? body.mode : undefined;
     return ok(await storyboardLibrary(situation, { reader, read: body.read === true, answers, role: roleOf(body.role), mode }));
   } catch (e) {
     console.error('Storyboard failed', e);

@@ -46,6 +46,22 @@ check(ids('hospital campus case study').length === 0, 'a slide search names no d
 check(ids('workplace strategy 2025').length === 0, 'a topic with a year is a slide search, not every deck from that year');
 check(!deckNames(DECKS[0]).includes('moser'), 'the firm\'s own name is never a client name');
 
+// ---- Honest misses (FD-34)
+{
+  const miss = (q: string) => findDecks(q, DECKS, 2026).missing;
+  check(miss('Google proposal').name === 'Google' && ids('Google proposal').length === 0, 'a name no deck goes by is said, never guessed', miss('Google proposal'));
+  check(JSON.stringify(miss('proposals from 2019').years) === '[2019]', 'a year with no decks is said', miss('proposals from 2019'));
+  check(miss('hospital proposal').name === null, 'a lower-case topic is not a missing client');
+  check(miss('proposals in Vancouver').name === null, 'a place after "in" is not a missing client');
+  check(miss("Kestrel's proposal 2025").name === null && miss('Show me all proposals from 2025').years.length === 0, 'nothing is missing when the library has it');
+  check(miss('Google').name === null, 'a name alone, with no deck asked for, is a slide search');
+  const { deckRequest } = await import('../features/slide-vault/server/ai/deck-request');
+  const r = deckRequest('Show me the Google proposal', DECKS);
+  check(r.mode === 'missing' && r.name === 'Google', 'storyboard: asking for a deck we do not have says so, instead of building a story', r);
+  check(deckRequest('Show me the Google proposal', DECKS, 'build').mode === 'build', 'storyboard: "Build a new story instead" builds');
+  check(deckRequest("We're pitching Google for a new headquarters and need a proposal outline.", DECKS).mode === 'build', 'storyboard: a new pitch to a new client still builds');
+}
+
 // ---- What a storyboard request asks for (FD-31)
 {
   const { deckRequest } = await import('../features/slide-vault/server/ai/deck-request');

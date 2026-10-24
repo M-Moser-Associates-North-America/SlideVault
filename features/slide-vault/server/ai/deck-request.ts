@@ -16,7 +16,11 @@ import { findDecks, type FindableDeck } from '../../components/deck-finder';
  * a new story; the decks we already made for the clients it names come with it as `context`, since
  * they are what the library knows about those clients.
  */
-export type DeckRequest<D extends FindableDeck> = { mode: 'build'; context: D[] } | { mode: 'retrieve' | 'reimagine'; deck: D };
+export type DeckRequest<D extends FindableDeck> =
+  | { mode: 'build'; context: D[] }
+  | { mode: 'retrieve' | 'reimagine'; deck: D }
+  /** Asked for a deck the library doesn't have (FD-34): say so, never build a story in its place */
+  | { mode: 'missing'; name: string | null; years: number[] };
 
 const REIMAGINE = /\b(story of|tell (me )?(the|its|their) story|improve|better|stronger|re-?organi[sz]e|rework|reimagine|rebuild|redo|new version of|reorder)\b/;
 const RETRIEVE = /\b(original|as (it was )?saved|show( me)?|pull (it )?up|pull up|open|retrieve|give me|get me|bring up|find|see)\b/;
@@ -24,11 +28,18 @@ const RETRIEVE = /\b(original|as (it was )?saved|show( me)?|pull (it )?up|pull u
 const NEW_SITUATION = /\b(new (proposal|pitch|deck|presentation|rfp|office|hq|headquarters|campus|space|building)|pitch(es|ing)?|we need a proposal|proposals? (outline|for)|outline|rfp for|prove|right (ones?|partner|firm|team)|merg\w*|combin\w*|acquir\w*|acquisition|joint venture|partnership|consolidat\w*|relocat\w*|moving|win (the|this|them))\b/;
 const SHORT = 12;
 
-export function deckRequest<D extends FindableDeck>(text: string, decks: D[], asked?: 'retrieve' | 'reimagine'): DeckRequest<D> {
+export function deckRequest<D extends FindableDeck>(text: string, decks: D[], asked?: 'retrieve' | 'reimagine' | 'build'): DeckRequest<D> {
   const found = findDecks(text, decks);
   // One deck per client named, the one from the year asked for (else the newest). A whole year
   // ("all proposals from 2025") names no client: that is a list for search, not a deck to open.
   const named = found.clients.map((c) => found.decks.find((d) => d.clientName === c)).filter((d): d is D => !!d);
+  // Asked to build: a new story, whatever the request names (the decks it names are its context).
+  if (asked === 'build') return { mode: 'build', context: named };
+  const q0 = text.toLowerCase();
+  // A deck asked for outright that the library doesn't have: say so rather than build something else.
+  const missing = found.missing.name ?? (found.missing.years.length ? '' : null);
+  if (!named.length && missing !== null && !NEW_SITUATION.test(q0) && (!!asked || RETRIEVE.test(q0) || REIMAGINE.test(q0) || q0.split(/\s+/).length <= SHORT))
+    return { mode: 'missing', name: found.missing.name, years: found.missing.years };
   if (!named.length) return { mode: 'build', context: [] };
   if (asked && named.length === 1) return { mode: asked, deck: named[0] };
   const q = text.toLowerCase();

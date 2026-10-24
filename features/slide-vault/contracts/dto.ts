@@ -279,6 +279,8 @@ export type StoryboardResult = {
   mode: 'build' | 'retrieve' | 'reimagine';
   /** The existing deck the request named, for retrieve and reimagine */
   deck?: { id: string; title: string; slideCount: number };
+  /** Retrieve asked for a deck the library doesn't have (FD-34): the name or years asked for, said honestly */
+  missing?: { name: string | null; years: number[] };
   /** Build: the decks we already made for clients the brief names, used for the parts about them */
   context?: { id: string; title: string }[];
 };

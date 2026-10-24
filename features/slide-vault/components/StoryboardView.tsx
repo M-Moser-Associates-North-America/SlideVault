@@ -62,7 +62,7 @@ export function StoryboardView() {
     requestAnimationFrame(() => headRef.current?.focus());
   }
 
-  async function run(withAnswers: string, mode?: 'retrieve' | 'reimagine') {
+  async function run(withAnswers: string, mode?: 'retrieve' | 'reimagine' | 'build') {
     abort.current?.abort();
     const controller = new AbortController();
     abort.current = controller;
@@ -175,6 +175,29 @@ export function StoryboardView() {
             <button type="button" className="sb-add" onClick={() => void run(answers, 'reimagine')}>
               <Icon name="sparkle" className="ic-sm" />
               Tell its story better
+            </button>
+            <button type="button" className="sb-text-btn" onClick={startOver}>
+              Start over
+            </button>
+          </div>
+        </header>
+      </div>
+    );
+  // Asked for a deck the library doesn't have (FD-34): say so, and offer a new story instead.
+  if (story.mode === 'retrieve' && story.missing)
+    return (
+      <div className="sv-wrap sb">
+        <BackHome />
+        <header className="sb-story-head">
+          <p className="sb-eyebrow">From your library</p>
+          <h1 className="sb-board-title" tabIndex={-1} ref={headRef}>
+            {story.title}
+          </h1>
+          <p className="sb-story-summary">Nothing in the library matches that{story.missing.name ? ` name` : ' year'}. You can build a new story for them from the slides we do have.</p>
+          <div className="sb-head-actions">
+            <button type="button" className="sb-add" onClick={() => void run(answers, 'build')}>
+              <Icon name="sparkle" className="ic-sm" />
+              Build a new story instead
             </button>
             <button type="button" className="sb-text-btn" onClick={startOver}>
               Start over

@@ -598,6 +598,13 @@ export function ResultsView() {
           Results for “{q}”
         </h1>
       </div>
+      {/* Honest misses (FD-34): a name or year asked for that no deck goes by */}
+      {found && !found.decks.length && (found.missing.name || found.missing.years.length > 0) && (
+        <p className="meta" role="status">
+          {found.missing.name ? `No ${found.missing.name} deck in the library.` : `No decks from ${found.missing.years.join(' or ')} in the library.`}
+          {result && result.items.length > 0 ? ' The slides below mention it.' : ''}
+        </p>
+      )}
       {found && found.decks.length > 0 && (
         <Row
           id="found-decks"
