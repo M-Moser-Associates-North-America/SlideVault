@@ -22,12 +22,6 @@ import './storyboard.css';
  * storyboard for a similar brief.
  */
 
-const EXAMPLES = [
-  { label: 'Three campuses merging', brief: 'A hospital group is merging three campuses. Clinical staff are burnt out, and the board worries about cost overruns after a failed project last year. We need a proposal outline that tells one story across all three sites.' },
-  { label: 'Law firm moving floors', brief: 'A law firm is moving floors because half its lawyers now work from home. The RFP asks for firm history, process, team CVs, case studies and fees.' },
-  { label: 'Two offices into one', brief: 'A bank is consolidating two offices into one. The CFO wants savings; staff are worried about losing their own desks.' },
-];
-
 const two = (n: number) => String(n).padStart(2, '0');
 
 export function StoryboardView() {
@@ -40,7 +34,8 @@ export function StoryboardView() {
   const [story, setStory] = useState<StoryboardResult | null>(null);
   const [answers, setAnswers] = useState('');
   const [elapsed, setElapsed] = useState(0);
-  const { stories: saved, save } = useSavedStories(profile);
+  // Stories are kept per person for later; the start page stays simple, so they aren't listed here.
+  const { save } = useSavedStories(profile);
   /** What the person said about each slide in this story, keyed "role:slideId" */
   const [said, setSaid] = useState<Record<string, StoryFeedbackVerdict>>({});
   const before = useRef<'start' | 'ready'>('start');
@@ -122,8 +117,8 @@ export function StoryboardView() {
       <div className="sv-wrap sb">
         <BackHome />
         <p className="sb-eyebrow">Storyboard</p>
-        <h1 className="h1 sb-title" tabIndex={-1}>
-          Start with the client, not the archive.
+        <h1 className="sb-board-title" tabIndex={-1}>
+          <b>Start with the client,</b> not the archive.
         </h1>
         <p className="lede muted sb-lede">Describe the client&apos;s situation: paste the brief, your notes or an outline, or just talk. SlideVault tells their story with your own slides.</p>
         <div className="sb-compose">
@@ -145,50 +140,17 @@ export function StoryboardView() {
                 ))}
               </select>
             </p>
+            <button type="button" className="sb-pull" disabled={situation.trim().length < 20} onClick={() => void run('')}>
+              Pull the story
+              <Icon name="right" className="ic-sm" />
+            </button>
           </div>
-        </div>
-        <div className="sb-start-row">
-          <div className="sb-chips" role="group" aria-label="Try an example">
-            {EXAMPLES.map((ex) => (
-              <button key={ex.label} type="button" className="sb-chip" aria-pressed={situation === ex.brief} onClick={() => setSituation(ex.brief)}>
-                {ex.label}
-              </button>
-            ))}
-          </div>
-          <button type="button" className="sb-pull" disabled={situation.trim().length < 20} onClick={() => void run('')}>
-            Pull the story <Icon name="right" className="ic-sm" />
-          </button>
         </div>
         {phase === 'error' && (
           <div className="notice danger" role="alert" style={{ marginTop: 16 }}>
             <Icon name="alert" />
             <span>{error}</span>
           </div>
-        )}
-        {saved.length > 0 && (
-          <section className="sb-stories" aria-labelledby="sb-stories-h">
-            <h2 className="sb-label" id="sb-stories-h">
-              Stories
-            </h2>
-            <ul>
-              {saved.map((s) => (
-                <li key={s.at}>
-                  <button
-                    type="button"
-                    className="sb-story-link"
-                    onClick={() => {
-                      setSituation(s.brief);
-                      show(s.result);
-                    }}
-                  >
-                    <span className="sb-story-name">{s.result.title}</span>
-                    <span className="sb-story-sub">{s.result.summary}</span>
-                    <span className="sb-story-count">{s.result.beats.reduce((n, b) => n + 1 + b.more.length, 0)} slides</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
         )}
       </div>
     );
@@ -200,7 +162,7 @@ export function StoryboardView() {
         <BackHome />
         <header className="sb-story-head">
           <p className="sb-eyebrow">From your library</p>
-          <h1 className="sb-story-title" tabIndex={-1} ref={headRef}>
+          <h1 className="sb-board-title" tabIndex={-1} ref={headRef}>
             {story.deck.title}
           </h1>
           <p className="sb-story-summary">The original deck, as it was saved: {plural(story.deck.slideCount, 'slide')}.</p>
@@ -225,7 +187,7 @@ export function StoryboardView() {
     <div className="sv-wrap sb">
       <BackHome />
       <header className="sb-story-head">
-        <h1 className="sb-story-title" tabIndex={-1} ref={headRef}>
+        <h1 className="sb-board-title" tabIndex={-1} ref={headRef}>
           {story.title}
         </h1>
         {story.summary && !story.summary.startsWith(story.title.replace(/…$/, '')) && <p className="sb-story-summary">{story.summary}</p>}
