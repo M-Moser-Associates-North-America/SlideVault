@@ -1,5 +1,5 @@
 /**
- * Build the library index from every .pptx in the library folder.
+ * Build the library index from every .pptx and .pdf in the library folder.
  *
  *   npm run ingest
  *
@@ -13,10 +13,19 @@
  *
  * IDs are opaque and stable: the version ID comes from the SHA-256 of the original bytes,
  * so a changed file becomes a new version with new slide IDs (docs/DATA_AND_API.md, "Domain model").
+ * A .pdf becomes one slide per page, with its text and a picture of the page (Poppler's pdftotext and
+ * pdftoppm). Its pages can be found, previewed and used in a storyboard, but never downloaded as
+ * editable PowerPoint: there is none. A PDF with the same name as a PowerPoint is skipped as a copy.
+ * Its page IDs are the ones the local model's PDF scan used (pdf_<name hash>_p<n>), so what the
+ * model read on each page (discover-scan-pdf.json) attaches to it.
+ *
+ * Previews already drawn for a version are kept, so adding a deck doesn't redraw every other one.
  * Restart the app afterwards so it reloads the index.
  */
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import nextEnv from '@next/env';
 import { readConfig } from '../features/slide-vault/server/config';
@@ -26,29 +35,56 @@ import { renderPreviews } from '../workers/slide-vault/processors/render-preview
 
 const sha256 = (data: Uint8Array | string) => createHash('sha256').update(data).digest('hex');
 const humanize = (fileName: string) =>
-  path.basename(fileName).replace(/\.pptx$/i, '').replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  path.basename(fileName).replace(/\.(pptx|pdf)$/i, '').replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-/** Every .pptx under dir, as paths relative to it with / between folders, sorted. Office lock files (~$...) are skipped. */
-function pptxFiles(dir: string, rel = ''): string[] {
+/** Every .pptx and .pdf under dir, as paths relative to it with / between folders, sorted. Office lock files (~$...) are skipped. */
+function deckFiles(dir: string, rel = ''): string[] {
   return readdirSync(path.join(dir, rel), { withFileTypes: true })
     .flatMap((e) => {
       const p = rel ? `${rel}/${e.name}` : e.name;
-      if (e.isDirectory()) return pptxFiles(dir, p);
-      return e.isFile() && e.name.toLowerCase().endsWith('.pptx') && !e.name.startsWith('~$') ? [p] : [];
+      if (e.isDirectory()) return deckFiles(dir, p);
+      return e.isFile() && /\.(pptx|pdf)$/i.test(e.name) && !e.name.startsWith('~$') ? [p] : [];
     })
     .sort();
+}
+
+const stem = (fileName: string) => path.basename(fileName).replace(/\.(pptx|pdf)$/i, '').toLowerCase();
+
+/** One slide per page: its text (the first line as its title) and, unless already drawn, its picture. */
+function pdfPages(file: string, previewDir: string, pageId: (n: number) => string) {
+  const pages = execFileSync('pdftotext', ['-layout', '-enc', 'UTF-8', file, '-'], { maxBuffer: 256 * 1024 * 1024 }).toString('utf8').split('\f');
+  if (pages.length && !pages[pages.length - 1].trim()) pages.pop();
+  const missing = pages.some((_, i) => !existsSync(path.join(previewDir, `${pageId(i + 1)}.png`)));
+  if (missing) {
+    const tmp = mkdtempSync(path.join(os.tmpdir(), 'sv-pdf-'));
+    try {
+      execFileSync('pdftoppm', ['-png', '-scale-to', '960', file, path.join(tmp, 'p')]);
+      for (const f of readdirSync(tmp)) {
+        const n = Number(/-(\d+)\.png$/.exec(f)?.[1]);
+        if (n) renameSync(path.join(tmp, f), path.join(previewDir, `${pageId(n)}.png`));
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }
+  return pages.map((page, i) => {
+    const lines = page.split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    return { number: i + 1, title: (lines[0] ?? `Page ${i + 1}`).slice(0, 120), text: lines.join('\n'), hidden: false };
+  });
 }
 
 async function main() {
   // Same settings as the app: .env.local, then .env (Next.js's own loader).
   nextEnv.loadEnvConfig(process.cwd());
   const { libraryDir, dataDir } = readConfig();
-  const files = pptxFiles(libraryDir);
-  if (files.length === 0) throw new Error(`No .pptx files in ${libraryDir}`);
+  const all = deckFiles(libraryDir);
+  const pptxStems = new Set(all.filter((f) => /\.pptx$/i.test(f)).map(stem));
+  const files = all.filter((f) => /\.pptx$/i.test(f) || !pptxStems.has(stem(f)));
+  if (files.length === 0) throw new Error(`No .pptx or .pdf files in ${libraryDir}`);
 
   const previewDir = path.join(dataDir, 'previews');
-  rmSync(previewDir, { recursive: true, force: true });
   mkdirSync(previewDir, { recursive: true });
+  const drawn = new Set(readdirSync(previewDir));
 
   const index: LibraryIndex = { generatedAt: new Date().toISOString(), sources: [] };
   for (const fileName of files) {
@@ -57,8 +93,15 @@ async function main() {
     const versionId = `ver_${hash.slice(0, 16)}`;
     const slideId = (n: number) => `sld_${sha256(`${versionId}:${n}`).slice(0, 16)}`;
 
+    if (/\.pdf$/i.test(fileName)) {
+      const deck = `pdf_${sha256(path.basename(fileName)).slice(0, 12)}`;
+      const slides = pdfPages(path.join(libraryDir, fileName), previewDir, (n) => `${deck}_p${n}`);
+      index.sources.push({ id: `src_${sha256(fileName).slice(0, 12)}`, title: humanize(fileName), fileName, versionId, sha256: hash, slides: slides.map((s) => ({ id: `${deck}_p${s.number}`, ...s })) });
+      console.log(`${fileName}: ${slides.length} pages (PDF)`);
+      continue;
+    }
     const slides = await extractSlides(bytes);
-    await renderPreviews(bytes, previewDir, (n) => `${slideId(n)}.png`);
+    if (slides.some((s) => !drawn.has(`${slideId(s.number)}.png`))) await renderPreviews(bytes, previewDir, (n) => `${slideId(n)}.png`);
 
     index.sources.push({
       id: `src_${sha256(fileName).slice(0, 12)}`,
@@ -72,6 +115,9 @@ async function main() {
     for (const s of slides) console.log(`  ${String(s.number).padStart(2)}${s.hidden ? ' (hidden)' : '         '}  ${s.title}`);
   }
 
+  // Pictures of slides no longer in the library go.
+  const keep = new Set(index.sources.flatMap((s) => s.slides.map((x) => `${x.id}.png`)));
+  for (const f of readdirSync(previewDir)) if (!keep.has(f)) rmSync(path.join(previewDir, f));
   mkdirSync(dataDir, { recursive: true });
   writeFileSync(indexFile(dataDir), JSON.stringify(index, null, 2) + '\n');
   console.log(`\nIndexed ${index.sources.length} decks into ${path.relative(process.cwd(), dataDir) || '.'}/`);

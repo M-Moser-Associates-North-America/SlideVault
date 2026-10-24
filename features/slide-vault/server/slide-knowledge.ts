@@ -7,7 +7,7 @@ import { readConfig } from './config';
  * What SlideVault knows about each slide beyond its words, from two files in the data dir (never
  * the repo, since both describe real decks):
  *
- * - discover-scan.json (FD-26): what the local model read on every slide: its role in a story,
+ * - discover-scan.json and discover-scan-pdf.json (FD-26): what the local model read on every slide: its role in a story,
  *   its topics, and a one-line reading of what it shows and convinces a client of.
  * - slide-metadata.json (FD-28): reviewed metadata for the slides it covers: slide type, story
  *   role, reuse status, flags (such as a leftover client name), themes, sectors and projects.
@@ -38,6 +38,8 @@ type ScanRow = { role?: unknown; topics?: unknown; shows?: unknown; convinces?: 
 type MetaRow = { role?: unknown; type?: unknown; reuse?: unknown; flags?: unknown; themes?: unknown; proofSectors?: unknown; projects?: unknown };
 
 const SCAN = 'discover-scan.json';
+/** The same reading for PDF pages, keyed by the page IDs ingest gives them. */
+const PDF_SCAN = 'discover-scan-pdf.json';
 const META = 'slide-metadata.json';
 let cache: { key: string; map: Map<string, SlideReading> } | null = null;
 
@@ -53,8 +55,9 @@ async function readJson<T>(file: string): Promise<{ mtimeMs: number; data: Recor
 }
 
 export async function loadSlideReadings(dataDir = readConfig().dataDir): Promise<Map<string, SlideReading>> {
-  const [scan, meta] = await Promise.all([readJson<ScanRow>(path.join(dataDir, SCAN)), readJson<MetaRow>(path.join(dataDir, META))]);
-  const key = `${scan?.mtimeMs ?? 0}:${meta?.mtimeMs ?? 0}`;
+  const [pptxScan, pdfScan, meta] = await Promise.all([readJson<ScanRow>(path.join(dataDir, SCAN)), readJson<ScanRow>(path.join(dataDir, PDF_SCAN)), readJson<MetaRow>(path.join(dataDir, META))]);
+  const key = `${pptxScan?.mtimeMs ?? 0}:${pdfScan?.mtimeMs ?? 0}:${meta?.mtimeMs ?? 0}`;
+  const scan = { data: { ...(pptxScan?.data ?? {}), ...(pdfScan?.data ?? {}) } };
   if (cache?.key === key) return cache.map;
 
   // Neither file yet: the storyboard works from the words on the slides alone.
