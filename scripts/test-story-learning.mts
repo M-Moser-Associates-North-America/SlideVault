@@ -7,7 +7,7 @@
 import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import type { SearchPlan, SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { openAiCompatibleTranscriber, readSpeechConfig } from '../features/slide-vault/server/ai/speech';
-import { cleanFeedback, learnedFrom } from '../features/slide-vault/server/story-feedback';
+import { cleanFeedback, learnedFrom, mayLearnFrom } from '../features/slide-vault/server/story-feedback';
 import { ROLE_TUNING, roleOf } from '../features/slide-vault/server/ai/roles';
 import { buildStoryboard, PART_SLIDES } from '../features/slide-vault/server/services/storyboard';
 
@@ -133,6 +133,18 @@ check(readSpeechConfig({}).provider === 'none', 'speech: off unless set up');
   let failed = false;
   try { await failing.transcribe(new Blob([]), 'x.wav'); } catch { failed = true; }
   check(failed, 'speech: a failing service is reported, not silently empty');
+}
+
+// ---- Only from people who turned learning on (FD-37)
+{
+  const settings = new Map([['ana', true], ['ben', false]]);
+  const optedIn = async (u: string) => settings.get(u) ?? false;
+  check(await mayLearnFrom('ana', optedIn, true), 'opt-in: a verdict from someone who turned learning on is kept');
+  check(!(await mayLearnFrom('ben', optedIn, true)), 'opt-in: from someone who turned it off, nothing is kept');
+  check(!(await mayLearnFrom('cleo', optedIn, true)), 'opt-in: from someone who never turned it on, nothing is kept (opt-in, not opt-out)');
+  check(!(await mayLearnFrom(null, optedIn, true)), 'opt-in: signed out, nothing is kept');
+  check(!(await mayLearnFrom('ana', async () => { throw new Error('db down'); }, true)), "opt-in: if the setting can't be checked, nothing is kept");
+  check(await mayLearnFrom(null, optedIn, false), 'opt-in: with no database (a laptop demo) verdicts are kept on this computer, as before');
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll story learning checks passed');

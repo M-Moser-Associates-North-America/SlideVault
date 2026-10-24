@@ -39,6 +39,7 @@ export function StoryboardView() {
   /** What the person said about each slide in this story, keyed "role:slideId" */
   const [said, setSaid] = useState<Record<string, StoryFeedbackVerdict>>({});
   const before = useRef<'start' | 'ready'>('start');
+  const toldNotSaved = useRef(false);
   const abort = useRef<AbortController | null>(null);
   const headRef = useRef<HTMLHeadingElement>(null);
 
@@ -52,7 +53,15 @@ export function StoryboardView() {
   function say(role: StoryRole, slideId: string, verdict: StoryFeedbackVerdict) {
     if (!story) return;
     setSaid((cur) => ({ ...cur, [`${role}:${slideId}`]: verdict }));
-    sendStoryFeedback(runtime, { role, slideId, verdict, topics: story.topics, by: story.role }).catch(() => toast("Couldn't save that. Please try again."));
+    sendStoryFeedback(runtime, { role, slideId, verdict, topics: story.topics, by: story.role })
+      .then(({ saved }) => {
+        // Said once per story: with learning off, the mark shows but teaches nothing (FD-37).
+        if (!saved && !toldNotSaved.current) {
+          toldNotSaved.current = true;
+          toast('Not saved: learning from your activity is off. You can turn it on in Settings.');
+        }
+      })
+      .catch(() => toast("Couldn't save that. Please try again."));
   }
 
   function show(result: StoryboardResult) {

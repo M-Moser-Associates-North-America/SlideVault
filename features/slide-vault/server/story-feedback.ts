@@ -34,6 +34,18 @@ export function cleanFeedback(raw: unknown): StoryFeedback | null {
   return { role: r.role as StoryRole, slideId, verdict: r.verdict as StoryFeedbackVerdict, topics, by: roleOf((raw as { by?: unknown }).by) };
 }
 
+/**
+ * Whether this person's verdicts may teach the storyboard (FD-37). On M Moser's setup a verdict is
+ * kept only from someone who turned on "learn from my activity" (opt-in, Alina 19 Oct); signed out
+ * or opted out, nothing is stored. With no database there are no people or settings (a laptop demo),
+ * so verdicts are kept on this computer as before. `optedIn` is passed in so this stays testable.
+ */
+export async function mayLearnFrom(user: string | null, optedIn: (user: string) => Promise<boolean>, database = hasMmoserConfig()): Promise<boolean> {
+  if (!database) return true;
+  if (!user) return false;
+  return optedIn(user).catch(() => false);
+}
+
 const localPath = () => path.join(readConfig().dataDir, LOCAL_FILE);
 
 async function inDb<T>(run: () => Promise<T>): Promise<T | undefined> {

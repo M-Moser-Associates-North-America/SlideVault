@@ -125,9 +125,11 @@ export async function buildStory(runtime: Transport, situation: string, opts: { 
 }
 
 /** "Was this helpful?": saved without a name or the brief, used to rank the next similar storyboard. */
-export async function sendStoryFeedback(runtime: Transport, feedback: { role: StoryRole; slideId: string | null; verdict: StoryFeedbackVerdict; topics: string[]; by?: StoryUserRole | null }): Promise<void> {
+/** saved: false when learning from this person's activity is off (FD-37): nothing was stored. */
+export async function sendStoryFeedback(runtime: Transport, feedback: { role: StoryRole; slideId: string | null; verdict: StoryFeedbackVerdict; topics: string[]; by?: StoryUserRole | null }): Promise<{ saved: boolean }> {
   const res = await runtime.request({ path: '/storyboard/feedback', method: 'POST', body: feedback });
   if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ saved: boolean }>).data;
 }
 
 /** Whether talking instead of typing is set up on this server. */
