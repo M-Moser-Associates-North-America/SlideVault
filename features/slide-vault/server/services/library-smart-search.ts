@@ -13,6 +13,8 @@ import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from './fi
 import { loadSlideReadings } from '../slide-knowledge';
 import { smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, type StoryboardResponse } from './storyboard';
+import { deckFacts } from './search';
+import { deckRequest } from '../ai/deck-request';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
 import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
@@ -92,8 +94,20 @@ export function configuredStoryReader(env: Record<string, string | undefined> = 
 }
 
 /** A client situation turned into a story of slides from the whole library (FD-22). */
-export async function storyboardLibrary(situation: string, opts: { reader: StoryReader | null; read: boolean; answers?: string; role?: StoryUserRole | null }): Promise<StoryboardResponse> {
+export async function storyboardLibrary(situation: string, opts: { reader: StoryReader | null; read: boolean; answers?: string; role?: StoryUserRole | null; mode?: 'retrieve' | 'reimagine' }): Promise<StoryboardResponse> {
   const index = await loadLibraryIndex();
+  // An existing deck asked for by name (FD-31): open it as saved, or retell it with all its slides.
+  const decks = (index?.sources ?? []).map((src) => {
+    const f = deckFacts(src);
+    return { id: src.id, title: f.title, fileName: src.fileName, clientName: f.clientName, year: f.deckYear, category: f.category, versionId: src.versionId, slideCount: src.slides.length };
+  });
+  const asked = deckRequest(situation, decks, opts.mode);
+  const named = asked.mode === 'build' ? null : { id: asked.deck.id, title: asked.deck.title, slideCount: asked.deck.slideCount };
+  if (asked.mode === 'retrieve' && named) {
+    return { reader: 'rules', readerNote: null, summary: '', questions: [], sections: [], topics: [], role: opts.role ?? null, title: named.title, beats: [], composer: 'rules', considered: 0, mode: 'retrieve', deck: named };
+  }
+  const sourceIds = new Set(asked.mode === 'reimagine' ? (index?.sources.find((x) => x.id === asked.deck.id)?.slides.map((x) => x.id) ?? []) : []);
+  const source = named && sourceIds.size ? { deck: named, rows: fixtureRowsWhere(index, (id) => sourceIds.has(id), sourceIds.size) } : undefined;
   const search = async (plan: SearchPlan, max: number) =>
     [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max)].slice(0, max);
   // What the local model read on each slide (FD-26), when the scan has been run on this library.
@@ -105,14 +119,15 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
           return [...lead, ...fixtureRowsWhere(index, (id) => inPart(id) && !lead.some((r) => r.summary.id === id), limit - lead.length)];
         } }
     : undefined;
-  const result = await buildStoryboard(situation, { reader: opts.reader, search, learned: learnedForTopics, knowledge, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
-  const all = result.sections.flatMap((s) => s.items.map((i) => i.slide));
+  const result = await buildStoryboard(situation, { reader: opts.reader, search, learned: learnedForTopics, knowledge, source, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
+  const all = [...result.sections.flatMap((s) => s.items.map((i) => i.slide)), ...(result.appendix ?? []).map((i) => i.slide)];
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
   const withCounts = <T extends { slide: SlideSummary }>(i: T): T => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide });
   return {
     ...result,
     sections: result.sections.map((s) => ({ ...s, items: s.items.map(withCounts) })),
     beats: result.beats.map((b) => ({ ...b, lead: withCounts(b.lead), more: b.more.map(withCounts) })),
+    ...(result.appendix ? { appendix: result.appendix.map(withCounts) } : {}),
   };
 }
 

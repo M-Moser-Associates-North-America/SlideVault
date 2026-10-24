@@ -10,7 +10,8 @@
  *
  * Falls back to the file name for anything the folders don't say: "Client - Category.pptx", or
  * M Moser's own naming, "M Moser_<Client>_<place or RFP>_<date>.pptx" (client = the part after
- * "M Moser_", kept as written).
+ * "M Moser_", kept as written; the year from the date at the end, e.g. 06202025 or 071526; RFP or
+ * MSA in the name as the category). PDFs are read the same way.
  * Anything still unknown comes back null, never guessed. The real folder names are an open
  * question for Alina; adding a layout is a change here only.
  */
@@ -29,9 +30,21 @@ const CATEGORY_NAMES: Record<string, string> = {
   'business proposals': 'Business Proposal',
   sme: 'SME',
   'design consultancy': 'Design Consultancy',
+  rfp: 'RFP',
 };
 /** "Design Consultancy 2" is a second folder of the same kind, not a different category. */
 const categoryOf = (folder: string) => CATEGORY_NAMES[folder.trim().toLowerCase().replace(/\s+\d+$/, '')] ?? null;
+
+/** The year in a file name's last date: 2025, 06202025 (MMDDYYYY or DDMMYYYY), 071526 (MMDDYY). */
+function yearFromName(tokens: string[]): number | null {
+  for (const t of [...tokens].reverse()) {
+    const d = /^\d+$/.test(t) ? t : null;
+    if (!d) continue;
+    const y = d.length === 4 ? Number(d) : d.length >= 8 ? Number(d.slice(-4)) : d.length === 6 ? 2000 + Number(d.slice(-2)) : NaN;
+    if (y >= 1900 && y <= 2099) return y;
+  }
+  return null;
+}
 
 /** relativePath: the deck's path inside the library, with / or \ between folders. */
 export function folderInfo(relativePath: string): FolderInfo {
@@ -50,7 +63,7 @@ export function folderInfo(relativePath: string): FolderInfo {
     }
   });
 
-  const stem = fileName.replace(/\.pptx$/i, '');
+  const stem = fileName.replace(/\.(pptx|pdf)$/i, '');
   const dash = stem.indexOf(' - ');
   if (dash > 0) {
     const nameClient = stem.slice(0, dash).trim();
@@ -61,5 +74,17 @@ export function folderInfo(relativePath: string): FolderInfo {
   // M Moser's naming: "M Moser_<Client>_<place or RFP>_<date>"
   const mm = /^m\s*moser\s*_\s*([^_]+?)\s*(?:_|$)/i.exec(stem);
   if (mm && !info.clientName) info.clientName = mm[1].trim();
+  // A kind glued to the client ("StripeMSA") is the kind, not part of the name.
+  const glued = info.clientName ? /^(.+?[a-z])(MSA|RFP)$/.exec(info.clientName) : null;
+  if (glued && mm) {
+    info.clientName = glued[1];
+    info.category ??= CATEGORY_NAMES[glued[2].toLowerCase()];
+  }
+  if (mm || /^mmoser_/i.test(stem)) {
+    const tokens = stem.split('_').map((t) => t.replace(/\(\d+\)/g, '').trim());
+    if (!info.clientName && /^mmoser$/i.test(tokens[0]) && tokens[1]) info.clientName = tokens[1];
+    info.deckYear ??= yearFromName(tokens);
+    info.category ??= tokens.slice(1).map((t) => CATEGORY_NAMES[t.toLowerCase().replace(/msa$/, 'msa').split(' ').pop() ?? ''] ?? null).find(Boolean) ?? null;
+  }
   return info;
 }

@@ -8,6 +8,7 @@ import { takeHandedOffBrief } from '../client/story-handoff';
 import { useSavedStories } from '../client/story-store';
 import { startRecording, type Recording } from '../client/wav-recorder';
 import { Icon } from './icons';
+import { plural } from './library';
 import { Link, Thumb } from './parts';
 import { useWorkspace } from './state';
 import './storyboard.css';
@@ -66,7 +67,7 @@ export function StoryboardView() {
     requestAnimationFrame(() => headRef.current?.focus());
   }
 
-  async function run(withAnswers: string) {
+  async function run(withAnswers: string, mode?: 'retrieve' | 'reimagine') {
     abort.current?.abort();
     const controller = new AbortController();
     abort.current = controller;
@@ -75,10 +76,10 @@ export function StoryboardView() {
     setPhase('building');
     announce('Composing your story. This can take a couple of minutes.');
     try {
-      const result = await buildStory(runtime, situation.trim(), { read: true, answers: withAnswers, role }, controller.signal);
+      const result = await buildStory(runtime, situation.trim(), { read: true, answers: withAnswers, role, mode }, controller.signal);
       if (controller.signal.aborted) return;
       show(result);
-      save({ at: Date.now(), brief: situation.trim(), result });
+      if (result.mode !== 'retrieve') save({ at: Date.now(), brief: situation.trim(), result });
       announce(`Story ready: ${result.title}.`);
     } catch (e) {
       if (controller.signal.aborted) return;
@@ -192,6 +193,32 @@ export function StoryboardView() {
       </div>
     );
 
+  // An existing deck asked for as it was (FD-31): open it whole, or tell its story better.
+  if (story.mode === 'retrieve' && story.deck)
+    return (
+      <div className="sv-wrap sb">
+        <BackHome />
+        <header className="sb-story-head">
+          <p className="sb-eyebrow">From your library</p>
+          <h1 className="sb-story-title" tabIndex={-1} ref={headRef}>
+            {story.deck.title}
+          </h1>
+          <p className="sb-story-summary">The original deck, as it was saved: {plural(story.deck.slideCount, 'slide')}.</p>
+          <div className="sb-head-actions">
+            <Link className="sb-add" to={{ view: 'deck', id: story.deck.id }}>
+              Open the original
+            </Link>
+            <button type="button" className="sb-add" onClick={() => void run(answers, 'reimagine')}>
+              <Icon name="sparkle" className="ic-sm" />
+              Tell its story better
+            </button>
+            <button type="button" className="sb-text-btn" onClick={startOver}>
+              Start over
+            </button>
+          </div>
+        </header>
+      </div>
+    );
   const beats = story.beats;
   const deck = beats.flatMap((b) => [b.lead.slide, ...b.more.map((m) => m.slide)]);
   return (
@@ -202,6 +229,11 @@ export function StoryboardView() {
           {story.title}
         </h1>
         {story.summary && !story.summary.startsWith(story.title.replace(/…$/, '')) && <p className="sb-story-summary">{story.summary}</p>}
+        {story.mode === 'reimagine' && story.deck && (
+          <p className="sb-story-from">
+            Retold from <Link to={{ view: 'deck', id: story.deck.id }}>{story.deck.title}</Link>, using all {story.deck.slideCount} of its slides.
+          </p>
+        )}
         <div className="sb-head-actions">
           <button type="button" className="sb-add" onClick={addStory}>
             <Icon name="plus" className="ic-sm" />
@@ -223,6 +255,20 @@ export function StoryboardView() {
           <Beat key={`${b.role}:${b.lead.slide.id}`} n={i + 1} beat={b} deck={deck} said={said} onSay={(id, v) => say(b.role, id, v)} />
         ))}
       </ol>
+      {story.appendix && story.appendix.length > 0 && (
+        <section className="sb-after" aria-labelledby="sb-after-h">
+          <h2 className="sb-label" id="sb-after-h">
+            Also in the proposal · {story.appendix.length}
+          </h2>
+          <ul className="sb-beat-set">
+            {story.appendix.map(({ slide }) => (
+              <li key={slide.id}>
+                <SetPic slide={slide} deck={[...deck, ...story.appendix!.map((a) => a.slide)]} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <Sharpen questions={story.questions} onSend={sharpen} />
     </div>
   );
@@ -279,6 +325,16 @@ function Beat({ n, beat, deck, said, onSay }: { n: number; beat: StoryBeat; deck
         <b>Why this slide</b> — {beat.why}
       </p>
     </li>
+  );
+}
+
+/** A small picture of a slide that opens the preview. */
+function SetPic({ slide, deck }: { slide: SlideSummary; deck: SlideSummary[] }) {
+  const { openPreview } = useWorkspace();
+  return (
+    <button type="button" className="sb-set-pic" aria-label={`Preview: ${slide.title}`} onClick={() => openPreview(deck, Math.max(0, deck.findIndex((x) => x.id === slide.id)))}>
+      <Thumb slide={slide} />
+    </button>
   );
 }
 

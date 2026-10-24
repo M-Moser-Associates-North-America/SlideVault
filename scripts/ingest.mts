@@ -20,6 +20,7 @@
  * model read on each page (discover-scan-pdf.json) attaches to it.
  *
  * Previews already drawn for a version are kept, so adding a deck doesn't redraw every other one.
+ * deck-catalog.json in the data dir, when present, gives decks their reviewed client, year and kind.
  * Restart the app afterwards so it reloads the index.
  */
 import { execFileSync } from 'node:child_process';
@@ -29,7 +30,7 @@ import os from 'node:os';
 import path from 'node:path';
 import nextEnv from '@next/env';
 import { readConfig } from '../features/slide-vault/server/config';
-import { indexFile, type LibraryIndex } from '../features/slide-vault/server/library-repository';
+import { indexFile, type IndexedSource, type LibraryIndex } from '../features/slide-vault/server/library-repository';
 import { deckTitle, extractSlides } from '../workers/slide-vault/processors/extract-text';
 import { renderPreviews } from '../workers/slide-vault/processors/render-previews';
 
@@ -85,6 +86,9 @@ async function main() {
   const previewDir = path.join(dataDir, 'previews');
   mkdirSync(previewDir, { recursive: true });
   const drawn = new Set(readdirSync(previewDir));
+  // Reviewed facts about each deck (client, year, kind), keyed by its path in the library, when there are any.
+  const catalogFile = path.join(dataDir, 'deck-catalog.json');
+  const catalog = existsSync(catalogFile) ? (JSON.parse(readFileSync(catalogFile, 'utf8')) as Record<string, IndexedSource['deck']>) : {};
 
   const index: LibraryIndex = { generatedAt: new Date().toISOString(), sources: [] };
   for (const fileName of files) {
@@ -96,7 +100,7 @@ async function main() {
     if (/\.pdf$/i.test(fileName)) {
       const deck = `pdf_${sha256(path.basename(fileName)).slice(0, 12)}`;
       const slides = pdfPages(path.join(libraryDir, fileName), previewDir, (n) => `${deck}_p${n}`);
-      index.sources.push({ id: `src_${sha256(fileName).slice(0, 12)}`, title: humanize(fileName), fileName, versionId, sha256: hash, slides: slides.map((s) => ({ id: `${deck}_p${s.number}`, ...s })) });
+      index.sources.push({ id: `src_${sha256(fileName).slice(0, 12)}`, title: humanize(fileName), fileName, versionId, sha256: hash, slides: slides.map((s) => ({ id: `${deck}_p${s.number}`, ...s })), ...(catalog[fileName] ? { deck: catalog[fileName] } : {}) });
       console.log(`${fileName}: ${slides.length} pages (PDF)`);
       continue;
     }
@@ -110,6 +114,7 @@ async function main() {
       versionId,
       sha256: hash,
       slides: slides.map((s) => ({ id: slideId(s.number), ...s })),
+      ...(catalog[fileName] ? { deck: catalog[fileName] } : {}),
     });
     console.log(`${fileName}: ${slides.length} slides`);
     for (const s of slides) console.log(`  ${String(s.number).padStart(2)}${s.hidden ? ' (hidden)' : '         '}  ${s.title}`);

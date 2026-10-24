@@ -259,4 +259,14 @@ export type StoryboardResult = {
   composer: 'model' | 'rules';
   /** How many slides were weighed for this story */
   considered: number;
+  /**
+   * What the request asked for (FD-31): "build" a new story from the whole library, "retrieve" an
+   * existing deck as it was saved (no beats: open `deck`), or "reimagine" an existing deck as a
+   * better story, using every one of its slides.
+   */
+  mode: 'build' | 'retrieve' | 'reimagine';
+  /** The existing deck the request named, for retrieve and reimagine */
+  deck?: { id: string; title: string; slideCount: number };
+  /** Reimagine: the deck's pages that aren't part of the story (résumés, fees, schedule, legal...), in their original order */
+  appendix?: StoryboardSlide[];
 };

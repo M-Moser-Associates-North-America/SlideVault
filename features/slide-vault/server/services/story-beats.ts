@@ -62,7 +62,7 @@ export function rulesTitle(brief: string): string {
  * The rules' story: each part in order, its slides grouped into beats by project (a case study and
  * its pictures belong together) or by kind of slide, the best-ranked slide leading each beat.
  */
-export function rulesBeats(sections: StoryboardSection[], known: (id: string) => KnownSlide): StoryBeat[] {
+export function rulesBeats(sections: StoryboardSection[], known: (id: string) => KnownSlide, keepAll = false): StoryBeat[] {
   const beats: StoryBeat[] = [];
   for (const s of sections) {
     const groups = new Map<string, StoryboardSlide[]>();
@@ -80,19 +80,37 @@ export function rulesBeats(sections: StoryboardSection[], known: (id: string) =>
       // The AI's heading for the part is in the client's terms; the standard label is not.
       const partTitle = s.title !== s.label ? s.title : ROLE_TITLE[s.role];
       const title = i === 0 ? partTitle : s.role === 'experience' && k?.projects?.[0] ? k.projects[0] : (TYPE_TITLE[k?.type ?? ''] ?? partTitle);
-      beats.push({ role: s.role, title, narration: k?.about ? firstSentence(k.about) : '', why: asWhy(s.need), matches: (lead.needs?.length ? lead.needs : lead.reasons.brief).slice(0, 2), lead, more: more.slice(0, MAX_MORE) });
+      beats.push({ role: s.role, title, narration: k?.about ? firstSentence(k.about) : '', why: asWhy(s.need), matches: (lead.needs?.length ? lead.needs : lead.reasons.brief).slice(0, 2), lead, more: keepAll ? more : more.slice(0, MAX_MORE) });
     });
   }
   return beats;
+}
+
+/**
+ * The AI chose the lead slides and the slides behind them; any slide it left out goes behind the last
+ * beat of its own part, or into a new beat for a part it skipped, so nothing from the deck is lost.
+ */
+function keepEverySlide(beats: StoryBeat[], sections: StoryboardSection[], known: (id: string) => KnownSlide) {
+  const shown = new Set(beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)));
+  for (const s of sections) {
+    const left = s.items.filter((i) => !shown.has(i.slide.id));
+    if (!left.length) continue;
+    const home = [...beats].reverse().find((b) => b.role === s.role);
+    if (home) home.more.push(...left);
+    else beats.push(...rulesBeats([{ ...s, items: left }], known, true));
+  }
+  const at = (r: StoryRole) => sections.findIndex((s) => s.role === r);
+  beats.sort((a, b) => at(a.role) - at(b.role));
 }
 
 export async function composeStory(
   brief: string,
   sections: StoryboardSection[],
   known: (id: string) => KnownSlide,
-  opts: { reader?: StoryReader | null; read?: boolean; log?: (m: string) => void },
+  /** keepAll: every shortlisted slide stays in the story (a reimagined deck loses none of its slides) */
+  opts: { reader?: StoryReader | null; read?: boolean; log?: (m: string) => void; keepAll?: boolean },
 ): Promise<{ title: string; beats: StoryBeat[]; composer: 'model' | 'rules' }> {
-  const rules = () => ({ title: rulesTitle(brief), beats: rulesBeats(sections, known), composer: 'rules' as const });
+  const rules = () => ({ title: rulesTitle(brief), beats: rulesBeats(sections, known, opts.keepAll), composer: 'rules' as const });
   const compose = opts.reader?.compose;
   if (!opts.read || !compose) return rules();
   // Short codes stand in for the library's ids: the model can only point at what it was shown.
@@ -133,6 +151,7 @@ export async function composeStory(
         proof.matches = (better.needs ?? proof.matches).slice(0, 2);
       }
     }
+    if (opts.keepAll) keepEverySlide(beats, sections, known);
     return { title: story.title || rulesTitle(brief), beats, composer: 'model' };
   } catch (e) {
     opts.log?.(`Story composer unavailable, using the rules' order: ${(e as Error).message}`);

@@ -2,17 +2,22 @@ import 'server-only';
 import type { LibraryData, LibraryDeck, LibrarySlide } from '../../contracts/dto';
 import { groupDuplicates } from '../duplicates';
 import type { LibraryIndex } from '../library-repository';
+import { deckFacts } from './search';
 
 type SlideWithoutGroup = Omit<LibrarySlide, 'duplicateGroupId'>;
 
-/** Fixture-library decks in the same shape as uploaded ones. Folder details aren't known for these. */
+/** Library-folder decks in the same shape as uploaded ones, with what their catalog entry, folder and file name say. */
 export function fixtureLibrary(index: LibraryIndex | null): { decks: LibraryDeck[]; slides: SlideWithoutGroup[] } {
   const sources = index?.sources ?? [];
   return {
-    decks: sources.map((s) => ({
-      id: s.id, title: s.title, client: null, year: null, category: null, bestOfTheBest: false,
-      slideSize: null, versionId: s.versionId, uploadedAt: null, source: 'fixture' as const,
-    })),
+    decks: sources.map((s) => {
+      // The same deck facts as every slide summary, so browsing and search agree (FD-31).
+      const f = deckFacts(s);
+      return {
+        id: s.id, title: f.title, client: f.clientName, year: f.deckYear, category: f.category, bestOfTheBest: f.bestOfTheBest,
+        slideSize: null, versionId: s.versionId, uploadedAt: null, source: 'fixture' as const,
+      };
+    }),
     slides: sources.flatMap((s) =>
       s.slides.map((sl) => ({
         id: sl.id, deckId: s.id, slideNumber: sl.number, title: sl.title, text: sl.text,

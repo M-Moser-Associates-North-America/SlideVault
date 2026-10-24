@@ -52,7 +52,18 @@ export type StoryboardDeps = {
     /** `first`, when given, picks which slides come first, so the client's own sector isn't crowded out by library order. */
     forPart: (role: StoryRole, limit: number, first?: (slideId: string) => boolean) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]>;
   };
+  /**
+   * Reimagine an existing deck (FD-31): its slides in their original order. Every one of them is
+   * used: story pages go to their part of the story, the rest follow it as they were. Only a part
+   * the deck never covers is filled from other decks, and says so.
+   */
+  source?: { deck: { id: string; title: string; slideCount: number }; rows: { summary: SlideSummary; facts: SlideFacts }[] };
 };
+
+/** Pages a proposal needs that aren't part of its story: they follow it, in the deck's own order. */
+const AFTER_THE_STORY = /^(cover|cover_letter|table_of_contents|section_divider|rfp_worksheet|team_resume|team_time_allocation|fees_commercial|schedule|legal_admin|scope_assumptions|blank_or_placeholder)$/;
+/** Parts a reimagined deck fills from elsewhere when it has nothing for them */
+const FILL_PER_GAP = 2;
 
 /** Page furniture (covers, contents, dividers, admin pages): never the proof for a part of a story. */
 const NOT_PROOF = new Set(['divider', 'admin', 'intro']);
@@ -285,7 +296,40 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     const label = STORY_ARC.find((a) => a.role === section.role)!.label;
     sections.push({ role: section.role, label, title: section.title, need: section.need, items, gap: items.length === 0 });
   }
+  const known = (id: string) => deps.knowledge?.of(id);
+  const compose = { reader: deps.reader, read: opts.read && reader === 'model', log: deps.log };
+  if (deps.source) {
+    // Reimagine (FD-31): the deck's own slides, every one, placed by what each one does.
+    const { deck, rows } = deps.source;
+    const inDeck = new Set(rows.map((r) => r.summary.id));
+    const partOf = (id: string): StoryRole | null => {
+      const k = known(id);
+      if (!k || NOT_PROOF.has(k.role) || (k.type && AFTER_THE_STORY.test(k.type))) return null;
+      return (STORY_ARC.some((a) => a.role === k.role) ? k.role : null) as StoryRole | null;
+    };
+    const asItem = (row: { summary: SlideSummary; facts: SlideFacts }, why: string): StoryboardSlide => ({
+      slide: row.summary,
+      why,
+      matched: [],
+      reasons: { brief: [], part: [], from: [] },
+      needs: needsMet(needs, `${row.facts.title} ${row.facts.text} ${known(row.summary.id)?.about ?? ''}`),
+    });
+    const fromDeck = plan.sections.map((sec): StoryboardSection => {
+      const own = rows.filter((r) => partOf(r.summary.id) === sec.role).map((r) => asItem(r, `From the original ${deck.title}.`));
+      const fill = own.length
+        ? []
+        : (sections.find((x) => x.role === sec.role)?.items ?? [])
+            .filter((i) => !inDeck.has(i.slide.id))
+            .slice(0, FILL_PER_GAP)
+            .map((i) => ({ ...i, why: `Not in the original: from ${i.slide.provenance.sourceTitle}. ${i.why}` }));
+      const label = STORY_ARC.find((a) => a.role === sec.role)!.label;
+      return { role: sec.role, label, title: sec.title, need: sec.need, items: [...own, ...fill], gap: own.length + fill.length === 0 };
+    });
+    const appendix = rows.filter((r) => partOf(r.summary.id) === null).map((r) => asItem(r, `In the original ${deck.title}.`));
+    const story = await composeStory(text, fromDeck, known, { ...compose, keepAll: true });
+    return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections: fromDeck, topics: topics.keywords, role, ...story, considered: rows.length, mode: 'reimagine', deck, appendix };
+  }
   // The story told slide by slide (FD-30): the AI chooses and narrates from this shortlist when it is on.
-  const story = await composeStory(text, sections, (id) => deps.knowledge?.of(id), { reader: deps.reader, read: opts.read && reader === 'model', log: deps.log });
-  return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords, role, ...story, considered: considered.size };
+  const story = await composeStory(text, sections, known, compose);
+  return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords, role, ...story, considered: considered.size, mode: 'build' };
 }

@@ -204,6 +204,33 @@ check(JSON.stringify(situationTopics('Hospital campuses need studies and process
 
 check(wholeSentences('We start with you. Then we plan every site together with your board and staff.', 40) === 'We start with you.', 'compose: long narration is cut at a whole sentence');
 
+// ---- Retelling an existing deck (FD-31): every slide used, story pages client-first, the rest after
+{
+  const DECK = [
+    { id: 'd1', title: 'Cover', text: 'Proposal.', role: 'intro', type: 'cover' },
+    { id: 'd2', title: 'Why us', text: 'Our firm.', role: 'why-us', type: 'differentiator' },
+    { id: 'd3', title: 'Case study one', text: 'Completed with results.', role: 'experience', type: 'case_study_detail' },
+    { id: 'd4', title: 'Our approach', text: 'Phased delivery.', role: 'strategy', type: 'approach_process' },
+    { id: 'd5', title: 'Résumé', text: 'Twenty years.', role: 'admin', type: 'team_resume' },
+    { id: 'd6', title: 'Fees', text: 'Fees.', role: 'admin', type: 'fees_commercial' },
+    { id: 'd7', title: 'Case study two', text: 'Completed with results.', role: 'experience', type: 'case_study_detail' },
+    { id: 'd8', title: 'Thank you', text: 'Closing.', role: 'outcome', type: 'closing' },
+  ];
+  const OTHER = { id: 'o1', title: 'Understanding your goals', text: 'Your objectives and challenge.', role: 'client-challenge', type: 'client_understanding' };
+  const rowOf = (x: { id: string; title: string; text: string }) => ({ summary: slide(x.id, x.title), facts: { title: x.title, text: x.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const all = [...DECK, OTHER];
+  const knowledge = { of: (id: string) => { const x = all.find((d) => d.id === id); return x && { role: x.role, topics: [], about: '', reviewed: true, reuse: 'reusable', type: x.type }; }, forPart: async (role: string) => all.filter((x) => x.role === role).map(rowOf) };
+  const search6 = async (plan: SearchPlan) => all.filter((x) => plan.keywords.some((k) => `${x.title} ${x.text}`.toLowerCase().includes(k))).map(rowOf);
+  const r = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge, source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } });
+  const inStory = r.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id));
+  const after = (r.appendix ?? []).map((i) => i.slide.id);
+  check(r.mode === 'reimagine' && DECK.every((d) => inStory.includes(d.id) || after.includes(d.id)), 'retell: every slide of the deck is used', { inStory, after });
+  check(JSON.stringify(after) === '["d1","d5","d6"]', 'retell: cover, résumés and fees follow the story, in the deck\'s order', after);
+  check(JSON.stringify([...new Set(r.beats.map((b) => b.role))]) === JSON.stringify(['client-challenge', 'strategy', 'experience', 'why-us', 'outcome']), 'retell: the story runs client first, not in the deck\'s why-us-first order', r.beats.map((b) => b.role));
+  const filled = r.beats.find((b) => b.role === 'client-challenge');
+  check(!!filled && filled.lead.slide.id === 'o1' && filled.lead.why.startsWith('Not in the original'), 'retell: a part the deck never had is filled from another deck, and says so', filled?.lead.why);
+}
+
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
 check(missingContext('The board and CFO worry about disruption; the goal is a low-cost, fast fit-out.').length === 0, 'questions: a situation that already says them gets no questions');

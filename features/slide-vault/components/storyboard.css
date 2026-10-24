@@ -82,6 +82,9 @@
 .slidevault .sb-icon-btn:disabled { cursor: default; }
 .slidevault .sb-icon-btn:disabled:not([aria-pressed='true']) { opacity: 0.45; }
 .slidevault .sb-sharpen { margin-top: 40px; }
+.slidevault .sb-story-from { margin: -8px 0 20px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .sb-after { max-width: 760px; margin: 40px auto 0; }
+.slidevault a.sb-add { text-decoration: none; }
 .slidevault .sb-questions { margin: 10px 0 12px; padding-left: 18px; color: var(--sv-text-secondary); }
 .slidevault .sb-questions li { margin: 4px 0; }
 .slidevault .sb-sharpen-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }

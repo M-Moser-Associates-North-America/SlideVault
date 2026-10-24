@@ -118,8 +118,8 @@ export async function uploadDeck(runtime: Transport, file: File, meta: UploadDec
 /* ---- Storyboard (FD-22, FD-24) ---------------------------------------------------------------- */
 
 /** A client situation turned into a story of slides. `read` lets the configured AI read it (slower). */
-export async function buildStory(runtime: Transport, situation: string, opts: { read: boolean; answers?: string; role?: StoryUserRole | null }, signal?: AbortSignal): Promise<StoryboardResult> {
-  const res = await runtime.request({ path: '/storyboard', method: 'POST', body: { situation, read: opts.read, answers: opts.answers || undefined, role: opts.role ?? undefined }, signal });
+export async function buildStory(runtime: Transport, situation: string, opts: { read: boolean; answers?: string; role?: StoryUserRole | null; mode?: 'retrieve' | 'reimagine' }, signal?: AbortSignal): Promise<StoryboardResult> {
+  const res = await runtime.request({ path: '/storyboard', method: 'POST', body: { situation, read: opts.read, answers: opts.answers || undefined, role: opts.role ?? undefined, mode: opts.mode }, signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<StoryboardResult>).data;
 }

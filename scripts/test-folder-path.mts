@@ -27,6 +27,13 @@ for (const [file, want] of [
   ['Design Consultancy 2/2026/M Moser_Airwallex HQ_SF_071526.pptx', { deckYear: 2026, clientName: 'Airwallex HQ', category: 'Design Consultancy' }],
   ['Design Consultancy/2026/M Moser_Scotiabank_2026.pptx', { deckYear: 2026, clientName: 'Scotiabank', category: 'Design Consultancy' }],
   ['Design Consultancy/2026/M Moser Notes.pptx', { deckYear: 2026, clientName: null, category: 'Design Consultancy' }],
+  // Years and kinds from the name when no folder says them; PDFs and "MMoser_" too
+  ['Proposals/M Moser_Acme_RFP_06202025.pdf', { deckYear: 2025, clientName: 'Acme', category: 'RFP' }],
+  ['Proposals/M Moser_Northwind_RFP_17032026 (1).pptx', { deckYear: 2026, clientName: 'Northwind', category: 'RFP' }],
+  ['Proposals/M Moser_Kestrel_MSA.pptx', { deckYear: null, clientName: 'Kestrel', category: 'MSA' }],
+  ['Proposals/M Moser_TailspinMSA_SF_2025 (1).pptx', { deckYear: 2025, clientName: 'Tailspin', category: 'MSA' }],
+  ['Proposals/MMoser_Fabrikam_2026 (1).pptx', { deckYear: 2026, clientName: 'Fabrikam', category: null }],
+  ['Proposals/M Moser_Contoso_Vancouver_2025.pdf', { deckYear: 2025, clientName: 'Contoso', category: null }],
 ] as const) {
   const got = folderInfo(file);
   check(got.deckYear === want.deckYear && got.clientName === want.clientName && got.category === want.category && !got.bestOfTheBest, `reads ${file}`, JSON.stringify(got));

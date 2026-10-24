@@ -22,6 +22,7 @@ import {
   yearOf,
   type Deck,
 } from './library';
+import { findDecks } from './deck-finder';
 import { DeckCard, Link, SimFlag, SkeletonGrid, SkeletonRows, SlideCard, StateBlock, StatusBadge, Thumb, useCartToggle } from './parts';
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
@@ -614,6 +615,13 @@ export function ResultsView() {
   /* Real search (FD-16, FD-17): the server reads the request, finds slides and says why each fits.
      The filter row narrows the results further here; sorting is a view choice. */
   const result = search.status === 'ready' ? search.result : null;
+  /* Premade decks the request names (FD-31): "Moody's proposal 2025", "all proposals from 2025".
+     Found from the library's own deck facts, at once, before and beside the slide search. */
+  const lib = useReadyLibrary();
+  const found = useMemo(
+    () => ('decks' in lib ? findDecks(q, lib.decks.map((d) => ({ ...d, versionId: d.slides[0]?.provenance.sourceVersionId }))) : null),
+    [lib, q],
+  );
   const shown = useMemo(() => {
     if (!result) return [];
     const kept = result.items.filter((i) => slideMatches(i.slide, filters));
@@ -636,6 +644,23 @@ export function ResultsView() {
           Results for “{q}”
         </h1>
       </div>
+      {found && found.decks.length > 0 && (
+        <Row
+          id="found-decks"
+          title={found.decks.length === 1 ? 'Deck' : 'Decks'}
+          sub={
+            found.yearMissing
+              ? `No ${found.clients.join(', ')} deck from ${found.years.join(', ')}. Here is what there is.`
+              : `The original ${found.decks.length === 1 ? 'deck' : 'decks'}, as saved. Open one to see every slide.`
+          }
+        >
+          {found.decks.map((d) => (
+            <li key={d.id}>
+              <DeckCard deck={d} />
+            </li>
+          ))}
+        </Row>
+      )}
       {search.status === 'error' && (
         <StateBlock error icon="alert" title="Search did not work" text={search.message}>
           <button type="button" className="btn" onClick={retrySearch}>
@@ -692,7 +717,7 @@ export function ResultsView() {
             <span className="spacer" />
             {slides.length > 0 && <SelectAll slides={slides} />}
           </div>
-          {shown.length === 0 ? (
+          {shown.length === 0 && found && found.decks.length > 0 ? null : shown.length === 0 ? (
             <StateBlock
               icon="search"
               title={`No slides match “${q}”`}
