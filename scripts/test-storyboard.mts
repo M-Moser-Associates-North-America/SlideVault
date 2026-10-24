@@ -231,6 +231,28 @@ check(wholeSentences('We start with you. Then we plan every site together with y
   check(!!filled && filled.lead.slide.id === 'o1' && filled.lead.why.startsWith('Not in the original'), 'retell: a part the deck never had is filled from another deck, and says so', filled?.lead.why);
 }
 
+// ---- A new story about clients we already have decks for (FD-31): their decks lead the parts about them
+{
+  const THEIRS = [
+    { id: 'c1', title: 'Understanding Kestrel', text: 'Two teams coming together under one roof.', role: 'client-challenge', type: 'client_understanding' },
+    { id: 'c2', title: 'Our approach for Kestrel', text: 'A phased plan.', role: 'strategy', type: 'approach_process' },
+  ];
+  const ELSE = [
+    { id: 'e1', title: 'Merging workplaces', text: 'Bringing teams together after a merger.', role: 'client-challenge', type: 'client_understanding' },
+    { id: 'e2', title: 'Case study: merger', text: 'Merging two campuses, completed with results.', role: 'experience', type: 'case_study_detail' },
+  ];
+  const all = [...THEIRS, ...ELSE];
+  const rowOf = (x: { id: string; title: string; text: string }) => ({ summary: slide(x.id, x.title), facts: { title: x.title, text: x.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const knowledge = { of: (id: string) => { const x = all.find((d) => d.id === id); return x && { role: x.role, topics: [], about: '', reviewed: true, reuse: 'reusable', type: x.type }; }, forPart: async (role: string) => ELSE.filter((x) => x.role === role).map(rowOf) };
+  const search7 = async (plan: SearchPlan) => ELSE.filter((x) => plan.keywords.some((k) => `${x.title} ${x.text}`.toLowerCase().includes(k))).map(rowOf);
+  const r = await buildStoryboard('Kestrel and Tailwind are merging. Tell the story of that.', { search: search7, knowledge, context: { decks: [{ id: 'k', title: 'Kestrel · RFP · 2025' }], rows: THEIRS.map(rowOf) } });
+  const lead = (role: string) => r.sections.find((x) => x.role === role)?.items[0];
+  check(lead('client-challenge')?.slide.id === 'c1' && lead('client-challenge')!.why.includes('deck we made for this client'), "context: the client's own deck leads its situation, and says so", lead('client-challenge')?.why);
+  check(lead('strategy')?.slide.id === 'c2', "context: and the approach we proposed to them");
+  check(lead('experience')?.slide.id === 'e2', 'context: proof still comes from the brief, not just their deck');
+  check(r.mode === 'build' && r.context?.[0]?.title === 'Kestrel · RFP · 2025', 'context: the story names the decks it drew on');
+}
+
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
 check(missingContext('The board and CFO worry about disruption; the goal is a low-cost, fast fit-out.').length === 0, 'questions: a situation that already says them gets no questions');

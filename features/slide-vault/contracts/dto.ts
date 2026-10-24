@@ -267,6 +267,8 @@ export type StoryboardResult = {
   mode: 'build' | 'retrieve' | 'reimagine';
   /** The existing deck the request named, for retrieve and reimagine */
   deck?: { id: string; title: string; slideCount: number };
+  /** Build: the decks we already made for clients the brief names, used for the parts about them */
+  context?: { id: string; title: string }[];
   /** Reimagine: the deck's pages that aren't part of the story (résumés, fees, schedule, legal...), in their original order */
   appendix?: StoryboardSlide[];
 };

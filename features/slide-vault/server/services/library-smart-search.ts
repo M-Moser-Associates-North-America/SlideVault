@@ -108,6 +108,9 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   }
   const sourceIds = new Set(asked.mode === 'reimagine' ? (index?.sources.find((x) => x.id === asked.deck.id)?.slides.map((x) => x.id) ?? []) : []);
   const source = named && sourceIds.size ? { deck: named, rows: fixtureRowsWhere(index, (id) => sourceIds.has(id), sourceIds.size) } : undefined;
+  // A new story about clients we already have decks for: those decks are context for it.
+  const theirIds = new Set(asked.mode === 'build' ? asked.context.flatMap((d) => index?.sources.find((x) => x.id === d.id)?.slides.map((x) => x.id) ?? []) : []);
+  const context = asked.mode === 'build' && theirIds.size ? { decks: asked.context.map((d) => ({ id: d.id, title: d.title })), rows: fixtureRowsWhere(index, (id) => theirIds.has(id), theirIds.size) } : undefined;
   const search = async (plan: SearchPlan, max: number) =>
     [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max)].slice(0, max);
   // What the local model read on each slide (FD-26), when the scan has been run on this library.
@@ -119,7 +122,10 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
           return [...lead, ...fixtureRowsWhere(index, (id) => inPart(id) && !lead.some((r) => r.summary.id === id), limit - lead.length)];
         } }
     : undefined;
-  const result = await buildStoryboard(situation, { reader: opts.reader, search, learned: learnedForTopics, knowledge, source, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
+  // Retelling a deck: what the deck is ("RFP, HQ relocation/renovation") tells the rest of the
+  // library what a missing part should be about, when the request is only "the story of Moody's".
+  const brief = source ? `${situation}\n${source.deck.title.replace(/ · /g, ', ')}` : situation;
+  const result = await buildStoryboard(brief, { reader: opts.reader, search, learned: learnedForTopics, knowledge, source, context, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
   const all = [...result.sections.flatMap((s) => s.items.map((i) => i.slide)), ...(result.appendix ?? []).map((i) => i.slide)];
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
   const withCounts = <T extends { slide: SlideSummary }>(i: T): T => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide });

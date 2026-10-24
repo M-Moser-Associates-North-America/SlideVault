@@ -58,7 +58,15 @@ export type StoryboardDeps = {
    * the deck never covers is filled from other decks, and says so.
    */
   source?: { deck: { id: string; title: string; slideCount: number }; rows: { summary: SlideSummary; facts: SlideFacts }[] };
+  /**
+   * Build: the decks we already made for clients the brief names (FD-31). What they say about the
+   * client (its situation, what we saw, how we'd approach it) leads those parts of the new story.
+   */
+  context?: { decks: { id: string; title: string }[]; rows: { summary: SlideSummary; facts: SlideFacts }[] };
 };
+
+/** The parts of a story about the client, where its own decks lead */
+const ABOUT_THE_CLIENT = new Set<StoryRole>(['client-challenge', 'insight', 'strategy']);
 
 /** Pages a proposal needs that aren't part of its story: they follow it, in the deck's own order. */
 const AFTER_THE_STORY = /^(cover|cover_letter|table_of_contents|section_divider|rfp_worksheet|team_resume|team_time_allocation|fees_commercial|schedule|legal_admin|scope_assumptions|blank_or_placeholder)$/;
@@ -123,7 +131,7 @@ const SECTOR_WORDS: [string, RegExp][] = [
  */
 const NEEDS: { name: string; told: RegExp; finds: RegExp }[] = [
   { name: 'healthcare', told: /\b(hospitals?|clinics?|clinical|patients?|health ?care|medical|nurses?|doctors?|life sciences)\b/, finds: /\b(hospitals?|health ?care|clinics?|clinical|patients?|medical|life sciences?)\b/ },
-  { name: 'bringing sites together', told: /\b(merg\w*|campus\w*|consolidat\w*|multi-?site|sites|locations|integrat\w*|acquisitions?)\b/, finds: /\b(campus\w*|multi-?site|consolidat\w*|merg\w*|portfolio|across (all|multiple|three|several) (sites|locations|offices|campuses))\b/ },
+  { name: 'bringing sites together', told: /\b(merg\w*|combin\w*|campus\w*|consolidat\w*|multi-?site|sites|locations|integrat\w*|acquisitions?)\b/, finds: /\b(campus\w*|multi-?site|consolidat\w*|merg\w*|portfolio|across (all|multiple|three|several) (sites|locations|offices|campuses))\b/ },
   { name: 'staff wellbeing', told: /\b(burn ?out|burnt out|exhaust\w*|stress\w*|morale|well-?being|wellness|retention|turnover|fatigue|attrition)\b/, finds: /\b(burn ?out|well-?being|wellness|stress|mental health|staff experience|employee experience|retention|fatigue|morale)\b/ },
   { name: 'the board', told: /\b(board|stakeholders?|leadership|executives?|c-suite|investors?)\b/, finds: /\b(board|stakeholders?|governance)\b/ },
   { name: 'cost and budget', told: /\b(costs?|overruns?|budgets?|spend\w*|afford\w*|savings?)\b/, finds: /\b(budgets?|overruns?|cost certainty|cost control|cost plan\w*|on budget|on time|value engineering|costs?|savings?)\b/ },
@@ -212,6 +220,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   const needScore = (met: string[]) => met.reduce((sum, n) => sum + 1 / Math.max(1, needCount.get(n) ?? 1), 0);
   const used = new Set<string>();
   const usedCopies = new Set<string>();
+  const contextIds = new Set((deps.context?.rows ?? []).map((r) => r.summary.id));
   const considered = new Set<string>();
   const sections: StoryboardSection[] = [];
   // First every part ranks what could fill it; then each part fills in story order, leaving a slide
@@ -224,8 +233,9 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     const storyRows = story.keywords.length ? await deps.search(story, perPart * 8) : [];
     const ownSector = (id: string) => !!deps.knowledge?.of(id)?.sectors?.some((x) => sectors.some((f) => x.toLowerCase().startsWith(f)));
     const readRows = deps.knowledge ? await deps.knowledge.forPart(section.role, perPart * 8, sectors.length ? ownSector : undefined).catch(() => []) : [];
+    const theirRows = ABOUT_THE_CLIENT.has(section.role) ? (deps.context?.rows ?? []) : [];
     const seen = new Set<string>();
-    const pool = [...onTopicRows, ...storyRows, ...readRows]
+    const pool = [...theirRows, ...onTopicRows, ...storyRows, ...readRows]
       .filter((row) => !seen.has(row.summary.id) && seen.add(row.summary.id))
       .map((row, order) => {
         const l = learned.get(`${section.role}:${row.summary.id}`);
@@ -236,7 +246,8 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
         // Reviewed slides go by their reviewed sectors only; others by their own words.
         const sameSector = (known?.reviewed ? !!known.sectors?.some((x) => sectors.some((f) => x.toLowerCase().startsWith(f))) : SECTOR_WORDS.some(([name, re]) => sectors.includes(name) && re.test(`${facts.title} ${facts.text}`.toLowerCase()))) ? 1 : 0;
         const met = needsMet(needs, `${facts.title} ${facts.text}`);
-        return { row, order, l, readAs, known, sameSector, met, said: Math.sign((l?.useful ?? 0) - (l?.notRight ?? 0)), onTopic: whyItFits(topics, facts).matched.reduce((sum, k) => sum + weight(k), 0), inPart: whyItFits(story, row.facts).matched.length, readHere: readAs === section.role ? 1 : 0 };
+        const theirs = ABOUT_THE_CLIENT.has(section.role) && contextIds.has(row.summary.id) ? 1 : 0;
+        return { row, order, l, readAs, known, sameSector, met, theirs, said: Math.sign((l?.useful ?? 0) - (l?.notRight ?? 0)), onTopic: whyItFits(topics, facts).matched.reduce((sum, k) => sum + weight(k), 0), inPart: whyItFits(story, row.facts).matched.length, readHere: readAs === section.role ? 1 : 0 };
       })
       // A slide must do this part's job: its words say so, it was read that way, or colleagues said
       // it does. A slide whose role is known (reviewed metadata, FD-28, or a confident reading by the
@@ -251,7 +262,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
         if (r.known?.reviewed && NOT_PROOF.has(r.known.role)) return false;
         // It must speak to this brief (FD-29): a need the brief names, the client's sector, the
         // brief's own words, or colleagues said so. Doing the part's job alone is not enough.
-        if (!(r.said > 0 || r.sameSector > 0 || r.met.length > 0 || r.onTopic > 0 || !topics.keywords.length)) return false;
+        if (!(r.said > 0 || r.theirs > 0 || r.sameSector > 0 || r.met.length > 0 || r.onTopic > 0 || !topics.keywords.length)) return false;
         if (r.known && (r.known.reviewed || !r.known.uncertain)) return r.readHere > 0 || r.said > 0;
         return (r.inPart > 0 || r.readHere > 0 || r.said > 0) && !(r.readAs && NOT_PROOF.has(r.readAs) && r.said <= 0);
       });
@@ -260,7 +271,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     for (const r of pool) for (const n of r.met) needCount.set(n, (needCount.get(n) ?? 0) + 1);
     // In the proof, past work for the same kind of client leads: "have you done this for a hospital?"
     const sectorFirst = section.role === 'experience' ? 1 : 0;
-    const ranked = pool.sort((a, b) => b.said - a.said || sectorFirst * (b.sameSector - a.sameSector) || needScore(b.met) - needScore(a.met) || b.sameSector - a.sameSector || b.onTopic - a.onTopic || b.readHere - a.readHere || b.inPart - a.inPart || a.order - b.order);
+    const ranked = pool.sort((a, b) => b.said - a.said || b.theirs - a.theirs || sectorFirst * (b.sameSector - a.sameSector) || needScore(b.met) - needScore(a.met) || b.sameSector - a.sameSector || b.onTopic - a.onTopic || b.readHere - a.readHere || b.inPart - a.inPart || a.order - b.order);
     candidates.push({ section, perPart, story, ranked });
   }
   const partFit = (r: { inPart: number; readHere: number; said: number }) => r.said * 100 + r.readHere * 10 + r.inPart;
@@ -269,7 +280,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   for (const { section, perPart, story, ranked } of candidates) {
     const items: StoryboardSlide[] = [];
     for (const r of ranked) {
-      const { row, l, readHere, sameSector, met } = r;
+      const { row, l, readHere, sameSector, met, theirs } = r;
       const { summary } = row;
       const facts = read(row.facts, summary.id);
       if (used.has(summary.id) || usedCopies.has(sameSlideKey(row.facts)) || partFit(r) < (bestFit.get(summary.id) ?? -Infinity)) continue;
@@ -280,6 +291,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       const fit = whyItFits(cleanPlan({ keywords: [...brief, ...story.keywords] }, NO_FILTERS), facts);
       const from = [facts.bestOfTheBest ? 'Best of the Best' : null, facts.category, facts.year ? String(facts.year) : null].filter((x): x is string => !!x);
       const why = [
+        theirs ? `From the deck we made for this client: ${row.summary.provenance.sourceTitle}.` : null,
         met.length ? `Speaks to: ${met.join(', ')}.` : null,
         brief.length ? `Matches your brief: ${quoted(brief)}.` : null,
         part.length ? `Does this part's job: ${quoted(part)} on the slide.` : null,
@@ -331,5 +343,5 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   }
   // The story told slide by slide (FD-30): the AI chooses and narrates from this shortlist when it is on.
   const story = await composeStory(text, sections, known, compose);
-  return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords, role, ...story, considered: considered.size, mode: 'build' };
+  return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords, role, ...story, considered: considered.size, mode: 'build', ...(deps.context?.decks.length ? { context: deps.context.decks } : {}) };
 }

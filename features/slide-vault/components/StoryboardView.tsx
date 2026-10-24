@@ -191,6 +191,18 @@ export function StoryboardView() {
           {story.title}
         </h1>
         {story.summary && !story.summary.startsWith(story.title.replace(/…$/, '')) && <p className="sb-story-summary">{story.summary}</p>}
+        {story.context && story.context.length > 0 && (
+          <p className="sb-story-from">
+            Using what we already made for them:{' '}
+            {story.context.map((d, i) => (
+              <span key={d.id}>
+                {i > 0 && ', '}
+                <Link to={{ view: 'deck', id: d.id }}>{d.title}</Link>
+              </span>
+            ))}
+            .
+          </p>
+        )}
         {story.mode === 'reimagine' && story.deck && (
           <p className="sb-story-from">
             Retold from <Link to={{ view: 'deck', id: story.deck.id }}>{story.deck.title}</Link>, using all {story.deck.slideCount} of its slides.

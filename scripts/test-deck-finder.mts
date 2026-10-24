@@ -61,6 +61,11 @@ check(!deckNames(DECKS[0]).includes('moser'), 'the firm\'s own name is never a c
   const r = deckRequest("Kestrel's 2025", DECKS);
   check(r.mode === 'retrieve' && r.deck.id === 'kestrel-25', 'retrieve opens the deck from the year asked for');
   check(deckRequest('the hospital brief', DECKS, 'reimagine').mode === 'build', 'asking to retell needs a named deck');
+  const merger = deckRequest("Kestrel's and Tailwind are merging. Help me figure out how to tell the story of that.", DECKS);
+  check(merger.mode === 'build' && merger.context.length === 2, 'two clients merging is a new story, with both their decks as context', merger);
+  const ours = deckRequest("Moser and Kestrel's are combining. Give me a story that tells me how we can prove that we're the right ones. I need an outline for the proposal.", DECKS);
+  check(ours.mode === 'build' && ours.context.length === 1 && ours.context[0].clientName === "Kestrel's", '"prove we\'re the right ones ... an outline for the proposal" is a new story, never the old deck', ours);
+  check(deckRequest("Tell me the story of Kestrel's", DECKS).mode === 'reimagine', 'the story of one deck is still a retelling');
 }
 
 if (failures) {
