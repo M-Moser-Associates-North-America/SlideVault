@@ -294,7 +294,8 @@ check(wholeSentences('We start with you. Then we plan every site together with y
   const c = cleanComposition({ title: 'A very long title that goes on and on well past the point where any heading should have stopped talking', thesis: long, beats: [1, 2, 3].map((n) => ({ role: 'strategy', title: 't', bridge: long, lead: `s${n}`, more: [], narration: long, why: long, matches: [] })) }, new Map([['s1', 'strategy'], ['s2', 'strategy'], ['s3', 'strategy']]));
   const ends = (t: string) => /[.!?…]$/.test(t) || t === long;
   check(c.beats.every((b) => ends(b.why) && ends(b.narration) && ends(b.bridge)) && ends(c.thesis), 'text: every AI line ends on a whole sentence or a whole word, never mid-word', c.beats[0].why);
-  check(!/\bst$/.test(c.beats[0].why) && c.title.endsWith('…') && !c.title.endsWith(' …'), 'text: a long title stops at a whole word', c.title);
+  const longTitle = cleanComposition({ title: 'A very long title '.repeat(12), thesis: 't', beats: [1, 2, 3].map((n) => ({ role: 'strategy', title: 't', bridge: 'b', lead: `s${n}`, more: [], narration: 'n', why: 'w', matches: [] })) }, new Map([['s1', 'strategy'], ['s2', 'strategy'], ['s3', 'strategy']])).title;
+  check(c.beats[0].why === long && longTitle.endsWith('…') && !longTitle.endsWith(' …'), 'text: room for a longer why, and a title that runs on stops at a whole word', [c.beats[0].why.length, longTitle]);
   check(cleanStoryPlan({ summary: long + ' ' + long, questions: [], sections: [] }).summary.endsWith('.'), 'text: the summary under the title ends on a whole sentence');
 }
 

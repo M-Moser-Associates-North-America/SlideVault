@@ -72,7 +72,7 @@ export function cleanStoryPlan(raw: Partial<StoryPlan> & { sections?: unknown; q
   });
   const questions = (Array.isArray(raw.questions) ? raw.questions : []).map((q) => lower(q, 200)).filter((q) => q.length > 8).slice(0, MAX_QUESTIONS);
   // Shown to people: a long answer ends on a whole sentence (or word), never mid-word.
-  return { summary: wholeSentences(lower(raw.summary, 1200).replace(LABEL, ''), 320), questions, sections };
+  return { summary: wholeSentences(lower(raw.summary, 2000).replace(LABEL, ''), 700), questions, sections };
 }
 
 function defaultSections(): StorySection[] {
@@ -187,13 +187,13 @@ export function cleanComposition(raw: unknown, codes: Map<string, StoryRole>): C
     const more = (Array.isArray(x.more) ? x.more : []).map(take).filter((c): c is string => !!c).slice(0, MAX_MORE);
     const role = STORY_ROLES.includes(x.role as StoryRole) ? (x.role as StoryRole) : codes.get(lead)!;
     const matches = (Array.isArray(x.matches) ? x.matches : []).map((m) => lower(m, 30).toLowerCase()).filter(Boolean).slice(0, 2);
-    beats.push({ told: beats.length, role, title: wholeSentences(lower(x.title, 300), 90), bridge: wholeSentences(lower(x.bridge, 600), 200), narration: wholeSentences(lower(x.narration, 1200), 360), why: wholeSentences(lower(x.why, 800), 240), matches, lead, more });
+    beats.push({ told: beats.length, role, title: wholeSentences(lower(x.title, 400), 140), bridge: wholeSentences(lower(x.bridge, 1200), 400), narration: wholeSentences(lower(x.narration, 2400), 900), why: wholeSentences(lower(x.why, 1500), 500), matches, lead, more });
     if (beats.length >= MAX_BEATS) break;
   }
   if (beats.length < 3) throw new Error(`The model's story had ${beats.length} usable beats.`);
   const at = (role: StoryRole) => STORY_ROLES.indexOf(role);
   beats.sort((a, b) => at(a.role) - at(b.role));
-  return { title: wholeSentences(lower(r.title, 300).replace(LABEL, ''), 90), thesis: wholeSentences(lower(r.thesis, 1000), 260), beats };
+  return { title: wholeSentences(lower(r.title, 400).replace(LABEL, ''), 140), thesis: wholeSentences(lower(r.thesis, 1500), 500), beats };
 }
 
 const COMPOSE_SCHEMA = {
@@ -201,7 +201,7 @@ const COMPOSE_SCHEMA = {
   additionalProperties: false,
   required: ['title', 'thesis', 'beats'],
   properties: {
-    thesis: { type: 'string', description: 'The story in one sentence, at most 30 words: what this whole proposal must convince this client of, in their terms. Every beat serves it.' },
+    thesis: { type: 'string', description: 'The story in one or two sentences, usually under 45 words: what this whole proposal must convince this client of, in their terms. Every beat serves it.' },
     title: { type: 'string', description: "The story's name in the client's terms, at most 7 words, in sentence case, like \"Three campuses, one hospital\". No labels, no colon, no firm name." },
     beats: {
       type: 'array',
@@ -213,11 +213,11 @@ const COMPOSE_SCHEMA = {
         properties: {
           role: { type: 'string', enum: STORY_ROLES },
           title: { type: 'string', description: "This moment of the story in the client's terms, at most 7 words." },
-          bridge: { type: 'string', description: 'One sentence, at most 22 words, saying how this beat follows from the one before and why it comes next in this client\'s story. For the first beat: why the story starts here. Never repeat the why.' },
+          bridge: { type: 'string', description: 'One or two sentences, usually under 35 words, saying how this beat follows from the one before and why it comes next in this client\'s story. For the first beat: why the story starts here. Never repeat the why.' },
           lead: { type: 'string', description: 'The code of the one slide that best tells this moment.' },
           more: { type: 'array', items: { type: 'string' }, description: `Up to ${MAX_MORE} codes of other slides that back this moment up.` },
-          narration: { type: 'string', description: 'What the presenter says to the client over this slide: one or two sentences, at most 35 words, speaking to "you". Only facts the slide reading gives.' },
-          why: { type: 'string', description: 'Why this slide is here, at most 18 words: start with "Direct:" when it is work for the same kind of client, or "Transferable:" and say what carries over.' },
+          narration: { type: 'string', description: 'What the presenter says to the client over this slide: one to three sentences, usually under 60 words, speaking to "you". Say what the story needs, no padding. Only facts the slide reading gives.' },
+          why: { type: 'string', description: 'Why this slide is here, usually under 30 words: start with "Direct:" when it is work for the same kind of client, or "Transferable:" and say what carries over.' },
           matches: { type: 'array', items: { type: 'string' }, description: 'One or two words copied from the brief that this beat answers, like "burnt out" or "three campuses". Never a slide code.' },
         },
       },
