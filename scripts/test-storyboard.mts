@@ -6,8 +6,8 @@
  */
 import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import type { SearchPlan, SlideFacts } from '../features/slide-vault/server/ai/search-plan';
-import { cleanStoryPlan, missingContext, openAiCompatibleStoryReader, standInStory, STORY_ROLES, type StoryReader } from '../features/slide-vault/server/ai/storyboard';
-import { buildStoryboard, situationTopics } from '../features/slide-vault/server/services/storyboard';
+import { cleanComposition, cleanStoryPlan, cleanWeave, wholeSentences, missingContext, openAiCompatibleStoryReader, standInStory, STORY_ROLES, type StoryReader } from '../features/slide-vault/server/ai/storyboard';
+import { briefNeeds, buildStoryboard, clientSectors, situationTopics } from '../features/slide-vault/server/services/storyboard';
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -17,7 +17,7 @@ function check(ok: boolean, label: string, detail: unknown = '') {
 
 // A tiny fake library: each slide is found when the search asks for any word in its title.
 const LIB = [
-  { id: 's-challenge', title: 'Understanding your objectives and challenge', text: 'Your goals for the new headquarters.' },
+  { id: 's-challenge', title: 'Understanding your objectives and challenge', text: 'Your goals for a refit while another tenant stays in the building.' },
   { id: 's-phasing', title: 'Phasing and programme', text: 'A phased approach keeps the business running.' },
   { id: 's-case', title: 'Case study: occupied building refurbishment', text: 'Project completed with results for the client.' },
   { id: 's-case2', title: 'Case study: hospital project', text: 'Results after the project completed.' },
@@ -84,6 +84,244 @@ check(JSON.stringify(situationTopics('Hospital campuses need studies and process
   check(!withIt.sections.some((x) => x.items.some((i) => i.slide.id === 'k-divider')) && proof.items[0]?.slide.id === 'k-case', 'knowledge: a divider titled "Case studies" is never used as proof', proof.items.map((i) => i.slide.id));
 }
 
+{
+  // The client's own sector is gathered first, so library order can't crowd it out.
+  let asked: ((id: string) => boolean) | undefined;
+  const knowledge = { of: (id: string) => ({ role: 'experience', topics: [], about: '', sectors: [id === 'h' ? 'healthcare' : 'media'] }), forPart: async (_r: string, _l: number, first?: (id: string) => boolean) => ((asked = first), []) };
+  await buildStoryboard('A hospital group is merging three campuses.', { search: async () => [], knowledge });
+  check(!!asked && asked('h') && !asked('m'), 'sector: proof candidates from the client\'s own sector are asked for first');
+}
+
+// ---- Reviewed slide metadata (FD-28): roles that hold, and slides that never go in a story
+{
+  const LIB3 = [
+    { id: 'm-resume', title: 'Designer profile', text: 'Hospital merging campuses challenge: led three hospital campus projects.' },
+    { id: 'm-worksheet', title: 'RFP worksheet', text: 'Hospital merging campuses challenge: internal submission checklist.' },
+    { id: 'm-leftover', title: 'Case study: hospital campus', text: 'Hospital merging campuses project for another client, completed with results.' },
+    { id: 'm-challenge', title: 'Three campuses, one hospital', text: 'Hospital merging campuses: what is at stake for staff.' },
+    { id: 'm-case', title: 'Case study: clinic network', text: 'Hospital campus project completed with results.' },
+  ];
+  const readings = new Map<string, { role: string; topics: string[]; about: string; reviewed?: boolean; reuse?: string; flags?: string[] }>([
+    ['m-resume', { role: 'admin', topics: [], about: '', reviewed: true, reuse: 'reusable - check currency' }],
+    ['m-worksheet', { role: 'admin', topics: [], about: '', reviewed: true, reuse: 'internal - never show' }],
+    ['m-leftover', { role: 'experience', topics: ['healthcare'], about: '', reviewed: true, reuse: 'reusable', flags: ['names another client / leftover placeholder'] }],
+    ['m-challenge', { role: 'client-challenge', topics: [], about: '', reviewed: true, reuse: 'client-specific - reference only' }],
+    ['m-case', { role: 'experience', topics: ['healthcare'], about: '', reviewed: true, reuse: 'reusable' }],
+  ]);
+  const rowOf = (s: (typeof LIB3)[number]) => ({ summary: slide(s.id, s.title), facts: { title: s.title, text: s.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const search3 = async (plan: SearchPlan) => LIB3.filter((s) => plan.keywords.some((k) => `${s.title} ${s.text}`.toLowerCase().includes(k))).map(rowOf);
+  const knowledge = { of: (id: string) => readings.get(id), forPart: async (role: string) => LIB3.filter((s) => readings.get(s.id)?.role === role).map(rowOf) };
+  const r = await buildStoryboard('A hospital group is merging three campuses.', { search: search3, knowledge });
+  const placed = r.sections.flatMap((x) => x.items.map((i) => `${x.role}:${i.slide.id}`));
+  const part = (role: string) => r.sections.find((x) => x.role === role)!.items.map((i) => i.slide.id);
+  check(!placed.some((p) => p.endsWith(':m-resume')), "metadata: a team résumé that matches the brief's words is never placed in the story", placed);
+  check(!placed.some((p) => p.endsWith(':m-worksheet')), 'metadata: an "internal - never show" slide never appears', placed);
+  check(!placed.some((p) => p.endsWith(':m-leftover')), 'metadata: a slide that still names another client never appears', placed);
+  check(JSON.stringify(part('client-challenge')) === '["m-challenge"]' && part('experience').includes('m-case'), 'metadata: reviewed slides fill only their own part', placed);
+  const learned = async () => new Map([['client-challenge:m-case', { useful: 2, notRight: 0 }]]);
+  const r2 = await buildStoryboard('A hospital group is merging three campuses.', { search: search3, knowledge, learned });
+  const leftoverAfterVotes = await buildStoryboard('A hospital group is merging three campuses.', { search: search3, knowledge, learned: async () => new Map([['experience:m-leftover', { useful: 5, notRight: 0 }]]) });
+  check(r2.sections.find((x) => x.role === 'client-challenge')!.items.some((i) => i.slide.id === 'm-case'), 'metadata: colleagues marking a slide useful for a part still overrides its reviewed role', r2.sections.map((x) => [x.role, x.items.map((i) => i.slide.id)]));
+  check(!leftoverAfterVotes.sections.some((x) => x.items.some((i) => i.slide.id === 'm-leftover')), 'metadata: no number of votes brings back a slide that names another client');
+}
+{
+  // Proof from the client's own sector leads, even when another case study matches more words.
+  const LIB4 = [
+    { id: 'p-bank', title: 'Case study: bank campus', text: 'Merging campuses project completed with results: three campuses, one story, on budget.' },
+    { id: 'p-health', title: 'Case study: clinic network', text: 'Campus project completed with results.' },
+  ];
+  const sectors = new Map([['p-bank', 'financial services'], ['p-health', 'healthcare / life sciences']]);
+  const rowOf = (s: (typeof LIB4)[number]) => ({ summary: slide(s.id, s.title), facts: { title: s.title, text: s.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const search4 = async (plan: SearchPlan) => LIB4.filter((s) => plan.keywords.some((k) => `${s.title} ${s.text}`.toLowerCase().includes(k))).map(rowOf);
+  const knowledge = {
+    of: (id: string) => (sectors.has(id) ? { role: 'experience', topics: [], about: '', reviewed: true, reuse: 'reusable', sectors: [sectors.get(id)!] } : undefined),
+    forPart: async (role: string) => (role === 'experience' ? LIB4.map(rowOf) : []),
+  };
+  check(JSON.stringify(clientSectors('A hospital group is merging three campuses.')) === '["healthcare"]', 'sector: "hospital" reads as a healthcare client');
+  check(!clientSectors('A bank wants smart building technology.').includes('technology'), 'sector: a theme like smart building technology does not make the client a tech company');
+  const r = await buildStoryboard('A hospital group is merging three campuses on budget.', { search: search4, knowledge });
+  const proof = r.sections.find((x) => x.role === 'experience')!;
+  check(proof.items[0]?.slide.id === 'p-health', 'sector: a healthcare case study leads the proof for a hospital client', proof.items.map((i) => i.slide.id));
+  check(Boolean(proof.items[0]?.why.includes('Same sector as your client')), 'sector: the slide says why it leads', proof.items[0]?.why);
+}
+
+{
+  // FD-29: every slide must speak to this brief; doing the part's job is not enough.
+  const LIB5 = [
+    { id: 'n-resume', title: 'Our architect', text: 'Twenty years designing workplaces for technology clients.' },
+    { id: 'n-wellbeing', title: 'Designing for staff wellbeing', text: 'Spaces that reduce stress and help clinical staff recover.' },
+    { id: 'n-wellbeing-copy', title: 'Designing for staff wellbeing', text: 'Spaces that reduce stress and help clinical staff recover.' },
+    { id: 'n-budget', title: 'Cost certainty', text: 'How we keep a multi-site programme on budget.' },
+  ];
+  const rowOf = (s: (typeof LIB5)[number]) => ({ summary: slide(s.id, s.title), facts: { title: s.title, text: s.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const roles = new Map([['n-resume', 'why-us'], ['n-wellbeing', 'client-challenge'], ['n-wellbeing-copy', 'client-challenge'], ['n-budget', 'strategy']]);
+  const knowledge = { of: (id: string) => ({ role: roles.get(id)!, topics: [], about: '', reviewed: true, reuse: 'reusable' }), forPart: async (role: string) => LIB5.filter((x) => roles.get(x.id) === role).map(rowOf) };
+  const search5 = async (plan: SearchPlan) => LIB5.filter((x) => plan.keywords.some((k) => `${x.title} ${x.text}`.toLowerCase().includes(k))).map(rowOf);
+  const brief = 'A hospital group is merging three campuses. Clinical staff are burnt out, and the board worries about cost overruns.';
+  check(JSON.stringify(briefNeeds(brief)) === JSON.stringify(['healthcare', 'bringing sites together', 'staff wellbeing', 'the board', 'cost and budget']), 'needs: the brief reads as healthcare, bringing sites together, staff wellbeing, the board, and cost', briefNeeds(brief));
+  const r = await buildStoryboard(brief, { search: search5, knowledge });
+  const placed = r.sections.flatMap((x) => x.items.map((i) => i.slide.id));
+  check(!placed.includes('n-resume'), 'needs: a "why us" slide about nothing in the brief is left out', placed);
+  check(r.sections.find((x) => x.role === 'client-challenge')!.items[0]?.slide.id === 'n-wellbeing', 'needs: burnt-out staff finds the wellbeing slide for the challenge', placed);
+  check(!placed.includes('n-wellbeing-copy'), 'needs: the same slide copied into another deck is shown once', placed);
+  check(r.sections.find((x) => x.role === 'strategy')!.items[0]?.why.includes('Speaks to: bringing sites together, cost and budget'), 'needs: each slide says which of the brief\'s needs it speaks to', r.sections.find((x) => x.role === 'strategy')!.items[0]?.why);
+}
+
+// ---- The story told slide by slide (FD-30)
+{
+  const codes = new Map<string, (typeof STORY_ROLES)[number]>([['s1', 'experience'], ['s2', 'client-challenge'], ['s3', 'strategy'], ['s4', 'experience']]);
+  const c = cleanComposition({ title: 'Three campuses, one hospital', beats: [
+    { role: 'experience', title: 'Work like this', lead: 's1', more: ['s4', 's1', 'nope'], narration: 'x', why: 'y', matches: ['healthcare'] },
+    { role: 'client-challenge', title: 'Your staff', lead: 's2', more: [], narration: 'x', why: 'y', matches: [] },
+    { role: 'strategy', title: 'One plan', lead: 'made-up', more: [], narration: 'x', why: 'y', matches: [] },
+    { role: 'strategy', title: 'One plan', lead: 's3', more: [], narration: 'x', why: 'y', matches: [] },
+  ] }, codes);
+  check(JSON.stringify(c.beats.map((b) => b.role)) === '["client-challenge","strategy","experience"]', 'compose: the beats are told client first, whatever order the model gave', c.beats.map((b) => b.role));
+  check(JSON.stringify(c.beats.find((b) => b.lead === 's1')?.more) === '["s4"]', 'compose: only shortlisted slides, each used once; made-up codes are dropped', c.beats);
+  let threw = false;
+  try { cleanComposition({ beats: [{ lead: 's1' }] }, codes); } catch { threw = true; }
+  check(threw, 'compose: too little to be a story is refused, so the rules take over');
+
+  const reader: StoryReader = {
+    name: 'fake',
+    plan: async (t) => standInStory(t),
+    compose: async (_brief, candidates) => cleanComposition({ title: 'A bank that keeps working', beats: candidates.slice(0, 3).map((x) => ({ role: x.role, title: `About ${x.code}`, lead: x.code, more: [], narration: 'We keep you working.', why: 'Proof.', matches: ['bank'] })) }, new Map(candidates.map((x) => [x.code, x.role]))),
+  };
+  const codeMatches: StoryReader = { ...reader, compose: async (_b, c) => cleanComposition({ title: 'x', beats: c.slice(0, 3).map((x) => ({ role: x.role, title: 't', lead: x.code, more: [], narration: 'n', why: 'w', matches: ['s1', 'bank'] })) }, new Map(c.map((x) => [x.code, x.role]))) };
+  const fuller = `${situation} It needs phasing, an occupied building case study, and our leadership team.`;
+  const r = await buildStoryboard(fuller, { search, reader }, { read: true });
+  const withCodes = await buildStoryboard(fuller, { search, reader: codeMatches }, { read: true });
+  const r0matches = () => withCodes.beats.every((x) => !x.matches.includes('s1')) && withCodes.beats.some((x) => x.matches.includes('bank'));
+  check(cleanComposition({ title: "Client's Situation: Three campuses", beats: [1, 2, 3].map((n) => ({ role: 'strategy', title: 't', lead: `s${n}`, more: [], narration: 'x', why: 'y', matches: [] })) }, codes).title === 'Three campuses', 'compose: a label before the story\'s name is dropped');
+  check(r0matches(), 'compose: matches are words from the brief, never slide codes');
+  check(r.composer === 'model' && r.title === 'A bank that keeps working' && r.beats.length === 3 && r.beats[0].narration === 'We keep you working.', 'compose: with the AI on, it names, orders and narrates the story', { composer: r.composer, title: r.title, beats: r.beats.length });
+  const rules = await buildStoryboard(situation, { search });
+  check(rules.composer === 'rules' && rules.beats.length > 0 && rules.title.startsWith('We just won'), 'compose: without the AI the rules still tell the story in order', { composer: rules.composer, title: rules.title });
+  const broken = await buildStoryboard(situation, { search, reader: { ...reader, compose: async () => { throw new Error('timeout'); } }, log: () => {} }, { read: true });
+  check(broken.composer === 'rules' && broken.beats.length > 0, 'compose: if the AI fails while composing, the rules story is shown');
+  check(rules.considered >= rules.beats.length, 'compose: the number of slides weighed is reported', rules.considered);
+}
+
+check(wholeSentences('We start with you. Then we plan every site together with your board and staff.', 40) === 'We start with you.', 'compose: long narration is cut at a whole sentence');
+
+// ---- Retelling an existing deck (FD-31): every slide used, story pages client-first, the rest after
+{
+  const DECK = [
+    { id: 'd1', title: 'Cover', text: 'Proposal.', role: 'intro', type: 'cover' },
+    { id: 'd2', title: 'Why us', text: 'Our firm.', role: 'why-us', type: 'differentiator' },
+    { id: 'd3', title: 'Case study one', text: 'Completed with results.', role: 'experience', type: 'case_study_detail' },
+    { id: 'd4', title: 'Our approach', text: 'Phased delivery.', role: 'strategy', type: 'approach_process' },
+    { id: 'd5', title: 'Résumé', text: 'Twenty years.', role: 'admin', type: 'team_resume' },
+    { id: 'd6', title: 'Fees', text: 'Fees.', role: 'admin', type: 'fees_commercial' },
+    { id: 'd7', title: 'Case study two', text: 'Completed with results.', role: 'experience', type: 'case_study_detail' },
+    { id: 'd8', title: 'Thank you', text: 'Closing.', role: 'outcome', type: 'closing' },
+  ];
+  const OTHER = { id: 'o1', title: 'Understanding your goals', text: 'Your objectives and challenge.', role: 'client-challenge', type: 'client_understanding' };
+  const rowOf = (x: { id: string; title: string; text: string }) => ({ summary: slide(x.id, x.title), facts: { title: x.title, text: x.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const all = [...DECK, OTHER];
+  const knowledge = { of: (id: string) => { const x = all.find((d) => d.id === id); return x && { role: x.role, topics: [], about: '', reviewed: true, reuse: 'reusable', type: x.type }; }, forPart: async (role: string) => all.filter((x) => x.role === role).map(rowOf) };
+  const search6 = async (plan: SearchPlan) => all.filter((x) => plan.keywords.some((k) => `${x.title} ${x.text}`.toLowerCase().includes(k))).map(rowOf);
+  const r = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge, source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } });
+  const shown = r.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id));
+  const fromDeck = shown.filter((id) => id.startsWith('d'));
+  check(r.mode === 'reimagine' && JSON.stringify(fromDeck) === JSON.stringify(DECK.map((d) => d.id)), "retell (FD-32): every slide is used, in the deck's own order", fromDeck);
+  const kinds = r.beats.map((b) => `${b.kind ?? b.role}:${[b.lead, ...b.more].map((i) => i.slide.id).join('+')}`);
+  check(JSON.stringify(kinds) === JSON.stringify(['required:d1', 'suggested:o1', 'why-us:d2', 'experience:d3', 'strategy:d4', 'required:d5+d6', 'experience:d7', 'outcome:d8']), 'retell: required pages stay where they were; a part the deck never had is suggested where it belongs', kinds);
+  const suggested = r.beats.find((b) => b.kind === 'suggested');
+  check(!!suggested && suggested.bridge.startsWith('Suggested addition: the original never') && suggested.lead.why.startsWith('Not in the original'), 'retell: a suggestion says what gap it fills and where it came from', suggested?.bridge);
+  check(r.beats.every((b) => b.bridge.length > 10) && r.beats.find((b) => b.kind === 'required' && b.lead.slide.id === 'd5')!.bridge.includes('résumés, fees'), 'retell: every section opens with a line, and required pages say what they are', r.beats.map((b) => b.bridge));
+  check(r.beats.find((b) => b.role === 'experience')!.bridge.includes('each project should say what it shows for them'), 'retell: the proof is asked to tie back to the client');
+  {
+    const themed = { ...knowledge, of: (id: string) => { const k = knowledge.of(id); return k && { ...k, themes: id === 'd3' || id === 'd7' ? ['health & wellbeing'] : id === 'd4' ? ['cost certainty & risk'] : [] }; } };
+    const t = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge: themed, source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } });
+    check(t.thesis === 'Show Kestrel we understand what matters to them (health & wellbeing and cost certainty & risk), have a clear plan, and have done it before.', "retell: with no needs in the request, the thesis comes from the deck's own themes", t.thesis);
+  }
+
+  // The AI writes the lines; it can never drop or move a section.
+  const weaver: StoryReader = {
+    name: 'fake',
+    plan: async (t) => standInStory(t),
+    weave: async (_b, secs) => cleanWeave({ title: 'Kestrel, accountable everywhere', thesis: 'Show Kestrel one firm can be accountable for every site.', sections: [...secs].reverse().slice(0, secs.length - 1).map((x) => ({ code: x.code, title: `T ${x.code}`, bridge: `Ties ${x.code} back to accountability.`, narration: 'n', why: 'w' })).concat([{ code: 'made-up', title: 'x', bridge: 'x', narration: 'x', why: 'x' }]) }, new Set(secs.map((x) => x.code))),
+  };
+  const w = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge, reader: weaver, source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } }, { read: true });
+  const wShown = w.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)).filter((id) => id.startsWith('d'));
+  check(w.composer === 'model' && w.thesis.startsWith('Show Kestrel one firm') && JSON.stringify(wShown) === JSON.stringify(DECK.map((d) => d.id)), "retell: the AI's thesis, in the deck's order whatever order it answered in", wShown);
+  check(w.beats.slice(1).every((b) => b.bridge.startsWith('Ties w')) && !w.beats[0].bridge.startsWith('Ties'), "retell: the AI's lines where it wrote them, the rules' for the one it skipped", w.beats.map((b) => b.bridge));
+  check(w.beats.find((b) => b.kind === 'required')!.narration === '', 'retell: required pages get no narration');
+}
+
+// ---- A new story about clients we already have decks for (FD-31): their decks lead the parts about them
+{
+  const THEIRS = [
+    { id: 'c1', title: 'Understanding Kestrel', text: 'Two teams coming together under one roof.', role: 'client-challenge', type: 'client_understanding' },
+    { id: 'c2', title: 'Our approach for Kestrel', text: 'A phased plan.', role: 'strategy', type: 'approach_process' },
+  ];
+  const ELSE = [
+    { id: 'e1', title: 'Merging workplaces', text: 'Bringing teams together after a merger.', role: 'client-challenge', type: 'client_understanding' },
+    { id: 'e2', title: 'Case study: merger', text: 'Merging two campuses, completed with results.', role: 'experience', type: 'case_study_detail' },
+  ];
+  const all = [...THEIRS, ...ELSE];
+  const rowOf = (x: { id: string; title: string; text: string }) => ({ summary: slide(x.id, x.title), facts: { title: x.title, text: x.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const knowledge = { of: (id: string) => { const x = all.find((d) => d.id === id); return x && { role: x.role, topics: [], about: '', reviewed: true, reuse: 'reusable', type: x.type }; }, forPart: async (role: string) => ELSE.filter((x) => x.role === role).map(rowOf) };
+  const search7 = async (plan: SearchPlan) => ELSE.filter((x) => plan.keywords.some((k) => `${x.title} ${x.text}`.toLowerCase().includes(k))).map(rowOf);
+  const r = await buildStoryboard('Kestrel and Tailwind are merging. Tell the story of that.', { search: search7, knowledge, context: { decks: [{ id: 'k', title: 'Kestrel · RFP · 2025' }], rows: THEIRS.map(rowOf) } });
+  const lead = (role: string) => r.sections.find((x) => x.role === role)?.items[0];
+  check(lead('client-challenge')?.slide.id === 'c1' && lead('client-challenge')!.why.includes('deck we made for this client'), "context: the client's own deck leads its situation, and says so", lead('client-challenge')?.why);
+  check(lead('strategy')?.slide.id === 'c2', "context: and the approach we proposed to them");
+  check(lead('experience')?.slide.id === 'e2', 'context: proof still comes from the brief, not just their deck');
+  check(r.mode === 'build' && r.context?.[0]?.title === 'Kestrel · RFP · 2025', 'context: the story names the decks it drew on');
+}
+
+// ---- One argument, not a list (FD-30, 24 Oct): a thesis, and a bridge from each beat to the next
+{
+  const hospital = 'A hospital group is merging three campuses. Clinical staff are burnt out, and the board worries about cost overruns.';
+  const LIB8 = [
+    { id: 'b1', title: 'Your staff, your campuses', text: 'Burnt out clinical staff across three hospital campuses.', role: 'client-challenge' },
+    { id: 'b2', title: 'Our phased plan', text: 'A phased plan to keep cost certainty across campuses.', role: 'strategy' },
+    { id: 'b3', title: 'Case study: hospital merger', text: 'Hospital campuses merged on budget, completed with results.', role: 'experience' },
+    { id: 'b4', title: 'Your team', text: 'Healthcare leadership and the board.', role: 'why-us' },
+  ];
+  const rowOf = (x: { id: string; title: string; text: string }) => ({ summary: slide(x.id, x.title), facts: { title: x.title, text: x.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const knowledge = { of: (id: string) => { const x = LIB8.find((d) => d.id === id); return x && { role: x.role, topics: [], about: '', reviewed: true, reuse: 'reusable' }; }, forPart: async (role: string) => LIB8.filter((x) => x.role === role).map(rowOf) };
+  const search8 = async (plan: SearchPlan) => LIB8.filter((x) => plan.keywords.some((k) => `${x.title} ${x.text}`.toLowerCase().includes(k))).map(rowOf);
+  const r = await buildStoryboard(hospital, { search: search8, knowledge });
+  check(r.beats.length >= 3 && r.beats.every((b) => b.bridge.length > 10), 'story: every beat says how it follows from the one before', r.beats.map((b) => b.bridge));
+  check(r.beats[0].bridge.startsWith('Start with them'), 'story: the first beat says why the story starts there', r.beats[0].bridge);
+  check(r.thesis.startsWith('Show them we understand how a hospital works, what it takes to bring their sites together and what their people are going through'), 'story: the thesis says what this brief needs, in plain words, in the brief\'s order', r.thesis);
+  const proof = r.beats.find((b) => b.role === 'experience');
+  check(!!proof && proof.bridge.includes('done it before'), 'story: proof is introduced as backing the plan', proof?.bridge);
+  check(!!proof && /^(Direct|Transferable): /.test(proof.why) && proof.why.includes('it shows we know'), 'story: a case study says whether it is direct or transferable, and what it shows for this client', proof?.why);
+  check(r.close === 'In the end, they get one organisation across every site, a place their people want to work and a plan their board can sign off.', 'story: it closes on what the client gets', r.close);
+  check((await buildStoryboard('We need a proposal outline.', { search: search8, knowledge })).close === '', 'story: no close is made up when the brief names nothing they want');
+
+  // The AI wrote proof first; the app tells it client first, so bridges written after the wrong beat are rewritten.
+  const reader: StoryReader = {
+    name: 'fake',
+    plan: async (t) => standInStory(t),
+    compose: async (_b, c) => cleanComposition({ title: 'One hospital', thesis: 'Show them we can merge three campuses without burning out their staff.', beats: [
+      { role: 'experience', title: 'Done before', bridge: 'We open with proof.', lead: c.find((x) => x.role === 'experience')!.code, more: [], narration: 'n', why: 'w', matches: [] },
+      { role: 'client-challenge', title: 'Your staff', bridge: 'After the proof, their situation.', lead: c.find((x) => x.role === 'client-challenge')!.code, more: [], narration: 'n', why: 'w', matches: [] },
+      { role: 'strategy', title: 'The plan', bridge: 'From their situation to the plan.', lead: c.find((x) => x.role === 'strategy')!.code, more: [], narration: 'n', why: 'w', matches: [] },
+    ] }, new Map(c.map((x) => [x.code, x.role]))),
+  };
+  const m = await buildStoryboard(`${hospital} Our phased plan, a hospital case study, and our team.`, { search: search8, knowledge, reader }, { read: true });
+  check(m.composer === 'model' && m.thesis.startsWith('Show them we can merge'), "story: the AI's thesis is kept", m.thesis);
+  check(m.close.startsWith('In the end, they get'), "story: when the AI writes no close, the rules' close is used", m.close);
+  check(m.beats[0].role === 'client-challenge' && m.beats[0].bridge.startsWith('Start with them'), 'story: a bridge written after a beat that moved is rewritten', m.beats.map((b) => [b.role, b.bridge]));
+  check(m.beats.find((b) => b.role === 'strategy')?.bridge === 'From their situation to the plan.', "story: a bridge whose neighbour didn't move is the AI's own", m.beats.map((b) => [b.role, b.bridge]));
+}
+
+{
+  // Seen on the Moody's story (24 Oct): the summary stopped at "and", "why this slide" at "st".
+  const long = 'This beat sets the stage by framing the client as a forward-thinking global leader, aligning with the firm\'s ability to deliver high-impact, strategic workplaces. It also shows we know their market and their people in detail.';
+  const c = cleanComposition({ title: 'A very long title that goes on and on well past the point where any heading should have stopped talking', thesis: long, beats: [1, 2, 3].map((n) => ({ role: 'strategy', title: 't', bridge: long, lead: `s${n}`, more: [], narration: long, why: long, matches: [] })) }, new Map([['s1', 'strategy'], ['s2', 'strategy'], ['s3', 'strategy']]));
+  const ends = (t: string) => /[.!?…]$/.test(t) || t === long;
+  check(c.beats.every((b) => ends(b.why) && ends(b.narration) && ends(b.bridge)) && ends(c.thesis), 'text: every AI line ends on a whole sentence or a whole word, never mid-word', c.beats[0].why);
+  const longTitle = cleanComposition({ title: 'A very long title '.repeat(12), thesis: 't', beats: [1, 2, 3].map((n) => ({ role: 'strategy', title: 't', bridge: 'b', lead: `s${n}`, more: [], narration: 'n', why: 'w', matches: [] })) }, new Map([['s1', 'strategy'], ['s2', 'strategy'], ['s3', 'strategy']])).title;
+  check(c.beats[0].why === long && longTitle.endsWith('…') && !longTitle.endsWith(' …'), 'text: room for a longer why, and a title that runs on stops at a whole word', [c.beats[0].why.length, longTitle]);
+  check(cleanStoryPlan({ summary: long + ' ' + long, questions: [], sections: [] }).summary.endsWith('.'), 'text: the summary under the title ends on a whole sentence');
+}
+
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
 check(missingContext('The board and CFO worry about disruption; the goal is a low-cost, fast fit-out.').length === 0, 'questions: a situation that already says them gets no questions');
@@ -126,8 +364,8 @@ check(missingContext('The board and CFO worry about disruption; the goal is a lo
   check(JSON.stringify(p.sections.map((x) => x.role)) === JSON.stringify(STORY_ROLES), 'clean: repeated parts merge into one each, and the missing parts are added', p.sections.map((x) => x.role));
   const challenge = p.sections[0];
   check(challenge.title === 'Their situation' && challenge.words.includes('rfp') && challenge.words.includes('challenge'), "clean: a merged part keeps the first heading, both parts' words, and the arc's words", challenge);
-  const r = await buildStoryboard('A hospital group needs a proposal and a clear story.', { search, reader: { name: 'fake', plan: async () => p } }, { read: true });
-  check(r.sections.filter((x) => !x.gap).length >= 4, 'clean: with the arc words kept, most parts find slides', r.sections.map((x) => `${x.role}:${x.items.length}`));
+  const r = await buildStoryboard(situation, { search, reader: { name: 'fake', plan: async () => p } }, { read: true });
+  check(r.sections.filter((x) => !x.gap).length >= 2, 'clean: with the arc words kept, the parts with slides about this brief find them', r.sections.map((x) => `${x.role}:${x.items.length}`));
 }
 {
   const p = cleanStoryPlan({ summary: '  x  ', questions: ['ok?', 'Who will be in the room?', 'a', 'b?', 'c?', 'd?'], sections: [] });

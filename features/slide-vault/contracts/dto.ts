@@ -54,6 +54,8 @@ export type Provenance = {
   deckYear?: number | null;
   category?: string | null;
   bestOfTheBest?: boolean;
+  /** Where the deck's client is, e.g. "Vancouver" or "Global" (FD-35); null when unknown */
+  location?: string | null;
 };
 
 /** The same (or nearly the same) slide also appears in other decks (duplicate grouping, PRD P1). */
@@ -124,6 +126,8 @@ export type LibraryDeck = {
   year: number | null;
   category: string | null;
   bestOfTheBest: boolean;
+  /** Where the deck's client is (FD-35); null when unknown */
+  location?: string | null;
   /** "16:9", "4:3" or null when unknown */
   slideSize: string | null;
   /** Same value as provenance.sourceVersionId, needed to download */
@@ -199,6 +203,35 @@ export type StoryboardSlide = {
   reasons: { brief: string[]; part: string[]; from: string[] };
   /** What colleagues said about this slide in this part, for similar briefs (FD-24); absent when no one has yet */
   learned?: { useful: number; notRight: number };
+  /** Which of the brief's needs the slide speaks to, e.g. "healthcare", "staff wellbeing" (FD-29) */
+  needs?: string[];
+};
+
+/**
+ * One beat of the story as the client will hear it (FD-30): a lead slide shown large, the other
+ * slides behind it (shown on click), a title in the client's terms and what to say. The parts of the
+ * story (challenge, approach, proof...) only decide the order; they are never shown.
+ */
+export type StoryBeat = {
+  /** The part of the story this beat serves: never shown, kept so feedback teaches the right part */
+  role: StoryRole;
+  title: string;
+  /** What to say to the client over this slide, in one short paragraph */
+  narration: string;
+  /** How this beat follows from the one before (for the first: why the story starts here), so the slides read as one story */
+  bridge: string;
+  /** Why this slide is here, for the person building the deck */
+  why: string;
+  /** What in the brief this beat answers, e.g. "healthcare", "reuse" */
+  matches: string[];
+  lead: StoryboardSlide;
+  more: StoryboardSlide[];
+  /**
+   * Retelling a deck (FD-32): "required" marks a section of pages the proposal needs that isn't
+   * story (résumés, fees, schedule, legal...), kept where the deck had it; "suggested" marks slides
+   * from other decks offered for a part the deck never had, placed where that part belongs.
+   */
+  kind?: 'required' | 'suggested';
 };
 
 /** "Was this helpful?" on a storyboard: a slide is useful or not right for its part, or nothing in a part fits */
@@ -230,4 +263,28 @@ export type StoryboardResult = {
   topics: string[];
   /** The role the story was tuned for, or null for the standard tuning (FD-25) */
   role: StoryUserRole | null;
+  /** The story's name in the client's terms, e.g. "Three campuses, one hospital" (FD-30) */
+  title: string;
+  /** The story in one line: what the whole deck has to convince the client of. Every beat serves it. */
+  thesis: string;
+  /** The story's last words: what the client gets, in their terms (empty when nothing can be said honestly) */
+  close: string;
+  /** The story told slide by slide, in order (FD-30) */
+  beats: StoryBeat[];
+  /** model: the AI chose, ordered and narrated the slides; rules: the ranked slides in story order */
+  composer: 'model' | 'rules';
+  /** How many slides were weighed for this story */
+  considered: number;
+  /**
+   * What the request asked for (FD-31): "build" a new story from the whole library, "retrieve" an
+   * existing deck as it was saved (no beats: open `deck`), or "reimagine" an existing deck as a
+   * better story, using every one of its slides.
+   */
+  mode: 'build' | 'retrieve' | 'reimagine';
+  /** The existing deck the request named, for retrieve and reimagine */
+  deck?: { id: string; title: string; slideCount: number };
+  /** Retrieve asked for a deck the library doesn't have (FD-34): the name or years asked for, said honestly */
+  missing?: { name: string | null; years: number[] };
+  /** Build: the decks we already made for clients the brief names, used for the parts about them */
+  context?: { id: string; title: string }[];
 };

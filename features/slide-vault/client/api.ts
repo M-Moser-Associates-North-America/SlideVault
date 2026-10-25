@@ -121,16 +121,18 @@ export async function uploadDeck(runtime: Transport, file: File, meta: UploadDec
 /* ---- Storyboard (FD-22, FD-24) ---------------------------------------------------------------- */
 
 /** A client situation turned into a story of slides. `read` lets the configured AI read it (slower). */
-export async function buildStory(runtime: Transport, situation: string, opts: { read: boolean; answers?: string; role?: StoryUserRole | null }, signal?: AbortSignal): Promise<StoryboardResult> {
-  const res = await runtime.request({ path: '/storyboard', method: 'POST', body: { situation, read: opts.read, answers: opts.answers || undefined, role: opts.role ?? undefined }, signal });
+export async function buildStory(runtime: Transport, situation: string, opts: { read: boolean; answers?: string; role?: StoryUserRole | null; mode?: 'retrieve' | 'reimagine' | 'build' }, signal?: AbortSignal): Promise<StoryboardResult> {
+  const res = await runtime.request({ path: '/storyboard', method: 'POST', body: { situation, read: opts.read, answers: opts.answers || undefined, role: opts.role ?? undefined, mode: opts.mode }, signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<StoryboardResult>).data;
 }
 
 /** "Was this helpful?": saved without a name or the brief, used to rank the next similar storyboard. */
-export async function sendStoryFeedback(runtime: Transport, feedback: { role: StoryRole; slideId: string | null; verdict: StoryFeedbackVerdict; topics: string[]; by?: StoryUserRole | null }): Promise<void> {
+/** saved: false when learning from this person's activity is off (FD-37): nothing was stored. */
+export async function sendStoryFeedback(runtime: Transport, feedback: { role: StoryRole; slideId: string | null; verdict: StoryFeedbackVerdict; topics: string[]; by?: StoryUserRole | null }): Promise<{ saved: boolean }> {
   const res = await runtime.request({ path: '/storyboard/feedback', method: 'POST', body: feedback });
   if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ saved: boolean }>).data;
 }
 
 /** Whether talking instead of typing is set up on this server. */

@@ -25,6 +25,12 @@ export type IndexedSource = {
   versionId: string;
   sha256: string;
   slides: IndexedSlide[];
+  /**
+   * What is known about the deck itself, from the deck catalog (deck-catalog.json in the data dir:
+   * reviewed metadata where it exists). Wins over what the folder and file name say; anything it
+   * leaves out still comes from them.
+   */
+  deck?: { clientName?: string | null; deckYear?: number | null; category?: string | null; title?: string | null; location?: string | null };
 };
 
 export type LibraryIndex = {

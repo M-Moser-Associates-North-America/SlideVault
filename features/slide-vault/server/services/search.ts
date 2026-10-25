@@ -12,9 +12,17 @@ import type { IndexedSlide, IndexedSource, LibraryIndex } from '../library-repos
 export const DEFAULT_LIMIT = 24;
 export const MAX_LIMIT = 100;
 
+/** What is known about a deck: the deck catalog first (reviewed client, year, kind), then its folder and file name (FD-31). */
+export function deckFacts(source: IndexedSource) {
+  const named = folderInfo(source.fileName);
+  const facts = { ...named, clientName: source.deck?.clientName ?? named.clientName, deckYear: source.deck?.deckYear ?? named.deckYear, category: source.deck?.category ?? named.category, location: source.deck?.location ?? named.location };
+  // A deck is named for what it is ("Moody's · RFP · 2025"), not its file name or a cover left as "Title of deck here".
+  const title = source.deck?.title ?? (facts.clientName ? [facts.clientName, facts.category, facts.deckYear].filter(Boolean).join(' · ') : source.title);
+  return { ...facts, title };
+}
+
 export function toSummary(source: IndexedSource, slide: IndexedSlide): SlideSummary {
-  // The file-backed index keeps only the file name, so only what the name says ("Client - Category") is known.
-  const deck = folderInfo(source.fileName);
+  const deck = deckFacts(source);
   return {
     id: slide.id,
     title: slide.title,
@@ -23,7 +31,7 @@ export function toSummary(source: IndexedSource, slide: IndexedSlide): SlideSumm
     provenance: {
       sourceId: source.id,
       sourceVersionId: source.versionId,
-      sourceTitle: source.title,
+      sourceTitle: deck.title,
       // The index keeps the deck's path inside the library; the folders are shown separately (folderPath).
       sourceFileName: source.fileName.split('/').pop() ?? source.fileName,
       slideNumber: slide.number,
@@ -34,6 +42,7 @@ export function toSummary(source: IndexedSource, slide: IndexedSlide): SlideSumm
       clientName: deck.clientName,
       deckYear: deck.deckYear,
       category: deck.category,
+      location: deck.location,
       bestOfTheBest: deck.bestOfTheBest,
     },
   };

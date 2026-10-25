@@ -1,4 +1,4 @@
-import { isStopWord, simParse } from '../../components/simulation';
+import { isStopWord, parseQuery } from '../../components/search-rules';
 
 /**
  * Quick AI search (docs/DECISIONS.md FD-16, FD-17): how a typed request becomes a search, and how
@@ -6,7 +6,7 @@ import { isStopWord, simParse } from '../../components/simulation';
  *
  *   1. Read the request into a SearchPlan: keywords (with likely synonyms) plus optional filters.
  *      The configured AI reader does this (ai/reader.ts); with none configured, or if it fails, the
- *      stand-in below does, using the same rules as the front end's simulated search.
+ *      stand-in below does, using the same rules as the filter row (components/search-rules.ts).
  *   2. Search Postgres for slides matching ANY keyword, inside the filters, best match first.
  *   3. Explain each result from what actually matched. The note is worked out from the slide's
  *      own words, not written by the model, so it can't claim something the slide doesn't say.
@@ -42,10 +42,10 @@ const GENERIC_WORDS = new Set(['deck', 'decks', 'slide', 'slides', 'page', 'page
 
 /** Rules-only reader, used when no AI reader is configured or it can't be reached. */
 export function standInPlan(query: string, ctx: PlanContext): SearchPlan {
-  const p = simParse(query, ctx.clients);
+  const p = parseQuery(query, ctx.clients);
   const q = ` ${query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ')} `;
   const keywords = [...p.tokens, ...p.concepts.flatMap((c) => c.words)];
-  // The simulated reader picks a client from any word of its name, so "a bank pitch" would become
+  // The rules pick a client from any word of its name, so "a bank pitch" would become
   // the client "Northgate Bank". Only keep the client if its first word (the distinctive one) was
   // typed; otherwise put the words back as keywords.
   if (p.client) {
@@ -217,7 +217,8 @@ export type SlideFacts = {
 export function whyItFits(plan: SearchPlan, slide: SlideFacts): { why: string; matched: string[] } {
   const title = slide.title.toLowerCase();
   const text = slide.text.toLowerCase();
-  const has = (hay: string, k: string) => new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i').test(hay);
+  // A short word must be the whole word ("app" is not "approach"), as in the search itself.
+  const has = (hay: string, k: string) => { const e = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return new RegExp(k.length <= 3 ? `\\b${e}s?\\b` : `\\b${e}`, 'i').test(hay); };
   const inTitle = plan.keywords.filter((k) => has(title, k));
   const inText = plan.keywords.filter((k) => !inTitle.includes(k) && has(text, k));
   const matched = [...inTitle, ...inText];

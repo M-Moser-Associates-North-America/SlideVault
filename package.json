@@ -20,6 +20,7 @@
     "test:storyboard": "tsx --conditions=react-server scripts/test-storyboard.mts",
     "test:deck-suggestions": "tsx --conditions=react-server scripts/test-deck-suggestions.mts",
     "test:story-learning": "tsx --conditions=react-server scripts/test-story-learning.mts",
+    "test:deck-finder": "tsx scripts/test-deck-finder.mts",
     "upload:library": "tsx scripts/upload-library.mts",
     "score:search": "tsx --conditions=react-server scripts/score-search.mts",
     "typecheck": "next typegen && tsc --noEmit",
@@ -33,7 +34,7 @@
     "@types/pg": "^8.23.1",
     "@xmldom/xmldom": "^0.9.12",
     "jszip": "^3.10.2",
-    "next": "16.4.0",
+    "next": "16.4.2",
     "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -47,7 +48,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.4.2",
     "tsx": "^4.23.15",
     "typescript": "^5"
   }

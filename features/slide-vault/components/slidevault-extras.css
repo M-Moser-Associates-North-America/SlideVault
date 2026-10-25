@@ -39,28 +39,13 @@
 .slidevault .cart-zip .meta { margin: 0; }
 .slidevault .cart-zip .btn { gap: 4px 6px; flex-wrap: wrap; height: auto; min-height: 32px; max-width: 100%; justify-content: flex-start; }
 
-/* Simulated features (FD-14): everything that is front end only carries the brand orange. */
-.slidevault .sim-flag { display: inline-flex; align-items: center; margin-left: 8px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; vertical-align: middle; white-space: nowrap; }
-.slidevault .sim-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; margin: 8px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
-.slidevault .sim-legend .sim-flag { margin: 0 8px 0 0; }
-.slidevault .badge.sim { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 10%, var(--sv-surface)); }
+/* Card badges and notes. */
 .slidevault .thumb-badge { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.slidevault .tag.sim { display: inline-flex; align-items: center; gap: 4px; border: 1px dashed var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); }
-.slidevault .tag.sim .ic { color: var(--sv-brand-strong); }
-.slidevault .sim-note { display: flex; align-items: center; gap: 6px; font-size: var(--sv-text-meta); color: var(--sv-text); }
-.slidevault .sim-note .ic { color: var(--sv-brand-strong); }
-.slidevault .matched b .sim-flag { margin-left: auto; }
-.slidevault .sim-panel { border-left: 3px solid var(--sv-brand); }
-.slidevault .sim-group > legend { display: flex; align-items: center; gap: 6px; }
-.slidevault .sim-group .sim-flag { margin-left: 0; }
-.slidevault .qsteps span.sim-step { color: var(--sv-brand-strong); }
-.slidevault .qsteps span.sim-step.done .ic { color: var(--sv-brand-strong); }
-.slidevault .row-head h2 .sim-flag { margin-left: 10px; }
+.slidevault .card-note { display: flex; align-items: center; gap: 6px; font-size: var(--sv-text-meta); color: var(--sv-text); }
+.slidevault .card-note .ic { color: var(--sv-brand-strong); }
 .slidevault .also-list .t { display: block; }
-.slidevault .how summary .sim-flag { margin-left: 6px; }
 
 /*
- * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
  * The bare Home hero: the original reference HTML's search (reference/SlideVault.html),
  * values copied from it directly (34px/500/-0.02em headline, 10px 10px 10px 20px search
  * padding, 44px controls), mapped onto the real app's --sv-* tokens instead of the
@@ -128,7 +113,6 @@
 
 
 /*
- * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
  * Fake sign-in + profile pick, pulled pixel-for-pixel from reference/SlideVault.html's own
  * login card (its doSignIn doesn't check a password either -- this matches that, not a shortcut).
  */
@@ -189,7 +173,6 @@
 .slidevault .auth-pick-name { font-size: 13.5px; font-weight: 600; color: var(--sv-text); text-align: center; }
 
 /*
- * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
  * Save-to-profile: one heart toggle per slide, mirroring the existing cart checkbox's
  * hover-reveal pattern and corner position (top-right instead of top-left).
  */
@@ -218,7 +201,6 @@
 .slidevault .save-tg:focus-visible { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
 
 /*
- * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
  * Profile dashboard (saved row + simple activity record) and the avatar nav tab that reaches it.
  */
 .slidevault .profile-wrap .page-head { align-items: center; }
@@ -232,7 +214,6 @@
 .slidevault .activity-time { font-size: 12.5px; color: var(--sv-text-secondary); flex: none; }
 
 /*
- * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
  * "Today's Top 10"-style giant outlined rank numbers, from the Netflix reference video.
  */
 .slidevault .top10-item { display: flex; align-items: stretch; }
@@ -366,11 +347,6 @@
 .slidevault .interp[hidden] { display: none; }
 
 /* ---- Status badge: icon + plain words, so colour is never the only clue ---- */
-.slidevault .tier-ic { display: inline-grid; place-items: center; flex: none; }
-.slidevault .tier-ic .ic-sm { width: 13px; height: 13px; }
-.slidevault .tier-ic-approved { color: var(--sv-success); }
-.slidevault .tier-ic-suggested { color: var(--sv-warning); }
-.slidevault .tier-ic-retired { color: var(--sv-text-secondary); }
 
 /* ---- Filter options that would leave nothing are greyed out (still clickable) ---- */
 .slidevault .fb-list label.is-zero, .slidevault .fb-presets .pchip.is-zero { opacity: 0.45; }
@@ -461,11 +437,6 @@
 .slidevault .interp[hidden] { display: none; }
 
 /* ---- Status badge: icon + plain words, so colour is never the only clue ---- */
-.slidevault .tier-ic { display: inline-grid; place-items: center; flex: none; }
-.slidevault .tier-ic .ic-sm { width: 13px; height: 13px; }
-.slidevault .tier-ic-approved { color: var(--sv-success); }
-.slidevault .tier-ic-suggested { color: var(--sv-warning); }
-.slidevault .tier-ic-retired { color: var(--sv-text-secondary); }
 
 /* ---- Filter options that would leave nothing are greyed out (still clickable) ---- */
 .slidevault .fb-list label.is-zero, .slidevault .fb-presets .pchip.is-zero { opacity: 0.45; }

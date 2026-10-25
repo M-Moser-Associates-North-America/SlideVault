@@ -9,13 +9,16 @@ import { loadLibraryIndex } from '../library-repository';
 import { listFilterValuesPg, listSlideTextsPg, smartSearchPg } from '../pg-repository';
 import { withDownloadCounts } from '../user-data';
 import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
-import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from './fixture-smart-search';
+import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures, type SearchKnowledge } from './fixture-smart-search';
+import { answersIntent, asksForAnything, intentScore, intentWhy, searchIntent } from './slide-intent';
 import { loadSlideReadings } from '../slide-knowledge';
 import { smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, type StoryboardResponse } from './storyboard';
+import { deckFacts } from './search';
+import { deckRequest } from '../ai/deck-request';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
-import type { StoryUserRole } from '../../contracts/dto';
+import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
 
 /**
  * Quick AI search over the whole library (docs/DECISIONS.md FD-16, FD-17): uploaded decks in
@@ -52,6 +55,17 @@ async function orWithoutDb<T>(what: string, run: () => Promise<T>, fallback: T):
 
 export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean }): Promise<SmartSearchResponse> {
   const index = await loadLibraryIndex();
+  // What the search asks for beyond its words (FD-33): a kind of slide, a sector, a theme, matched
+  // against the reviewed metadata and the local model's reading of each slide.
+  const readings = await loadSlideReadings();
+  const intent = searchIntent(query);
+  const known: SearchKnowledge | undefined = readings.size
+    ? {
+        about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
+        boost: (id) => intentScore(intent, readings.get(id)),
+        answers: (id) => asksForAnything(intent) && answersIntent(intent, readings.get(id)),
+      }
+    : undefined;
   const result = await smartSearch(
     query,
     limit,
@@ -65,7 +79,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
         };
       },
       reader: opts.reader,
-      search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max)].slice(0, max),
+      search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
       log: (m) => console.warn(m),
     },
     { read: opts.read },
@@ -77,7 +91,12 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   // Real "Most downloaded" counts (FD-18); left off when there's no database.
   const counted = await withDownloadCounts(badged, (e) => console.error('Download counts unavailable', e));
   const byId = new Map(result.items.map((i) => [i.slide.id, i]));
-  return { ...result, items: counted.map((slide) => ({ ...byId.get(slide.id)!, slide })) };
+  // Say what each slide is in the search's terms, ahead of the words it matched.
+  const said = (id: string, why: string) => {
+    const kind = intentWhy(intent, readings.get(id));
+    return kind ? `${kind} ${why}`.trim() : why;
+  };
+  return { ...result, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide, why: said(slide.id, item.why) }; }) };
 }
 
 /** The configured storyboard reader, or null for the standard story order. Throws when misconfigured. */
@@ -92,19 +111,55 @@ export function configuredStoryReader(env: Record<string, string | undefined> = 
 }
 
 /** A client situation turned into a story of slides from the whole library (FD-22). */
-export async function storyboardLibrary(situation: string, opts: { reader: StoryReader | null; read: boolean; answers?: string; role?: StoryUserRole | null }): Promise<StoryboardResponse> {
+export async function storyboardLibrary(situation: string, opts: { reader: StoryReader | null; read: boolean; answers?: string; role?: StoryUserRole | null; mode?: 'retrieve' | 'reimagine' | 'build' }): Promise<StoryboardResponse> {
   const index = await loadLibraryIndex();
-  const search = async (plan: SearchPlan, max: number) =>
-    [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max)].slice(0, max);
+  // An existing deck asked for by name (FD-31): open it as saved, or retell it with all its slides.
+  const decks = (index?.sources ?? []).map((src) => {
+    const f = deckFacts(src);
+    return { id: src.id, title: f.title, fileName: src.fileName, clientName: f.clientName, year: f.deckYear, category: f.category, location: f.location, versionId: src.versionId, slideCount: src.slides.length };
+  });
+  const asked = deckRequest(situation, decks, opts.mode);
+  if (asked.mode === 'missing') {
+    const what = asked.name ? `No ${asked.name} deck` : `No decks from ${asked.years.join(' or ')}`;
+    return { reader: 'rules', readerNote: null, summary: '', questions: [], sections: [], topics: [], role: opts.role ?? null, title: `${what} in the library`, thesis: '', close: '', beats: [], composer: 'rules', considered: 0, mode: 'retrieve', missing: { name: asked.name, years: asked.years } };
+  }
+  const named = asked.mode === 'build' ? null : { id: asked.deck.id, title: asked.deck.title, slideCount: asked.deck.slideCount };
+  if (asked.mode === 'retrieve' && named) {
+    return { reader: 'rules', readerNote: null, summary: '', questions: [], sections: [], topics: [], role: opts.role ?? null, title: named.title, thesis: '', close: '', beats: [], composer: 'rules', considered: 0, mode: 'retrieve', deck: named };
+  }
+  const sourceIds = new Set(asked.mode === 'reimagine' ? (index?.sources.find((x) => x.id === asked.deck.id)?.slides.map((x) => x.id) ?? []) : []);
+  const source = named && sourceIds.size ? { deck: named, rows: fixtureRowsWhere(index, (id) => sourceIds.has(id), sourceIds.size) } : undefined;
+  // A new story about clients we already have decks for: those decks are context for it.
+  const theirIds = new Set(asked.mode === 'build' ? asked.context.flatMap((d) => index?.sources.find((x) => x.id === d.id)?.slides.map((x) => x.id) ?? []) : []);
+  const context = asked.mode === 'build' && theirIds.size ? { decks: asked.context.map((d) => ({ id: d.id, title: d.title })), rows: fixtureRowsWhere(index, (id) => theirIds.has(id), theirIds.size) } : undefined;
   // What the local model read on each slide (FD-26), when the scan has been run on this library.
   const readings = await loadSlideReadings();
-  const knowledge = readings.size
-    ? { of: (id: string) => readings.get(id), forPart: async (role: string, limit: number) => fixtureRowsWhere(index, (id) => readings.get(id)?.role === role, limit) }
+  // The brief's words are searched in what was read on each slide too, as home search does (FD-33):
+  // a slide that says "builders" can answer a brief about the people who built an app.
+  const readText: SearchKnowledge | undefined = readings.size
+    ? { about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; }, boost: () => 0, answers: () => false }
     : undefined;
-  const result = await buildStoryboard(situation, { reader: opts.reader, search, learned: learnedForTopics, knowledge, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
-  const all = result.sections.flatMap((s) => s.items.map((i) => i.slide));
+  const search = async (plan: SearchPlan, max: number) =>
+    [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max, readText)].slice(0, max);
+  const knowledge = readings.size
+    ? { of: (id: string) => readings.get(id), forPart: async (role: string, limit: number, first?: (id: string) => boolean) => {
+          const inPart = (id: string) => readings.get(id)?.role === role;
+          const lead = first ? fixtureRowsWhere(index, (id) => inPart(id) && first(id), limit) : [];
+          return [...lead, ...fixtureRowsWhere(index, (id) => inPart(id) && !lead.some((r) => r.summary.id === id), limit - lead.length)];
+        } }
+    : undefined;
+  // Retelling a deck: what the deck is ("RFP, HQ relocation/renovation") tells the rest of the
+  // library what a missing part should be about, when the request is only "the story of Moody's".
+  const brief = source ? `${situation}\n${source.deck.title.replace(/ · /g, ', ')}` : situation;
+  const result = await buildStoryboard(brief, { reader: opts.reader, search, learned: learnedForTopics, knowledge, source, context, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
+  const all = [...result.sections.flatMap((s) => s.items.map((i) => i.slide)), ...result.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide))];
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
-  return { ...result, sections: result.sections.map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide })) })) };
+  const withCounts = <T extends { slide: SlideSummary }>(i: T): T => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide });
+  return {
+    ...result,
+    sections: result.sections.map((s) => ({ ...s, items: s.items.map(withCounts) })),
+    beats: result.beats.map((b) => ({ ...b, lead: withCounts(b.lead), more: b.more.map(withCounts) })),
+  };
 }
 
 /** The configured deck-facts reader (FD-23), or null when no AI provider is set up. */
