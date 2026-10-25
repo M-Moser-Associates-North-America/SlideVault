@@ -26,6 +26,7 @@ import { DeckCard, Link, SimFlag, SkeletonGrid, SkeletonRows, SlideCard, StateBl
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { setHeroOut } from '../client/hero-visibility';
+import { HiddenToggle } from './HiddenToggle';
 import { shownInFilterRow, withoutChip } from './search-reading';
 import { useRoot } from './root';
 import { simTags, simTier, TIER_TEXT } from './simulation';
@@ -262,7 +263,7 @@ function HomeHeader() {
       if (e.key.length !== 1 || e.key === ' ') return;
       if ((e.target as Element | null)?.closest?.(busy)) return;
       if (document.querySelector('dialog[open], .tour-pop')) return;
-      document.getElementById('sv-hero-q')?.focus();
+      (document.getElementById('sv-fb-q') ?? document.getElementById('sv-hero-q'))?.focus();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -294,6 +295,7 @@ function HomeHeader() {
             <Icon name="search" />
           </button>
         </span>
+        <HiddenToggle />
       </form>
       <StoryLauncher />
     </div>

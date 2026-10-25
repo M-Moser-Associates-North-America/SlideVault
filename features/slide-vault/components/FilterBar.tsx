@@ -8,6 +8,8 @@ import { backdropClose, useDialogOpen } from './Dialogs';
 import type { SmartSearchChip } from '../contracts/dto';
 import { rowReading, withoutChip } from './search-reading';
 import { SIM_PEOPLE, SLIDE_TYPES, TIER_LABEL, simContributor, simHasSlideType, simUploader, visibleTiers, type Tier } from './simulation';
+import { useHeroOut } from '../client/hero-visibility';
+import { StickySearch } from './StickySearch';
 import { useRoot } from './root';
 import { useWorkspaceCompact } from './size';
 import { useWorkspace } from './state';
@@ -111,6 +113,7 @@ export function FilterBar() {
   const sentinel = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
   const top = useTopOffset();
+  const heroOut = useHeroOut();
   const nowYear = new Date().getFullYear();
 
   const slides = useMemo(() => (library.status === 'ready' ? library.slides : []), [library]);
@@ -333,7 +336,8 @@ export function FilterBar() {
   return (
     <>
     <div ref={sentinel} className="fbar-sentinel" aria-hidden="true" />
-    <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
+    <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}${heroOut && !compact ? ' has-search' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
+      {heroOut && !compact && <StickySearch />}
       <div className="fbar-row" ref={rowRef} role="toolbar" aria-label="Filter slides">
         <button type="button" className={`fb-btn fb-all${activeTotal ? ' on' : ''}`} aria-haspopup="dialog" onClick={() => setSheet('all')}>
           <Icon name="slidersFill" />

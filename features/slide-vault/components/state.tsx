@@ -29,6 +29,9 @@ type Workspace = {
   runtime: SlideVaultRuntime;
   library: LibraryState;
   reloadLibrary: () => void;
+  /** Slides hidden in their original deck are left out of search and the library unless this is on (FD-27) */
+  includeHidden: boolean;
+  setIncludeHidden: (on: boolean) => void;
   query: string;
   setQuery: (q: string) => void;
   /** Enter or the Search button: lets the AI read the current request (once; repeats are cached) */
@@ -116,13 +119,15 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     status: 'loading',
   });
   const [libraryTry, setLibraryTry] = useState(0);
+  /* Off by default: slides hidden in the original deck stay out. The switch beside the search bar turns them on. */
+  const [includeHidden, setIncludeHidden] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
-    listLibrary(transport, controller.signal)
+    listLibrary(transport, controller.signal, { includeHidden })
       .then((slides) => setLibrary({ status: 'ready', slides, decks: groupDecks(slides) }))
       .catch((e: Error) => e.name !== 'AbortError' && setLibrary({ status: 'error', message: e.message }));
     return () => controller.abort();
-  }, [transport, libraryTry]);
+  }, [transport, libraryTry, includeHidden]);
   const reloadLibrary = useCallback(() => {
     setLibrary({ status: 'loading' });
     setLibraryTry((n) => n + 1);
@@ -152,7 +157,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     if (!q) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      smartSearch(transport, q, q === submitted, controller.signal)
+      smartSearch(transport, q, q === submitted, controller.signal, { includeHidden })
         .then((result) => setSearch({ status: 'ready', result }))
         .catch((e: Error) => e.name !== 'AbortError' && setSearch({ status: 'error', message: e.message }));
     }, SEARCH_DELAY_MS);
@@ -160,7 +165,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
       clearTimeout(timer);
       controller.abort();
     };
-  }, [transport, query, submitted, searchTry]);
+  }, [transport, query, submitted, searchTry, includeHidden]);
 
   /* Simulated approval tiers (FD-14): what the signed-in access may see. The server has no tiers yet. */
   const caps = runtime.capabilities;
@@ -286,6 +291,8 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     runtime,
     library,
     reloadLibrary,
+    includeHidden,
+    setIncludeHidden,
     query,
     setQuery,
     submitSearch,

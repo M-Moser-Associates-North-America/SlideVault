@@ -758,3 +758,33 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .sv-app[data-size="compact"] .row-scroller .card-title { font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .slidevault .sv-app[data-size="compact"] .row-scroller .meta { font-size: 12px; }
 .slidevault .sv-app[data-size="compact"] .row-scroller .matched { display: none; }
+
+/* The "Hidden slides" eye inside the search bar (same look as the search button), and the slim search above the sticky filter row. */
+.slidevault .hid-wrap { position: relative; flex: none; display: inline-flex; }
+.slidevault .hid-toggle { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--sv-border-strong); border-radius: 50%; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; box-shadow: var(--sv-shadow-card); }
+.slidevault .hid-toggle .ic { color: inherit; width: 18px; height: 18px; }
+.slidevault .hid-toggle:hover { border-color: var(--sv-text-secondary); }
+.slidevault .hid-toggle:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .hid-toggle.on { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .fb-search-wrap .hid-toggle { width: 40px; height: 40px; box-shadow: none; }
+/* Tooltip: shows at once on hover or keyboard focus. */
+.slidevault .hid-tip { position: absolute; top: calc(100% + 10px); right: 0; z-index: 60; width: 248px; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--sv-action-bg); color: var(--sv-action-fg); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22); text-align: left; opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity 0.12s, transform 0.12s, visibility 0.12s; pointer-events: none; }
+.slidevault .hid-tip strong { font-size: 14px; font-weight: 700; line-height: 1.25; }
+.slidevault .hid-tip span { font-size: 13px; font-weight: 400; line-height: 1.4; opacity: 0.9; }
+.slidevault .hid-wrap:hover .hid-tip, .slidevault .hid-wrap:has(:focus-visible) .hid-tip { opacity: 1; visibility: visible; transform: none; }
+@media (prefers-reduced-motion: reduce) { .slidevault .hid-tip { transition: none; transform: none; } }
+.slidevault .fb-search-wrap { display: flex; align-items: center; gap: 10px; max-width: 840px; margin-bottom: 10px; animation: svFade 0.18s ease-out; }
+.slidevault .fb-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); }
+.slidevault .fb-search:focus-within { border-color: var(--sv-brand); }
+.slidevault .fb-search .ic { width: 16px; height: 16px; flex: none; }
+.slidevault .fb-search input { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; font: inherit; font-size: 14px; color: var(--sv-text); outline: none; }
+.slidevault .fbar.has-search { margin-bottom: -50px; }
+@media (prefers-reduced-motion: reduce) { .slidevault .fb-search-wrap { animation: none; } }
+/* On Home the eye is as tall as the whole search bar: a circle that matches the bar's full height. */
+.slidevault .home-hero-search .hid-wrap { width: 60px; height: 60px; } /* the bar's full height: 44px button + 7px padding each side + 1px border each side */
+.slidevault .home-hero-search .hid-toggle { width: 100%; height: 100%; }
+.slidevault .home-hero-search .hid-toggle .ic { width: 20px; height: 20px; }
+/* Home: the search bar gives up width so the eye and the Storyboard button both fit beside it. */
+.slidevault .home-hero:has(.sb-launch) > .home-hero-search { flex: 1 1 360px; min-width: 0; }
+.slidevault .home-hero-search .home-hero-field input { min-width: 0; }
+.slidevault .home-hero:has(.sb-launch) > .sb-launch { flex: none; }
