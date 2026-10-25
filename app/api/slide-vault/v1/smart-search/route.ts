@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
   try {
     const result = await searchLibrary(query, limit, { reader, read: url.searchParams.get('read') === '1' });
-    // Hidden-in-source slides (usually internal notes) only when asked for (FD-27).
+    // Hidden-in-source slides (usually internal notes) only when asked for (FD-32).
     if (url.searchParams.get('hidden') !== 'include') result.items = result.items.filter((i) => !i.slide.hiddenInSource);
     return ok(result);
   } catch (e) {

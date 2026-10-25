@@ -425,7 +425,7 @@ Revisit trigger: the scan runs at upload; readings move to Postgres; the regroup
 ```
 
 ```text
-Decision ID and title: FD-27 Hidden-in-source slides left out by default; archived decks; year from "<Category> <Year>" folders
+Decision ID and title: FD-32 Hidden-in-source slides left out by default; archived decks; year from "<Category> <Year>" folders
 Status: proposed
 Decision date: 2026-10-22
 Decision owner/reviewer: Vincent (build), Khushali (screens and archive in the app), Grant Christofely and Alina Pak (21 Oct check-in)

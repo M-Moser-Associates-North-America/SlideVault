@@ -114,7 +114,7 @@ create index if not exists story_feedback_slide_idx on story_feedback (slide_id)
 -- Who gave the verdict, by role only (FD-25): business-developer, director or bd-support.
 alter table story_feedback add column if not exists by_role text;
 
--- Archived decks (docs/DECISIONS.md FD-27): hidden from the app, search and AI without deleting
+-- Archived decks (docs/DECISIONS.md FD-32): hidden from the app, search and AI without deleting
 -- anything (the bucket can't delete). Set by scripts/archive-deck.mts for now; archive in the app
 -- (Khushali's archive and delete work) builds on this same column.
 alter table decks add column if not exists archived_at timestamptz;
