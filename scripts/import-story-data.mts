@@ -106,16 +106,58 @@ if (!hasColumns.rowCount) {
 
 // ---- matching -------------------------------------------------------------------------------
 type Deck = { id: string; title: string; client: string; year: number | null; category: string | null; source_filename: string; file_hash: string; archived_at: Date | null };
-type Slide = { id: string; deck_id: string; slide_number: number };
+type Slide = { id: string; deck_id: string; slide_number: number; title: string | null; text: string | null };
 const decks = (await client.query<Deck>('select id, title, client, year, category, source_filename, file_hash, archived_at from decks order by title')).rows;
-const slides = (await client.query<Slide>('select id, deck_id, slide_number from slides')).rows;
+const slides = (await client.query<Slide>('select id, deck_id, slide_number, title, text from slides order by deck_id, slide_number')).rows;
 const slidesByDeck = new Map<string, Slide[]>();
 for (const s of slides) slidesByDeck.set(s.deck_id, [...(slidesByDeck.get(s.deck_id) ?? []), s]);
+const deckById = new Map(decks.map((d) => [d.id, d]));
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 // Same rule as scripts/ingest.mts on the storyboard branch: ver_ + first 16 of the file's SHA-256.
 const storyboardId = (fileHash: string, n: number) => `sld_${sha(`ver_${fileHash.slice(0, 16)}:${n}`).slice(0, 16)}`;
 const norm = (s: string) => s.toLowerCase().replace(/\.(pptx|pdf)$/i, '').replace(/[^a-z0-9]/g, '');
+const words = (s: string) => new Set(s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(' ').filter((w) => w.length >= 3));
+
+// The CSV belongs to whichever copy of a deck the team read, which may be another version than the
+// one in Supabase (slides added or removed). So each CSV row is matched to a slide two ways:
+//   1. same file name and the same number of slides: the same version, so slide number = slide number;
+//   2. otherwise by the words on the slide: the row's text excerpt against every slide in the decks
+//      for that client. A row counts only when one slide clearly fits; image-only slides can't match.
+const csvForSlide = new Map<string, Record<string, string>>();
+type CsvDeckReport = { name: string; rows: number; byNumber: number; byWords: number; noText: number; into: Map<string, number> };
+const csvReport: CsvDeckReport[] = [];
+const csvGroups = new Map<string, Record<string, string>[]>();
+for (const r of csv) csvGroups.set(r.deck ?? '', [...(csvGroups.get(r.deck ?? '') ?? []), r]);
+const loose = (a: string, b: string) => { const x = norm(a), y = norm(b); return x.length >= 3 && y.length >= 3 && (x.includes(y) || y.includes(x)); };
+
+for (const [name, rows] of csvGroups) {
+  const rep: CsvDeckReport = { name, rows: rows.length, byNumber: 0, byWords: 0, noText: 0, into: new Map() };
+  csvReport.push(rep);
+  const maxSlide = Math.max(...rows.map((r) => Number(r.slide) || 0));
+  const same = decks.find((d) => norm(d.source_filename) === norm(name) && (slidesByDeck.get(d.id) ?? []).length === maxSlide);
+  if (same) {
+    const bySlide = new Map((slidesByDeck.get(same.id) ?? []).map((s) => [s.slide_number, s]));
+    for (const r of rows) {
+      const s = bySlide.get(Number(r.slide));
+      if (s && !csvForSlide.has(s.id)) { csvForSlide.set(s.id, r); rep.byNumber++; rep.into.set(same.id, (rep.into.get(same.id) ?? 0) + 1); }
+    }
+    continue;
+  }
+  const client = rows[0]?.client ?? '';
+  const candidates = decks.filter((d) => norm(d.source_filename) === norm(name) || loose(client, d.client) || loose(client, d.title)).flatMap((d) => slidesByDeck.get(d.id) ?? []);
+  const slideWords = new Map(candidates.map((s) => [s.id, words(`${s.title ?? ''} ${s.text ?? ''}`)]));
+  for (const r of rows) {
+    const e = words(r.text_excerpt ?? '');
+    if (e.size < 5) { rep.noText++; continue; }
+    const scored = candidates.map((s) => { const w = slideWords.get(s.id)!; let hit = 0; for (const x of e) if (w.has(x)) hit++; return { s, score: hit / e.size }; }).sort((x, y) => y.score - x.score);
+    const [best, second] = scored;
+    if (!best || best.score < 0.85 || (second && second.score > best.score - 0.1) || csvForSlide.has(best.s.id)) continue;
+    csvForSlide.set(best.s.id, r);
+    rep.byWords++;
+    rep.into.set(best.s.deck_id, (rep.into.get(best.s.deck_id) ?? 0) + 1);
+  }
+}
 
 type SlideUpdate = {
   id: string; role: string | null; reuse: string | null; type: string | null; image: string | null;
@@ -125,17 +167,6 @@ type SlideUpdate = {
 const updates: SlideUpdate[] = [];
 const report: { deck: Deck; reviewed: number; readOnly: number; slides: number }[] = [];
 const usedIds = new Set<string>();
-const csvByKey = new Map<string, Record<string, string>>();
-for (const r of csv) csvByKey.set(`${norm(r.deck ?? '')}#${Number(r.slide)}`, r);
-// The CSV is matched by deck name and slide number, so it only counts when it's the same version
-// of the deck: same number of slides. Otherwise slide 40 in one copy isn't slide 40 in the other.
-const csvSlides = new Map<string, number>();
-for (const r of csv) csvSlides.set(norm(r.deck ?? ''), Math.max(csvSlides.get(norm(r.deck ?? '')) ?? 0, Number(r.slide) || 0));
-const sameVersion = (d: { source_filename: string; id: string }) => {
-  const n = csvSlides.get(norm(d.source_filename));
-  return n !== undefined && n === (slidesByDeck.get(d.id) ?? []).length;
-};
-const otherVersion = (d: { source_filename: string; id: string }) => csvSlides.has(norm(d.source_filename)) && !sameVersion(d);
 
 for (const d of decks) {
   const own = slidesByDeck.get(d.id) ?? [];
@@ -143,7 +174,7 @@ for (const d of decks) {
   for (const s of own) {
     const key = storyboardId(d.file_hash, s.slide_number);
     const m = meta[key], r = scan[key];
-    const c = sameVersion(d) ? csvByKey.get(`${norm(d.source_filename)}#${s.slide_number}`) : undefined;
+    const c = csvForSlide.get(s.id);
     if (!m && !r && !c) continue;
     usedIds.add(key);
     const isReviewed = !!(m && str(m.role)) || !!(c && str(c.reviewed_role));
@@ -167,15 +198,18 @@ for (const d of decks) {
   report.push({ deck: d, reviewed, readOnly, slides: own.length });
 }
 
-// Deck facts: the catalog by file name, then the CSV's deck-level columns.
+// Deck facts: the catalog by file name, then the CSV's deck-level columns, taken only when most of
+// that CSV deck's text slides were found in this Supabase deck.
 type DeckUpdate = { id: string; title: string; client: string | null; year: number | null; category: string | null; kind: string | null; sector: string | null; location: string | null };
 const catalogByName = new Map(Object.entries(catalog).map(([k, v]) => [norm(path.basename(k)), v]));
-const csvDeck = new Map<string, Record<string, string>>();
-for (const r of csv) if (!csvDeck.has(norm(r.deck ?? ''))) csvDeck.set(norm(r.deck ?? ''), r);
+const csvDeckFor = new Map<string, Record<string, string>>();
+for (const rep of csvReport) {
+  for (const [deckId, n] of rep.into) if (n >= Math.max(5, (rep.rows - rep.noText) / 2)) csvDeckFor.set(deckId, csvGroups.get(rep.name)![0]);
+}
 const deckUpdates: DeckUpdate[] = [];
 for (const d of decks) {
   const cat = catalogByName.get(norm(d.source_filename));
-  const row = sameVersion(d) ? csvDeck.get(norm(d.source_filename)) : undefined;
+  const row = csvDeckFor.get(d.id);
   if (!cat && !row) continue;
   const yearNum = Number(cat?.deckYear ?? row?.year);
   deckUpdates.push({
@@ -187,39 +221,46 @@ for (const d of decks) {
   });
 }
 
-// Slide packs from the CSV: rows sharing a pack number within one deck, in slide order.
+// Slide packs from the CSV: rows sharing a pack number, kept when all their matched slides sit in
+// one Supabase deck, in that deck's slide order.
 type Pack = { deckId: string; deckTitle: string; label: string; slideIds: string[] };
 const packs: Pack[] = [];
-for (const d of decks) {
-  if (!sameVersion(d)) continue;
-  const rows = csv.filter((r) => norm(r.deck ?? '') === norm(d.source_filename) && (r.pack ?? '').trim());
-  const bySlide = new Map((slidesByDeck.get(d.id) ?? []).map((s) => [s.slide_number, s.id]));
-  const groups = new Map<string, number[]>();
-  for (const r of rows) groups.set(r.pack.trim(), [...(groups.get(r.pack.trim()) ?? []), Number(r.slide)]);
-  for (const [label, nums] of groups) {
-    const ids = nums.sort((a, b) => a - b).map((n) => bySlide.get(n)).filter((x): x is string => !!x);
-    if (ids.length >= 2) packs.push({ deckId: d.id, deckTitle: d.title, label: `Pack ${label}`, slideIds: ids });
-  }
+const slideById = new Map(slides.map((s) => [s.id, s]));
+const packGroups = new Map<string, Slide[]>();
+for (const [slideId, r] of csvForSlide) {
+  if (!(r.pack ?? '').trim()) continue;
+  const k = `${r.deck}#${r.pack.trim()}`;
+  packGroups.set(k, [...(packGroups.get(k) ?? []), slideById.get(slideId)!]);
+}
+for (const [k, members] of packGroups) {
+  const deckIds = new Set(members.map((m) => m.deck_id));
+  if (members.length < 2 || deckIds.size !== 1) continue;
+  const d = deckById.get(members[0].deck_id)!;
+  packs.push({ deckId: d.id, deckTitle: d.title, label: `Pack ${k.split('#').pop()}`, slideIds: members.sort((a, b) => a.slide_number - b.slide_number).map((m) => m.id) });
 }
 
 // ---- the report -----------------------------------------------------------------------------
 const metaKeys = Object.keys(meta).length, scanKeys = Object.keys(scan).length;
 console.log(`${yes ? 'IMPORT' : 'DRY RUN: nothing is changed.'}\n`);
 console.log(`Files: ${metaKeys} reviewed slide(s), ${scanKeys} AI reading(s), ${Object.keys(catalog).length} catalog deck(s)${csvFile ? `, ${csv.length} CSV row(s)` : ''}.\n`);
+if (csvFile) {
+  console.log('The CSV, deck by deck (which slides were found in Supabase):');
+  for (const rep of csvReport) {
+    const where = [...rep.into].map(([id, n]) => `${n} in ${deckById.get(id)?.title}`).join('; ');
+    const how = rep.byNumber ? 'same version, matched by slide number' : 'different version or name, matched by the words on each slide';
+    const lost = rep.rows - rep.byNumber - rep.byWords;
+    console.log(`  ${rep.name} (${rep.rows} slides): ${rep.byNumber + rep.byWords} found${where ? ` (${where})` : ''}${rep.byNumber + rep.byWords ? `, ${how}` : ''}${lost ? `; ${lost} not found${rep.noText ? `, of which ${rep.noText} have too few words to match` : ''}` : ''}`);
+  }
+  console.log('');
+}
 console.log('Decks in Supabase:');
 for (const r of report) {
-  const what = r.reviewed || r.readOnly ? `${r.reviewed} confirmed, ${r.readOnly} suggested (AI only)` : otherVersion(r.deck) ? `the CSV has a different version (${csvSlides.get(norm(r.deck.source_filename))} slides there), so it was skipped` : 'no story data matched';
+  const what = r.reviewed || r.readOnly ? `${r.reviewed} confirmed, ${r.readOnly} suggested (AI only)` : 'no story data matched';
   console.log(`  ${r.deck.title} (${r.slides} slides)${r.deck.archived_at ? ' [archived]' : ''}: ${what}`);
 }
 const unusedMeta = Object.keys(meta).filter((k) => !usedIds.has(k)).length;
 const unusedScan = Object.keys(scan).filter((k) => !usedIds.has(k)).length;
-if (unusedMeta || unusedScan) console.log(`\nNot in Supabase yet (deck not uploaded, or a PDF): ${unusedMeta} reviewed slide(s), ${unusedScan} AI reading(s).`);
-if (csvFile) {
-  const missing = [...new Set(csv.map((r) => r.deck))].filter((n) => !decks.some((d) => norm(d.source_filename) === norm(n)));
-  const other = decks.filter(otherVersion);
-  if (other.length) console.log(`CSV decks with the same name but a different number of slides (a different version, skipped): ${other.map((d) => d.title).join(', ')}`);
-  if (missing.length) console.log(`CSV decks not in Supabase yet: ${missing.join(', ')}`);
-}
+if (unusedMeta || unusedScan) console.log(`\nNot in Supabase (deck not uploaded, another version, or a PDF): ${unusedMeta} reviewed slide(s), ${unusedScan} AI reading(s) from the JSON files.`);
 if (deckUpdates.length) {
   console.log('\nDeck facts to set:');
   for (const u of deckUpdates) console.log(`  ${u.title}: ${[u.client && `client ${u.client}`, u.year && `year ${u.year}`, u.category && `category ${u.category}`, u.kind && `kind "${u.kind}"`, u.sector && `sector ${u.sector}`, u.location && `location ${u.location}`].filter(Boolean).join(', ')}`);
