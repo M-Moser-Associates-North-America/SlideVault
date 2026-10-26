@@ -363,6 +363,41 @@ check(wholeSentences('We start with you. Then we plan every site together with y
   check(order[0] === 'f1', 'family story: told in the order it was made', order);
 }
 
+// ---- Talking to the story: it continues, never starts over (FD-43)
+{
+  const { readTurn, refineStory } = await import('../features/slide-vault/server/services/story-refine');
+  const t = readTurn('These two slides were helpful and these two were helpful. Please go and try to look for accessibility, trust and the roadmap.');
+  check(JSON.stringify(t.find) === '["accessibility","trust","roadmap"]' && !t.remove.length, 'talk: "look for this, that and the third" is three things to find', t);
+  check(JSON.stringify(readTurn('Drop the fees slides and take out résumés').remove) === '["fees","résumés"]', 'talk: "drop X and take out Y" removes both', readTurn('Drop the fees slides and take out résumés'));
+  check(readTurn('I want it shorter').shorter && !readTurn('I want it shorter').find.length, 'talk: "I want it shorter" is a command, not something to search for');
+  check(readTurn('more like these please').like && readTurn('only keep the useful ones').keepOnly, 'talk: "more like these" and "only keep the useful ones"');
+  check(!readTurn('The client is a bank in Toronto with 400 staff.').find.length && !readTurn('The client is a bank in Toronto with 400 staff.').like, 'talk: plain context about the client is not a change request');
+
+  const sl = (id: string, title = id) => ({ slide: slide(id, title), why: '', matched: [], reasons: { brief: [], part: [], from: [] } });
+  const roles: Record<string, string> = { c1: 'client-challenge', s1: 'strategy', s2: 'strategy', p1: 'experience', w1: 'why-us', a1: 'why-us', a2: 'why-us', r1: 'outcome', f1: 'why-us' };
+  const beat = (role: string, ids: string[], title = role) => ({ role: role as never, title, bridge: 'b', narration: '', why: '', matches: [], lead: sl(ids[0], `Slide ${ids[0]}`), more: ids.slice(1).map((i) => sl(i, i === 'f1' ? 'Our fees' : `Slide ${i}`)) });
+  const story = [beat('client-challenge', ['c1']), beat('strategy', ['s1', 's2']), beat('why-us', ['w1', 'f1'])];
+  const deps = {
+    find: async (phrase: string) => (phrase === 'accessibility' ? [sl('a1', 'Built for everyone'), sl('a2', 'Accessibility checks'), sl('s1')] : phrase === 'roadmap' ? [sl('r1', 'Where it goes next')] : []),
+    known: (id: string) => ({ role: roles[id] }),
+    familyMates: async () => [sl('p1', 'Results')],
+    tellable: () => true,
+  };
+  const r = await refineStory(story, 'These were useful. Look for accessibility, pricing and the roadmap. Drop the fees.', new Set(['s2']), deps);
+  const ids = r.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id));
+  check(ids.includes('s2') && ids.includes('c1') && ids.includes('s1'), 'talk: the story on screen continues; nothing is started over', ids);
+  check(ids.includes('a1') && ids.includes('a2') && ids.includes('r1') && !ids.includes('f1'), 'talk: found slides are added and asked-away slides removed in one message', ids);
+  check(r.beats.find((b) => b.role === 'why-us')!.more.some((i) => i.slide.id === 'a1') && r.beats[r.beats.length - 1].role === 'outcome', 'talk: each found slide goes to its own part of the story, in order', r.beats.map((b) => b.role));
+  check(/Kept your 1 useful slide/.test(r.reply) && /Added 2 on accessibility and 1 on roadmap/.test(r.reply) && /Couldn't find anything new on pricing/.test(r.reply) && /Took out 1 slide about fees/.test(r.reply), 'talk: the reply says what it kept, added, couldn\'t find and took out', r.reply);
+  const pinnedStays = await refineStory(story, 'drop slide s2', new Set(['s2']), deps);
+  check(pinnedStays.beats.some((b) => [b.lead, ...b.more].some((i) => i.slide.id === 's2')), 'talk: a slide marked useful is never removed');
+  const only = await refineStory(story, 'only keep the useful ones', new Set(['s2']), deps);
+  check(JSON.stringify(only.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id))) === '["s2"]', 'talk: "only keep the useful ones" trims to them');
+  const like = await refineStory(story, 'more like these', new Set(['s2']), deps);
+  check(like.beats.some((b) => b.lead.slide.id === 'p1' || b.more.some((i) => i.slide.id === 'p1')), 'talk: "more like these" brings slides that belong with the ones you liked');
+  check(!(await refineStory(story, 'The client is a bank in Toronto.', new Set(), deps)).understood, 'talk: context about the client is handed back to rebuild, keeping the useful slides');
+}
+
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
 check(missingContext('The board and CFO worry about disruption; the goal is a low-cost, fast fit-out.').length === 0, 'questions: a situation that already says them gets no questions');

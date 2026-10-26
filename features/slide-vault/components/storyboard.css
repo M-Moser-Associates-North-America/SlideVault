@@ -82,8 +82,12 @@
 .slidevault .sb-story-from { margin: -8px 0 20px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
 .slidevault .sb-after { max-width: 760px; margin: 40px auto 0; }
 .slidevault a.sb-add { text-decoration: none; }
-.slidevault .sb-questions { margin: 10px 0 12px; padding-left: 18px; color: var(--sv-text-secondary); }
-.slidevault .sb-questions li { margin: 4px 0; }
+/* Talk to your story (FD-43): the conversation under the story */
+.slidevault .sb-talk { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; max-height: 360px; overflow-y: auto; }
+.slidevault .sb-msg { margin: 0; padding: 10px 14px; border-radius: 14px; font-size: var(--sv-text-small); line-height: 1.5; max-width: 85%; }
+.slidevault .sb-msg-app { align-self: flex-start; background: var(--sv-surface-sunken); color: var(--sv-text); border-bottom-left-radius: 4px; }
+.slidevault .sb-msg-you { align-self: flex-end; background: var(--sv-brand-tint); color: var(--sv-text); border-bottom-right-radius: 4px; }
+.slidevault .sb-working { color: var(--sv-text-secondary); font-style: italic; }
 .slidevault .sb-sharpen-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
 .slidevault .sb-sharpen-row textarea { flex: 1 1 auto; }
 @media (prefers-reduced-motion: reduce) {

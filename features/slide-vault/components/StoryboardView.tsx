@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { SlideSummary, StoryBeat, StoryboardResult, StoryFeedbackVerdict, StoryRole } from '../contracts/dto';
-import { buildStory, sendStoryFeedback, speechAvailable, transcribe } from '../client/api';
+import { buildStory, refineStory, sendStoryFeedback, speechAvailable, transcribe } from '../client/api';
 import { ROLE_CHOICES, useStoryRole } from '../client/role-store';
 import { takeHandedOffBrief } from '../client/story-handoff';
 import { useSavedStories } from '../client/story-store';
@@ -64,9 +64,14 @@ export function StoryboardView() {
       .catch(() => toast("Couldn't save that. Please try again."));
   }
 
+  /** The conversation about the story on screen (FD-43): what you said and what it did */
+  const [chat, setChat] = useState<{ who: 'you' | 'app'; text: string }[]>([]);
+  const [talking, setTalking] = useState(false);
+
   function show(result: StoryboardResult) {
     setStory(result);
     setSaid({});
+    setChat([]);
     setPhase('ready');
     requestAnimationFrame(() => headRef.current?.focus());
   }
@@ -92,12 +97,32 @@ export function StoryboardView() {
     }
   }
 
-  function sharpen(text: string) {
+  /** A message about the story on screen: it continues the story, keeping the slides marked Useful. */
+  async function talk(text: string) {
     const t = text.trim();
-    if (!t) return;
-    const all = [answers, t].filter(Boolean).join('\n');
-    setAnswers(all);
-    void run(all);
+    if (!t || !story || talking) return;
+    setChat((c) => [...c, { who: 'you', text: t }]);
+    setTalking(true);
+    const pinned = Object.entries(said)
+      .filter(([, v]) => v === 'useful')
+      .map(([k]) => k.slice(k.indexOf(':') + 1));
+    try {
+      const result = await refineStory(runtime, {
+        situation: situation.trim(),
+        message: t,
+        pinned,
+        role,
+        beats: story.beats.map((b) => ({ role: b.role, kind: b.kind, title: b.title, bridge: b.bridge, narration: b.narration, why: b.why, matches: b.matches, slideIds: [b.lead, ...b.more].map((i) => i.slide.id) })),
+      });
+      if (result.story) setStory(result.story);
+      else if (result.beats) setStory({ ...story, beats: result.beats });
+      setChat((c) => [...c, { who: 'app', text: result.reply }]);
+      announce(result.reply);
+    } catch (e) {
+      setChat((c) => [...c, { who: 'app', text: (e as Error).message || "Couldn't change the story right now. Please try again." }]);
+    } finally {
+      setTalking(false);
+    }
   }
 
   function cancel() {
@@ -110,6 +135,7 @@ export function StoryboardView() {
     abort.current?.abort();
     setStory(null);
     setAnswers('');
+    setChat([]);
     setPhase('start');
   }
 
@@ -275,7 +301,7 @@ export function StoryboardView() {
       </ol>
       {/* The story's last words: what the client gets */}
       {story.close && <p className="sb-close">{story.close}</p>}
-      <Sharpen questions={story.questions} onSend={sharpen} />
+      <Conversation questions={story.questions} chat={chat} busy={talking} onSend={(t) => void talk(t)} />
     </div>
   );
 }
@@ -353,34 +379,51 @@ function Verdict({ value, onSay, small }: { value?: StoryFeedbackVerdict; onSay:
   );
 }
 
-/** What the story doesn't know yet; answering rebuilds it. Typed or spoken. */
-function Sharpen({ questions, onSend }: { questions: string[]; onSend: (text: string) => void }) {
+/**
+ * Talk to the story (FD-43): react to it the way you would to a colleague ("these two were useful,
+ * now look for X and Y", "drop the fees", "shorter") and it continues from what's on screen. Its
+ * questions open the conversation; each answer says what it did. Typed or spoken.
+ */
+function Conversation({ questions, chat, busy, onSend }: { questions: string[]; chat: { who: 'you' | 'app'; text: string }[]; busy: boolean; onSend: (text: string) => void }) {
   const [text, setText] = useState('');
+  const end = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: 'nearest' });
+  }, [chat.length, busy]);
   const send = () => {
+    if (!text.trim() || busy) return;
     onSend(text);
     setText('');
   };
   return (
     <section className="sb-sharpen" aria-labelledby="sb-sharpen-h">
       <h2 className="sb-label" id="sb-sharpen-h">
-        Make it sharper
+        Talk to your story
       </h2>
-      {questions.length > 0 && (
-        <ul className="sb-questions">
-          {questions.map((q) => (
-            <li key={q}>{q}</li>
-          ))}
-        </ul>
-      )}
+      <div className="sb-talk" aria-live="polite">
+        {questions.map((q) => (
+          <p key={q} className="sb-msg sb-msg-app">
+            {q}
+          </p>
+        ))}
+        {chat.map((m, i) => (
+          <p key={i} className={`sb-msg sb-msg-${m.who}`}>
+            {m.text}
+          </p>
+        ))}
+        {busy && <p className="sb-msg sb-msg-app sb-working">Working on it…</p>}
+        <div ref={end} />
+      </div>
       <div className="sb-sharpen-row">
         <label htmlFor="sb-reply" className="sr-only">
-          Tell it more about the client
+          Tell it what to change
         </label>
         <textarea
           id="sb-reply"
           rows={2}
           value={text}
-          placeholder="Answer, or tell it more about the client…"
+          disabled={busy}
+          placeholder="These were useful. Now look for… / Drop… / Shorter / Tell it more about the client"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -389,8 +432,8 @@ function Sharpen({ questions, onSend }: { questions: string[]; onSend: (text: st
             }
           }}
         />
-        <MicButton onText={onSend} />
-        <button type="button" className="btn btn-primary btn-icon" aria-label="Rebuild the story" disabled={!text.trim()} onClick={send}>
+        <MicButton onText={onSend} disabled={busy} />
+        <button type="button" className="btn btn-primary btn-icon" aria-label="Send" disabled={busy || !text.trim()} onClick={send}>
           <Icon name="right" />
         </button>
       </div>

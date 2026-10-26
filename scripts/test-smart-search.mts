@@ -9,7 +9,7 @@ import { openAiCompatibleReader, parsePlan } from '../features/slide-vault/serve
 import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../features/slide-vault/server/ai/reader';
 import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/rate-limit';
 import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, typedCodes, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
-import { fixtureFilterValues, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
+import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
 import { smartSearch } from '../features/slide-vault/server/services/smart-search';
 import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
 
@@ -294,6 +294,14 @@ for (const [env, label] of [
   check(without.length === 0 && JSON.stringify(withKnown) === '["reading"]', "search: a slide is found by what was read on it when its own words don't match", { without, withKnown });
   const boosted = smartSearchFixtures(index, cleanPlan({ keywords: ['team'] }, ctx), 10, { about: () => '', boost: (id) => (id === 'reading' ? 6 : 0), answers: (id) => id === 'reading' }).map((r) => r.summary.id);
   check(boosted[0] === 'reading', 'search: the kind asked for ranks ahead of word matches', boosted);
+}
+
+{
+  // Identical copies of one file share slide ids; reading a list must not let the copies use up the limit.
+  const copy = (id: string) => ({ id, title: id, fileName: `${id}.pptx`, versionId: 'same', sha256: 'same', slides: [{ id: 's1', number: 1, title: 'a', text: '', hidden: false }, { id: 's2', number: 2, title: 'b', text: '', hidden: false }] });
+  const index = { generatedAt: '', sources: [copy('one'), copy('two'), { id: 'other', title: 'o', fileName: 'o.pptx', versionId: 'o', sha256: 'o', slides: [{ id: 's3', number: 1, title: 'c', text: '', hidden: false }] }] };
+  const ids = fixtureRowsWhere(index, (id) => ['s1', 's2', 's3'].includes(id), 3).map((r) => r.summary.id);
+  check(JSON.stringify(ids) === '["s1","s2","s3"]', 'rows: each slide is read once, so copies never crowd out the last ones asked for', ids);
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smart search checks passed');

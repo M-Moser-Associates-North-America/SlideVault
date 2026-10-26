@@ -17,6 +17,8 @@ import { buildStoryboard, type StoryboardResponse } from './storyboard';
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
 import { familiesOf } from './families';
+import { refineStory } from './story-refine';
+import type { StoryBeat, StoryRefineRequest, StoryRefineResult, StoryboardSlide } from '../../contracts/dto';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
 import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
@@ -183,4 +185,57 @@ export async function suggestUploadFacts(fileName: string, bytes: Uint8Array, op
   const db = await orWithoutDb('filter values', listFilterValuesPg, { clients: [], categories: [] });
   const categories = [...new Set([...db.categories, ...fixtureFilterValues(await loadLibraryIndex()).categories])].sort();
   return suggestDeckFacts(fileName, bytes, { reader: opts.reader, categories, log: (m) => console.warn(m) }, { folderPath: opts.folderPath, read: opts.read });
+}
+
+/**
+ * One message in a conversation about the story on screen (FD-43). The story continues: Useful slides
+ * stay, things asked for are found and added where they belong, things asked away are taken out. A
+ * message that asks for none of that is more context: the story is rebuilt with it, Useful slides kept.
+ */
+export async function refineStoryboard(req: StoryRefineRequest, opts: { reader: StoryReader | null; read: boolean }): Promise<StoryRefineResult> {
+  const index = await loadLibraryIndex();
+  const readings = await loadSlideReadings();
+  const familyOf = familiesOf(index);
+  const known = (id: string) => readings.get(id);
+  const neverShow = (id: string) => { const k = readings.get(id); return k?.reuse === 'internal - never show' || !!k?.flags?.some((f) => /names another client|leftover/i.test(f)); };
+  // Only the ids come from the browser: every slide is read again from the library.
+  const ids = [...new Set(req.beats.flatMap((b) => b.slideIds))];
+  const rows = new Map(fixtureRowsWhere(index, (id) => ids.includes(id), ids.length).map((r) => [r.summary.id, r]));
+  const asSlide = (id: string, why: string): StoryboardSlide | null => { const r = rows.get(id); return r ? { slide: r.summary, why: why.slice(0, 600), matched: [], reasons: { brief: [], part: [], from: [] } } : null; };
+  const beats: StoryBeat[] = req.beats
+    .map((b): StoryBeat | null => {
+      const items = b.slideIds.map((id) => asSlide(id, b.why)).filter((x): x is StoryboardSlide => !!x);
+      if (!items.length) return null;
+      const cut = (t: string, n: number) => String(t ?? '').slice(0, n);
+      return { role: b.role, ...(b.kind ? { kind: b.kind } : {}), title: cut(b.title, 140), bridge: cut(b.bridge, 400), narration: cut(b.narration, 900), why: cut(b.why, 500), matches: (b.matches ?? []).slice(0, 2).map((m) => cut(m, 40)), lead: items[0], more: items.slice(1) };
+    })
+    .filter((b): b is StoryBeat => !!b);
+  const pinned = new Set(req.pinned.filter((id) => ids.includes(id)));
+  const tellable = (i: StoryboardSlide) => !i.slide.hiddenInSource && !neverShow(i.slide.id);
+  const toSlide = (r: { summary: SlideSummary }, why: string): StoryboardSlide => ({ slide: r.summary, why, matched: [], reasons: { brief: [], part: [], from: [] } });
+
+  const result = await refineStory(beats, req.message, pinned, {
+    find: async (phrase, limit) => (await searchLibrary(phrase, limit, { reader: null, read: false })).items.map((i) => ({ slide: i.slide, why: i.why, matched: i.matched, reasons: { brief: [], part: [], from: [] } })),
+    known: (id) => { const k = known(id); return k && { role: k.role, about: k.about, type: k.type }; },
+    familyMates: async (id) => {
+      const f = familyOf.get(id);
+      if (!f) return [];
+      const at = new Map(f.slideIds.map((x, i) => [x, i]));
+      return fixtureRowsWhere(index, (x) => at.has(x) && x !== id, f.slideIds.length).sort((a, b) => at.get(a.summary.id)! - at.get(b.summary.id)!).map((r) => toSlide(r, `From the same set: ${f.title}.`));
+    },
+    tellable,
+  });
+  if (result.understood) return { reply: result.reply, beats: result.beats };
+
+  // Not a request to change the story: more context about the client. Rebuild with it, keep the Useful slides.
+  const story = await storyboardLibrary(req.situation, { reader: opts.reader, read: opts.read, answers: req.message, role: req.role ?? null, mode: 'build' });
+  const have = new Set(story.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)));
+  const back = [...pinned].filter((id) => !have.has(id)).map((id) => asSlide(id, 'You marked this useful.')).filter((x): x is StoryboardSlide => !!x);
+  for (const item of back) {
+    const role = (known(item.slide.id)?.role ?? 'why-us') as StoryBeat['role'];
+    const home = [...story.beats].reverse().find((b) => b.role === role) ?? story.beats[story.beats.length - 1];
+    if (home) home.more.push(item);
+  }
+  const kept = pinned.size ? ` Kept the ${pinned.size} slide${pinned.size === 1 ? '' : 's'} you marked useful.` : '';
+  return { reply: `Rebuilt the story with that in mind.${kept}`, story };
 }
