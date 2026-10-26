@@ -1,5 +1,7 @@
 'use client';
 
+import { startNudges, stopNudge, useNudge } from '../client/draft-nudge';
+import { useTourOpen } from '../client/tour-store';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
 import { useNavPlacement } from '../client/nav-store';
@@ -17,6 +19,9 @@ import { ProfileView } from './ProfileView';
 import { SettingsView } from './SettingsView';
 import { RootContext } from './root';
 import { useWorkspaceSize } from './size';
+import { ArchiveDialog } from './ArchiveDialog';
+import { ArchiveView } from './ArchiveView';
+import { PackDialog } from './Packs';
 import { Tour } from './Tour';
 import { UploadView } from './UploadView';
 import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './Views';
@@ -81,7 +86,7 @@ function Workspace({ header }: { header?: ReactNode }) {
   /* Home (browsing or searching) uses the reference HTML's hero search (Views.tsx HomeHeader)
      instead of a side rail; it stays mounted across that transition so typing never loses focus. */
   const noRail = true; // the search bar and filter row now sit at the top of Home and the browse lists
-  const narrow = view === 'create' || view === 'upload' || view === 'profile' || view === 'settings';
+  const narrow = view === 'create' || view === 'upload' || view === 'profile' || view === 'settings' || view === 'archive';
 
   /* New page: scroll to the top and move focus to its heading, like a page load would. */
   const key = `${view}/${loc.id ?? ''}`;
@@ -91,6 +96,8 @@ function Workspace({ header }: { header?: ReactNode }) {
   useEffect(() => {
     const was = previousView.current;
     previousView.current = view;
+    /* Every arrival on Home starts the orange ring around the Draft deck button again. */
+    if (view === 'pages' && (first.current || was !== 'pages')) startNudges();
     if (first.current) {
       first.current = false;
       return;
@@ -194,6 +201,7 @@ function Workspace({ header }: { header?: ReactNode }) {
             {view === 'upload' && <UploadView />}
             {view === 'profile' && <ProfileView />}
             {view === 'settings' && <SettingsView />}
+            {view === 'archive' && <ArchiveView />}
           </main>
         </div>
         <aside className="cart-col" aria-label="Draft deck">
@@ -219,6 +227,18 @@ function Workspace({ header }: { header?: ReactNode }) {
         {toasts.map((t) => (
           <div key={t.id} className="toast">
             <span className="msg">{t.message}</span>
+            {t.action && (
+              <button
+                type="button"
+                className="btn-link toast-act"
+                onClick={() => {
+                  t.action?.run();
+                  dismissToast(t.id);
+                }}
+              >
+                {t.action.label}
+              </button>
+            )}
             <button type="button" className="x" aria-label="Dismiss message" onClick={() => dismissToast(t.id)}>
               <Icon name="x" />
             </button>
@@ -233,6 +253,8 @@ function Workspace({ header }: { header?: ReactNode }) {
       <Lightbox />
       <DownloadDialog />
       <AlsoDialog />
+      <PackDialog />
+      <ArchiveDialog />
     </div>
     </RootContext.Provider>
   );
@@ -245,6 +267,8 @@ function Workspace({ header }: { header?: ReactNode }) {
  */
 function BottomBar({ view, deep }: { view: string; deep: boolean }) {
   const { runtime, selection, cartMin, setCartMin } = useWorkspace();
+  const touring = useTourOpen();
+  const nudge = useNudge('draft') && !touring;
   const n = selection.length;
   return (
     <nav className="sv-bottombar" aria-label="Main">
@@ -269,10 +293,11 @@ function BottomBar({ view, deep }: { view: string; deep: boolean }) {
         <li>
           <button
             type="button"
-            className="bb-deck"
+            className={`bb-deck${nudge ? ' is-nudge' : ''}`}
             aria-expanded={!cartMin}
             aria-label={n ? `Draft deck, ${n} ${n === 1 ? 'slide' : 'slides'}` : 'Draft deck'}
             onClick={() => {
+              stopNudge('draft');
               setCartMin(!cartMin);
               if (cartMin) requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart .cart-tg')?.focus());
               else focusDraftOpener();

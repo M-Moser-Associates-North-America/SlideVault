@@ -1,6 +1,8 @@
 'use client';
 
 import { handOffBrief, looksLikeBrief } from '../client/story-handoff';
+import { useTipSeen } from '../client/tip-store';
+import { useTourOpen } from '../client/tour-store';
 import { Icon } from './icons';
 import { useWorkspace } from './state';
 import './storyboard.css';
@@ -14,7 +16,11 @@ import './storyboard.css';
 export function StoryLauncher() {
   const { query, runtime } = useWorkspace();
   const brief = looksLikeBrief(query);
+  /* The "New" badge stays until the Storyboard has been opened once in this browser. */
+  const opened = useTipSeen('storyboard-opened');
+  const touring = useTourOpen();
   const open = () => {
+    opened.dismiss();
     if (brief) handOffBrief(query);
     runtime.navigate({ view: 'story' });
   };
@@ -23,6 +29,7 @@ export function StoryLauncher() {
       <button type="button" className={`btn sb-launch-btn${brief ? ' is-glow' : ''}`} onClick={open} aria-describedby={brief ? 'sb-launch-hint' : undefined}>
         <Icon name="sparkle" />
         Storyboard
+        {!opened.seen && !touring && <span className="sb-new">New</span>}
       </button>
       {brief && (
         <p className="sb-launch-hint" id="sb-launch-hint" role="status">

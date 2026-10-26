@@ -12,6 +12,7 @@ const set = (next: boolean) => {
   listeners.forEach((l) => l());
 };
 
+export const tourIsOpen = () => open;
 export const startTour = () => set(true);
 export const endTour = () => set(false);
 

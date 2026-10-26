@@ -19,6 +19,12 @@ export type Deck = {
   bestOfTheBest: boolean;
   /** Where the client is (FD-35), or null */
   location?: string | null;
+  /** Archived: hidden from the app, search and AI until restored (FD-32) */
+  archived?: boolean;
+  createdBy?: string | null;
+  uploadedBy?: string | null;
+  createdAt?: string | null;
+  uploadedAt?: string | null;
   slides: SlideSummary[];
 };
 
@@ -30,15 +36,20 @@ export type Filters = {
   yto: number | null;
   /** Slide types such as "About us", matched by topic words on the slide (search-rules.ts) */
   slideType: string[];
+  /** Who made the deck file and who put it in SlideVault. Real values only; the lists show when the server sends them. */
+  createdBy: string[];
+  uploadedBy: string[];
 };
 
-export const NO_FILTERS: Filters = { category: [], client: [], bestOnly: false, yfrom: null, yto: null, slideType: [] };
+export const NO_FILTERS: Filters = { category: [], client: [], bestOnly: false, yfrom: null, yto: null, slideType: [], createdBy: [], uploadedBy: [] };
 
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 export const clientOf = (s: SlideSummary) => s.provenance.clientName ?? UNKNOWN_CLIENT;
 export const yearOf = (s: SlideSummary) => s.provenance.deckYear ?? null;
 export const categoryOf = (s: SlideSummary) => s.provenance.category ?? null;
+export const createdByOf = (s: SlideSummary) => s.provenance.createdBy ?? null;
+export const uploadedByOf = (s: SlideSummary) => s.provenance.uploadedBy ?? null;
 
 /** Group slides into decks, keeping first-seen deck order and slide-number order inside a deck. */
 export function groupDecks(slides: SlideSummary[]): Deck[] {
@@ -56,6 +67,11 @@ export function groupDecks(slides: SlideSummary[]): Deck[] {
         category: p.category ?? null,
         bestOfTheBest: !!p.bestOfTheBest,
         location: p.location ?? null,
+        archived: !!p.archived,
+        createdBy: p.createdBy ?? null,
+        uploadedBy: p.uploadedBy ?? null,
+        createdAt: p.createdAt ?? null,
+        uploadedAt: p.uploadedAt ?? null,
         slides: [],
       };
       map.set(p.sourceId, deck);
@@ -76,7 +92,7 @@ export function folderLabel(d: Pick<Deck, 'bestOfTheBest' | 'year' | 'clientName
 export const yearsOf = (decks: Deck[]) => [...new Set(decks.map((d) => d.year).filter((y): y is number => y !== null))].sort((a, b) => b - a);
 
 export function filterCount(f: Filters): number {
-  return f.category.length + f.client.length + f.slideType.length + (f.bestOnly ? 1 : 0) + (f.yfrom !== null || f.yto !== null ? 1 : 0);
+  return f.category.length + f.client.length + f.slideType.length + f.createdBy.length + f.uploadedBy.length + (f.bestOnly ? 1 : 0) + (f.yfrom !== null || f.yto !== null ? 1 : 0);
 }
 
 /** The names of the filters that are on, in the order the filter row shows them. */
@@ -86,6 +102,8 @@ export function filterKinds(f: Filters): string[] {
     ...(f.client.length ? ['Client'] : []),
     ...(f.category.length ? ['Project type'] : []),
     ...(f.slideType.length ? ['Slide type'] : []),
+    ...(f.createdBy.length ? ['Created by'] : []),
+    ...(f.uploadedBy.length ? ['Uploaded by'] : []),
     ...(f.bestOnly ? ['Best of the Best'] : []),
   ];
 }
@@ -106,6 +124,8 @@ export function slideMatches(s: SlideSummary, f: Filters): boolean {
   if (f.client.length && !f.client.includes(clientOf(s))) return false;
   if (f.category.length && !f.category.includes(categoryOf(s) ?? '')) return false;
   if (f.slideType.length && !f.slideType.some((t) => hasSlideType(s, t))) return false;
+  if (f.createdBy.length && !f.createdBy.includes(createdByOf(s) ?? '')) return false;
+  if (f.uploadedBy.length && !f.uploadedBy.includes(uploadedByOf(s) ?? '')) return false;
   return true;
 }
 
@@ -201,4 +221,21 @@ export function timeAgo(at: number): string {
   const hours = Math.round(mins / 60);
   if (hours > -24) return RELATIVE.format(hours, 'hour');
   return RELATIVE.format(Math.round(hours / 24), 'day');
+}
+
+/** "12 Oct 2026" for a date the server sent, or null if there is none or it cannot be read. */
+export function dateLabel(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/**
+ * How many slides of a deck are not in the list because they were hidden in the original deck: the gaps in its
+ * slide numbers (FD-32). 0 when none are missing, or when hidden slides are being shown.
+ */
+export function hiddenGap(slides: SlideSummary[]): number {
+  if (slides.length === 0) return 0;
+  const last = Math.max(...slides.map((s) => s.provenance.slideNumber));
+  return Math.max(0, last - slides.length);
 }

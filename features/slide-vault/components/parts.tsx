@@ -3,6 +3,7 @@
 import type { MouseEvent, ReactNode } from 'react';
 import type { SlideSummary } from '../contracts/dto';
 import type { Location } from '../contracts/runtime';
+import { packPosition, type Pack } from '../client/packs';
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, plural, yearOf, type Deck, folderLabel } from './library';
 import { useWorkspace } from './state';
@@ -117,11 +118,14 @@ export function Thumb({ slide }: { slide: SlideSummary }) {
   );
 }
 
-/** Add to or remove from the cart. */
+/**
+ * Add to or remove from the cart. A slide that belongs to a pack asks first (FD-38): adding offers the
+ * whole pack, removing offers to take the whole pack out. `setOne` skips the question.
+ */
 export function useCartToggle() {
-  const { selection, updateSelection, announce, toast } = useWorkspace();
+  const { selection, updateSelection, announce, toast, packs, openPackDialog } = useWorkspace();
   const isSelected = (id: string) => selection.some((s) => s.id === id);
-  const set = (slide: SlideSummary, on: boolean) => {
+  const setOne = (slide: SlideSummary, on: boolean) => {
     if (on && !selection.some((s) => s.id === slide.id)) toast(`Added. ${plural(selection.length + 1, 'slide')} ready`);
     updateSelection((cur) => {
       const has = cur.some((s) => s.id === slide.id);
@@ -131,7 +135,29 @@ export function useCartToggle() {
     });
     announce(on ? `Added to draft deck: ${slide.title}` : `Removed from draft deck: ${slide.title}`);
   };
-  return { isSelected, set };
+  const set = (slide: SlideSummary, on: boolean) => {
+    const pack = packs.of(slide.id);
+    if (pack) {
+      const here = isSelected(slide.id);
+      const others = pack.slideIds.filter((id) => id !== slide.id);
+      if (on && !here && others.some((id) => !isSelected(id))) return openPackDialog({ kind: 'add', pack, slide });
+      if (!on && here && others.some((id) => isSelected(id))) return openPackDialog({ kind: 'remove', pack, slide });
+    }
+    setOne(slide, on);
+  };
+  return { isSelected, set, setOne };
+}
+
+/** A small label on a slide's card: which pack it is in and where. */
+export function PackBadge({ pack, slideId }: { pack: Pack; slideId: string }) {
+  const pos = packPosition(pack, slideId);
+  const suggested = pack.status === 'suggested';
+  return (
+    <span className={`pack-badge${suggested ? ' is-suggested' : ''}`} title={`${pack.label ?? 'A pack'}: ${pos} of ${pack.slideIds.length} slides that go together${suggested ? ' (suggested, not yet confirmed)' : ''}`}>
+      <Icon name="layers" className="ic-sm" />
+      Pack · {pos} of {pack.slideIds.length}
+    </span>
+  );
 }
 
 /** Save or unsave a slide for the signed-in person (kept on the server when there is a database, FD-18). */
@@ -150,6 +176,8 @@ export function useSavedToggle() {
 export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; list: SlideSummary[]; why?: string; note?: string }) {
   const { openPreview, openAlso } = useWorkspace();
   const { isSelected, set } = useCartToggle();
+  const { packs } = useWorkspace();
+  const pack = packs.of(slide.id);
   const { isSaved, toggle: toggleSave } = useSavedToggle();
   const sel = isSelected(slide.id);
   const saved = isSaved(slide.id);
@@ -186,9 +214,11 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
             {sel ? 'Remove from draft deck' : 'Add to draft deck'}
           </span>
         </label>
-        {slide.hiddenInSource && (
+        {pack && <PackBadge pack={pack} slideId={slide.id} />}
+        {(slide.hiddenInSource || p.archived) && (
           <span className="thumb-badge">
-            <span className="badge">Hidden in source</span>
+            {p.archived && <span className="badge badge-archived">Archived</span>}
+            {slide.hiddenInSource && <span className="badge">Hidden in source</span>}
           </span>
         )}
         <button
@@ -203,7 +233,7 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
         </button>
       </div>
       <div className="card-body">
-        <Link className="card-title" to={{ view: 'slide', id: slide.id }}>
+        <Link className="card-title" to={{ view: 'slide', id: slide.id }} title={slide.title}>
           {slide.title}
         </Link>
         <div className="meta clip" title={`Slide ${p.slideNumber} of ${p.sourceTitle}`}>
@@ -242,10 +272,21 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
 
 /** Deck card: a 2×2 mosaic of its first real slide previews. */
 export function DeckCard({ deck }: { deck: Deck }) {
+  const { openArchiveDialog } = useWorkspace();
   const first = deck.slides.slice(0, 4);
   const cells = [...first, ...Array.from({ length: 4 - first.length }, () => null)];
   return (
     <article className="card vcard" data-deck={deck.id}>
+      <button
+        type="button"
+        className="deck-arch"
+        title={deck.archived ? 'Restore this deck' : 'Archive this deck'}
+        aria-label={`${deck.archived ? 'Restore' : 'Archive'} deck: ${deck.title}`}
+        onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}
+      >
+        <Icon name="archive" />
+      </button>
+      {deck.archived && <span className="deck-arch-badge badge badge-archived">Archived</span>}
       <Link to={{ view: 'deck', id: deck.id }} tabIndex={-1} ariaHidden>
         <div className="mosaic" aria-hidden="true">
           {cells.map((s, i) =>

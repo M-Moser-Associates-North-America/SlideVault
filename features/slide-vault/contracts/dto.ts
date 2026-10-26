@@ -56,6 +56,17 @@ export type Provenance = {
   bestOfTheBest?: boolean;
   /** Where the deck's client is, e.g. "Vancouver" or "Global" (FD-35); null when unknown */
   location?: string | null;
+  /** True when the deck is archived (hidden from the app, search and AI, not deleted; FD-32). Only sent when archived decks are asked for. */
+  archived?: boolean;
+  /**
+   * Deck details from the file or the SharePoint-style view (FD-33). Real values only; null or absent
+   * when the server does not know them. The filters and the Details panels show them only when they exist.
+   */
+  createdBy?: string | null;
+  uploadedBy?: string | null;
+  /** ISO dates */
+  createdAt?: string | null;
+  uploadedAt?: string | null;
 };
 
 /** The same (or nearly the same) slide also appears in other decks (duplicate grouping, PRD P1). */
@@ -66,6 +77,23 @@ export type AlsoIn = {
   otherDeckCount: number;
   /** identical = same words; near = nearly the same words (e.g. one number changed) */
   match: 'identical' | 'near';
+};
+
+/**
+ * Slides that only work together, shown and added as a set ("pack"). Set by the server on every slide in
+ * the pack; absent or null when the slide is in none. A slide is in at most one pack. All slides of a
+ * pack are from the same deck.
+ */
+export type PackRef = {
+  id: string;
+  label: string | null;
+  /** suggested = found by the system, not yet confirmed by a person */
+  status: 'suggested' | 'confirmed';
+  /** Who confirmed it and when (ISO date); null or absent while it is only suggested */
+  confirmedBy?: string | null;
+  confirmedAt?: string | null;
+  /** The pack's slide ids, in the order they belong in (the same list on every member) */
+  slideIds: string[];
 };
 
 export type SlideSummary = {
@@ -79,6 +107,8 @@ export type SlideSummary = {
   provenance: Provenance;
   /** Set by search when this slide is also in other decks; absent or null otherwise */
   alsoIn?: AlsoIn | null;
+  /** The pack this slide belongs to, if any (FD-38) */
+  pack?: PackRef | null;
 };
 
 export type SlideDetail = SlideSummary & { text: string };

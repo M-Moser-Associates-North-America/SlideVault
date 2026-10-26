@@ -529,3 +529,36 @@ Context and evidence: FD-24 saved every Useful / Not useful verdict without a na
 Chosen outcome: On M Moser's setup (database configured) a verdict is stored only when the signed-in person has turned learning on; signed out, never opted in, opted out, or if the setting can't be checked, nothing is stored and the route answers { saved: false, reason: 'opted-out' }. The mark still shows on screen, and the person is told once per story: "Not saved: learning from your activity is off. You can turn it on in Settings." With no database (a laptop demo) there are no people or settings, so verdicts are kept on that computer as before. Stored verdicts keep teaching the next storyboard for a similar brief (FD-24, FD-25).
 
 Consequences: Learning grows only as people opt in. The Settings text for the activity switch should say it also lets Useful / Not useful teach the storyboard (Khushali's screen; flagged to her).
+
+## FD-38: Slide packs: slides that only work together are offered and kept together (2026-10-24)
+
+Context and evidence: The 21 Oct check-in asked for a way to show slides that belong together as a set (Grant: if one is picked, the others have to go with it, in a particular order). M Moser has not supplied any grouping. Vincent's `vincent-story-data` branch (FD-33 there) already has `slide_packs` and `slide_pack_members` tables with an order and a suggested or confirmed status; this entry is the front end and the route contract that sit on top of them.
+
+Options considered: (a) a pack is stored data, made by the system as a suggestion and by people in the app, shown on cards, offered whole when one slide is added, and kept together in the draft deck; (b) always add the whole pack with no question; (c) leave grouping to tags only.
+
+Chosen outcome: (a). Every slide carries `pack?: { id, label, status: 'suggested' | 'confirmed', slideIds }` (contracts/dto.ts, PackRef; the same ordered `slideIds` on every member). Adding one slide of a pack asks "Add all N slides" or "Only this slide". The slide page and the large preview have "Add whole pack (N)". The draft deck groups a pack under a label, moves it as one block, and asks before one slide of it is removed. For the MVP any signed-in user can group slides in one deck, in the order they click them, and ungroup a pack. The front end calls POST /packs, PATCH /packs/:id and DELETE /packs/:id; while the server answers 404, 405 or 501 the change is kept in this browser and marked "This browser only". `?demopacks=1` in the address shows pretend packs for demos. A suggested pack can be confirmed by any signed-in user ("Confirm this pack") and a confirmed one moved back to suggested ("Unconfirm"), through PATCH /packs/:id { status }; the server records who and when and the screen shows "Confirmed by … · date". Ungrouping a suggested pack is "Dismiss suggestion": the server should remember it as dismissed so it is not suggested again and the Storyboard stops pairing those slides (agreed with Schiffon, 25 Oct).
+
+Consequences for scope, cost, security and integration: No model call. Packs are visible to everyone who can see the slides. Writes by any user are an MVP simplification; who may create, confirm and ungroup is a tier decision for M Moser (notes.md, "Hand-off notes for Alina"). The server must check that all slides are in one deck, that a slide is in at most one pack, and record who made each change.
+
+Acceptance evidence / affected PR criteria: typecheck and lint; checked in a browser with pretend packs: the badge, the add question (add all, only this one), the remove question, the pack kept together and moved as one block in the draft deck, the slide page panel and Add whole pack, ungroup, and creating a pack from a deck page. The server routes are not built yet, so create and ungroup were not run against a real server.
+
+Documents/contracts changed: contracts/dto.ts (PackRef, SlideSummary.pack), client/api.ts (createPack, renamePack, deletePack), client/pack-store.ts and client/packs.ts (new), components/Packs.tsx (new), parts.tsx, Cart.tsx, Views.tsx, Dialogs.tsx, state.tsx, docs/DECISIONS.md, notes.md.
+
+Revisit trigger: Vincent's pack routes are live; M Moser decides who may create, confirm and ungroup packs; real packs arrive from an import.
+
+## FD-39: Archive and restore decks from the app (2026-10-25)
+
+Context and evidence: FD-32 added `decks.archived_at` and a script to archive a deck, and said the archive-in-the-app work would build on it. Alina asked for a Curator archive option (recap, 17 Oct). M Moser's bucket cannot delete files, so archiving is how a wrong or test deck leaves the app.
+
+Options considered: (a) buttons in the app that ask the server to archive or restore, with no pretend version while the server cannot; (b) also hide decks in the browser when the server cannot (rejected: a deck hidden for one person in a shared library would mislead); (c) keep it a script.
+
+Chosen outcome: (a). An "Archive deck" button on the deck page and a small archive button on each deck card open a confirmation ("hidden from the library, search and AI for everyone; nothing is deleted; restore any time"). Archiving shows a toast with Undo. A "Show archived decks" switch in the filters' More panel brings archived decks back into the lists, marked "Archived", with a Restore button. The slide page's Details panel has "Archive this deck (N slides)", and the dialog says it hides the whole deck. A page of its own, "Archived decks" in the profile menu (/slide-vault/archive), lists every archived deck with a Restore button on each; it asks the library for archived=only. The front end calls PATCH /decks/:id with { archived: true | false } and asks the library for archived decks with archived=include (lists) or archived=only (the Archived decks page); a deck then carries provenance.archived on each slide, and ideally archivedAt and archivedBy. While the server answers 404, 405 or 501 nothing changes and the person is told. Everyone signed in can archive for the MVP (a tier decision for M Moser, see notes.md).
+
+Consequences for scope, cost, security and integration: No model call. The server must do the hiding and restoring, return archived decks only when archived=include, and record who archived and when. Slides already in someone's draft deck stay there.
+
+Acceptance evidence / affected PR criteria: typecheck and lint; checked in a browser: the dialog, the honest message when the route is missing, the More switch. The route does not exist yet, so archive and restore were not run against a real server.
+
+Documents/contracts changed: contracts/dto.ts (Provenance.archived), client/api.ts (archiveDeck, includeArchived), components/ArchiveDialog.tsx (new), state.tsx, Views.tsx, parts.tsx, FilterBar.tsx, icons.tsx, docs/DECISIONS.md, notes.md.
+
+Revisit trigger: the server routes are live; M Moser decides who may archive and restore.
+

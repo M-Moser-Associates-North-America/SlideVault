@@ -55,12 +55,14 @@ const MAX_LIBRARY_PAGES = 30;
  * (uploaded decks are returned on every page for now), so they are de-duplicated by id.
  */
 /** Slides hidden in their original deck are left out unless includeHidden is set (FD-32). */
-export async function listLibrary(runtime: Transport, signal?: AbortSignal, opts: { includeHidden?: boolean } = {}): Promise<SlideSummary[]> {
+export async function listLibrary(runtime: Transport, signal?: AbortSignal, opts: { includeHidden?: boolean; includeArchived?: boolean; onlyArchived?: boolean } = {}): Promise<SlideSummary[]> {
   const byId = new Map<string, SlideSummary>();
   let cursor: string | null = null;
   for (let page = 0; page < MAX_LIBRARY_PAGES; page++) {
     const params = new URLSearchParams({ kind: 'slide', limit: '1000', duplicates: 'all' });
     if (opts.includeHidden) params.set('hidden', 'include');
+    if (opts.onlyArchived) params.set('archived', 'only'); // only the archived decks, for the Archived decks page
+    else if (opts.includeArchived) params.set('archived', 'include'); // archived decks, marked provenance.archived (FD-32)
     if (cursor) params.set('cursor', cursor);
     const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
     if (!res.ok) return failure(runtime, res);
@@ -149,4 +151,58 @@ export async function transcribe(runtime: Transport, wav: Blob, signal?: AbortSi
   const res = await runtime.request({ path: '/speech', method: 'POST', body: form, signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<{ text: string }>).data.text;
+}
+
+/* ---------------------------------------------------------------- Packs (FD-38) */
+
+/** What the server returns for a pack it stored. */
+export type PackResult = { id: string; label: string | null; status: 'suggested' | 'confirmed'; confirmedBy?: string | null; confirmedAt?: string | null; slideIds: string[] };
+
+/**
+ * Packs are stored by the server (POST, PATCH and DELETE /packs). Until it has those routes a call
+ * answers 404 or 405; these functions then return null so the caller can keep the change in this browser.
+ */
+const notThere = (res: Response) => res.status === 404 || res.status === 405 || res.status === 501;
+
+export async function createPack(runtime: Transport, body: { slideIds: string[]; label: string | null }): Promise<PackResult | null> {
+  const res = await runtime.request({ path: '/packs', method: 'POST', body });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<PackResult>).data;
+}
+
+export async function renamePack(runtime: Transport, packId: string, label: string | null): Promise<PackResult | null> {
+  const res = await runtime.request({ path: `/packs/${encodeURIComponent(packId)}`, method: 'PATCH', body: { label } });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<PackResult>).data;
+}
+
+/** Confirm a suggested pack, or move a confirmed one back to suggested. The server records who and when. */
+export async function setPackStatus(runtime: Transport, packId: string, status: 'suggested' | 'confirmed'): Promise<PackResult | null> {
+  const res = await runtime.request({ path: `/packs/${encodeURIComponent(packId)}`, method: 'PATCH', body: { status } });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<PackResult>).data;
+}
+
+/** Ungroup: the pack goes, its slides stay. Returns false when the server has no such route yet. */
+export async function deletePack(runtime: Transport, packId: string): Promise<boolean> {
+  const res = await runtime.request({ path: `/packs/${encodeURIComponent(packId)}`, method: 'DELETE' });
+  if (notThere(res)) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
+}
+
+/* ---------------------------------------------------------------- Archive (FD-32) */
+
+/**
+ * Archive or restore a deck: PATCH /decks/:id { archived }. Hidden from the app, search and AI; nothing
+ * is deleted. Returns false when the server has no such route yet (404, 405 or 501), so nothing is faked.
+ */
+export async function archiveDeck(runtime: Transport, deckId: string, archived: boolean): Promise<boolean> {
+  const res = await runtime.request({ path: `/decks/${encodeURIComponent(deckId)}`, method: 'PATCH', body: { archived } });
+  if (res.status === 404 || res.status === 405 || res.status === 501) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
 }

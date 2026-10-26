@@ -23,7 +23,7 @@ export type Capability =
   | 'library.manage';
 
 /** 'pages' is the Home screen (library rows and search). 'browse' (id = row key) and 'create' were added for the v3 design (FD-13). */
-export type View = 'home' | 'library' | 'pages' | 'browse' | 'story' | 'create' | 'upload' | 'deck' | 'slide' | 'profile' | 'settings';
+export type View = 'home' | 'library' | 'pages' | 'browse' | 'story' | 'create' | 'upload' | 'deck' | 'slide' | 'profile' | 'settings' | 'archive';
 
 export type Location = {
   view: View;

@@ -10,6 +10,8 @@ import {
   categoryOf,
   clientOf,
   countBy,
+  dateLabel,
+  hiddenGap,
   deckMatches,
   downloadedNote,
   downloadsOf,
@@ -23,6 +25,7 @@ import {
   type Deck,
 } from './library';
 import { findDecks } from './deck-finder';
+import { GroupTool, PackPanel } from './Packs';
 import { DeckCard, Link, SkeletonGrid, SkeletonRows, SlideCard, StateBlock, Thumb, useCartToggle } from './parts';
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
@@ -727,7 +730,8 @@ export function ResultsView() {
 /* ----------------------------------------------------------------- Deck */
 
 export function DeckView({ id }: { id: string }) {
-  const { library, openDownload } = useWorkspace();
+  const { library, openDownload, openArchiveDialog, setIncludeHidden } = useWorkspace();
+  const [grouping, setGrouping] = useState(false);
   const lib = useReadyLibrary();
   const deck = library.status === 'ready' ? library.decks.find((d) => d.id === id) : undefined;
   if ('blocker' in lib) return <div className="sv-wrap">{lib.blocker}</div>;
@@ -750,6 +754,7 @@ export function DeckView({ id }: { id: string }) {
             {deck.title}
           </h1>
           <div className="badges" style={{ marginTop: 8 }}>
+            {deck.archived && <span className="badge badge-archived">Archived</span>}
             {deck.category && <span className="badge">{deck.category}</span>}
             {deck.year && <span className="badge">{deck.year}</span>}
             <span className="badge">
@@ -757,21 +762,50 @@ export function DeckView({ id }: { id: string }) {
               {folderLabel(deck)}
             </span>
           </div>
-          <p className="lede">{plural(deck.slides.length, 'slide')} in this deck.</p>
+          <p className="lede">
+            {plural(deck.slides.length, 'slide')} in this deck.
+            {hiddenGap(deck.slides) > 0 && (
+              <>
+                {' '}
+                {plural(hiddenGap(deck.slides), 'hidden slide')} not shown.{' '}
+                <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
+                  Show {hiddenGap(deck.slides) === 1 ? 'it' : 'them'}
+                </button>
+              </>
+            )}
+          </p>
+          {(deck.createdBy || deck.uploadedBy) && (
+            <p className="meta deck-who">
+              {deck.createdBy && <span>Created by {deck.createdBy}{dateLabel(deck.createdAt) ? ` · ${dateLabel(deck.createdAt)}` : ''}</span>}
+              {deck.uploadedBy && <span>Uploaded by {deck.uploadedBy}{dateLabel(deck.uploadedAt) ? ` · ${dateLabel(deck.uploadedAt)}` : ''}</span>}
+            </p>
+          )}
         </div>
         <div className="row-flex">
           <SelectAll slides={deck.slides} />
+          <button type="button" className="btn btn-sm" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}>
+            <Icon name="archive" />
+            <span>{deck.archived ? 'Restore deck' : 'Archive deck'}</span>
+          </button>
+          <button type="button" className="btn btn-sm" aria-pressed={grouping} onClick={() => setGrouping((g) => !g)}>
+            <Icon name="layers" />
+            <span>{grouping ? 'Stop grouping' : 'Group slides into a pack'}</span>
+          </button>
           <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload(deck.slides)}>
             <Icon name="download" />
             <span>Download whole deck</span>
           </button>
         </div>
       </div>
-      <div className="grid" style={{ marginTop: 16 }}>
-        {deck.slides.map((s) => (
-          <SlideCard key={s.id} slide={s} list={deck.slides} />
-        ))}
-      </div>
+      {grouping ? (
+        <GroupTool deckSlides={deck.slides} onDone={() => setGrouping(false)} />
+      ) : (
+        <div className="grid" style={{ marginTop: 16 }}>
+          {deck.slides.map((s) => (
+            <SlideCard key={s.id} slide={s} list={deck.slides} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -792,8 +826,8 @@ function FromFolder() {
 }
 
 export function SlideView({ id }: { id: string }) {
-  const { runtime, library, openPreview, openDownload, logActivity } = useWorkspace();
-  const { isSelected, set } = useCartToggle();
+  const { runtime, library, openPreview, openDownload, logActivity, packs, selection, addPackToDraft, openArchiveDialog, setIncludeHidden } = useWorkspace();
+  const { isSelected, setOne } = useCartToggle();
   const lib = useReadyLibrary();
   const slide = library.status === 'ready' ? library.slides.find((s) => s.id === id) : undefined;
   const deck = library.status === 'ready' && slide ? library.decks.find((d) => d.id === slide.provenance.sourceId) : undefined;
@@ -839,6 +873,7 @@ export function SlideView({ id }: { id: string }) {
   const sibs = deck.slides;
   const i = sibs.findIndex((s) => s.id === id);
   const sel = isSelected(id);
+  const slidePack = packs.of(id);
   const p = slide.provenance;
   const text = detail && detail.id === id ? ('slide' in detail ? detail.slide.text : null) : undefined;
   const textError = detail && detail.id === id && 'error' in detail ? detail.error : null;
@@ -886,7 +921,16 @@ export function SlideView({ id }: { id: string }) {
               <span className="btn-icon" style={{ width: 36 }} />
             )}
             <span className="meta">
-              Slide {p.slideNumber} of {sibs.length} in this deck
+              Slide {p.slideNumber} of {sibs.length + hiddenGap(sibs)} in this deck
+              {hiddenGap(sibs) > 0 && (
+                <>
+                  {' · '}
+                  {plural(hiddenGap(sibs), 'hidden slide')} not shown.{' '}
+                  <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
+                    Show {hiddenGap(sibs) === 1 ? 'it' : 'them'}
+                  </button>
+                </>
+              )}
             </span>
             {i < sibs.length - 1 ? (
               <Link className="btn btn-sm btn-icon" to={{ view: 'slide', id: sibs[i + 1].id }} aria-label="Next slide in this deck" title="Next slide">
@@ -914,10 +958,16 @@ export function SlideView({ id }: { id: string }) {
           <section className="panel">
             <h2>Use this slide</h2>
             <div className="row-flex">
-              <button type="button" className="btn btn-sm" aria-pressed={sel} onClick={() => set(slide, !sel)}>
+              <button type="button" className="btn btn-sm" aria-pressed={sel} onClick={() => setOne(slide, !sel)}>
                 <Icon name="check" />
-                <span>{sel ? 'Selected' : 'Select'}</span>
+                <span>{sel ? 'In draft deck' : 'Add to draft deck'}</span>
               </button>
+              {slidePack && (
+                <button type="button" className="btn btn-sm" disabled={slidePack.slideIds.every((pid) => selection.some((x) => x.id === pid))} onClick={() => addPackToDraft(slidePack)}>
+                  <Icon name="plus" />
+                  <span>Add whole pack ({slidePack.slideIds.length})</span>
+                </button>
+              )}
               <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload([slide])}>
                 <Icon name="download" />
                 <span>Download only this slide</span>
@@ -927,13 +977,38 @@ export function SlideView({ id }: { id: string }) {
               </Link>
             </div>
           </section>
+          {slidePack && <PackPanel slide={slide} pack={slidePack} />}
           <section className="panel">
             <h2>Details</h2>
             <dl className="trust">
               <dt>Deck</dt>
-              <dd>{p.sourceTitle}</dd>
+              <dd>
+                {p.sourceTitle}
+                <button type="button" className="btn-link arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
+                  <Icon name="archive" className="ic-sm" />
+                  {deck.archived ? `Restore this deck (${deck.slides.length} slides)` : `Archive this deck (${deck.slides.length} slides)`}
+                </button>
+              </dd>
               <dt>File</dt>
               <dd>{p.sourceFileName}</dd>
+              {p.createdBy && (
+                <>
+                  <dt>Created by</dt>
+                  <dd>
+                    {p.createdBy}
+                    {dateLabel(p.createdAt) ? ` · ${dateLabel(p.createdAt)}` : ''}
+                  </dd>
+                </>
+              )}
+              {p.uploadedBy && (
+                <>
+                  <dt>Uploaded by</dt>
+                  <dd>
+                    {p.uploadedBy}
+                    {dateLabel(p.uploadedAt) ? ` · ${dateLabel(p.uploadedAt)}` : ''}
+                  </dd>
+                </>
+              )}
               <dt>Folder</dt>
               <dd>
                 {folderLabel(deck)}

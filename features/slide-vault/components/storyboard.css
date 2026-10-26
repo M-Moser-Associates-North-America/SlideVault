@@ -98,7 +98,7 @@
    without changing the search itself; when the search moves into the filter row, this goes with it. */
 .slidevault .home-hero:has(.sb-launch) { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; max-width: 1040px; }
 .slidevault .home-hero:has(.sb-launch) > .home-hero-search { flex: 1 1 520px; }
-.slidevault .sb-launch { position: relative; z-index: 40; display: flex; flex-direction: column; align-items: flex-start; }
+.slidevault .sb-launch { position: relative; z-index: 28; display: flex; flex-direction: column; align-items: flex-start; }
 .slidevault .btn.sb-launch-btn { height: 58px; padding: 0 22px; border-radius: 999px; font-size: 16px; gap: 8px; }
 .slidevault .sb-launch-btn .ic { color: var(--sv-brand); }
 .slidevault .btn.sb-launch-btn.is-glow { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-brand-strong); animation: sb-glow-btn 1.8s ease-in-out infinite, sb-tick 0.5s ease-out 1; }

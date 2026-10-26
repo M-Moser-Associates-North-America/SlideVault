@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
-import { categoryOf, clientOf, countBy, filterCount, slideMatches, yearOf, type Filters } from './library';
+import { categoryOf, clientOf, countBy, createdByOf, filterCount, slideMatches, uploadedByOf, yearOf, type Filters } from './library';
 import { backdropClose, useDialogOpen } from './Dialogs';
+import { Link } from './parts';
 import type { SmartSearchChip } from '../contracts/dto';
 import { rowReading, withoutChip } from './search-reading';
 import { SLIDE_TYPES, hasSlideType } from './search-rules';
@@ -94,8 +95,21 @@ function Picker({
   );
 }
 
+/** A filter the server cannot fill in yet: shown greyed out, so people know it is coming, with the reason. */
+function NotYet({ label }: { label: string }) {
+  return (
+    <div className="fb-picker is-off" aria-disabled="true">
+      <div className="fb-picker-h">
+        <span>{label}</span>
+      </div>
+      <input type="search" className="fb-find" placeholder="Type to find" aria-label={`Find in ${label} (not available yet)`} disabled />
+      <p className="fb-note">Not available yet. It switches on once SlideVault has this information for each deck.</p>
+    </div>
+  );
+}
+
 export function FilterBar() {
-  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search } = useWorkspace();
+  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search, includeArchived, setIncludeArchived } = useWorkspace();
   const [open, setOpen] = useState<Key | null>(null);
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
   const compact = useWorkspaceCompact();
@@ -121,6 +135,11 @@ export function FilterBar() {
   const without = useCallback((omit: Partial<Filters>) => slides.filter((s) => slideMatches(s, { ...filters, ...omit })), [slides, filters]);
   const clientCounts = useMemo(() => countBy(without({ client: [] }), clientOf), [without]);
   const categoryCounts = useMemo(() => countBy(without({ category: [] }), categoryOf), [without]);
+  /* Who made and who uploaded a deck: real values only, so these lists exist only once the server sends them. */
+  const creators = useMemo(() => [...countBy(slides, createdByOf).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
+  const uploaders = useMemo(() => [...countBy(slides, uploadedByOf).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
+  const creatorCounts = useMemo(() => countBy(without({ createdBy: [] }), createdByOf), [without]);
+  const uploaderCounts = useMemo(() => countBy(without({ uploadedBy: [] }), uploadedByOf), [without]);
   const typeCounts = useMemo(() => {
     const base = without({ slideType: [] });
     return new Map(SLIDE_TYPES.map((t) => [t.label, base.filter((s) => hasSlideType(s, t.label)).length]));
@@ -187,7 +206,7 @@ export function FilterBar() {
   }, [compact, scroll]);
 
   const yearOn = filters.yfrom !== null || filters.yto !== null;
-  const moreCount = filters.bestOnly ? 1 : 0;
+  const moreCount = (filters.bestOnly ? 1 : 0) + filters.createdBy.length + filters.uploadedBy.length;
   const items: { key: Key; label: string; icon: IconName; active: number }[] = [
     { key: 'year', label: 'Year', icon: 'calendarFill', active: yearOn || fromYear ? 1 : 0 },
     { key: 'client', label: 'Client', icon: 'buildingFill', active: filters.client.length + (fromClient ? 1 : 0) },
@@ -206,6 +225,8 @@ export function FilterBar() {
     ...filters.client.map((v) => ({ id: `c-${v}`, kind: 'Client', text: v, remove: () => patchFilters({ client: filters.client.filter((x) => x !== v) }) })),
     ...filters.category.map((v) => ({ id: `p-${v}`, kind: 'Project type', text: v, remove: () => patchFilters({ category: filters.category.filter((x) => x !== v) }) })),
     ...filters.slideType.map((v) => ({ id: `t-${v}`, kind: 'Slide type', text: v, remove: () => patchFilters({ slideType: filters.slideType.filter((x) => x !== v) }) })),
+    ...filters.createdBy.map((v) => ({ id: `cb-${v}`, kind: 'Created by', text: v, remove: () => patchFilters({ createdBy: filters.createdBy.filter((x) => x !== v) }) })),
+    ...filters.uploadedBy.map((v) => ({ id: `ub-${v}`, kind: 'Uploaded by', text: v, remove: () => patchFilters({ uploadedBy: filters.uploadedBy.filter((x) => x !== v) }) })),
     ...(filters.bestOnly ? [{ id: 'best', kind: 'Collection', text: 'Best of the Best', remove: () => patchFilters({ bestOnly: false }) }] : []),
     ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
     ...(fromClient ? [{ id: 'sc', kind: 'Client', text: fromClient.label, remove: () => removeFromSearch(fromClient), fromSearch: true }] : []),
@@ -293,10 +314,27 @@ export function FilterBar() {
       );
     return (
       <div className="fb-more">
+        {creators.length > 0 ? (
+          <Picker label="Created by" options={creators} picked={filters.createdBy} counts={creatorCounts} onToggle={(v) => patchFilters({ createdBy: toggle(filters.createdBy, v) })} />
+        ) : (
+          <NotYet label="Created by" />
+        )}
+        {uploaders.length > 0 ? (
+          <Picker label="Uploaded by" options={uploaders} picked={filters.uploadedBy} counts={uploaderCounts} onToggle={(v) => patchFilters({ uploadedBy: toggle(filters.uploadedBy, v) })} />
+        ) : (
+          <NotYet label="Uploaded by" />
+        )}
         <label className="fb-check">
           <input type="checkbox" checked={filters.bestOnly} onChange={(e) => patchFilters({ bestOnly: e.target.checked })} />
           <span>Best of the Best only</span>
         </label>
+        <label className="fb-check">
+          <input type="checkbox" checked={includeArchived} onChange={(e) => setIncludeArchived(e.target.checked)} />
+          <span>Show archived decks</span>
+        </label>
+        <Link className="btn-link" to={{ view: 'archive' }} onNavigate={() => setOpen(null)}>
+          Open the archived decks page
+        </Link>
       </div>
     );
   };
