@@ -127,6 +127,15 @@ const report: { deck: Deck; reviewed: number; readOnly: number; slides: number }
 const usedIds = new Set<string>();
 const csvByKey = new Map<string, Record<string, string>>();
 for (const r of csv) csvByKey.set(`${norm(r.deck ?? '')}#${Number(r.slide)}`, r);
+// The CSV is matched by deck name and slide number, so it only counts when it's the same version
+// of the deck: same number of slides. Otherwise slide 40 in one copy isn't slide 40 in the other.
+const csvSlides = new Map<string, number>();
+for (const r of csv) csvSlides.set(norm(r.deck ?? ''), Math.max(csvSlides.get(norm(r.deck ?? '')) ?? 0, Number(r.slide) || 0));
+const sameVersion = (d: { source_filename: string; id: string }) => {
+  const n = csvSlides.get(norm(d.source_filename));
+  return n !== undefined && n === (slidesByDeck.get(d.id) ?? []).length;
+};
+const otherVersion = (d: { source_filename: string; id: string }) => csvSlides.has(norm(d.source_filename)) && !sameVersion(d);
 
 for (const d of decks) {
   const own = slidesByDeck.get(d.id) ?? [];
@@ -134,7 +143,7 @@ for (const d of decks) {
   for (const s of own) {
     const key = storyboardId(d.file_hash, s.slide_number);
     const m = meta[key], r = scan[key];
-    const c = csvByKey.get(`${norm(d.source_filename)}#${s.slide_number}`);
+    const c = sameVersion(d) ? csvByKey.get(`${norm(d.source_filename)}#${s.slide_number}`) : undefined;
     if (!m && !r && !c) continue;
     usedIds.add(key);
     const isReviewed = !!(m && str(m.role)) || !!(c && str(c.reviewed_role));
@@ -166,7 +175,7 @@ for (const r of csv) if (!csvDeck.has(norm(r.deck ?? ''))) csvDeck.set(norm(r.de
 const deckUpdates: DeckUpdate[] = [];
 for (const d of decks) {
   const cat = catalogByName.get(norm(d.source_filename));
-  const row = csvDeck.get(norm(d.source_filename));
+  const row = sameVersion(d) ? csvDeck.get(norm(d.source_filename)) : undefined;
   if (!cat && !row) continue;
   const yearNum = Number(cat?.deckYear ?? row?.year);
   deckUpdates.push({
@@ -182,6 +191,7 @@ for (const d of decks) {
 type Pack = { deckId: string; deckTitle: string; label: string; slideIds: string[] };
 const packs: Pack[] = [];
 for (const d of decks) {
+  if (!sameVersion(d)) continue;
   const rows = csv.filter((r) => norm(r.deck ?? '') === norm(d.source_filename) && (r.pack ?? '').trim());
   const bySlide = new Map((slidesByDeck.get(d.id) ?? []).map((s) => [s.slide_number, s.id]));
   const groups = new Map<string, number[]>();
@@ -198,7 +208,7 @@ console.log(`${yes ? 'IMPORT' : 'DRY RUN: nothing is changed.'}\n`);
 console.log(`Files: ${metaKeys} reviewed slide(s), ${scanKeys} AI reading(s), ${Object.keys(catalog).length} catalog deck(s)${csvFile ? `, ${csv.length} CSV row(s)` : ''}.\n`);
 console.log('Decks in Supabase:');
 for (const r of report) {
-  const what = r.reviewed || r.readOnly ? `${r.reviewed} confirmed, ${r.readOnly} suggested (AI only)` : 'no story data matched';
+  const what = r.reviewed || r.readOnly ? `${r.reviewed} confirmed, ${r.readOnly} suggested (AI only)` : otherVersion(r.deck) ? `the CSV has a different version (${csvSlides.get(norm(r.deck.source_filename))} slides there), so it was skipped` : 'no story data matched';
   console.log(`  ${r.deck.title} (${r.slides} slides)${r.deck.archived_at ? ' [archived]' : ''}: ${what}`);
 }
 const unusedMeta = Object.keys(meta).filter((k) => !usedIds.has(k)).length;
@@ -206,6 +216,8 @@ const unusedScan = Object.keys(scan).filter((k) => !usedIds.has(k)).length;
 if (unusedMeta || unusedScan) console.log(`\nNot in Supabase yet (deck not uploaded, or a PDF): ${unusedMeta} reviewed slide(s), ${unusedScan} AI reading(s).`);
 if (csvFile) {
   const missing = [...new Set(csv.map((r) => r.deck))].filter((n) => !decks.some((d) => norm(d.source_filename) === norm(n)));
+  const other = decks.filter(otherVersion);
+  if (other.length) console.log(`CSV decks with the same name but a different number of slides (a different version, skipped): ${other.map((d) => d.title).join(', ')}`);
   if (missing.length) console.log(`CSV decks not in Supabase yet: ${missing.join(', ')}`);
 }
 if (deckUpdates.length) {
