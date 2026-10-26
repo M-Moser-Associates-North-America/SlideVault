@@ -65,6 +65,19 @@ export function folderInfo(relativePath: string): FolderInfo {
   }
   // M Moser's naming: "M Moser_<Client>_<place or RFP>_<date>"
   const mm = /^m\s*moser\s*_\s*([^_]+?)\s*(?:_|$)/i.exec(stem);
-  if (mm && !info.clientName) info.clientName = mm[1].trim();
+  if (mm && !info.clientName) info.clientName = cleanClient(mm[1]);
+  // No year folder: the year M Moser's naming puts at the end of the file name, either a date
+  // (06202025, 17032026: the last four digits) or the year itself (_2026). Same rule as the
+  // storyboard's deck catalog (FD-31). Six-digit dates (071526) are too ambiguous and stay unknown.
+  if (!info.deckYear) {
+    const end = /(?:^|[_\s])(?:\d{4})?((?:19|20)\d\d)(?:\s*\(\d+\))*$/.exec(stem.trim());
+    if (end) info.deckYear = Number(end[1]);
+  }
   return info;
+}
+
+/** "NYT(2)" -> "NYT", "StripeMSA" -> "Stripe": copy numbers and a category glued to the name aren't the client. */
+function cleanClient(raw: string): string {
+  const name = raw.replace(/\s*\(\d+\)\s*/g, ' ').trim().replace(/(?<=[a-z])(MSA|IDD|SME)$/, '').trim();
+  return name || raw.trim();
 }
