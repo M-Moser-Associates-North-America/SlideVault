@@ -301,11 +301,16 @@ test('phones: tabs along the bottom, the draft deck opens from the last tab, not
 
   await page.getByLabel('Add to draft deck: Leadership team').check({ force: true });
   const deck = tabs.getByRole('button', { name: /Draft deck, 1 slide/ });
-  await deck.click();
+  // The first slide added to an empty draft deck opens it by itself, so the person sees it land.
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
   await expect(deck).toBeFocused();
+  // The last tab opens it again.
+  await deck.click();
+  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
 
   // The tabs can go back to the top from the account menu.
   await page.getByRole('button', { name: /Account menu/ }).click();
