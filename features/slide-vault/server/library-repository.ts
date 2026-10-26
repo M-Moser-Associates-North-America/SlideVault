@@ -31,6 +31,8 @@ export type IndexedSource = {
    * leaves out still comes from them.
    */
   deck?: { clientName?: string | null; deckYear?: number | null; category?: string | null; title?: string | null; location?: string | null };
+  /** The deck's template: its theme's fonts and colors ("Untitled Sans/Untitled Sans/Custom 1/FF893E"), null for a PDF (FD-42) */
+  template?: string | null;
 };
 
 export type LibraryIndex = {

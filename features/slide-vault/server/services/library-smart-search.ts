@@ -16,6 +16,7 @@ import { smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, type StoryboardResponse } from './storyboard';
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
+import { familiesOf } from './families';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
 import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
@@ -129,6 +130,15 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   }
   const sourceIds = new Set(asked.mode === 'reimagine' ? (index?.sources.find((x) => x.id === asked.deck.id)?.slides.map((x) => x.id) ?? []) : []);
   const source = named && sourceIds.size ? { deck: named, rows: fixtureRowsWhere(index, (id) => sourceIds.has(id), sourceIds.size) } : undefined;
+  // Slides that belong together (FD-42), for a story one family clearly answers.
+  const familyOf = familiesOf(index);
+  const families = {
+    of: (id: string) => familyOf.get(id),
+    rows: async (f: { slideIds: string[] }) => {
+      const at = new Map(f.slideIds.map((id, i) => [id, i]));
+      return fixtureRowsWhere(index, (id) => at.has(id), f.slideIds.length).sort((a, b) => at.get(a.summary.id)! - at.get(b.summary.id)!);
+    },
+  };
   // A new story about clients we already have decks for: those decks are context for it.
   const theirIds = new Set(asked.mode === 'build' ? asked.context.flatMap((d) => index?.sources.find((x) => x.id === d.id)?.slides.map((x) => x.id) ?? []) : []);
   const context = asked.mode === 'build' && theirIds.size ? { decks: asked.context.map((d) => ({ id: d.id, title: d.title })), rows: fixtureRowsWhere(index, (id) => theirIds.has(id), theirIds.size) } : undefined;
@@ -151,7 +161,7 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   // Retelling a deck: what the deck is ("RFP, HQ relocation/renovation") tells the rest of the
   // library what a missing part should be about, when the request is only "the story of Moody's".
   const brief = source ? `${situation}\n${source.deck.title.replace(/ · /g, ', ')}` : situation;
-  const result = await buildStoryboard(brief, { reader: opts.reader, search, learned: learnedForTopics, knowledge, source, context, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
+  const result = await buildStoryboard(brief, { reader: opts.reader, search, learned: learnedForTopics, knowledge, source, context, families, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
   const all = [...result.sections.flatMap((s) => s.items.map((i) => i.slide)), ...result.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide))];
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
   const withCounts = <T extends { slide: SlideSummary }>(i: T): T => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide });

@@ -322,6 +322,47 @@ check(wholeSentences('We start with you. Then we plan every site together with y
   check(cleanStoryPlan({ summary: long + ' ' + long, questions: [], sections: [] }).summary.endsWith('.'), 'text: the summary under the title ends on a whole sentence');
 }
 
+// ---- Families: slides that belong together (FD-42)
+{
+  const { familiesOf } = await import('../features/slide-vault/server/services/families');
+  const { dominantFamily } = await import('../features/slide-vault/server/services/storyboard');
+  const src = (id: string, fileName: string, template: string | null, slides: [string, number, boolean?][], versionId = id) => ({ id, title: id, fileName, versionId, sha256: versionId, template, slides: slides.map(([sid, number, hidden]) => ({ id: sid, number, title: sid, text: '', hidden: !!hidden })), deck: { clientName: fileName.includes('Team') ? 'Our Team' : fileName.includes('Acme') ? 'Acme' : 'Birch', deckYear: 2026 } });
+  const index = { generatedAt: '', sources: [
+    src('t3', 'Team/Our Team - 03.pptx', 'T/T/Office/111', [['t3s', 1]]),
+    src('t1', 'Team/Our Team - 01.pptx', 'T/T/Office/111', [['t1s', 1]]),
+    src('t2', 'Team/Our Team - 02.pptx', 'T/T/Office/111', [['t2s', 1]]),
+    src('a', 'M Moser_Acme_2026.pptx', 'House/House/Custom 1/FF893E', [['a1', 1], ['a2', 2]]),
+    src('a-copy', 'M Moser_Acme_2026 (1).pptx', 'House/House/Custom 1/FF893E', [['a1c', 1], ['a2c', 2]], 'a'),
+    src('b', 'M Moser_Birch_2026.pptx', 'House/House/Custom 1/FF893E', [['b1', 1]]),
+    src('p', 'M Moser_Acme_2026.pdf', null, [['p1', 1]]),
+  ] };
+  const fam = familiesOf(index as never);
+  check(JSON.stringify(fam.get('t2s')?.slideIds) === '["t1s","t2s","t3s"]', 'family: slides stored one per file are one family, in the order of their file numbers', fam.get('t2s'));
+  check(fam.get('a1')?.id !== fam.get('b1')?.id, "family: the firm's house template alone never makes a family: the client must match too");
+  check(!fam.has('a1c'), 'family: a copy of the same file counts once');
+  check(fam.get('p1')?.id !== fam.get('a1')?.id, 'family: a PDF is its own family');
+
+  const rows = (ids: string[]) => ids.map((id) => ({ summary: slide(id, id) }));
+  const of = (id: string) => fam.get(id);
+  check(dominantFamily(rows(['t1s', 't2s', 't3s', 't1s', 't2s', 'b1']), of)?.id === fam.get('t1s')?.id, 'family: one that holds most of the best matches is the story');
+  check(dominantFamily(rows(['t1s', 'a1', 'b1', 'p1', 'a2', 't2s']), of) === null, 'family: scattered matches are not a family story');
+
+  // Told whole, in its own order, with nothing from outside and no hidden slides
+  const LIB9 = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'].map((id, i) => ({ id, title: `Our builders ${id}`, text: 'The builders who made the app.', role: i === 0 ? 'client-challenge' : i < 4 ? 'why-us' : 'strategy', hidden: id === 'f6' }));
+  const OUTSIDE = { id: 'x1', title: 'Builders of offices', text: 'The builders of a client office.', role: 'why-us', hidden: false };
+  const all9 = [...LIB9, OUTSIDE];
+  const rowOf = (x: (typeof all9)[number]) => ({ summary: { ...slide(x.id, x.title), hiddenInSource: x.hidden }, facts: { title: x.title, text: x.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const knowledge = { of: (id: string) => { const x = all9.find((d) => d.id === id); return x && { role: x.role, topics: [], about: '', reviewed: true, reuse: 'reusable' }; }, forPart: async (role: string) => all9.filter((x) => x.role === role).map(rowOf) };
+  const search9 = async (plan: SearchPlan) => all9.filter((x) => plan.keywords.some((k) => `${x.title} ${x.text}`.toLowerCase().includes(k))).map(rowOf);
+  const family = { id: 'builders', title: 'Our Team · 2026', slideIds: LIB9.map((x) => x.id) };
+  const families = { of: (id: string) => (family.slideIds.includes(id) ? family : undefined), rows: async () => LIB9.map(rowOf) };
+  const r = await buildStoryboard('Tell the story of the builders who made the app.', { search: search9, knowledge, families });
+  const told = r.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)).sort((a, b) => family.slideIds.indexOf(a) - family.slideIds.indexOf(b));
+  check(r.family?.title === 'Our Team · 2026' && JSON.stringify(told) === '["f1","f2","f3","f4","f5"]', 'family story: every slide of the family, nothing from outside, no hidden slides', { family: r.family, told });
+  const order = r.beats.flatMap((b) => [b.lead, ...b.more]).filter((i) => i.slide.id.startsWith('f')).map((i) => i.slide.id);
+  check(order[0] === 'f1', 'family story: told in the order it was made', order);
+}
+
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
 check(missingContext('The board and CFO worry about disruption; the goal is a low-cost, fast fit-out.').length === 0, 'questions: a situation that already says them gets no questions');

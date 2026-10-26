@@ -230,6 +230,11 @@ export function StoryboardView() {
         ) : (
           story.summary && !story.summary.startsWith(story.title.replace(/…$/, '')) && <p className="sb-story-summary">{story.summary}</p>
         )}
+        {story.family && (
+          <p className="sb-story-from">
+            Told from the {story.family.slides} slides that belong together: {story.family.title}.
+          </p>
+        )}
         {story.context && story.context.length > 0 && (
           <p className="sb-story-from">
             Using what we already made for them:{' '}

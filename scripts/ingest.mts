@@ -31,6 +31,7 @@ import path from 'node:path';
 import nextEnv from '@next/env';
 import { readConfig } from '../features/slide-vault/server/config';
 import { indexFile, type IndexedSource, type LibraryIndex } from '../features/slide-vault/server/library-repository';
+import JSZip from 'jszip';
 import { deckTitle, extractSlides } from '../workers/slide-vault/processors/extract-text';
 import { renderPreviews } from '../workers/slide-vault/processors/render-previews';
 
@@ -47,6 +48,21 @@ function deckFiles(dir: string, rel = ''): string[] {
       return e.isFile() && /\.(pptx|pdf)$/i.test(e.name) && !e.name.startsWith('~$') ? [p] : [];
     })
     .sort();
+}
+
+/**
+ * A deck's template, from its first theme: heading and body fonts, color scheme and main accent.
+ * Slides made on the same template look alike; with the client and year it marks slides that belong
+ * together even when they are stored as separate files (FD-42). Null when there is no theme.
+ */
+async function templateOf(bytes: Uint8Array): Promise<string | null> {
+  const zip = await JSZip.loadAsync(bytes);
+  const first = Object.keys(zip.files).filter((n) => /^ppt\/theme\/theme\d+\.xml$/.test(n)).sort()[0];
+  if (!first) return null;
+  const t = await zip.file(first)!.async('string');
+  const pick = (re: RegExp) => re.exec(t)?.[1] ?? '';
+  const parts = [pick(/<a:majorFont>\s*<a:latin typeface="([^"]*)"/), pick(/<a:minorFont>\s*<a:latin typeface="([^"]*)"/), pick(/<a:clrScheme name="([^"]*)"/), pick(/<a:accent1>\s*<a:srgbClr val="([^"]*)"/)];
+  return parts.some(Boolean) ? parts.join('/') : null;
 }
 
 const stem = (fileName: string) => path.basename(fileName).replace(/\.(pptx|pdf)$/i, '').toLowerCase();
@@ -118,6 +134,7 @@ async function main() {
       sha256: hash,
       slides: slides.map((s) => ({ id: slideId(s.number), ...s })),
       ...(deckFacts(fileName) ? { deck: deckFacts(fileName) } : {}),
+      template: await templateOf(bytes),
     });
     console.log(`${fileName}: ${slides.length} slides`);
     for (const s of slides) console.log(`  ${String(s.number).padStart(2)}${s.hidden ? ' (hidden)' : '         '}  ${s.title}`);

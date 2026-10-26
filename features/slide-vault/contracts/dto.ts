@@ -285,6 +285,8 @@ export type StoryboardResult = {
   deck?: { id: string; title: string; slideCount: number };
   /** Retrieve asked for a deck the library doesn't have (FD-34): the name or years asked for, said honestly */
   missing?: { name: string | null; years: number[] };
+  /** Build: the family of slides that belong together the story was told from, when one clearly answered the request (FD-42) */
+  family?: { title: string; slides: number };
   /** Build: the decks we already made for clients the brief names, used for the parts about them */
   context?: { id: string; title: string }[];
 };

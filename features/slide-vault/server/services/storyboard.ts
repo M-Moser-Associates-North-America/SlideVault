@@ -63,7 +63,26 @@ export type StoryboardDeps = {
    * client (its situation, what we saw, how we'd approach it) leads those parts of the new story.
    */
   context?: { decks: { id: string; title: string }[]; rows: { summary: SlideSummary; facts: SlideFacts }[] };
+  /** Families of slides that belong together (FD-42): a slide's family, and a family's slides in its own order */
+  families?: { of: (slideId: string) => { id: string; title: string; slideIds: string[] } | undefined; rows: (family: { id: string; title: string; slideIds: string[] }) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]> };
 };
+
+/** How much of the best matches one family must hold to be the story: most of the top 20, and at least 5 */
+const FAMILY_TOP = 20;
+const FAMILY_SHARE = 0.6;
+const FAMILY_MIN = 5;
+
+/** The family that clearly answers a request, if one does (FD-42) */
+export function dominantFamily<F extends { id: string; slideIds: string[] }>(rows: { summary: SlideSummary }[], familyOf: (slideId: string) => F | undefined): F | null {
+  const top = rows.slice(0, FAMILY_TOP);
+  const count = new Map<string, { family: F; n: number }>();
+  for (const r of top) {
+    const f = familyOf(r.summary.id);
+    if (f) count.set(f.id, { family: f, n: (count.get(f.id)?.n ?? 0) + 1 });
+  }
+  const best = [...count.values()].sort((a, b) => b.n - a.n)[0];
+  return best && best.n >= Math.max(FAMILY_MIN, FAMILY_SHARE * top.length) && best.family.slideIds.length >= 3 ? best.family : null;
+}
 
 /** The parts of a story about the client, where its own decks lead */
 const ABOUT_THE_CLIENT = new Set<StoryRole>(['client-challenge', 'insight', 'strategy']);
@@ -241,7 +260,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     const theirRows = ABOUT_THE_CLIENT.has(section.role) ? (deps.context?.rows ?? []) : [];
     const seen = new Set<string>();
     const pool = [...theirRows, ...onTopicRows, ...storyRows, ...readRows]
-      .filter((row) => !seen.has(row.summary.id) && seen.add(row.summary.id))
+      .filter((row) => !row.summary.hiddenInSource && !seen.has(row.summary.id) && seen.add(row.summary.id))
       .map((row, order) => {
         const l = learned.get(`${section.role}:${row.summary.id}`);
         const known = deps.knowledge?.of(row.summary.id);
@@ -326,22 +345,32 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   }
   const known = (id: string) => deps.knowledge?.of(id);
   const compose = { reader: deps.reader, read: opts.read && reader === 'model', log: deps.log, needs };
+  // The part of the story a slide does, or null for a page that isn't story (cover, résumés, fees...).
+  const partOf = (id: string): StoryRole | null => {
+    const k = known(id);
+    if (!k || NOT_PROOF.has(k.role) || (k.type && REQUIRED_PAGES.test(k.type))) return null;
+    return (STORY_ARC.some((a) => a.role === k.role) ? k.role : null) as StoryRole | null;
+  };
+  const asItem = (row: { summary: SlideSummary; facts: SlideFacts }, why: string): StoryboardSlide => ({
+    slide: row.summary,
+    why,
+    matched: [],
+    reasons: { brief: [], part: [], from: [] },
+    needs: needsMet(needs, `${row.facts.title} ${row.facts.text} ${known(row.summary.id)?.about ?? ''}`),
+  });
+  // Slides hidden in their deck, never-show pages and copies naming another client are never told.
+  const tellable = (row: { summary: SlideSummary }) => !row.summary.hiddenInSource && !neverInStory(known(row.summary.id));
+  // What the deck itself is about, for a thesis when the request names no needs ("the story of Moody's")
+  const themesOf = (ids: string[]) => {
+    const count = new Map<string, number>();
+    for (const id of ids) for (const t of known(id)?.themes ?? []) count.set(t, (count.get(t) ?? 0) + 1);
+    return [...count].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t]) => t);
+  };
   if (deps.source) {
     // Reimagine (FD-31): the deck's own slides, every one, placed by what each one does.
-    const { deck, rows } = deps.source;
+    const { deck } = deps.source;
+    const rows = deps.source.rows.filter((r) => !r.summary.hiddenInSource);
     const inDeck = new Set(rows.map((r) => r.summary.id));
-    const partOf = (id: string): StoryRole | null => {
-      const k = known(id);
-      if (!k || NOT_PROOF.has(k.role) || (k.type && REQUIRED_PAGES.test(k.type))) return null;
-      return (STORY_ARC.some((a) => a.role === k.role) ? k.role : null) as StoryRole | null;
-    };
-    const asItem = (row: { summary: SlideSummary; facts: SlideFacts }, why: string): StoryboardSlide => ({
-      slide: row.summary,
-      why,
-      matched: [],
-      reasons: { brief: [], part: [], from: [] },
-      needs: needsMet(needs, `${row.facts.title} ${row.facts.text} ${known(row.summary.id)?.about ?? ''}`),
-    });
     // Retold without breaking it (FD-32): every slide stays where the deck had it, because it may
     // answer an RFP whose required pages and order we can't see. The story is woven through instead.
     const items = rows.map((r) => asItem(r, `From the original ${deck.title}.`));
@@ -358,12 +387,18 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       const offered = fills.get(sec.role) ?? [];
       return { role: sec.role, label, title: sec.title, need: sec.need, items: own.length ? own : offered, gap: own.length + offered.length === 0 };
     });
-    // What the deck itself is about, for its thesis when the request names no needs ("the story of Moody's")
-    const themeCount = new Map<string, number>();
-    for (const r of rows) for (const t of known(r.summary.id)?.themes ?? []) themeCount.set(t, (themeCount.get(t) ?? 0) + 1);
-    const themes = [...themeCount].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t]) => t);
-    const story = await weaveDeck(text, items, partOf, fills, known, { ...compose, order: plan.sections.map((x) => x.role), client: deck.title.split(' · ')[0], themes });
+    const story = await weaveDeck(text, items, partOf, fills, known, { ...compose, order: plan.sections.map((x) => x.role), client: deck.title.split(' · ')[0], themes: themesOf(rows.map((r) => r.summary.id)) });
     return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections: fromDeck, topics: topics.keywords, role, ...story, considered: rows.length, mode: 'reimagine', deck };
+  }
+  // A family that clearly answers the request is told whole, in its own order (FD-42): when most of the
+  // best matches come from slides that belong together (same client, year and template), that family
+  // is the story, so "the story of those three people" gets all their slides and nobody else's.
+  const family = deps.families ? dominantFamily(onTopicRows.filter(tellable), deps.families.of) : null;
+  if (family && deps.families) {
+    const rows = (await deps.families.rows(family)).filter(tellable);
+    const items = rows.map((r) => asItem(r, `One of the ${rows.length} slides that belong together: ${family.title}.`));
+    const story = await weaveDeck(text, items, partOf, new Map(), known, { ...compose, order: plan.sections.map((x) => x.role), client: family.title.split(' · ')[0], themes: themesOf(rows.map((r) => r.summary.id)) });
+    return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords, role, ...story, considered: rows.length, mode: 'build', family: { title: family.title, slides: items.length } };
   }
   // The story told slide by slide (FD-30): the AI chooses and narrates from this shortlist when it is on.
   const story = await composeStory(text, sections, known, compose);
