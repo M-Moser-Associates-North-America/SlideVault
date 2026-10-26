@@ -64,8 +64,9 @@ export function folderInfo(relativePath: string): FolderInfo {
     if (!info.category && CATEGORY_NAMES[nameCategory]) info.category = CATEGORY_NAMES[nameCategory];
   }
   // M Moser's naming: "M Moser_<Client>_<place or RFP>_<date>"
-  const mm = /^m\s*moser\s*_\s*([^_]+?)\s*(?:_|$)/i.exec(stem);
-  if (mm && !info.clientName) info.clientName = cleanClient(mm[1]);
+  // "Moody_s": file names swap an apostrophe for an underscore, so a lone "s" after it is "'s".
+  const mm = /^m\s*moser\s*_\s*([^_]+?)(_s(?=_|$))?\s*(?:_|$)/i.exec(stem);
+  if (mm && !info.clientName) info.clientName = cleanClient(mm[1]) + (mm[2] ? "'s" : '');
   // No year folder: the year M Moser's naming puts at the end of the file name, either a date
   // (06202025, 17032026: the last four digits) or the year itself (_2026). Same rule as the
   // storyboard's deck catalog (FD-31). Six-digit dates (071526) are too ambiguous and stay unknown.

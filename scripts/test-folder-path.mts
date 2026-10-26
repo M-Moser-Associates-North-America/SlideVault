@@ -38,6 +38,10 @@ for (const [file, want] of [
   ['IDD/Scotiabank - Progressive Integrated Design and Build - March.pptx', { deckYear: null, clientName: 'Scotiabank', category: 'IDD' }],
   ['Design Consultancy 2/2026/M Moser_Airwallex HQ_SF_071526.pptx', { deckYear: 2026, clientName: 'Airwallex HQ', category: 'Design Consultancy' }],
   ['MSA/M Moser_Acme_NY_071526.pptx', { deckYear: null, clientName: 'Acme', category: 'MSA' }],
+  ['Design Consultancy 2025/2025 3/M Moser_Moody_s_RFP_06202025.pptx', { deckYear: 2025, clientName: "Moody's", category: 'Design Consultancy' }],
+  ['Design Consultancy 2025/2025/MMoser_Next Level Games (Nintendo)_VC.pptx', { deckYear: 2025, clientName: 'Next Level Games (Nintendo)', category: 'Design Consultancy' }],
+  ['Design Consultancy 2025/2025/M Moser_Project Mango_NY_RFP_2024.pptx', { deckYear: 2025, clientName: 'Project Mango', category: 'Design Consultancy' }],
+  ['MSA/M Moser_Sesame_Street_2025.pptx', { deckYear: 2025, clientName: 'Sesame', category: 'MSA' }],
 ] as const) {
   const got = folderInfo(file);
   check(got.deckYear === want.deckYear && got.clientName === want.clientName && got.category === want.category && !got.bestOfTheBest, `reads ${file}`, JSON.stringify(got));
