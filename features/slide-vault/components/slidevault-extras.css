@@ -905,3 +905,9 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .fb-picker.is-off { opacity: 0.55; }
 .slidevault .fb-picker.is-off .fb-note { margin: 4px 0 0; font-size: 13px; color: var(--sv-text-secondary); }
 .slidevault .fb-picker.is-off .fb-find { pointer-events: none; }
+
+/* Pack and archive questions on a phone: the main button on top and full width, the others under it. */
+@media (max-width: 480px) {
+  .slidevault .pack-dialog .dlg-foot, .slidevault .sv-dialog:has(.arch-body) .dlg-foot { flex-direction: column-reverse; align-items: stretch; }
+  .slidevault .pack-dialog .dlg-foot .btn, .slidevault .sv-dialog:has(.arch-body) .dlg-foot .btn { width: 100%; justify-content: center; }
+}
