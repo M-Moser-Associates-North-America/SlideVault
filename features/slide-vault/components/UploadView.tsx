@@ -196,7 +196,7 @@ export function UploadView() {
           <div className="radio-row full">
             <label>
               <input type="checkbox" checked={bestOfTheBest} onChange={(e) => setBestOfTheBest(e.target.checked)} />
-              This is from the Best of the Best folder
+              Part of the Best of the Best collection
             </label>
           </div>
         </div>
