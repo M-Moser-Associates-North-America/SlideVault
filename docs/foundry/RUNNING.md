@@ -1,6 +1,6 @@
-# SlideVault prototype: how to run it
+# SlideVault: how to run it
 
-Team build by The Foundry. This is a rebuild of the first proof of concept (the slide library + editable PowerPoint export) inside our private repo, with the issues found in testing fixed.
+Team build by The Foundry. It started as a rebuild of the first proof of concept (slide library + editable PowerPoint export) and now includes search with an optional AI reader, combined exports, per-person saved data and an upload tool. Why each choice was made is in `docs/DECISIONS.md` (FD-01 to FD-21).
 
 ## Run it on your laptop
 
@@ -18,26 +18,39 @@ npm run ingest    # read the library decks → .data/ (first time, or when decks
 npm run dev       # start the app → open http://localhost:3000/slide-vault
 ```
 
-After re-running `npm run ingest`, restart `npm run dev` to see the new slide list.
+With no settings it runs on the synthetic decks in `tests/fixtures/` and keeps saved slides and drafts in the browser. After re-running `npm run ingest`, restart `npm run dev` to see the new slide list.
+
+### Optional settings (`.env.local`, see `env.example`)
+
+- **Database** (`SV_DB_*`, `SV_SUPABASE_*`, `SV_STORAGE_*`): M Moser's Supabase project through a personal login, no master key (FD-12). `npm run db:setup` creates the tables, `npm run db:check` checks access read-only. With a database, search reads Postgres, and saved slides, drafts, opt-in activity and download counts are kept per person on the server (FD-18).
+- **AI reader** (`SV_AI_*`): off by default (`SV_AI_PROVIDER=none`). `openai-compatible` works with OpenAI or a local model such as Qwen3 through Ollama (FD-17). Changing provider needs no UI or database change.
 
 ## Checks to run before opening a pull request
 
 ```bash
-npm run test:export   # checks on the exported PowerPoint itself
-npm run test:duplicates  # duplicate grouping on the SharePoint-style library (not wired into search yet)
-npm run test:a11y     # accessibility (axe-core + keyboard), needs `npm run ingest` and `npm run build` first
-npm run typecheck     # TypeScript, strict
+npm run typecheck        # TypeScript, strict
 npm run lint
+npm run test:export      # checks on the exported PowerPoint itself
+npm run test:combine     # several decks combined into one .pptx
+npm run test:duplicates  # duplicate grouping on the SharePoint-style library
+npm run test:folder-path # client, year and category read from folder names
+npm run test:deck-details
+npm run test:smart-search  # AI reader adapter, filters, fallbacks, rate limits (fake API, no network)
+npm run test:user-data   # per-person data; needs a local Postgres set up like M Moser's
 npm run build
+npm run test:a11y        # accessibility (axe-core + keyboard), needs `npm run ingest` and `npm run build` first
 ```
 
 ## What it does
 
-1. **Library**: every slide of every deck in the library folder (by default the synthetic decks in `tests/fixtures/`) with a real thumbnail, including slides hidden in the source.
-2. **Search**: every word must appear in the slide's title or text ("content canonical" finds slides with both words). Clear empty state.
-3. **Preview**: large slide, source deck and slide number, trust fields (owner / approval / review date shown as "Unknown" until curation exists), full slide text. Escape or clicking outside closes it.
-4. **Selection**: select / remove, reorder with labeled ↑ ↓ buttons, clear. Kept across reloads in your browser.
-5. **Export**: downloads `SlideVault-export.pptx` containing **only** the selected slides, in the selected order, as editable PowerPoint. Slides from more than one deck download as `SlideVault-export.zip`, with one editable .pptx per deck (decision FD-09).
+1. **Library**: every slide of every deck, with a real thumbnail, grouped by client, year, category and deck. Client, year and category come from the folder path (FD-11, FD-13).
+2. **Search**: short searches (four words or fewer, not a question) run as a plain keyword search and never call a model. A sentence or question submitted with Enter can be read by the configured AI reader into keywords and filters; with no reader, or if it fails, a rules-only reader does the same job. Each result says why it fits, built only from what matched on the slide (FD-16, FD-17). Searches, exports and uploads are rate-limited per caller.
+3. **Preview**: large slide, source deck and slide number, step through the deck, full slide text.
+4. **Draft deck**: tick slides, drag to reorder (works on touch screens), save as a named draft under My decks, download.
+5. **Export**: only the selected slides, in order, as editable PowerPoint; speaker notes, comments and source author details are removed (FD-07). Slides from several decks come as a .zip of one .pptx per deck, or as one combined .pptx with each slide keeping its own design (FD-21). Decks with different slide sizes always come as a .zip.
+6. **Saved slides, My decks, activity**: per person. Activity is recorded only after the person opts in, is used only for their own rows, and is deleted after 90 days or on opt-out (FD-18).
+7. **Upload**: the Upload screen adds a .pptx to the library; `npm run upload:library` loads a folder of decks.
+8. **Quick tour** on first sign-in, replayable from the header (React Joyride, FD-19).
 
 ## What changed from the first proof of concept
 
@@ -57,25 +70,28 @@ npm run build
 
 ## Known limits (next steps)
 
-- **One file per deck.** Slides from several decks download as a .zip with one .pptx per deck (FD-09). Merging them into a single .pptx is still open: it's the client's first proof test (Gate 0) and a P1 item in our PRD.
-- **Each slide once per export.** Repeating a slide is rejected with a message for now.
-- **No upload yet.** The library is built by `npm run ingest` from `SLIDEVAULT_LIBRARY_DIR` (default `tests/fixtures`). Real client decks are only used for an approved export-quality check and never committed.
-- **No login.** Run it locally; don't host it publicly with client content.
-- **Thumbnail fonts.** Brand fonts that LibreOffice can't use (e.g. Untitled Sans, Bebas Neue) are mapped to Arial / Arial Narrow for thumbnails only. Exported files keep the original fonts.
-- **Selection is per browser.** Saved, shareable selections need a database (client criterion PR-06).
+- **No real sign-in.** The sign-in screen is a stand-in. Until M Moser's login plugs in, the server reads the person's name from the `X-SlideVault-User` header (`server/principal.ts`), which keeps people's data apart for testing but is not security. Don't host it publicly with client content.
+- **No per-person deck access yet.** Everyone who can open the app can see every deck.
+- **Each slide once per export** (FD-05).
+- **Rate limits live in one server process.** A multi-instance deployment needs a shared store or the host's gateway limits (FD-17).
+- **Thumbnail fonts.** Brand fonts LibreOffice can't use (e.g. Untitled Sans, Bebas Neue) are mapped to Arial / Arial Narrow for thumbnails only. Exported files keep the original fonts.
+- **Still to do from the front-end review:** split `components/Views.tsx` and the workspace context by responsibility, and fold `slidevault.css` and `slidevault-extras.css` into component-owned rules.
+- **Next:** hidden-in-source slides left out of search by default and archiving decks (FD-27); the storyboard; deck facts suggested from the file on upload; meaning search with pgvector.
 - Verified in Keynote and LibreOffice; please also open an export in Microsoft PowerPoint.
 
 ## Where things are
 
 ```text
 app/slide-vault/                             standalone shell: routes, runtime bridge (navigation, API, theme)
-app/api/slide-vault/v1/                      HTTP API (thin handlers)
+app/api/slide-vault/v1/                      HTTP API (thin handlers), including /smart-search and /me/*
 features/slide-vault/contracts/              runtime contract + API data shapes (shared)
 features/slide-vault/components/             the workspace UI (browser)
-features/slide-vault/client/                 API calls via the runtime, selection store
-features/slide-vault/server/                 export engine, library index, services (server only)
+features/slide-vault/client/                 API calls via the runtime, selection and profile stores
+features/slide-vault/server/                 export and combine engines, library index, rate limits (server only)
+features/slide-vault/server/ai/              provider-neutral AI reader and the OpenAI-compatible adapter
+features/slide-vault/server/services/        search, smart search and export services
+features/slide-vault/server/sql/schema.sql   database tables (npm run db:setup)
 workers/slide-vault/processors/              slide text extraction, preview rendering
-scripts/ingest.mts                           builds .data/ from the library decks
-scripts/test-export.mts                      export acceptance checks
+scripts/                                     ingest, upload, database setup and the test suites
 tests/fixtures/                              synthetic decks (see its README)
 ```

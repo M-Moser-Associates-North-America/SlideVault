@@ -99,13 +99,28 @@ create table if not exists activity_events (
 create index if not exists activity_user_at_idx on activity_events (user_key, at desc);
 create index if not exists activity_at_idx on activity_events (at);
 
--- Archived decks (docs/DECISIONS.md FD-32): hidden from the app, search and AI without deleting
+-- "Was this helpful?" on storyboards (docs/DECISIONS.md FD-24): which slides really do each part of
+-- a story, for which kinds of brief. No person and never the brief, only its topic words, so it
+-- needs no opt-in and helps everyone's next storyboard.
+create table if not exists story_feedback (
+  id bigint generated always as identity primary key,
+  role text not null check (role in ('client-challenge', 'insight', 'strategy', 'experience', 'why-us', 'outcome')),
+  slide_id text,
+  verdict text not null check (verdict in ('useful', 'not-right', 'nothing-fits')),
+  topics text[] not null default '{}',
+  at timestamptz not null default now()
+);
+create index if not exists story_feedback_slide_idx on story_feedback (slide_id);
+-- Who gave the verdict, by role only (FD-25): business-developer, director or bd-support.
+alter table story_feedback add column if not exists by_role text;
+
+-- Archived decks (docs/DECISIONS.md FD-50): hidden from the app, search and AI without deleting
 -- anything (the bucket can't delete). Set by scripts/archive-deck.mts for now; archive in the app
 -- (Khushali's archive and delete work) builds on this same column.
 alter table decks add column if not exists archived_at timestamptz;
 
 -- ---------------------------------------------------------------------------------------------
--- Story data (docs/DECISIONS.md FD-33): what each slide does in a proposal, slide packs and
+-- Story data (docs/DECISIONS.md FD-51): what each slide does in a proposal, slide packs and
 -- free-form tags. Filled by scripts/import-story-data.mts from the team's reviewed metadata and
 -- the AI's reading of each slide, and later at upload. Alina's rule: anything the AI suggested
 -- stays "suggested" until a person confirms it.

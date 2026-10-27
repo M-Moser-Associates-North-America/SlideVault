@@ -39,28 +39,13 @@
 .slidevault .cart-zip .meta { margin: 0; }
 .slidevault .cart-zip .btn { gap: 4px 6px; flex-wrap: wrap; height: auto; min-height: 32px; max-width: 100%; justify-content: flex-start; }
 
-/* Simulated features (FD-14): everything that is front end only carries the brand orange. */
-.slidevault .sim-flag { display: inline-flex; align-items: center; margin-left: 8px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; vertical-align: middle; white-space: nowrap; }
-.slidevault .sim-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; margin: 8px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
-.slidevault .sim-legend .sim-flag { margin: 0 8px 0 0; }
-.slidevault .badge.sim { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 10%, var(--sv-surface)); }
+/* Card badges and notes. */
 .slidevault .thumb-badge { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.slidevault .tag.sim { display: inline-flex; align-items: center; gap: 4px; border: 1px dashed var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); }
-.slidevault .tag.sim .ic { color: var(--sv-brand-strong); }
-.slidevault .sim-note { display: flex; align-items: center; gap: 6px; font-size: var(--sv-text-meta); color: var(--sv-text); }
-.slidevault .sim-note .ic { color: var(--sv-brand-strong); }
-.slidevault .matched b .sim-flag { margin-left: auto; }
-.slidevault .sim-panel { border-left: 3px solid var(--sv-brand); }
-.slidevault .sim-group > legend { display: flex; align-items: center; gap: 6px; }
-.slidevault .sim-group .sim-flag { margin-left: 0; }
-.slidevault .qsteps span.sim-step { color: var(--sv-brand-strong); }
-.slidevault .qsteps span.sim-step.done .ic { color: var(--sv-brand-strong); }
-.slidevault .row-head h2 .sim-flag { margin-left: 10px; }
+.slidevault .card-note { display: flex; align-items: center; gap: 6px; font-size: var(--sv-text-meta); color: var(--sv-text); }
+.slidevault .card-note .ic { color: var(--sv-brand-strong); }
 .slidevault .also-list .t { display: block; }
-.slidevault .how summary .sim-flag { margin-left: 6px; }
 
 /*
- * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
  * The bare Home hero: the original reference HTML's search (reference/SlideVault.html),
  * values copied from it directly (34px/500/-0.02em headline, 10px 10px 10px 20px search
  * padding, 44px controls), mapped onto the real app's --sv-* tokens instead of the
@@ -128,7 +113,6 @@
 
 
 /*
- * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
  * Fake sign-in + profile pick, pulled pixel-for-pixel from reference/SlideVault.html's own
  * login card (its doSignIn doesn't check a password either -- this matches that, not a shortcut).
  */
@@ -189,7 +173,6 @@
 .slidevault .auth-pick-name { font-size: 13.5px; font-weight: 600; color: var(--sv-text); text-align: center; }
 
 /*
- * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
  * Save-to-profile: one heart toggle per slide, mirroring the existing cart checkbox's
  * hover-reveal pattern and corner position (top-right instead of top-left).
  */
@@ -218,7 +201,6 @@
 .slidevault .save-tg:focus-visible { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
 
 /*
- * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
  * Profile dashboard (saved row + simple activity record) and the avatar nav tab that reaches it.
  */
 .slidevault .profile-wrap .page-head { align-items: center; }
@@ -232,7 +214,6 @@
 .slidevault .activity-time { font-size: 12.5px; color: var(--sv-text-secondary); flex: none; }
 
 /*
- * LOCAL DESIGN PROTOTYPE -- not pushed, not part of Khushali's approved build.
  * "Today's Top 10"-style giant outlined rank numbers, from the Netflix reference video.
  */
 .slidevault .top10-item { display: flex; align-items: stretch; }
@@ -366,11 +347,6 @@
 .slidevault .interp[hidden] { display: none; }
 
 /* ---- Status badge: icon + plain words, so colour is never the only clue ---- */
-.slidevault .tier-ic { display: inline-grid; place-items: center; flex: none; }
-.slidevault .tier-ic .ic-sm { width: 13px; height: 13px; }
-.slidevault .tier-ic-approved { color: var(--sv-success); }
-.slidevault .tier-ic-suggested { color: var(--sv-warning); }
-.slidevault .tier-ic-retired { color: var(--sv-text-secondary); }
 
 /* ---- Filter options that would leave nothing are greyed out (still clickable) ---- */
 .slidevault .fb-list label.is-zero, .slidevault .fb-presets .pchip.is-zero { opacity: 0.45; }
@@ -461,11 +437,6 @@
 .slidevault .interp[hidden] { display: none; }
 
 /* ---- Status badge: icon + plain words, so colour is never the only clue ---- */
-.slidevault .tier-ic { display: inline-grid; place-items: center; flex: none; }
-.slidevault .tier-ic .ic-sm { width: 13px; height: 13px; }
-.slidevault .tier-ic-approved { color: var(--sv-success); }
-.slidevault .tier-ic-suggested { color: var(--sv-warning); }
-.slidevault .tier-ic-retired { color: var(--sv-text-secondary); }
 
 /* ---- Filter options that would leave nothing are greyed out (still clickable) ---- */
 .slidevault .fb-list label.is-zero, .slidevault .fb-presets .pchip.is-zero { opacity: 0.45; }
@@ -758,3 +729,185 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .sv-app[data-size="compact"] .row-scroller .card-title { font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .slidevault .sv-app[data-size="compact"] .row-scroller .meta { font-size: 12px; }
 .slidevault .sv-app[data-size="compact"] .row-scroller .matched { display: none; }
+
+/* The "Hidden slides" eye inside the search bar (same look as the search button), and the slim search above the sticky filter row. */
+.slidevault .hid-wrap { position: relative; flex: none; display: inline-flex; }
+.slidevault .hid-toggle { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--sv-border-strong); border-radius: 50%; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; box-shadow: var(--sv-shadow-card); }
+.slidevault .hid-toggle .ic { color: inherit; width: 18px; height: 18px; }
+.slidevault .hid-toggle:hover { border-color: var(--sv-text-secondary); }
+.slidevault .hid-toggle:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .hid-toggle.on { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .fb-search-wrap .hid-toggle { width: 40px; height: 40px; box-shadow: none; }
+/* Tooltip: shows at once on hover or keyboard focus. */
+.slidevault .hid-tip { position: absolute; top: calc(100% + 10px); right: 0; z-index: 60; width: 248px; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--sv-action-bg); color: var(--sv-action-fg); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22); text-align: left; opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity 0.12s, transform 0.12s, visibility 0.12s; pointer-events: none; }
+.slidevault .hid-tip strong { font-size: 14px; font-weight: 700; line-height: 1.25; }
+.slidevault .hid-tip span { font-size: 13px; font-weight: 400; line-height: 1.4; opacity: 0.9; }
+.slidevault .hid-wrap:hover .hid-tip, .slidevault .hid-wrap:has(:focus-visible) .hid-tip { opacity: 1; visibility: visible; transform: none; }
+@media (prefers-reduced-motion: reduce) { .slidevault .hid-tip { transition: none; transform: none; } }
+.slidevault .fb-search-wrap { display: flex; align-items: center; gap: 10px; max-width: 840px; margin-bottom: 10px; animation: svFade 0.18s ease-out; }
+.slidevault .fb-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); }
+.slidevault .fb-search:focus-within { border-color: var(--sv-brand); }
+.slidevault .fb-search .ic { width: 16px; height: 16px; flex: none; }
+.slidevault .fb-search input { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; font: inherit; font-size: 14px; color: var(--sv-text); outline: none; }
+.slidevault .fbar.has-search { margin-bottom: -50px; }
+@media (prefers-reduced-motion: reduce) { .slidevault .fb-search-wrap { animation: none; } }
+/* On Home the eye is as tall as the whole search bar: a circle that matches the bar's full height. */
+.slidevault .home-hero-search .hid-wrap { width: 60px; height: 60px; } /* the bar's full height: 44px button + 7px padding each side + 1px border each side */
+.slidevault .home-hero-search .hid-toggle { width: 100%; height: 100%; }
+.slidevault .home-hero-search .hid-toggle .ic { width: 20px; height: 20px; }
+/* Home: the search bar gives up width so the eye and the Storyboard button both fit beside it. */
+.slidevault .home-hero:has(.sb-launch) > .home-hero-search { flex: 1 1 360px; min-width: 0; }
+.slidevault .home-hero-search .home-hero-field input { min-width: 0; }
+.slidevault .home-hero:has(.sb-launch) > .sb-launch { flex: none; }
+
+/* A simple orange ring that revolves around the Draft deck button until clicked (client/draft-nudge.ts). */
+@property --sv-spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.slidevault .cart-pill.is-nudge, .slidevault .bb-deck.is-nudge { position: relative; }
+.slidevault .cart-pill.is-nudge::after, .slidevault .bb-deck.is-nudge::after {
+  content: ""; position: absolute; inset: -5px; padding: 3px; border-radius: 999px; pointer-events: none;
+  background: conic-gradient(from var(--sv-spin), transparent 0deg 200deg, var(--sv-brand) 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: svSpin 1.8s linear infinite;
+}
+.slidevault .bb-deck.is-nudge::after { border-radius: 16px; inset: 0; }
+.slidevault .sv-app[data-size="compact"] .bb-deck.is-nudge::after { border-radius: 0; }
+@keyframes svSpin { to { --sv-spin: 360deg; } }
+@media (prefers-reduced-motion: reduce) {
+  .slidevault .cart-pill.is-nudge::after, .slidevault .bb-deck.is-nudge::after { animation: none; background: var(--sv-brand); }
+}
+/* "New" badge on the Storyboard button, until it has been opened once. */
+.slidevault .sb-launch-btn { position: relative; }
+.slidevault .sb-new { position: absolute; top: -8px; right: 10px; padding: 1px 8px; border-radius: 999px; background: var(--sv-brand-tint); color: var(--sv-text); border: 1px solid var(--sv-brand); font-size: 11px; font-weight: 700; letter-spacing: 0.02em; line-height: 16px; }
+/* Storyboard button: a faint orange tint and orange edge, no animation. (The brief glow keeps its own.) */
+.slidevault .btn.sb-launch-btn:not(.is-glow) { background: var(--sv-brand-tint); border-color: color-mix(in srgb, var(--sv-brand) 55%, transparent); color: var(--sv-text); }
+.slidevault .btn.sb-launch-btn { -webkit-tap-highlight-color: transparent; }
+.slidevault .btn.sb-launch-btn:not(.is-glow):active { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .btn.sb-launch-btn:not(.is-glow):active .ic { color: #fff; }
+.slidevault .btn.sb-launch-btn:active .sb-new { background: #fff; color: var(--sv-text); }
+@media (hover: hover) {
+  .slidevault .btn.sb-launch-btn:not(.is-glow):hover { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+  .slidevault .btn.sb-launch-btn:not(.is-glow):hover .ic { color: #fff; }
+  .slidevault .btn.sb-launch-btn:hover .sb-new { background: #fff; color: var(--sv-text); }
+}
+/* Draft deck button: turns brand orange on hover (the count badge flips to white so it stays visible). */
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill { transition: background-color 0.15s; -webkit-tap-highlight-color: transparent; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:active { opacity: 1; background: var(--sv-brand); color: #fff; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:active .pill-n { background: #fff; color: var(--sv-brand-strong, var(--sv-brand)); }
+@media (hover: hover) {
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:hover { opacity: 1; background: var(--sv-brand); color: #fff; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:hover .pill-n { background: #fff; color: var(--sv-brand-strong, var(--sv-brand)); }
+}
+@media (prefers-reduced-motion: reduce) { .slidevault .sv-app .cart-pill { transition: none; } }
+
+/* The revolving ring holds still while the pointer is over the button. */
+.slidevault .cart-pill.is-nudge:active::after, .slidevault .bb-deck.is-nudge:active::after { animation-play-state: paused; }
+@media (hover: hover) { .slidevault .cart-pill.is-nudge:hover::after, .slidevault .bb-deck.is-nudge:hover::after { animation-play-state: paused; } }
+
+/* Tour: close X on the card, and the "paused" note shown while the tour waits. */
+.slidevault .tour-pop { position: relative; }
+.slidevault .tour-pop .tour-x { position: absolute; top: 8px; right: 8px; }
+.slidevault .tour-paused { position: absolute; left: 50%; transform: translateX(-50%); bottom: 28px; z-index: 95; display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 8px 10px; max-width: calc(100% - 32px); padding: 10px 14px; border-radius: 16px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); box-shadow: var(--sv-shadow-panel); }
+.slidevault .tour-paused-t { font-size: 14px; font-weight: 600; }
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .tour-paused { bottom: calc(84px + env(safe-area-inset-bottom)); }
+
+/* Packs (FD-38): slides that go together. */
+.slidevault .pack-badge { position: absolute; left: 8px; bottom: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--sv-surface); border: 1px solid var(--sv-brand); color: var(--sv-text); font-size: 12px; font-weight: 600; line-height: 16px; }
+.slidevault .pack-badge .ic { color: var(--sv-brand); }
+.slidevault .pack-badge.is-suggested { border-style: dashed; border-color: var(--sv-border-strong); }
+.slidevault .pack-badge.is-suggested .ic { color: var(--sv-text-secondary); }
+.slidevault .pack-strip { display: flex; gap: 6px; list-style: none; margin: 10px 0 0; padding: 0 0 4px; overflow-x: auto; }
+.slidevault .pack-strip li { flex: none; width: 92px; }
+.slidevault .pack-strip .ps-t { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; border: 1px solid var(--sv-border-strong); background: var(--sv-surface-sunken); }
+.slidevault .pack-strip .is-here .ps-t { border: 2px solid var(--sv-brand); }
+.slidevault .pack-strip .ps-n { position: absolute; left: 3px; top: 3px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 11px; font-weight: 700; line-height: 16px; text-align: center; }
+.slidevault .pack-dialog .dlg-body p { margin: 0 0 8px; }
+.slidevault .pack-dialog .dlg-foot { flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.slidevault .pack-panel h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.slidevault .pack-panel .pack-sug { border-style: dashed; }
+.slidevault .pack-rename { display: flex; gap: 8px; margin-top: 10px; }
+.slidevault .pack-rename input { flex: 1; min-width: 0; height: 34px; padding: 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); font: inherit; }
+/* Draft deck: a pack's slides sit together with a label above and an orange bar down the side. */
+.slidevault .cart-items .pack-head { display: flex; align-items: center; gap: 6px; margin: 6px 0 -2px; font-size: 12px; font-weight: 700; color: var(--sv-text); }
+.slidevault .cart-items .pack-head .ic { color: var(--sv-brand); }
+.slidevault .cart-items .pack-head .btn-link { margin-left: auto; font-size: 12px; }
+.slidevault .ci.in-pack { padding-left: 8px; box-shadow: inset 3px 0 0 var(--sv-brand); border-radius: 6px; }
+.slidevault .ci.in-pack:not(.pack-first) { border-top-left-radius: 0; }
+/* Group mode on a deck page. */
+.slidevault .gt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; list-style: none; margin: 12px 0 0; padding: 0 0 72px; }
+.slidevault .gt-tile { width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 8px; text-align: left; border: 2px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface); color: var(--sv-text); font: inherit; cursor: pointer; }
+.slidevault .gt-tile:disabled { opacity: 0.5; cursor: not-allowed; }
+.slidevault .gt-tile.is-picked { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
+.slidevault .gt-t { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); }
+.slidevault .gt-n { position: absolute; left: 6px; top: 6px; min-width: 24px; height: 24px; border-radius: 12px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-weight: 700; font-size: 13px; line-height: 24px; text-align: center; }
+.slidevault .gt-title { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.slidevault .gt-bar { position: sticky; bottom: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: -60px; padding: 12px 0; background: var(--sv-bg); border-top: 1px solid var(--sv-border); z-index: 5; }
+.slidevault .gt-bar input[type="text"] { flex: 1 1 200px; min-width: 0; height: 36px; padding: 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); font: inherit; }
+
+/* Draft deck on a wide screen: the panel inside sets its own height from the room measured under the tabs bar,
+   so the outer box must not cap it at a height that assumes a taller bar (it clipped the bottom 14px). */
+.slidevault .sv-app[data-size="wide"] .cart-col { max-height: none; }
+
+/* Card titles stop at two lines. One very long title used to stretch every card in its row (all cards in a
+   row share the tallest height), leaving the rest mostly empty. The full title is in the tooltip. */
+.slidevault .card-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+
+/* Archive (FD-32): the Archived badge, and the small archive button on a deck card. */
+.slidevault .badge-archived { background: var(--sv-surface); border: 1px dashed var(--sv-border-strong); color: var(--sv-text); }
+.slidevault .toast .toast-act { margin-left: 8px; color: inherit; font-weight: 700; text-decoration: underline; }
+.slidevault .deck-arch { position: absolute; top: 8px; right: 8px; z-index: 3; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; opacity: 0; transition: opacity var(--sv-duration-fast); }
+.slidevault .deck-arch .ic { width: 16px; height: 16px; }
+.slidevault .vcard:hover .deck-arch, .slidevault .deck-arch:focus-visible { opacity: 1; }
+@media (hover: none) { .slidevault .deck-arch { opacity: 1; } }
+.slidevault .deck-arch:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .deck-arch-badge { position: absolute; top: 8px; left: 8px; z-index: 3; }
+
+.slidevault .arch-link { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px; }
+
+/* Archive dialog: deck name first, one clear sentence, then two short lines. */
+.slidevault .arch-body { display: flex; flex-direction: column; gap: 14px; }
+.slidevault .arch-deck { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface-sunken); }
+.slidevault .arch-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .arch-name { font-size: 15px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.slidevault .arch-lead { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.35; letter-spacing: -0.01em; }
+.slidevault .arch-list { margin: 0; padding: 0 0 0 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; line-height: 1.45; }
+.slidevault .arch-note { margin: 0; font-size: 13px; color: var(--sv-text-secondary); }
+
+/* Archived decks page. */
+.slidevault .arch-find { display: flex; align-items: center; gap: 8px; max-width: 420px; height: 40px; padding: 0 14px; margin-top: 4px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); }
+.slidevault .arch-find:focus-within { border-color: var(--sv-brand); }
+.slidevault .arch-find input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: var(--sv-text); outline: none; }
+.slidevault .arch-rows { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; max-width: 840px; }
+.slidevault .arch-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 12px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
+.slidevault .arch-mosaic { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; width: 120px; aspect-ratio: 16 / 9; padding: 0; border: 1px solid var(--sv-border-strong); border-radius: 8px; overflow: hidden; background: var(--sv-surface-sunken); cursor: pointer; }
+.slidevault .arch-mosaic span { display: block; overflow: hidden; }
+.slidevault .arch-title { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.slidevault .arch-info .meta { margin: 2px 0 0; }
+.slidevault .sv-app[data-size="compact"] .arch-row { grid-template-columns: 84px minmax(0, 1fr); }
+.slidevault .sv-app[data-size="compact"] .arch-row .arch-mosaic { width: 84px; }
+.slidevault .sv-app[data-size="compact"] .arch-row > .btn { grid-column: 1 / -1; justify-self: start; }
+
+/* Archived decks page: room between the heading, the explanation, the search and the cards. */
+.slidevault .sv-shell .sv-wrap.arch-page { padding-top: 32px; padding-bottom: 48px; }
+.slidevault .arch-page .page-head .lede { margin-top: 10px; max-width: 62ch; line-height: 1.5; }
+.slidevault .arch-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-top: 28px; }
+.slidevault .arch-tools .arch-find { margin-top: 0; flex: 1 1 280px; }
+.slidevault .arch-tools .meta { margin: 0; }
+.slidevault .arch-page .arch-rows { margin-top: 20px; gap: 16px; }
+.slidevault .arch-page .arch-row { padding: 16px 18px; gap: 20px; }
+.slidevault .arch-page .arch-info { display: flex; flex-direction: column; gap: 6px; }
+.slidevault .arch-page .arch-info .meta { margin: 0; }
+.slidevault .arch-page .skel, .slidevault .arch-page .state { margin-top: 28px; }
+
+.slidevault .deck-who { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 6px 0 0; }
+
+/* More panel: a list the server cannot fill yet stays visible but greyed out, with the reason. */
+.slidevault .fb-picker.is-off { opacity: 0.55; }
+.slidevault .fb-picker.is-off .fb-note { margin: 4px 0 0; font-size: 13px; color: var(--sv-text-secondary); }
+.slidevault .fb-picker.is-off .fb-find { pointer-events: none; }
+
+/* Pack and archive questions on a phone: the main button on top and full width, the others under it. */
+@media (max-width: 480px) {
+  .slidevault .pack-dialog .dlg-foot, .slidevault .sv-dialog:has(.arch-body) .dlg-foot { flex-direction: column-reverse; align-items: stretch; }
+  .slidevault .pack-dialog .dlg-foot .btn, .slidevault .sv-dialog:has(.arch-body) .dlg-foot .btn { width: 100%; justify-content: center; }
+}

@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
+import { stopNudge, useNudge } from '../client/draft-nudge';
+import { useTourOpen } from '../client/tour-store';
+import { Fragment, useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
 import { Icon } from './icons';
 import { downloadPlan, plural } from './library';
 import { useRoot } from './root';
 import { workspaceSizeOf } from './size';
+import type { SlideSummary } from '../contracts/dto';
 import { Link, Thumb } from './parts';
 import { useWorkspace } from './state';
 
@@ -13,7 +16,7 @@ import { useWorkspace } from './state';
  * Collapsed to a thin rail by default; opens by itself the first time a slide is added.
  */
 export function Cart() {
-  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, openDownload, openPreview, announce, saveDraft, replaceDraft, draftOrigin, toast, runtime, combine, setCombine } = useWorkspace();
+  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, openDownload, openPreview, announce, saveDraft, replaceDraft, draftOrigin, toast, runtime, combine, setCombine, packs, openPackDialog, addPackToDraft } = useWorkspace();
   const n = selection.length;
   const included = selection.filter((s) => !excluded.has(s.id));
   const plan = downloadPlan(included);
@@ -87,20 +90,31 @@ export function Cart() {
     }
   });
 
+  /* A slide that sits in the list with the rest of its pack, side by side, moves with them as one block. */
+  const blockOf = (id: string): string[] => {
+    const pack = packs.of(id);
+    if (!pack) return [id];
+    const at = selection.flatMap((s, i) => (packs.of(s.id)?.id === pack.id ? [i] : []));
+    const together = at.length > 1 && at.every((v, k) => k === 0 || v === at[k - 1] + 1);
+    return together ? at.map((i) => selection[i].id) : [id];
+  };
+
   const move = (id: string, to: number) => {
+    const block = blockOf(id);
     updateSelection((cur) => {
-      const item = cur.find((s) => s.id === id);
-      if (!item) return cur;
-      const order = cur.filter((s) => s.id !== id);
-      order.splice(Math.max(0, Math.min(order.length, to)), 0, item);
+      const items = block.map((b) => cur.find((s) => s.id === b)).filter((x): x is SlideSummary => !!x);
+      if (!items.length) return cur;
+      const order = cur.filter((s) => !block.includes(s.id));
+      order.splice(Math.max(0, Math.min(order.length, to)), 0, ...items);
       return order;
     });
-    announce(`${selection.find((s) => s.id === id)?.title ?? 'Slide'} moved to position ${Math.max(1, Math.min(n, to + 1))} of ${n}`);
+    const what = block.length > 1 ? `Pack of ${block.length} slides` : (selection.find((s) => s.id === id)?.title ?? 'Slide');
+    announce(`${what} moved to position ${Math.max(1, Math.min(n - block.length + 1, to + 1))} of ${n}`);
   };
 
   /** Where would a drop at pointer height y land? Index among the other items, plus which line to draw. */
-  const dropAt = (y: number, skip: string | null = dragId): { index: number; id: string | null; after: boolean } => {
-    const items = [...(listRef.current?.querySelectorAll<HTMLElement>('.ci') ?? [])].filter((li) => li.dataset.id !== skip);
+  const dropAt = (y: number, skip: string[] = dragId ? blockOf(dragId) : []): { index: number; id: string | null; after: boolean } => {
+    const items = [...(listRef.current?.querySelectorAll<HTMLElement>('.ci') ?? [])].filter((li) => !skip.includes(li.dataset.id ?? ''));
     for (let i = 0; i < items.length; i++) {
       const b = items[i].getBoundingClientRect();
       if (y < b.top + b.height / 2) return { index: i, id: items[i].dataset.id ?? null, after: false };
@@ -118,10 +132,11 @@ export function Cart() {
     e.preventDefault();
     const grip = e.currentTarget;
     grip.setPointerCapture(e.pointerId);
+    const block = blockOf(id);
     setDragId(id);
     const scroller = listRef.current?.closest<HTMLElement>('.cart-body');
     const over = (ev: globalThis.PointerEvent) => {
-      const d = dropAt(ev.clientY, id);
+      const d = dropAt(ev.clientY, block);
       setMark(d.id ? { id: d.id, after: d.after } : null);
       if (scroller) {
         const r = scroller.getBoundingClientRect();
@@ -133,10 +148,10 @@ export function Cart() {
       grip.removeEventListener('pointermove', over);
       grip.removeEventListener('pointerup', finish);
       grip.removeEventListener('pointercancel', finish);
-      const d = dropAt(ev.clientY, id);
+      const d = dropAt(ev.clientY, block);
       setDragId(null);
       setMark(null);
-      if (ev.type === 'pointerup' && d.index !== selection.findIndex((x) => x.id === id)) {
+      if (ev.type === 'pointerup' && d.index !== selection.findIndex((x) => x.id === block[0])) {
         focusGrip.current = id;
         move(id, d.index);
       }
@@ -146,11 +161,13 @@ export function Cart() {
     grip.addEventListener('pointercancel', finish);
   };
 
-  const onGripKey = (e: KeyboardEvent, id: string, i: number) => {
+  const onGripKey = (e: KeyboardEvent, id: string) => {
     if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
     e.preventDefault();
-    const to = e.key === 'ArrowUp' ? i - 1 : i + 1;
-    if (to < 0 || to >= n) return;
+    const block = blockOf(id);
+    const first = selection.findIndex((x) => x.id === block[0]);
+    const to = e.key === 'ArrowUp' ? first - 1 : first + 1;
+    if (to < 0 || to > n - block.length) return;
     focusGrip.current = id;
     move(id, to);
   };
@@ -158,6 +175,7 @@ export function Cart() {
   /* The panel is as tall as the room left under the header: full height once the page has scrolled
      and the panel has stuck to the top, shorter while the page header is still showing. */
   const { scroll } = useRoot();
+  const empty = n === 0;
   useEffect(() => {
     const scroller = scroll.current;
     if (!scroller) return;
@@ -171,14 +189,24 @@ export function Cart() {
       col.style.setProperty('--cart-room', `${Math.max(240, scroller.clientHeight - Math.max(stick, colTop))}px`);
     };
     fit();
+    /* Measure again once the panel has opened or closed and the layout has settled, and whenever anything
+       that decides the panel's top or the room under it changes size (the page, the tabs bar, the layout
+       grid, the panel itself), so the card always reaches the bottom. */
+    const settle = [requestAnimationFrame(fit), window.setTimeout(fit, 120), window.setTimeout(fit, 400)];
     scroller.addEventListener('scroll', fit, { passive: true });
+    window.addEventListener('resize', fit);
     const observer = new ResizeObserver(fit);
     observer.observe(scroller);
+    for (const el of scroller.querySelectorAll('.sv-top, .sv-shell, .cart-col')) observer.observe(el);
     return () => {
+      cancelAnimationFrame(settle[0] as number);
+      clearTimeout(settle[1]);
+      clearTimeout(settle[2]);
       scroller.removeEventListener('scroll', fit);
+      window.removeEventListener('resize', fit);
       observer.disconnect();
     };
-  }, [scroll]);
+  }, [scroll, cartMin, empty]);
 
   /* The name of the draft deck. It looks like a field (pencil, outline on hover) so it is clear it can be edited. */
   const titleField = (
@@ -264,35 +292,65 @@ export function Cart() {
           <ul ref={listRef} className="cart-items">
             {selection.map((s, i) => {
               const off = excluded.has(s.id);
-              const cls = ['ci', off ? 'off' : '', dragId === s.id ? 'dragging' : '', mark?.id === s.id ? (mark.after ? 'drop-after' : 'drop-before') : ''].filter(Boolean).join(' ');
+              const pack = packs.of(s.id);
+              const prevPack = i > 0 ? packs.of(selection[i - 1].id) : null;
+              const nextPack = i < n - 1 ? packs.of(selection[i + 1].id) : null;
+              const first = !!pack && prevPack?.id !== pack.id;
+              const last = !!pack && nextPack?.id !== pack.id;
+              const present = pack ? selection.filter((x) => pack.slideIds.includes(x.id)).length : 0;
+              const dragging = !!dragId && blockOf(dragId).includes(s.id);
+              const cls = ['ci', off ? 'off' : '', dragging ? 'dragging' : '', pack ? 'in-pack' : '', first ? 'pack-first' : '', last ? 'pack-last' : '', mark?.id === s.id ? (mark.after ? 'drop-after' : 'drop-before') : ''].filter(Boolean).join(' ');
               return (
-                <li key={s.id} className={cls} data-id={s.id}>
-                  <button
-                    type="button"
-                    className="grip"
-                    data-id={s.id}
-                    title="Drag to reorder"
-                    onPointerDown={(e) => startDrag(e, s.id)}
-                    aria-label={`Reorder: ${s.title}, position ${i + 1} of ${n}. Press up or down arrow to move.`}
-                    onKeyDown={(e) => onGripKey(e, s.id, i)}
-                  >
-                    <Icon name="grip" />
-                  </button>
-                  <input type="checkbox" checked={!off} onChange={(e) => setIncluded(s.id, e.target.checked)} aria-label={`Include in download: ${s.title}`} />
-                  <div className="t">
-                    <Thumb slide={s} />
-                    <span className="ci-n" aria-hidden="true">
-                      {i + 1}
-                    </span>
-                  </div>
-                  <div className="ci-txt">
-                    <Link to={{ view: 'slide', id: s.id }}>{s.title}</Link>
-                    <span className="meta">{s.provenance.sourceTitle}</span>
-                  </div>
-                  <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Remove from draft deck: ${s.title}`} onClick={() => updateSelection((cur) => cur.filter((x) => x.id !== s.id))}>
-                    <Icon name="x" />
-                  </button>
-                </li>
+                <Fragment key={s.id}>
+                  {first && pack && (
+                    <li className="pack-head">
+                      <Icon name="layers" className="ic-sm" />
+                      <span className="ph-t">
+                        {pack.label ?? 'Pack'} · {present} of {pack.slideIds.length}
+                      </span>
+                      {present < pack.slideIds.length && (
+                        <button type="button" className="btn-link" onClick={() => addPackToDraft(pack)}>
+                          Add the rest
+                        </button>
+                      )}
+                    </li>
+                  )}
+                  <li className={cls} data-id={s.id}>
+                    <button
+                      type="button"
+                      className="grip"
+                      data-id={s.id}
+                      title={pack && blockOf(s.id).length > 1 ? 'Drag to reorder. The whole pack moves together.' : 'Drag to reorder'}
+                      onPointerDown={(e) => startDrag(e, s.id)}
+                      aria-label={`Reorder: ${s.title}, position ${i + 1} of ${n}.${blockOf(s.id).length > 1 ? ' The whole pack moves together.' : ''} Press up or down arrow to move.`}
+                      onKeyDown={(e) => onGripKey(e, s.id)}
+                    >
+                      <Icon name="grip" />
+                    </button>
+                    <input type="checkbox" checked={!off} onChange={(e) => setIncluded(s.id, e.target.checked)} aria-label={`Include in download: ${s.title}`} />
+                    <div className="t">
+                      <Thumb slide={s} />
+                      <span className="ci-n" aria-hidden="true">
+                        {i + 1}
+                      </span>
+                    </div>
+                    <div className="ci-txt">
+                      <Link to={{ view: 'slide', id: s.id }}>{s.title}</Link>
+                      <span className="meta">{s.provenance.sourceTitle}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon btn-sm"
+                      aria-label={`Remove from draft deck: ${s.title}`}
+                      onClick={() => {
+                        if (pack && present > 1) openPackDialog({ kind: 'remove', pack, slide: s });
+                        else updateSelection((cur) => cur.filter((x) => x.id !== s.id));
+                      }}
+                    >
+                      <Icon name="x" />
+                    </button>
+                  </li>
+                </Fragment>
               );
             })}
           </ul>
@@ -430,14 +488,17 @@ export function focusDraftOpener() {
    the workspace level, outside the panel, so it stays put while the panel is closed. */
 export function CartPill() {
   const { selection, cartMin, setCartMin } = useWorkspace();
+  const touring = useTourOpen();
+  const nudge = useNudge('draft') && !touring;
   const n = selection.length;
   if (!cartMin) return null;
   return (
     <button
       type="button"
-      className="cart-pill"
+      className={`cart-pill${nudge ? ' is-nudge' : ''}`}
       aria-label={`Open draft deck, ${plural(n, 'slide')}`}
       onClick={() => {
+        stopNudge('draft');
         setCartMin(false);
         requestAnimationFrame(() => document.querySelector<HTMLElement>('.slidevault .cart .cart-tg')?.focus());
       }}

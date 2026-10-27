@@ -1,5 +1,5 @@
 /**
- * Loads the team's story data into M Moser's Supabase (docs/DECISIONS.md FD-33), so what the
+ * Loads the team's story data into M Moser's Supabase (docs/DECISIONS.md FD-51), so what the
  * storyboard knows about each slide lives in their database, not only on one laptop.
  *
  *   npm run story:import -- --data ~/Desktop/MMoser-RealData                      # dry run: shows what would change

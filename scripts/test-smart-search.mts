@@ -11,6 +11,7 @@ import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/
 import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, typedCodes, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { fixtureFilterValues, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
 import { smartSearch } from '../features/slide-vault/server/services/smart-search';
+import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -266,6 +267,33 @@ for (const [env, label] of [
   const body = second ? ((await second.json()) as { error: { code: string; retryable: boolean } }) : null;
   check(first === null && second?.status === 429 && Boolean(second.headers.get('retry-after')) && body?.error.code === 'RATE_LIMITED' && body.error.retryable, 'rate: over the limit returns 429 RATE_LIMITED with Retry-After');
   resetRateLimits();
+}
+
+// ---- What a search asks for beyond its words (FD-33)
+{
+  const team = searchIntent('team slide for a healthcare client');
+  check(team.types[0] === 'team_structure' && team.sectors.includes('healthcare'), 'intent: "team slide for a healthcare client" asks for a team slide and a healthcare client', team);
+  check(searchIntent('design lead résumé from Acme').types[0] === 'team_resume', 'intent: "résumé" with accents is read as a résumé');
+  check(JSON.stringify(searchIntent('sustainability slides for a bank')) === JSON.stringify({ types: [], sectors: ['financial services'], themes: ['sustainability / net zero'] }), 'intent: a theme and a sector, no kind');
+  const structure = { type: 'team_structure', clientSector: 'healthcare / medtech' };
+  const resume = { type: 'team_resume', clientSector: 'healthcare / medtech' };
+  const bankTeam = { type: 'team_structure', clientSector: 'financial services' };
+  check(intentScore(team, structure) > intentScore(team, resume) && intentScore(team, resume) > intentScore(team, bankTeam) - 3, 'intent: a team search puts the team structure ahead of résumés');
+  check(intentScore(team, structure) > intentScore(team, bankTeam), "intent: a slide from a healthcare client's deck counts as healthcare");
+  check(intentScore(team, { ...structure, reuse: 'internal - never show' }) < intentScore(team, bankTeam), 'intent: never-show pages stay findable, but last');
+  check(answersIntent(team, structure) && !answersIntent(team, bankTeam) && !answersIntent(team, undefined), 'intent: only slides of the kind and sector asked for are let in without matching words');
+  check(intentWhy(team, structure) === 'A team slide for the same kind of client.', 'intent: the slide says what it is in the search\'s terms', intentWhy(team, structure));
+
+  const index = { generatedAt: '', sources: [{ id: 'src', title: 'Deck', fileName: 'Proposals/M Moser_Acme_2025.pptx', versionId: 'v', sha256: 'h', slides: [
+    { id: 'words', number: 1, title: 'Our team', text: 'Team and people.', hidden: false },
+    { id: 'reading', number: 2, title: 'Phased move', text: 'Floors handed over in stages.', hidden: false },
+  ] }] };
+  const plan = cleanPlan({ keywords: ['occupied'] }, ctx);
+  const without = smartSearchFixtures(index, plan, 10).map((r) => r.summary.id);
+  const withKnown = smartSearchFixtures(index, plan, 10, { about: (id) => (id === 'reading' ? 'A building that stayed occupied during the work.' : ''), boost: () => 0, answers: () => false }).map((r) => r.summary.id);
+  check(without.length === 0 && JSON.stringify(withKnown) === '["reading"]', "search: a slide is found by what was read on it when its own words don't match", { without, withKnown });
+  const boosted = smartSearchFixtures(index, cleanPlan({ keywords: ['team'] }, ctx), 10, { about: () => '', boost: (id) => (id === 'reading' ? 6 : 0), answers: (id) => id === 'reading' }).map((r) => r.summary.id);
+  check(boosted[0] === 'reading', 'search: the kind asked for ranks ahead of word matches', boosted);
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smart search checks passed');

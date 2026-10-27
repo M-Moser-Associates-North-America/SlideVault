@@ -20,6 +20,12 @@ export const RATE_POLICIES = {
   smartSearch: { name: 'smart-search', limit: 20, windowMs: 60_000 },
   export: { name: 'export', limit: 10, windowMs: 60_000 },
   upload: { name: 'upload', limit: 10, windowMs: 60_000 },
+  // Reading a file to pre-fill its upload (FD-23): one per file, before the upload itself.
+  uploadSuggest: { name: 'upload-suggest', limit: 10, windowMs: 60_000 },
+  // Talking instead of typing (FD-24): one request per thing said.
+  speech: { name: 'speech', limit: 30, windowMs: 60_000 },
+  // "Was this helpful?" on a storyboard (FD-24): one click each.
+  storyFeedback: { name: 'story-feedback', limit: 120, windowMs: 60_000 },
   // Saved slides, My decks, activity (FD-18): small, frequent writes from normal use.
   userData: { name: 'user-data', limit: 120, windowMs: 60_000 },
 } as const satisfies Record<string, RatePolicy>;

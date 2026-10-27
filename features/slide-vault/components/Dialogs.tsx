@@ -25,8 +25,8 @@ export const backdropClose = (onClose: () => void) => (e: MouseEvent<HTMLDialogE
 
 /** Large preview of a slide, stepping through the list it was opened from. */
 export function Lightbox() {
-  const { runtime, preview, closePreview, movePreview, openDownload } = useWorkspace();
-  const { isSelected, set } = useCartToggle();
+  const { runtime, preview, closePreview, movePreview, openDownload, packs, selection, addPackToDraft } = useWorkspace();
+  const { isSelected, setOne } = useCartToggle();
   const ref = useRef<HTMLDialogElement>(null);
   useDialogOpen(ref, !!preview);
   const slide = preview ? preview.list[preview.index] : null;
@@ -101,10 +101,16 @@ export function Lightbox() {
                 {preview.index + 1} of {preview.list.length}
               </span>
               <span className="row-flex">
-                <button type="button" className="btn btn-sm" aria-pressed={isSelected(slide.id)} onClick={() => set(slide, !isSelected(slide.id))}>
+                <button type="button" className="btn btn-sm" aria-pressed={isSelected(slide.id)} onClick={() => setOne(slide, !isSelected(slide.id))}>
                   <Icon name="check" />
                   <span>{isSelected(slide.id) ? 'In draft deck' : 'Add to draft deck'}</span>
                 </button>
+                {packs.of(slide.id) && (
+                  <button type="button" className="btn btn-sm" disabled={packs.of(slide.id)!.slideIds.every((id) => selection.some((x) => x.id === id))} onClick={() => addPackToDraft(packs.of(slide.id)!)}>
+                    <Icon name="plus" />
+                    <span>Add whole pack ({packs.of(slide.id)!.slideIds.length})</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn-sm btn-primary"

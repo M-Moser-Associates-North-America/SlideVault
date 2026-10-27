@@ -6,10 +6,9 @@ import { useWorkspaceSize } from './size';
 import { useWorkspace } from './state';
 
 /**
- * Local design prototype: a fake sign-in, pulled from the client's own reference mockup
- * (reference/SlideVault.html -- its login card doesn't check a password either, `doSignIn` there
- * just flips a flag). Not real auth. M Moser owns the real identity system; this only
- * demonstrates having a gate. Clicking Sign in, with or without anything typed, signs in as the
+ * Placeholder sign-in, taken from the client's own reference mockup (reference/SlideVault.html --
+ * its login card doesn't check a password either, `doSignIn` there just flips a flag). Not real
+ * auth: M Moser owns the identity system, and this stands in until it plugs in. Clicking Sign in, with or without anything typed, signs in as the
  * one demo profile ("Person A").
  */
 export function LoginView() {
@@ -67,10 +66,11 @@ export function LoginView() {
             <p className="auth-sub">{isSignUp ? "We'll set you up with a SlideVault seat." : 'Sign in to search and assemble proposals.'}</p>
           </div>
           <div className="auth-sim" role="note">
-            <p className="auth-sim-title">SIMULATED</p>
-            <p className="auth-sim-note">This sign-in is simulated.
+            <p className="auth-sim-note">
+              Placeholder sign-in: your M Moser login will replace this screen.
               <br />
-              Just click on Sign in below.</p>
+              Just click Sign in below.
+            </p>
           </div>
           <form className="auth-form" onSubmit={submit}>
             <label className="auth-field">

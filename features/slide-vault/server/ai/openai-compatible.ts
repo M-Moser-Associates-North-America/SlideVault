@@ -45,40 +45,47 @@ export function planInstructions(ctx: PlanContext): string {
 }
 
 type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
+type ChatConfig = { baseUrl: string; apiKey: string | null; model: string; timeoutMs: number; reasoningEffort?: string | null };
 
-export function openAiCompatibleReader(
-  config: { baseUrl: string; apiKey: string | null; model: string; timeoutMs: number; reasoningEffort?: string | null },
-  fetchFn: FetchLike = fetch,
-): PlanReader {
+/**
+ * One Chat Completions call that must answer with JSON matching `schema` (Structured Outputs,
+ * strict). Returns the parsed object; callers still check every value. Throws on any failure so the
+ * caller can fall back to its rules-only path. Never logs the key or the request text.
+ */
+export async function chatJson(config: ChatConfig, fetchFn: FetchLike, job: { system: string; user: string; name: string; schema: object }): Promise<Record<string, unknown>> {
+  const res = await fetchFn(`${config.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...(config.apiKey ? { authorization: `Bearer ${config.apiKey}` } : {}) },
+    body: JSON.stringify({
+      model: config.model,
+      temperature: 0,
+      // These are small, well-defined jobs; a reasoning model's thinking step only adds seconds.
+      ...(config.reasoningEffort ? { reasoning_effort: config.reasoningEffort } : {}),
+      messages: [
+        { role: 'system', content: job.system },
+        { role: 'user', content: job.user },
+      ],
+      response_format: { type: 'json_schema', json_schema: { name: job.name, strict: true, schema: job.schema } },
+    }),
+    signal: AbortSignal.timeout(config.timeoutMs),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: { type?: string; code?: string } } | null;
+    const kind = body?.error?.type ?? body?.error?.code;
+    throw new Error(`AI reader request failed (${res.status}${kind ? `, ${kind}` : ''})`);
+  }
+  const body = (await res.json()) as { choices?: { message?: { content?: string | null; refusal?: string | null } }[] };
+  const message = body.choices?.[0]?.message;
+  if (message?.refusal) throw new Error('AI reader declined the request');
+  return parsePlan(message?.content) as Record<string, unknown>;
+}
+
+export function openAiCompatibleReader(config: ChatConfig, fetchFn: FetchLike = fetch): PlanReader {
   return {
     name: `openai-compatible:${config.model}`,
     async read(query: string, ctx: PlanContext): Promise<SearchPlan> {
-      const res = await fetchFn(`${config.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', ...(config.apiKey ? { authorization: `Bearer ${config.apiKey}` } : {}) },
-        body: JSON.stringify({
-          model: config.model,
-          temperature: 0,
-          // Reading a request is a small job; a reasoning model's thinking step only adds seconds.
-          ...(config.reasoningEffort ? { reasoning_effort: config.reasoningEffort } : {}),
-          messages: [
-            { role: 'system', content: planInstructions(ctx) },
-            { role: 'user', content: `Request: ${query.slice(0, 500)}` },
-          ],
-          response_format: { type: 'json_schema', json_schema: { name: 'search_plan', strict: true, schema: SCHEMA } },
-        }),
-        signal: AbortSignal.timeout(config.timeoutMs),
-      });
-      if (!res.ok) {
-        // Never log the key or the request text; the status and error type are enough to debug.
-        const body = (await res.json().catch(() => null)) as { error?: { type?: string; code?: string } } | null;
-        const kind = body?.error?.type ?? body?.error?.code;
-        throw new Error(`AI reader request failed (${res.status}${kind ? `, ${kind}` : ''})`);
-      }
-      const body = (await res.json()) as { choices?: { message?: { content?: string | null; refusal?: string | null } }[] };
-      const message = body.choices?.[0]?.message;
-      if (message?.refusal) throw new Error('AI reader declined the request');
-      return cleanPlan(parsePlan(message?.content), ctx);
+      const raw = await chatJson(config, fetchFn, { system: planInstructions(ctx), user: `Request: ${query.slice(0, 500)}`, name: 'search_plan', schema: SCHEMA });
+      return cleanPlan(raw as Partial<SearchPlan>, ctx);
     },
   };
 }

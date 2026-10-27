@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, SmartSearchResult, UploadDeckMeta } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRole, StoryUserRole, UploadDeckMeta } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -40,7 +40,7 @@ export async function searchSlides(runtime: Transport, query: string, signal?: A
  */
 export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean } = {}): Promise<SmartSearchResult> {
   const params = new URLSearchParams({ q: query.trim(), limit: '100' });
-  if (opts.includeHidden) params.set('hidden', 'include'); // slides hidden in the original deck (FD-32)
+  if (opts.includeHidden) params.set('hidden', 'include'); // slides hidden in the original deck (FD-50)
   if (read) params.set('read', '1');
   const res = await runtime.request({ path: `/smart-search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
@@ -54,13 +54,15 @@ const MAX_LIBRARY_PAGES = 30;
  * Follows the cursor until the server says there are no more pages. Slides can repeat across pages
  * (uploaded decks are returned on every page for now), so they are de-duplicated by id.
  */
-/** Slides hidden in their original deck are left out unless includeHidden is set (FD-32). */
-export async function listLibrary(runtime: Transport, signal?: AbortSignal, opts: { includeHidden?: boolean } = {}): Promise<SlideSummary[]> {
+/** Slides hidden in their original deck are left out unless includeHidden is set (FD-50). */
+export async function listLibrary(runtime: Transport, signal?: AbortSignal, opts: { includeHidden?: boolean; includeArchived?: boolean; onlyArchived?: boolean } = {}): Promise<SlideSummary[]> {
   const byId = new Map<string, SlideSummary>();
   let cursor: string | null = null;
   for (let page = 0; page < MAX_LIBRARY_PAGES; page++) {
     const params = new URLSearchParams({ kind: 'slide', limit: '1000', duplicates: 'all' });
     if (opts.includeHidden) params.set('hidden', 'include');
+    if (opts.onlyArchived) params.set('archived', 'only'); // only the archived decks, for the Archived decks page
+    else if (opts.includeArchived) params.set('archived', 'include'); // archived decks, marked provenance.archived (FD-50)
     if (cursor) params.set('cursor', cursor);
     const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
     if (!res.ok) return failure(runtime, res);
@@ -116,4 +118,91 @@ export async function uploadDeck(runtime: Transport, file: File, meta: UploadDec
   const res = await runtime.request({ path: '/uploads', method: 'POST', body: form });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<DeckSummary>).data;
+}
+
+/* ---- Storyboard (FD-22, FD-24) ---------------------------------------------------------------- */
+
+/** A client situation turned into a story of slides. `read` lets the configured AI read it (slower). */
+export async function buildStory(runtime: Transport, situation: string, opts: { read: boolean; answers?: string; role?: StoryUserRole | null; mode?: 'retrieve' | 'reimagine' | 'build' }, signal?: AbortSignal): Promise<StoryboardResult> {
+  const res = await runtime.request({ path: '/storyboard', method: 'POST', body: { situation, read: opts.read, answers: opts.answers || undefined, role: opts.role ?? undefined, mode: opts.mode }, signal });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<StoryboardResult>).data;
+}
+
+/** "Was this helpful?": saved without a name or the brief, used to rank the next similar storyboard. */
+/** saved: false when learning from this person's activity is off (FD-37): nothing was stored. */
+export async function sendStoryFeedback(runtime: Transport, feedback: { role: StoryRole; slideId: string | null; verdict: StoryFeedbackVerdict; topics: string[]; by?: StoryUserRole | null }): Promise<{ saved: boolean }> {
+  const res = await runtime.request({ path: '/storyboard/feedback', method: 'POST', body: feedback });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ saved: boolean }>).data;
+}
+
+/** Whether talking instead of typing is set up on this server. */
+export async function speechAvailable(runtime: Transport): Promise<boolean> {
+  const res = await runtime.request({ path: '/speech', method: 'GET' });
+  if (!res.ok) return false;
+  return ((await res.json()) as ApiOk<{ available: boolean }>).data.available;
+}
+
+/** A WAV recording -> the words said. */
+export async function transcribe(runtime: Transport, wav: Blob, signal?: AbortSignal): Promise<string> {
+  const form = new FormData();
+  form.append('audio', wav, 'speech.wav');
+  const res = await runtime.request({ path: '/speech', method: 'POST', body: form, signal });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ text: string }>).data.text;
+}
+
+/* ---------------------------------------------------------------- Packs (FD-38) */
+
+/** What the server returns for a pack it stored. */
+export type PackResult = { id: string; label: string | null; status: 'suggested' | 'confirmed'; confirmedBy?: string | null; confirmedAt?: string | null; slideIds: string[] };
+
+/**
+ * Packs are stored by the server (POST, PATCH and DELETE /packs). Until it has those routes a call
+ * answers 404 or 405; these functions then return null so the caller can keep the change in this browser.
+ */
+const notThere = (res: Response) => res.status === 404 || res.status === 405 || res.status === 501;
+
+export async function createPack(runtime: Transport, body: { slideIds: string[]; label: string | null }): Promise<PackResult | null> {
+  const res = await runtime.request({ path: '/packs', method: 'POST', body });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<PackResult>).data;
+}
+
+export async function renamePack(runtime: Transport, packId: string, label: string | null): Promise<PackResult | null> {
+  const res = await runtime.request({ path: `/packs/${encodeURIComponent(packId)}`, method: 'PATCH', body: { label } });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<PackResult>).data;
+}
+
+/** Confirm a suggested pack, or move a confirmed one back to suggested. The server records who and when. */
+export async function setPackStatus(runtime: Transport, packId: string, status: 'suggested' | 'confirmed'): Promise<PackResult | null> {
+  const res = await runtime.request({ path: `/packs/${encodeURIComponent(packId)}`, method: 'PATCH', body: { status } });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<PackResult>).data;
+}
+
+/** Ungroup: the pack goes, its slides stay. Returns false when the server has no such route yet. */
+export async function deletePack(runtime: Transport, packId: string): Promise<boolean> {
+  const res = await runtime.request({ path: `/packs/${encodeURIComponent(packId)}`, method: 'DELETE' });
+  if (notThere(res)) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
+}
+
+/* ---------------------------------------------------------------- Archive (FD-50) */
+
+/**
+ * Archive or restore a deck: PATCH /decks/:id { archived }. Hidden from the app, search and AI; nothing
+ * is deleted. Returns false when the server has no such route yet (404, 405 or 501), so nothing is faked.
+ */
+export async function archiveDeck(runtime: Transport, deckId: string, archived: boolean): Promise<boolean> {
+  const res = await runtime.request({ path: `/decks/${encodeURIComponent(deckId)}`, method: 'PATCH', body: { archived } });
+  if (res.status === 404 || res.status === 405 || res.status === 501) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
 }

@@ -1,21 +1,28 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { listLibrary, smartSearch } from '../client/api';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { archiveDeck as archiveDeckApi, createPack as createPackApi, deletePack as deletePackApi, listLibrary, renamePack as renamePackApi, setPackStatus as setPackStatusApi, smartSearch } from '../client/api';
+import { withDemoDetails } from '../client/demo-details';
+import { useLocalPacks } from '../client/pack-store';
+import { buildPacks, NO_PACKS, type Pack, type PacksIndex } from '../client/packs';
 import { useActivity, useDrafts, useProfile, useSaved, type ActivityEntry, type Draft } from '../client/profile-store';
 import { useSelection } from '../client/selection-store';
+import { tourIsOpen } from '../client/tour-store';
 import type { SlideSummary, SmartSearchResult } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
-import { groupDecks, NO_FILTERS, type Deck, type Filters } from './library';
-import { canSeeTier, simTier } from './simulation';
+import { groupDecks, NO_FILTERS, plural, type Deck, type Filters } from './library';
 
 export type LibraryState = { status: 'loading' } | { status: 'ready'; slides: SlideSummary[]; decks: Deck[] } | { status: 'error'; message: string };
 
 export type SearchState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; result: SmartSearchResult } | { status: 'error'; message: string };
 
-export type Toast = { id: number; message: string };
+export type Toast = { id: number; message: string; action?: { label: string; run: () => void } };
 
-/** Local design prototype: fake sign-in as one demo profile, no real accounts (not pushed). */
+export type ArchiveDialogState = { deck: { id: string; title: string; slideCount: number }; restore: boolean; /** Opened from a slide's page: say so, and leave the page when the deck is gone */ fromSlide?: string };
+
+export type PackDialogState = { kind: 'add' | 'remove' | 'ungroup'; pack: Pack; slide?: SlideSummary };
+
+/** Placeholder sign-in: one demo profile until M Moser's login plugs in (FD-01). */
 export const DEMO_PROFILE = 'Person A';
 export type { ActivityEntry, Draft };
 
@@ -29,6 +36,33 @@ type Workspace = {
   runtime: SlideVaultRuntime;
   library: LibraryState;
   reloadLibrary: () => void;
+  /** Slides hidden in their original deck are left out of search and the library unless this is on (FD-27) */
+  includeHidden: boolean;
+  setIncludeHidden: (on: boolean) => void;
+  /** Archived decks are left out of every list unless this is on (FD-50) */
+  includeArchived: boolean;
+  setIncludeArchived: (on: boolean) => void;
+  /** The question asked before archiving or restoring a deck */
+  archiveDialog: ArchiveDialogState | null;
+  openArchiveDialog: (d: ArchiveDialogState) => void;
+  closeArchiveDialog: () => void;
+  /** Archive or restore a deck. false = the server could not (a message has been shown). */
+  archiveDeck: (deck: { id: string; title: string }, archived: boolean) => Promise<boolean>;
+  /** Slides that go together (FD-38): every pack, and which one a slide is in */
+  packs: PacksIndex;
+  /** The question asked before adding or removing one slide of a pack, or before ungrouping */
+  packDialog: PackDialogState | null;
+  openPackDialog: (d: PackDialogState) => void;
+  closePackDialog: () => void;
+  /** Add every slide of the pack that is not in the draft deck yet, in the pack's order */
+  addPackToDraft: (pack: Pack) => void;
+  removePackFromDraft: (pack: Pack) => void;
+  /** Group slides (in the order given) into a pack. 'saved' = kept by the server, 'browser' = only in this browser for now */
+  makePack: (slideIds: string[], label: string | null) => Promise<'saved' | 'browser'>;
+  ungroupPack: (pack: Pack) => Promise<'saved' | 'browser'>;
+  renamePack: (pack: Pack, label: string | null) => Promise<void>;
+  /** Confirm a suggested pack, or move a confirmed one back to suggested. Anyone signed in can (MVP). */
+  setPackStatus: (pack: Pack, status: 'suggested' | 'confirmed') => Promise<void>;
   query: string;
   setQuery: (q: string) => void;
   /** Enter or the Search button: lets the AI read the current request (once; repeats are cached) */
@@ -51,7 +85,7 @@ type Workspace = {
   combine: boolean;
   setCombine: (on: boolean) => void;
   toasts: Toast[];
-  toast: (message: string) => void;
+  toast: (message: string, action?: { label: string; run: () => void }) => void;
   dismissToast: (id: number) => void;
   announcement: string;
   announce: (message: string) => void;
@@ -68,8 +102,7 @@ type Workspace = {
   alsoFor: SlideSummary | null;
   openAlso: (slide: SlideSummary) => void;
   closeAlso: () => void;
-  /** Local design prototype: fake sign-in (docs/DECISIONS.md FD-01 is still the real default --
-      this is a mockup for the pitch, not a real auth system). */
+  /** Placeholder sign-in (FD-01): who is signed in until M Moser's login replaces it. */
   profile: string | null;
   submitLogin: () => void;
   signOut: () => void;
@@ -107,22 +140,46 @@ export function useWorkspace(): Workspace {
 const SEARCH_DELAY_MS = 250;
 const TOAST_MS = 5000;
 
+/** A pretend-data switch turned on by ?name=1 in the address and kept for the browser tab. Off unless asked for. */
+function useDemoFlag(name: string): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => {
+      try {
+        if (new RegExp(`[?&]${name}\\b`).test(window.location.search)) sessionStorage.setItem(`slidevault:${name}`, '1');
+        return sessionStorage.getItem(`slidevault:${name}`) === '1';
+      } catch {
+        return false;
+      }
+    },
+    () => false,
+  );
+}
+
 export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRuntime; children: ReactNode }) {
   const { request, onSessionExpired } = runtime;
   const transport = useMemo(() => ({ request, onSessionExpired }), [request, onSessionExpired]);
 
   /* The whole library: one request, then filtered and grouped in the browser. */
-  const [rawLibrary, setLibrary] = useState<LibraryState>({
+  const [library, setLibrary] = useState<LibraryState>({
     status: 'loading',
   });
   const [libraryTry, setLibraryTry] = useState(0);
+  const demoDetails = useDemoFlag('demodetails');
+  /* Off by default: slides hidden in the original deck stay out. The switch beside the search bar turns them on. */
+  const [includeHidden, setIncludeHidden] = useState(false);
+  /* Archived decks stay out unless the switch in the filters' More panel is on (FD-50). */
+  const [includeArchived, setIncludeArchived] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
-    listLibrary(transport, controller.signal)
-      .then((slides) => setLibrary({ status: 'ready', slides, decks: groupDecks(slides) }))
+    listLibrary(transport, controller.signal, { includeHidden, includeArchived })
+      .then((raw) => {
+        const slides = demoDetails ? raw.map(withDemoDetails) : raw;
+        setLibrary({ status: 'ready', slides, decks: groupDecks(slides) });
+      })
       .catch((e: Error) => e.name !== 'AbortError' && setLibrary({ status: 'error', message: e.message }));
     return () => controller.abort();
-  }, [transport, libraryTry]);
+  }, [transport, libraryTry, includeHidden, includeArchived, demoDetails]);
   const reloadLibrary = useCallback(() => {
     setLibrary({ status: 'loading' });
     setLibraryTry((n) => n + 1);
@@ -130,7 +187,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
 
   /* Search text lives in memory, not in the URL (docs/INTEGRATION_CONTRACT.md). */
   const [query, setQueryRaw] = useState('');
-  const [rawSearch, setSearch] = useState<SearchState>({ status: 'idle' });
+  const [search, setSearch] = useState<SearchState>({ status: 'idle' });
   const [searchTry, setSearchTry] = useState(0);
   /* The request the person submitted. Only that one may be read by the AI; typing uses the rules. */
   const [submitted, setSubmitted] = useState('');
@@ -152,7 +209,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     if (!q) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      smartSearch(transport, q, q === submitted, controller.signal)
+      smartSearch(transport, q, q === submitted, controller.signal, { includeHidden })
         .then((result) => setSearch({ status: 'ready', result }))
         .catch((e: Error) => e.name !== 'AbortError' && setSearch({ status: 'error', message: e.message }));
     }, SEARCH_DELAY_MS);
@@ -160,32 +217,27 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
       clearTimeout(timer);
       controller.abort();
     };
-  }, [transport, query, submitted, searchTry]);
-
-  /* Simulated approval tiers (FD-14): what the signed-in access may see. The server has no tiers yet. */
-  const caps = runtime.capabilities;
-  const library = useMemo<LibraryState>(() => {
-    if (rawLibrary.status !== 'ready') return rawLibrary;
-    const slides = rawLibrary.slides.filter((s) => canSeeTier(simTier(s), caps));
-    return { status: 'ready', slides, decks: groupDecks(slides) };
-  }, [rawLibrary, caps]);
-  const search = useMemo<SearchState>(
-    () =>
-      rawSearch.status === 'ready'
-        ? {
-            status: 'ready',
-            result: { ...rawSearch.result, items: rawSearch.result.items.filter((i) => canSeeTier(simTier(i.slide), caps)) },
-          }
-        : rawSearch,
-    [rawSearch, caps],
-  );
+  }, [transport, query, submitted, searchTry, includeHidden]);
 
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);
   const clearFilters = useCallback(() => setFilters(NO_FILTERS), []);
 
   /* The cart is the saved selection; "excluded" is only for this visit. */
-  const [selection, updateSelection] = useSelection(runtime.sessionScopeKey);
+  const [selection, updateSelectionRaw] = useSelection(runtime.sessionScopeKey);
+  /* Open from the start so a first-time visitor sees where slides collect. It only closes when the
+     person closes it, and only opens again when they open it. The one exception: the first slide added
+     to an empty draft deck opens it, so they see it land; later additions leave it as it is. */
+  const [cartMin, setCartMin] = useState(false);
+  const updateSelection = useCallback(
+    (fn: (cur: SlideSummary[]) => SlideSummary[]) =>
+      updateSelectionRaw((cur) => {
+        const next = fn(cur);
+        if (cur.length === 0 && next.length > 0 && !tourIsOpen()) setCartMin(false);
+        return next;
+      }),
+    [updateSelectionRaw],
+  );
   const [excludedList, setExcludedList] = useState<string[]>([]);
   const excluded = useMemo(() => new Set(excludedList), [excludedList]);
   const setIncluded = useCallback(
@@ -193,9 +245,6 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     [],
   );
 
-  /* Open from the start so a first-time visitor sees where slides collect. It only closes when the
-     person closes it, and only opens again when they open it. */
-    const [cartMin, setCartMin] = useState(false);
   /* The draft deck's name, edited at the top of the panel; it also fills the Save as draft box. */
   const [draftTitle, setDraftTitle] = useState('');
   const [combine, setCombine] = useState(false);
@@ -204,9 +253,9 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
   const nextToast = useRef(1);
   const dismissToast = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
   const toast = useCallback(
-    (message: string) => {
+    (message: string, action?: { label: string; run: () => void }) => {
       const id = nextToast.current++;
-      setToasts((t) => [...t, { id, message }]);
+      setToasts((t) => [...t, { id, message, action }]);
       setTimeout(() => dismissToast(id), TOAST_MS);
     },
     [dismissToast],
@@ -234,9 +283,122 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
   const openAlso = useCallback((slide: SlideSummary) => setAlsoFor(slide), []);
   const closeAlso = useCallback(() => setAlsoFor(null), []);
 
+  /* Fake sign-in (see below): the profile is needed earlier, for who confirmed a pack. */
+  const { profile, signIn, signOut: signOutStore } = useProfile();
+
+  /* Packs (FD-38): slides that go together. They come from the server on each slide, plus any made in this
+     browser while the server cannot store them. ?demopacks=1 in the address shows pretend ones. */
+  const [localPacks, updateLocalPacks] = useLocalPacks(runtime.sessionScopeKey);
+  const demoPacks = useDemoFlag('demopacks');
+  const packs = useMemo(() => (library.status === 'ready' ? buildPacks(library.slides, localPacks, demoPacks) : NO_PACKS), [library, localPacks, demoPacks]);
+  const slideById = useMemo(() => new Map((library.status === 'ready' ? library.slides : []).map((sl) => [sl.id, sl])), [library]);
+  const [packDialog, setPackDialog] = useState<PackDialogState | null>(null);
+  const openPackDialog = useCallback((d: PackDialogState) => setPackDialog(d), []);
+  const closePackDialog = useCallback(() => setPackDialog(null), []);
+  const addPackToDraft = useCallback(
+    (pack: Pack) => {
+      const slides = pack.slideIds.map((id) => slideById.get(id)).filter((sl): sl is SlideSummary => !!sl);
+      const missing = slides.filter((sl) => !selection.some((x) => x.id === sl.id));
+      if (!missing.length) return;
+      updateSelection((cur) => [...cur, ...slides.filter((sl) => !cur.some((c) => c.id === sl.id))]);
+      toast(`Added the pack${pack.label ? ` “${pack.label}”` : ''}: ${plural(missing.length, 'slide')}`);
+      announce(`Added ${plural(missing.length, 'slide')} from the pack to the draft deck`);
+    },
+    [slideById, selection, updateSelection, toast, announce],
+  );
+  const removePackFromDraft = useCallback(
+    (pack: Pack) => {
+      updateSelection((cur) => cur.filter((x) => !pack.slideIds.includes(x.id)));
+      announce('Removed the whole pack from the draft deck');
+    },
+    [updateSelection, announce],
+  );
+  const refreshLibrary = useCallback(() => setLibraryTry((n) => n + 1), []);
+
+  /* Archive and restore decks (FD-50). Nothing is deleted. The server does the hiding, so without its route
+     nothing changes and the person is told. */
+  const [archiveDialog, setArchiveDialog] = useState<ArchiveDialogState | null>(null);
+  const openArchiveDialog = useCallback((d: ArchiveDialogState) => setArchiveDialog(d), []);
+  const closeArchiveDialog = useCallback(() => setArchiveDialog(null), []);
+  const archiveDeck = useCallback(
+    async function run(deck: { id: string; title: string }, archived: boolean): Promise<boolean> {
+      try {
+        if (!(await archiveDeckApi(transport, deck.id, archived))) {
+          toast('Archiving needs the server, which does not have it yet. Nothing was changed.');
+          return false;
+        }
+      } catch (e) {
+        toast(e instanceof Error ? e.message : 'Could not change the deck. Nothing was changed.');
+        return false;
+      }
+      refreshLibrary();
+      toast(archived ? `Archived “${deck.title}”. It is hidden, not deleted.` : `Restored “${deck.title}”`, archived ? { label: 'Undo', run: () => void run(deck, false) } : undefined);
+      announce(archived ? `Archived ${deck.title}` : `Restored ${deck.title}`);
+      return true;
+    },
+    [transport, refreshLibrary, toast, announce],
+  );
+  const makePack = useCallback(
+    async (slideIds: string[], label: string | null) => {
+      const clean = label?.trim() || null;
+      const made = await createPackApi(transport, { slideIds, label: clean });
+      if (made) {
+        refreshLibrary();
+        return 'saved' as const;
+      }
+      const deckId = slideById.get(slideIds[0] ?? '')?.provenance.sourceId ?? '';
+      updateLocalPacks((cur) => ({ ...cur, packs: [...cur.packs, { id: `local-${Date.now().toString(36)}`, label: clean, deckId, slideIds }] }));
+      return 'browser' as const;
+    },
+    [transport, refreshLibrary, slideById, updateLocalPacks],
+  );
+  const ungroupPack = useCallback(
+    async (pack: Pack) => {
+      /* Made here, or pretend: just forget it. Held by the server: ask it to ungroup, or hide it here if it cannot. */
+      if (pack.local) {
+        updateLocalPacks((cur) => ({ ...cur, packs: cur.packs.filter((p) => p.id !== pack.id), hidden: [...cur.hidden, pack.id] }));
+        return 'browser' as const;
+      }
+      if (await deletePackApi(transport, pack.id)) {
+        refreshLibrary();
+        return 'saved' as const;
+      }
+      updateLocalPacks((cur) => ({ ...cur, hidden: [...cur.hidden, pack.id] }));
+      return 'browser' as const;
+    },
+    [transport, refreshLibrary, updateLocalPacks],
+  );
+  const setPackStatus = useCallback(
+    async (pack: Pack, status: 'suggested' | 'confirmed') => {
+      /* Made here or pretend: remember it in this browser. Held by the server: ask it, who and when are its to record. */
+      if (pack.local) {
+        updateLocalPacks((cur) => ({ ...cur, status: { ...cur.status, [pack.id]: { status, by: status === 'confirmed' ? (profile ?? null) : null, at: status === 'confirmed' ? new Date().toISOString() : null } } }));
+        return;
+      }
+      try {
+        if (await setPackStatusApi(transport, pack.id, status)) refreshLibrary();
+        else toast('Confirming a pack needs the server, which does not have it yet. Nothing was changed.');
+      } catch (e) {
+        toast(e instanceof Error ? e.message : 'Could not change the pack. Nothing was changed.');
+      }
+    },
+    [transport, refreshLibrary, updateLocalPacks, toast, profile],
+  );
+  const renamePack = useCallback(
+    async (pack: Pack, label: string | null) => {
+      const clean = label?.trim() || null;
+      if (pack.local) {
+        updateLocalPacks((cur) => ({ ...cur, packs: cur.packs.map((p) => (p.id === pack.id ? { ...p, label: clean } : p)) }));
+        return;
+      }
+      if (await renamePackApi(transport, pack.id, clean)) refreshLibrary();
+      else toast('Renaming a pack needs the server, which does not have it yet.');
+    },
+    [transport, refreshLibrary, updateLocalPacks, toast],
+  );
+
   /* Fake sign-in: no server, no password check. `profile` persists across reloads so a demo
      doesn't have to log in again; clearing localStorage (as the test suite does) logs out. */
-  const { profile, signIn, signOut: signOutStore } = useProfile();
   const submitLogin = useCallback(() => signIn(DEMO_PROFILE), [signIn]);
   const signOut = signOutStore;
 
@@ -286,6 +448,24 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     runtime,
     library,
     reloadLibrary,
+    includeArchived,
+    setIncludeArchived,
+    archiveDialog,
+    openArchiveDialog,
+    closeArchiveDialog,
+    archiveDeck,
+    packs,
+    packDialog,
+    openPackDialog,
+    closePackDialog,
+    addPackToDraft,
+    removePackFromDraft,
+    makePack,
+    ungroupPack,
+    renamePack,
+    setPackStatus,
+    includeHidden,
+    setIncludeHidden,
     query,
     setQuery,
     submitSearch,
