@@ -16,7 +16,7 @@ const BEATS_PER_PART: Record<StoryRole, number> = { 'client-challenge': 2, insig
 const MAX_MORE = 8;
 
 /** A beat's title from the kind of slide that leads it, when it isn't the first beat of its part. */
-const TYPE_TITLE: Record<string, string> = {
+export const TYPE_TITLE: Record<string, string> = {
   client_understanding: 'Your situation',
   design_concept: 'The idea',
   planning_testfit: 'Planning the space',
@@ -35,7 +35,7 @@ const TYPE_TITLE: Record<string, string> = {
 };
 
 /** Without the AI, a beat that leads its part is titled in the client's terms, never with the part's own name. */
-const ROLE_TITLE: Record<StoryRole, string> = {
+export const ROLE_TITLE: Record<StoryRole, string> = {
   'client-challenge': 'Where you are today',
   insight: 'What we see',
   strategy: 'How we get there',
@@ -66,7 +66,7 @@ const NEED_WORDS: Record<string, { understand: string; get?: string; proof?: str
 };
 const said = (need: string) => NEED_WORDS[need]?.understand ?? need;
 const proven = (need: string) => NEED_WORDS[need]?.proof ?? `on ${said(need)}`;
-const joined = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : (xs[0] ?? ''));
+export const joined = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : (xs[0] ?? ''));
 
 export function rulesThesis(needs: string[]): string {
   const list = needs.slice(0, 3).map(said);
@@ -122,7 +122,7 @@ function bridgeAll(beats: StoryBeat[], keep: (b: StoryBeat, i: number) => boolea
   });
 }
 
-const firstSentence = (text: string, max = 260) => {
+export const firstSentence = (text: string, max = 260) => {
   const t = text.replace(/\s+/g, ' ').trim();
   return wholeSentences(t.match(/^.{20,}?[.!?](?=\s|$)/)?.[0] ?? t, max);
 };

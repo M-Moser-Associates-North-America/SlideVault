@@ -322,6 +322,82 @@ check(wholeSentences('We start with you. Then we plan every site together with y
   check(cleanStoryPlan({ summary: long + ' ' + long, questions: [], sections: [] }).summary.endsWith('.'), 'text: the summary under the title ends on a whole sentence');
 }
 
+// ---- Families: slides that belong together (FD-42)
+{
+  const { familiesOf } = await import('../features/slide-vault/server/services/families');
+  const { dominantFamily } = await import('../features/slide-vault/server/services/storyboard');
+  const src = (id: string, fileName: string, template: string | null, slides: [string, number, boolean?][], versionId = id) => ({ id, title: id, fileName, versionId, sha256: versionId, template, slides: slides.map(([sid, number, hidden]) => ({ id: sid, number, title: sid, text: '', hidden: !!hidden })), deck: { clientName: fileName.includes('Team') ? 'Our Team' : fileName.includes('Acme') ? 'Acme' : 'Birch', deckYear: 2026 } });
+  const index = { generatedAt: '', sources: [
+    src('t3', 'Team/Our Team - 03.pptx', 'T/T/Office/111', [['t3s', 1]]),
+    src('t1', 'Team/Our Team - 01.pptx', 'T/T/Office/111', [['t1s', 1]]),
+    src('t2', 'Team/Our Team - 02.pptx', 'T/T/Office/111', [['t2s', 1]]),
+    src('a', 'M Moser_Acme_2026.pptx', 'House/House/Custom 1/FF893E', [['a1', 1], ['a2', 2]]),
+    src('a-copy', 'M Moser_Acme_2026 (1).pptx', 'House/House/Custom 1/FF893E', [['a1c', 1], ['a2c', 2]], 'a'),
+    src('b', 'M Moser_Birch_2026.pptx', 'House/House/Custom 1/FF893E', [['b1', 1]]),
+    src('p', 'M Moser_Acme_2026.pdf', null, [['p1', 1]]),
+  ] };
+  const fam = familiesOf(index as never);
+  check(JSON.stringify(fam.get('t2s')?.slideIds) === '["t1s","t2s","t3s"]', 'family: slides stored one per file are one family, in the order of their file numbers', fam.get('t2s'));
+  check(fam.get('a1')?.id !== fam.get('b1')?.id, "family: the firm's house template alone never makes a family: the client must match too");
+  check(!fam.has('a1c'), 'family: a copy of the same file counts once');
+  check(fam.get('p1')?.id !== fam.get('a1')?.id, 'family: a PDF is its own family');
+
+  const rows = (ids: string[]) => ids.map((id) => ({ summary: slide(id, id) }));
+  const of = (id: string) => fam.get(id);
+  check(dominantFamily(rows(['t1s', 't2s', 't3s', 't1s', 't2s', 'b1']), of)?.id === fam.get('t1s')?.id, 'family: one that holds most of the best matches is the story');
+  check(dominantFamily(rows(['t1s', 'a1', 'b1', 'p1', 'a2', 't2s']), of) === null, 'family: scattered matches are not a family story');
+
+  // Told whole, in its own order, with nothing from outside and no hidden slides
+  const LIB9 = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'].map((id, i) => ({ id, title: `Our builders ${id}`, text: 'The builders who made the app.', role: i === 0 ? 'client-challenge' : i < 4 ? 'why-us' : 'strategy', hidden: id === 'f6' }));
+  const OUTSIDE = { id: 'x1', title: 'Builders of offices', text: 'The builders of a client office.', role: 'why-us', hidden: false };
+  const all9 = [...LIB9, OUTSIDE];
+  const rowOf = (x: (typeof all9)[number]) => ({ summary: { ...slide(x.id, x.title), hiddenInSource: x.hidden }, facts: { title: x.title, text: x.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const knowledge = { of: (id: string) => { const x = all9.find((d) => d.id === id); return x && { role: x.role, topics: [], about: '', reviewed: true, reuse: 'reusable' }; }, forPart: async (role: string) => all9.filter((x) => x.role === role).map(rowOf) };
+  const search9 = async (plan: SearchPlan) => all9.filter((x) => plan.keywords.some((k) => `${x.title} ${x.text}`.toLowerCase().includes(k))).map(rowOf);
+  const family = { id: 'builders', title: 'Our Team · 2026', slideIds: LIB9.map((x) => x.id) };
+  const families = { of: (id: string) => (family.slideIds.includes(id) ? family : undefined), rows: async () => LIB9.map(rowOf) };
+  const r = await buildStoryboard('Tell the story of the builders who made the app.', { search: search9, knowledge, families });
+  const told = r.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)).sort((a, b) => family.slideIds.indexOf(a) - family.slideIds.indexOf(b));
+  check(r.family?.title === 'Our Team · 2026' && JSON.stringify(told) === '["f1","f2","f3","f4","f5"]', 'family story: every slide of the family, nothing from outside, no hidden slides', { family: r.family, told });
+  const order = r.beats.flatMap((b) => [b.lead, ...b.more]).filter((i) => i.slide.id.startsWith('f')).map((i) => i.slide.id);
+  check(order[0] === 'f1', 'family story: told in the order it was made', order);
+}
+
+// ---- Talking to the story: it continues, never starts over (FD-43)
+{
+  const { readTurn, refineStory } = await import('../features/slide-vault/server/services/story-refine');
+  const t = readTurn('These two slides were helpful and these two were helpful. Please go and try to look for accessibility, trust and the roadmap.');
+  check(JSON.stringify(t.find) === '["accessibility","trust","roadmap"]' && !t.remove.length, 'talk: "look for this, that and the third" is three things to find', t);
+  check(JSON.stringify(readTurn('Drop the fees slides and take out résumés').remove) === '["fees","résumés"]', 'talk: "drop X and take out Y" removes both', readTurn('Drop the fees slides and take out résumés'));
+  check(readTurn('I want it shorter').shorter && !readTurn('I want it shorter').find.length, 'talk: "I want it shorter" is a command, not something to search for');
+  check(readTurn('more like these please').like && readTurn('only keep the useful ones').keepOnly, 'talk: "more like these" and "only keep the useful ones"');
+  check(!readTurn('The client is a bank in Toronto with 400 staff.').find.length && !readTurn('The client is a bank in Toronto with 400 staff.').like, 'talk: plain context about the client is not a change request');
+
+  const sl = (id: string, title = id) => ({ slide: slide(id, title), why: '', matched: [], reasons: { brief: [], part: [], from: [] } });
+  const roles: Record<string, string> = { c1: 'client-challenge', s1: 'strategy', s2: 'strategy', p1: 'experience', w1: 'why-us', a1: 'why-us', a2: 'why-us', r1: 'outcome', f1: 'why-us' };
+  const beat = (role: string, ids: string[], title = role) => ({ role: role as never, title, bridge: 'b', narration: '', why: '', matches: [], lead: sl(ids[0], `Slide ${ids[0]}`), more: ids.slice(1).map((i) => sl(i, i === 'f1' ? 'Our fees' : `Slide ${i}`)) });
+  const story = [beat('client-challenge', ['c1']), beat('strategy', ['s1', 's2']), beat('why-us', ['w1', 'f1'])];
+  const deps = {
+    find: async (phrase: string) => (phrase === 'accessibility' ? [sl('a1', 'Built for everyone'), sl('a2', 'Accessibility checks'), sl('s1')] : phrase === 'roadmap' ? [sl('r1', 'Where it goes next')] : []),
+    known: (id: string) => ({ role: roles[id] }),
+    familyMates: async () => [sl('p1', 'Results')],
+    tellable: () => true,
+  };
+  const r = await refineStory(story, 'These were useful. Look for accessibility, pricing and the roadmap. Drop the fees.', new Set(['s2']), deps);
+  const ids = r.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id));
+  check(ids.includes('s2') && ids.includes('c1') && ids.includes('s1'), 'talk: the story on screen continues; nothing is started over', ids);
+  check(ids.includes('a1') && ids.includes('a2') && ids.includes('r1') && !ids.includes('f1'), 'talk: found slides are added and asked-away slides removed in one message', ids);
+  check(r.beats.find((b) => b.role === 'why-us')!.more.some((i) => i.slide.id === 'a1') && r.beats[r.beats.length - 1].role === 'outcome', 'talk: each found slide goes to its own part of the story, in order', r.beats.map((b) => b.role));
+  check(/Kept your 1 useful slide/.test(r.reply) && /Added 2 on accessibility and 1 on roadmap/.test(r.reply) && /Couldn't find anything new on pricing/.test(r.reply) && /Took out 1 slide about fees/.test(r.reply), 'talk: the reply says what it kept, added, couldn\'t find and took out', r.reply);
+  const pinnedStays = await refineStory(story, 'drop slide s2', new Set(['s2']), deps);
+  check(pinnedStays.beats.some((b) => [b.lead, ...b.more].some((i) => i.slide.id === 's2')), 'talk: a slide marked useful is never removed');
+  const only = await refineStory(story, 'only keep the useful ones', new Set(['s2']), deps);
+  check(JSON.stringify(only.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id))) === '["s2"]', 'talk: "only keep the useful ones" trims to them');
+  const like = await refineStory(story, 'more like these', new Set(['s2']), deps);
+  check(like.beats.some((b) => b.lead.slide.id === 'p1' || b.more.some((i) => i.slide.id === 'p1')), 'talk: "more like these" brings slides that belong with the ones you liked');
+  check(!(await refineStory(story, 'The client is a bank in Toronto.', new Set(), deps)).understood, 'talk: context about the client is handed back to rebuild, keeping the useful slides');
+}
+
 // ---- Clarifying questions
 check(missingContext(situation).length === 3, 'questions: a short situation gets asked about the audience, the worry and what a win looks like', missingContext(situation));
 check(missingContext('The board and CFO worry about disruption; the goal is a low-cost, fast fit-out.').length === 0, 'questions: a situation that already says them gets no questions');

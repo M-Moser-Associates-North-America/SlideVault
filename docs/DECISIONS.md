@@ -562,3 +562,23 @@ Documents/contracts changed: contracts/dto.ts (Provenance.archived), client/api.
 
 Revisit trigger: the server routes are live; M Moser decides who may archive and restore.
 
+
+## FD-42: Families: slides that belong together are told together (2026-10-26)
+
+(FD-38 and FD-39 are Khushali's packs and archive; FD-40 and FD-41 are kept for Vince's renumbered decisions.)
+
+Context and evidence: Asked for "the story of those three people", the storyboard told it with 16 of our 27 slides plus client slides that only matched on words. The slides that clearly belong together (same client, same template, made as one story) were treated as unrelated individuals, and Grant's point stands: M Moser has slides that belong together but no list of which. Reading every deck's theme showed most M Moser decks share one house template (Untitled Sans, accent FF893E), so look alone can't tell clients apart. Khushali (26 Oct) also asked that slides hidden in their source deck never go into a story.
+
+Chosen outcome: The loader records each deck's template: its first theme's heading and body fonts, color scheme and main accent (null for a PDF). A family is slides with the same client, year and template; a PDF is its own family, and copies of one file count once. A family keeps its natural order: a deck's own order, or the number at the end of each file name when one story was stored as separate files. When one family holds most of the best matches for a request (at least 60% of the top 20, and at least 5), the story is told from that whole family in its own order, woven like a retold deck (FD-32), with nothing from outside; the page says "Told from the N slides that belong together: <family>." Otherwise the story is built as before. Slides hidden in their deck, never-show pages and copies naming another client are left out of every story. Result: the builders' story is all 27 of our slides, in the order we made them; nothing dropped in the regression check (3 of Grant's lead slides were hidden slides and are replaced).
+
+Consequences: A family used as one chapter of a different story (Pursuit inside a law-firm pitch) is the next step. Families could suggest packs (FD-38) later. Archived decks are already left out of the database queries (Vince's FD-32, to be FD-40); the local library has no archive.
+
+## FD-43: Talk to your story: each message continues it (2026-10-26)
+
+Context and evidence: Demo review (Schiffon, 26 Oct): after a first story, telling it "these two slides were helpful, now look for this and that" reran the whole storyboard from scratch, losing the story on screen. It has to work like a conversation: react, refine, repeat until it's right.
+
+Chosen outcome: The box under the story is a conversation ("Talk to your story"): the story's questions open it, and each message gets a short reply saying what was done. POST /storyboard/refine takes the story on screen as slide ids only (every slide is read again from the library), the slides marked Useful (never removed) and the message, and continues the story (services/story-refine.ts, rules only): "look for / find / add / what about X, Y and Z" searches each thing (home search's ranking, FD-33) and adds the best new slides to their own part of the story; "drop / remove / take out X" removes matching slides; "only keep the useful ones" trims to them; "more like these" adds slides from the same family (FD-42); "shorter" keeps one slide per moment plus Useful ones. A message that asks for none of these is more context: the story is rebuilt with it and the Useful slides are put back. Replies are honest: "Couldn't find anything new on pricing", "Nothing in the story was about résumés". Start over still starts over.
+
+Found on the way: identical copies of a file share slide ids, so reading a list of slides counted each copy and could cut off the last slides asked for (two Moody's pages dropped out of a refined story). Each slide is now read once (fixture-smart-search fixtureRowsWhere), which also protects families, retelling and client context.
+
+Consequences: The rules understand the common requests; the AI (once chosen) can read free-form requests the rules don't cover. Reordering by request ("put the team before the results") is not built yet.

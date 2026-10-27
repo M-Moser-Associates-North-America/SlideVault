@@ -281,6 +281,22 @@ export type StoryboardSection = {
 };
 
 /** POST /storyboard: a client situation turned into a story of slides, in order */
+/**
+ * POST /storyboard/refine (FD-43): one message in a conversation about the story on screen. The story
+ * is sent as its slide ids only (the server reads every slide itself); Useful slides always stay.
+ */
+export type StoryRefineRequest = {
+  situation: string;
+  message: string;
+  /** The story on screen, beat by beat: the slide ids (lead first) and the words shown */
+  beats: { role: StoryRole; kind?: 'required' | 'suggested'; title: string; bridge: string; narration: string; why: string; matches: string[]; slideIds: string[] }[];
+  /** Slides the person marked Useful: never removed */
+  pinned: string[];
+  role?: StoryUserRole | null;
+};
+/** The story after the message: either the same story changed (beats), or rebuilt with the message as more context (story) */
+export type StoryRefineResult = { reply: string; beats?: StoryBeat[]; story?: StoryboardResult };
+
 export type StoryboardResult = {
   /** model: the AI read the situation; rules: the standard story order was used */
   reader: 'model' | 'rules';
@@ -315,6 +331,8 @@ export type StoryboardResult = {
   deck?: { id: string; title: string; slideCount: number };
   /** Retrieve asked for a deck the library doesn't have (FD-34): the name or years asked for, said honestly */
   missing?: { name: string | null; years: number[] };
+  /** Build: the family of slides that belong together the story was told from, when one clearly answered the request (FD-42) */
+  family?: { title: string; slides: number };
   /** Build: the decks we already made for clients the brief names, used for the parts about them */
   context?: { id: string; title: string }[];
 };

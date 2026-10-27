@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRole, StoryUserRole, UploadDeckMeta } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -130,6 +130,13 @@ export async function buildStory(runtime: Transport, situation: string, opts: { 
 }
 
 /** "Was this helpful?": saved without a name or the brief, used to rank the next similar storyboard. */
+/** One message in a conversation about the story on screen (FD-43): the story continues, Useful slides stay. */
+export async function refineStory(runtime: Transport, request: StoryRefineRequest, signal?: AbortSignal): Promise<StoryRefineResult> {
+  const res = await runtime.request({ path: '/storyboard/refine', method: 'POST', body: request, signal });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<StoryRefineResult>).data;
+}
+
 /** saved: false when learning from this person's activity is off (FD-37): nothing was stored. */
 export async function sendStoryFeedback(runtime: Transport, feedback: { role: StoryRole; slideId: string | null; verdict: StoryFeedbackVerdict; topics: string[]; by?: StoryUserRole | null }): Promise<{ saved: boolean }> {
   const res = await runtime.request({ path: '/storyboard/feedback', method: 'POST', body: feedback });

@@ -56,9 +56,12 @@ export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan
 export function fixtureRowsWhere(index: LibraryIndex | null, keep: (slideId: string) => boolean, limit: number): { summary: SlideSummary; facts: SlideFacts }[] {
   if (!index) return [];
   const out: { summary: SlideSummary; facts: SlideFacts }[] = [];
+  // Identical copies of a file share slide ids: read each slide once, or the copies use up the limit.
+  const seen = new Set<string>();
   for (const source of index.sources) {
     for (const slide of source.slides) {
-      if (!keep(slide.id)) continue;
+      if (!keep(slide.id) || seen.has(slide.id)) continue;
+      seen.add(slide.id);
       const summary = toSummary(source, slide);
       const p = summary.provenance;
       out.push({ summary, facts: { title: slide.title, text: slide.text, client: p.clientName ?? null, year: p.deckYear ?? null, category: p.category ?? null, bestOfTheBest: Boolean(p.bestOfTheBest) } });
