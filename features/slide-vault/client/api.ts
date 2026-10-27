@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -212,4 +212,38 @@ export async function archiveDeck(runtime: Transport, deckId: string, archived: 
   if (res.status === 404 || res.status === 405 || res.status === 501) return false;
   if (!res.ok) return failure(runtime, res);
   return true;
+}
+
+/* ---------------------------------------------------------------- Free tags (FD-53) */
+
+/** Every free-form tag in use, most used first, for the filter list. Empty when the server has none. */
+export async function listTags(runtime: Transport, signal?: AbortSignal): Promise<{ tag: string; slides: number; decks: number }[]> {
+  const res = await runtime.request({ path: '/tags', method: 'GET', signal });
+  if (notThere(res)) return [];
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ tag: string; slides: number; decks: number }[]>).data;
+}
+
+/** Tag a slide, or a whole deck (then every slide in it shows the tag). Adding one that's already there returns it. */
+export async function addTag(runtime: Transport, on: 'slide' | 'deck', id: string, tag: string): Promise<FreeTag | null> {
+  const res = await runtime.request({ path: '/tags', method: 'POST', body: { on, id, tag } });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<FreeTag>).data;
+}
+
+/** Remove a tag by its id (FreeTag.id). Returns false when the server has no such route yet. */
+export async function removeTag(runtime: Transport, tagId: string): Promise<boolean> {
+  const res = await runtime.request({ path: `/tags/${encodeURIComponent(tagId)}`, method: 'DELETE' });
+  if (notThere(res)) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
+}
+
+/** Slides with a given free tag, on the slide or its deck. Search with the library's own params plus tag=. */
+export async function slidesWithTag(runtime: Transport, tag: string, signal?: AbortSignal): Promise<SlideSummary[]> {
+  const params = new URLSearchParams({ kind: 'slide', limit: '1000', duplicates: 'all', tag });
+  const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiPage<SlideSummary>).data;
 }

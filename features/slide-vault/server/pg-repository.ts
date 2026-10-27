@@ -1,5 +1,5 @@
 import 'server-only';
-import type { LibraryDeck, LibrarySlide, SlideSummary } from '../contracts/dto';
+import type { LibraryDeck, LibrarySlide, SlideStory, SlideSummary } from '../contracts/dto';
 import { sql } from './db';
 import type { DetailChanges } from './deck-details';
 import type { SlideText } from './duplicates';
@@ -162,7 +162,40 @@ type SlideWithDeck = {
   thumbnail_path: string | null;
   is_hidden_in_source: boolean;
   decks: DeckRow;
+  // Story data (FD-51, FD-53)
+  story_role?: string | null;
+  slide_type?: string | null;
+  reuse_status?: string | null;
+  themes?: string[] | null;
+  proof_sectors?: string[] | null;
+  projects?: string[] | null;
+  flags?: string[] | null;
+  shows?: string | null;
+  convinces?: string | null;
+  story_status?: 'suggested' | 'confirmed' | null;
+  ai_uncertain?: boolean | null;
 };
+
+/** The slide's story data, or null when nothing is known about it (FD-53). */
+function toStory(row: SlideWithDeck): SlideStory | null {
+  if (!row.story_status && !row.story_role) return null;
+  return {
+    role: row.story_role ?? null,
+    type: row.slide_type ?? null,
+    reuse: row.reuse_status ?? null,
+    themes: row.themes ?? [],
+    sectors: row.proof_sectors ?? [],
+    projects: row.projects ?? [],
+    flags: row.flags ?? [],
+    shows: row.shows ?? null,
+    convinces: row.convinces ?? null,
+    status: row.story_status === 'confirmed' ? 'confirmed' : 'suggested',
+    uncertain: row.story_status !== 'confirmed' && !!row.ai_uncertain,
+  };
+}
+
+/** Slides the team marked "internal - never show": kept out of search like hidden slides (FD-53). */
+export const isInternalOnly = (s: SlideSummary) => s.story?.reuse === 'internal - never show';
 
 const iso = (v: Date | string | null | undefined) => (v ? new Date(v).toISOString() : null);
 
@@ -194,13 +227,16 @@ function toSlideSummary(row: SlideWithDeck): SlideSummary {
       uploadedAt: iso(d.uploaded_at),
       ...(d.archived_at ? { archived: true, archivedBy: d.archived_by ?? null, archivedAt: iso(d.archived_at) } : {}),
     },
+    ...(toStory(row) ? { story: toStory(row) } : {}),
   };
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Slide columns plus its deck as one object, the shape toSlideSummary expects. */
-const SLIDE_WITH_DECK = `select s.id, s.slide_number, s.title, s.text, s.thumbnail_path, s.is_hidden_in_source, to_jsonb(d.*) as decks
+const SLIDE_WITH_DECK = `select s.id, s.slide_number, s.title, s.text, s.thumbnail_path, s.is_hidden_in_source,
+    s.story_role, s.slide_type, s.reuse_status, s.themes, s.proof_sectors, s.projects, s.flags, s.shows, s.convinces, s.story_status, s.ai_uncertain,
+    to_jsonb(d.*) as decks
   from slides s join decks d on d.id = s.deck_id`;
 
 export async function getSlidePg(slideId: string): Promise<{ summary: SlideSummary; text: string; thumbnailStorageKey: string | null } | null> {
@@ -222,15 +258,25 @@ const LIBRARY_CEILING = 20000;
  * selection"). With no query it lists the library: every slide of every ready deck, not just the
  * first `limit`, so deck pages are never missing slides from older decks.
  */
-export async function searchSlidesPg(query: string, limit: number, archived: ArchivedFilter = 'exclude'): Promise<SlideSummary[]> {
+export async function searchSlidesPg(query: string, limit: number, archived: ArchivedFilter = 'exclude', tag: string | null = null): Promise<SlideSummary[]> {
   const q = query.trim();
-  const rows = q
-    ? await sql<SlideWithDeck>(
-        `${SLIDE_WITH_DECK} where d.status = 'ready' and ${archivedWhere(archived)} and s.search_text @@ plainto_tsquery('english', $1)
-         order by ts_rank(s.search_text, plainto_tsquery('english', $1)) desc, d.title, s.slide_number limit $2`,
-        [q, limit],
-      )
-    : await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where d.status = 'ready' and ${archivedWhere(archived)} order by d.uploaded_at desc, s.slide_number limit $1`, [LIBRARY_CEILING]);
+  const values: unknown[] = [];
+  const add = (v: unknown) => (values.push(v), `$${values.length}`);
+  const where = [`d.status = 'ready'`, archivedWhere(archived)];
+  // A free tag on the slide itself or on its whole deck (FD-53).
+  if (tag?.trim()) {
+    const t = add(tag.trim());
+    where.push(`exists (select 1 from free_tags f where lower(f.tag) = lower(${t}) and ((f.target_kind = 'slide' and f.target_id = s.id) or (f.target_kind = 'deck' and f.target_id = d.id)))`);
+  }
+  let order = 'd.uploaded_at desc, s.slide_number';
+  let cap = LIBRARY_CEILING;
+  if (q) {
+    const p = add(q);
+    where.push(`s.search_text @@ plainto_tsquery('english', ${p})`);
+    order = `ts_rank(s.search_text, plainto_tsquery('english', ${p})) desc, d.title, s.slide_number`;
+    cap = limit;
+  }
+  const rows = await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where ${where.join(' and ')} order by ${order} limit ${add(cap)}`, values);
   return rows.map(toSlideSummary);
 }
 

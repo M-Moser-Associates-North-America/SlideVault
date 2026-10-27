@@ -610,3 +610,17 @@ Acceptance evidence / affected PR criteria: npm run test:packs (36 checks on a l
 Documents/contracts changed: server/sql/schema.sql, contracts/dto.ts (Provenance.archivedBy, archivedAt; ApiErrorCode CONFLICT), server/packs.ts (new), server/file-facts.ts (new), server/db.ts (transaction), server/pg-repository.ts, server/user-route.ts, server/services/upload.ts, app/api/slide-vault/v1/packs (new), decks/[deckId] (new), search, smart-search, slides/[slideId] and uploads routes, scripts/deck-details.mts (new), scripts/test-packs-archive.mts (new), scripts/import-story-data.mts, scripts/upload-library.mts, package.json.
 Revisit trigger: Alina sets who may confirm, dismiss and archive; M Moser's login replaces the signed-in name; SharePoint supplies its own Created by.
 ```
+
+```text
+Decision ID and title: FD-53 Each slide's story tags and free-form tags reach the app; "internal - never show" slides stay out of search
+Status: proposed
+Decision date: 2026-10-26
+Decision owner/reviewer: Vincent (build), Khushali (tags on the slide page and the tag filter), Schiffon (the reviewed tags), Alina Pak (21 Oct: "free-form tags I can filter and sort by")
+Context and evidence: At the 21 Oct check-in the team agreed to show each slide's tags on its page, and Alina asked for her own free-form tags she can filter and sort by. The reviewed tags (FD-51) are in Supabase on 655 slides, but the app received none of them. 37 reviewed slides are marked "internal - never show".
+Options considered: (a) a story object and a tags list on every SlideSummary, plus /tags routes; (b) a separate /slides/:id/tags call per slide (one request per card); (c) leave tags to the storyboard only.
+Chosen outcome: (a). SlideSummary.story carries role, type, reuse, themes, sectors, projects, flags, shows, convinces, status (confirmed when the team reviewed it, suggested when only the AI read it) and uncertain. SlideSummary.tags lists the free-form tags on the slide and then its deck's. GET /tags lists every tag with how often it's used; POST /tags { on: 'slide' | 'deck', id, tag } adds one (adding it again returns the same tag, whatever the capitals); DELETE /tags/:id removes it; /search?tag= finds slides tagged themselves or through their deck. Slides marked "internal - never show" are left out of /search and /smart-search the same way hidden slides are (FD-50), and come back with hidden=include. client/api.ts has listTags, addTag, removeTag and slidesWithTag for the screens.
+Consequences for scope, cost, security and integration: No AI calls. Anyone signed in can add or remove tags for the MVP; who may is a tier decision for Alina. Tags are stored with who added them, so a review or moderation step can come later. The storyboard still reads Schiffon's files until it switches to these tables.
+Acceptance evidence / affected PR criteria: npm run test:tags (21 checks on a local Postgres); test:packs, test:user-data and test:smart-search still pass; typecheck and lint on the changed files.
+Documents/contracts changed: contracts/dto.ts (SlideStory, FreeTag, SlideSummary.story and .tags), server/tags.ts (new), server/pg-repository.ts, search, smart-search and slides/[slideId] routes, app/api/slide-vault/v1/tags (new), client/api.ts, scripts/test-tags.mts (new), package.json.
+Revisit trigger: Alina sets who may tag; people want to confirm or correct the story tags in the app; the storyboard reads from Supabase.
+```

@@ -101,6 +101,43 @@ export type PackRef = {
   slideIds: string[];
 };
 
+/**
+ * What a slide does in a proposal (FD-51, FD-53): from the team's reviewed metadata ("confirmed") or
+ * the AI's reading alone ("suggested", Alina's rule: AI labels stay suggestions until a person
+ * confirms). Absent when nothing is known about the slide.
+ */
+export type SlideStory = {
+  /** client challenge, insight, approach, proof, why us, outcome, intro, admin or divider */
+  role: string | null;
+  /** e.g. cover, team_resume, case_study_detail */
+  type: string | null;
+  /** reusable, reusable - check currency, client-specific - reference only, or internal - never show */
+  reuse: string | null;
+  themes: string[];
+  /** Sectors a case study proves experience in */
+  sectors: string[];
+  /** Projects a case study shows */
+  projects: string[];
+  /** e.g. names another client / leftover placeholder */
+  flags: string[];
+  /** One line each: what the slide shows, and what it convinces the client of */
+  shows: string | null;
+  convinces: string | null;
+  status: 'suggested' | 'confirmed';
+  /** The AI wasn't sure of its own reading (only for suggested) */
+  uncertain: boolean;
+};
+
+/** A free-form tag a person added to a slide or to its deck (Alina, 21 Oct; FD-53). */
+export type FreeTag = {
+  id: string;
+  tag: string;
+  /** Added to this slide, or to the whole deck it comes from */
+  on: 'slide' | 'deck';
+  addedBy: string;
+  addedAt: string;
+};
+
 export type SlideSummary = {
   id: string;
   title: string;
@@ -114,6 +151,10 @@ export type SlideSummary = {
   alsoIn?: AlsoIn | null;
   /** The pack this slide belongs to, if any (FD-38) */
   pack?: PackRef | null;
+  /** What the slide does in a proposal, when known (FD-53) */
+  story?: SlideStory | null;
+  /** Free-form tags on this slide or its deck, when any (FD-53) */
+  tags?: FreeTag[];
 };
 
 export type SlideDetail = SlideSummary & { text: string };
