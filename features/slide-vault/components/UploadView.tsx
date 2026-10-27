@@ -191,7 +191,6 @@ export function UploadView() {
             {otherCategory && (
               <input ref={otherRef} type="text" className="input catother" aria-label="Other category" value={category} maxLength={60} onChange={(e) => setCategory(e.target.value)} placeholder="Name the category" />
             )}
-            <p className="field-hint">Tap one. Tap it again to clear.</p>
           </div>
           <TagField label="Tags" hint="Words people might search for, like a sector or topic. Press Enter or comma after each." value={tags} onChange={setTags} suggestions={known} disabled={busy} />
           <div className="radio-row full">
