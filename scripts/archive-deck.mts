@@ -1,6 +1,6 @@
 /**
  * Archive or restore a deck: hide it from the app, search and AI without deleting anything
- * (docs/DECISIONS.md FD-32). M Moser's bucket can't delete files, so this is how a test or
+ * (docs/DECISIONS.md FD-50). M Moser's bucket can't delete files, so this is how a test or
  * wrong deck is taken out of view. Reversible with --undo.
  *
  *   npm run deck:archive -- "Kestrel Law"            # shows which decks match; changes nothing

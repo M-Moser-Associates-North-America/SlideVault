@@ -9,6 +9,7 @@ import type { DeckSummary, UploadDeckMeta } from '../../contracts/dto';
 import { ServiceError } from '../http';
 import { describeChanges, detailsToAdd } from '../deck-details';
 import { createDeck, findDeckByHash, insertSlides, markDeckFailed, markDeckReady, restartDeck, updateDeckDetails } from '../pg-repository';
+import { readFileFacts } from '../file-facts';
 import { readSlideSize } from '../slide-size';
 import { uploadOriginal, uploadPreview } from '../storage';
 
@@ -23,7 +24,8 @@ const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest(
  * `meta` fields come from a form today; reading them from real SharePoint-style subfolders
  * is Vincent's ingest-reads-subfolders piece and plugs into this same function later.
  */
-export async function processUpload(fileName: string, bytes: Uint8Array, meta: UploadDeckMeta): Promise<DeckSummary> {
+/** uploadedBy: the signed-in person, when the request names one (FD-52); recorded with the deck. */
+export async function processUpload(fileName: string, bytes: Uint8Array, meta: UploadDeckMeta, uploadedBy: string | null = null): Promise<DeckSummary> {
   if (!fileName.toLowerCase().endsWith('.pptx')) {
     throw new ServiceError(415, 'UNSUPPORTED_FILE_TYPE', 'Only .pptx files are accepted.');
   }
@@ -64,6 +66,7 @@ export async function processUpload(fileName: string, bytes: Uint8Array, meta: U
   const deckId = randomUUID();
   const sourceStorageKey = await uploadOriginal(deckId, bytes);
   const slideSize = await readSlideSize(bytes);
+  const facts = await readFileFacts(bytes);
 
   await createDeck({
     id: deckId,
@@ -77,6 +80,9 @@ export async function processUpload(fileName: string, bytes: Uint8Array, meta: U
     fileHash,
     bestOfTheBest: meta.bestOfTheBest,
     slideSize,
+    uploadedBy,
+    createdBy: facts.createdBy,
+    fileCreatedAt: facts.createdAt,
   });
   return processSlides(deckId, title, bytes);
 }

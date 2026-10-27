@@ -1,5 +1,6 @@
 import type { UploadDeckMeta } from '@/features/slide-vault/contracts/dto';
 import { fail, ok, RATE_POLICIES, rateLimit, ServiceError, toResponse } from '@/features/slide-vault/server';
+import { userOf } from '@/features/slide-vault/server/principal';
 import { processUpload } from '@/features/slide-vault/server/services/upload';
 
 // POST /uploads (multipart/form-data): file + clientName, deckYear, category, folderPath,
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
 
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const summary = await processUpload(file.name, bytes, meta);
+    const summary = await processUpload(file.name, bytes, meta, userOf(request));
     return ok(summary);
   } catch (e) {
     if (e instanceof ServiceError) return toResponse(e);

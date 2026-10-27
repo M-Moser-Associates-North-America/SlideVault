@@ -10,7 +10,7 @@ import { useWorkspace } from './state';
 type Loaded = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; decks: Deck[] };
 
 /**
- * Archived decks (FD-32, FD-39): every deck that has been hidden from the library, search and AI, with a
+ * Archived decks (FD-50, FD-39): every deck that has been hidden from the library, search and AI, with a
  * Restore button on each. Opened from the profile menu. Nothing here is deleted. For the MVP anyone can restore.
  */
 export function ArchiveView() {

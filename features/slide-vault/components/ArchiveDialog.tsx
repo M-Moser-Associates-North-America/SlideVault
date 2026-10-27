@@ -7,7 +7,7 @@ import { plural } from './library';
 import { useWorkspace } from './state';
 
 /**
- * Archive or restore a deck (FD-32). Archiving hides the deck from the library, search and AI for everyone;
+ * Archive or restore a deck (FD-50). Archiving hides the deck from the library, search and AI for everyone;
  * nothing is deleted and it can be restored. For the MVP anyone signed in can do it (a tier decision for later).
  */
 export function ArchiveDialog() {

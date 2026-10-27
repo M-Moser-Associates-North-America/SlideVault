@@ -61,3 +61,27 @@ export async function sql<T = Record<string, unknown>>(text: string, values: unk
     client.release();
   }
 }
+
+/**
+ * Run several statements as one: all of them happen, or none do (FD-52, e.g. making a pack and its
+ * members). `q` works like sql() but on the same connection, inside the transaction.
+ */
+export async function transaction<R>(work: (q: <T = Record<string, unknown>>(text: string, values?: unknown[]) => Promise<T[]>) => Promise<R>): Promise<R> {
+  const client = await db().connect();
+  try {
+    if (!prepared.has(client)) {
+      await client.query(`SET ROLE slidevault_developer; SET search_path TO ${pg.escapeIdentifier(readMmoserConfig().db.schema)}, public`);
+      prepared.add(client);
+    }
+    await client.query('begin');
+    const q = async <T,>(text: string, values: unknown[] = []) => (await client.query(text, values)).rows as T[];
+    const out = await work(q);
+    await client.query('commit');
+    return out;
+  } catch (e) {
+    await client.query('rollback').catch(() => {});
+    throw e;
+  } finally {
+    client.release();
+  }
+}

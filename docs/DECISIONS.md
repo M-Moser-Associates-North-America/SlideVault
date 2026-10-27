@@ -425,7 +425,7 @@ Revisit trigger: the scan runs at upload; readings move to Postgres; the regroup
 ```
 
 ```text
-Decision ID and title: FD-32 Hidden-in-source slides left out by default; archived decks; year from "<Category> <Year>" folders
+Decision ID and title: FD-50 Hidden-in-source slides left out by default; archived decks; year from "<Category> <Year>" folders
 Status: proposed
 Decision date: 2026-10-22
 Decision owner/reviewer: Vincent (build), Khushali (screens and archive in the app), Grant Christofely and Alina Pak (21 Oct check-in)
@@ -582,3 +582,31 @@ Chosen outcome: The box under the story is a conversation ("Talk to your story")
 Found on the way: identical copies of a file share slide ids, so reading a list of slides counted each copy and could cut off the last slides asked for (two Moody's pages dropped out of a refined story). Each slide is now read once (fixture-smart-search fixtureRowsWhere), which also protects families, retelling and client context.
 
 Consequences: The rules understand the common requests; the AI (once chosen) can read free-form requests the rules don't cover. Reordering by request ("put the team before the results") is not built yet.
+
+```text
+Decision ID and title: FD-51 Story data lives in M Moser's Supabase: story fields on slides, slide packs, free-form tags, and an import from the reviewed metadata
+Status: proposed
+Decision date: 2026-10-24
+Decision owner/reviewer: Vincent (build), Schiffon (the metadata and the storyboard that reads it), Khushali (screens for tags and packs), Alina Pak (21 Oct check-in)
+Context and evidence: The storyboard (FD-22 to FD-31) reads each slide's role, reuse status, themes and flags from files on one laptop (slide-metadata.json, discover-scan.json, deck-catalog.json), because the real decks can't leave it. Alina only sees what is in her Supabase. At the 21 Oct check-in Grant asked for slide packs and Alina for her categories plus free-form tags she can filter and sort by; her rule from 19 Oct is that AI labels only count once a person confirms them.
+Options considered: (a) columns on slides and decks plus slide_packs and free_tags tables, filled by an import script that matches slides exactly; (b) one JSON column per slide holding whatever the files have; (c) keep the files and copy them to M Moser by hand.
+Chosen outcome: (a). slides gains story_role, reuse_status, image_kind, themes, proof_sectors, projects, flags, shows, convinces, story_status (suggested or confirmed), story_confirmed_by and ai_uncertain; decks gains deck_kind, client_sector, project_location and outcome (won, lost or pending). New tables slide_packs and slide_pack_members (status suggested or confirmed, source import, upload or person) and free_tags (deck or slide, one copy of a tag per item, who added it). scripts/import-story-data.mts (npm run story:import) matches each slide by the storyboard's own id, which comes from the deck file's SHA-256 and the slide number, against decks.file_hash, so no names are guessed. Reviewed metadata is written as confirmed; the AI's reading alone stays suggested. Slide packs and deck kind, sector and location come from the reviewed CSV. Dry run unless --yes; one transaction; safe to run again (confirmed packs and people's tags are never replaced).
+Consequences for scope, cost, security and integration: No AI calls and no slide text leaves the database. PDF decks aren't in Supabase, so their readings wait. Deck details from the SharePoint view (author, office, uploaded by, dates) are Khushali's and stay in their own block of schema.sql; project_location is where the client's project is, not the M Moser office. Meaning-based search (pgvector) is a separate step, because the extension has to be switched on in the project first.
+Acceptance evidence / affected PR criteria: db:setup run twice on a local Postgres set up like M Moser's; the import's dry run, write and second write checked there (exact matches, confirmed vs suggested, one pack after two runs); typecheck.
+Documents/contracts changed: server/sql/schema.sql, scripts/import-story-data.mts (new), package.json.
+Revisit trigger: the storyboard reads from Supabase instead of the files; upload suggests these fields (FD-23); M Moser records which proposals won.
+```
+
+```text
+Decision ID and title: FD-52 Packs, archive and deck details served by the server, to Khushali's contract (FD-38, FD-39)
+Status: proposed
+Decision date: 2026-10-26
+Decision owner/reviewer: Vincent (build), Khushali (contract and screens), Schiffon (storyboard reads the same tables), Alina Pak (who may do what, at hand-off)
+Context and evidence: Khushali's screens for packs (FD-38) and archive (FD-39) call routes that didn't exist yet and fall back to the browser. Her contract: a pack on every slide that is in one, POST/PATCH/DELETE /packs, confirm and unconfirm with who and when, dismissed suggestions kept, PATCH /decks/:id { archived }, archived=include|only on the library, and real Created by / Uploaded by details. While building it, the library listing turned out to return only the first 1,000 database slides, and the real library is now about 1,900.
+Options considered: packs: (a) enforce the rules on the server in one transaction, (b) trust the screen; dismissing: (a) keep the row as "dismissed", (b) delete it (the import and the storyboard would suggest it again); deck details: (a) read the author and date PowerPoint records in docProps/core.xml, plus the signed-in uploader, (b) leave them empty until SharePoint.
+Chosen outcome: (a) each time. server/packs.ts: 2 to 20 slides from one deck, each once, a slide in at most one live pack (409 naming the slide); a person's pack is confirmed by them; PATCH renames and confirms or unconfirms (confirmed_by, confirmed_at); DELETE dismisses a suggested or imported pack (dismissed_by, dismissed_at) and removes a person's own. Every slide in a pack carries the whole pack in order (search, smart search, slide page). PATCH /decks/:id sets archived_at and archived_by; search takes archived=include (marked provenance.archived, archivedBy, archivedAt) or only. Provenance carries createdBy, uploadedBy, createdAt, uploadedAt and location. Uploads record the uploader (X-SlideVault-User; upload:library --as "Name") and the file's author and date; scripts/deck-details.mts fills them in for decks already uploaded, matched by SHA-256. The story import replaces only its own unconfirmed suggestions and skips any pack that was dismissed or would share a slide with a live pack. Listing the library with no query returns every slide of every ready deck.
+Consequences for scope, cost, security and integration: Anyone signed in can make, confirm, dismiss and archive for the MVP; who may is a tier decision for Alina, noted for hand-off. The signed-in name is still the prototype stand-in (principal.ts). "Created by" is whoever PowerPoint recorded as the file's author, which can be a template's author; it is shown as recorded. No AI calls, nothing deleted from storage.
+Acceptance evidence / affected PR criteria: npm run test:packs (36 checks on a local Postgres: every rule above, the 1,000-slide cap gone, unknown details stay null); test:user-data and test:folder-path still pass; typecheck and lint on the changed files; the import checked to keep a dismissed pack dismissed.
+Documents/contracts changed: server/sql/schema.sql, contracts/dto.ts (Provenance.archivedBy, archivedAt; ApiErrorCode CONFLICT), server/packs.ts (new), server/file-facts.ts (new), server/db.ts (transaction), server/pg-repository.ts, server/user-route.ts, server/services/upload.ts, app/api/slide-vault/v1/packs (new), decks/[deckId] (new), search, smart-search, slides/[slideId] and uploads routes, scripts/deck-details.mts (new), scripts/test-packs-archive.mts (new), scripts/import-story-data.mts, scripts/upload-library.mts, package.json.
+Revisit trigger: Alina sets who may confirm, dismiss and archive; M Moser's login replaces the signed-in name; SharePoint supplies its own Created by.
+```

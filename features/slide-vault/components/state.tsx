@@ -39,7 +39,7 @@ type Workspace = {
   /** Slides hidden in their original deck are left out of search and the library unless this is on (FD-27) */
   includeHidden: boolean;
   setIncludeHidden: (on: boolean) => void;
-  /** Archived decks are left out of every list unless this is on (FD-32) */
+  /** Archived decks are left out of every list unless this is on (FD-50) */
   includeArchived: boolean;
   setIncludeArchived: (on: boolean) => void;
   /** The question asked before archiving or restoring a deck */
@@ -168,7 +168,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
   const demoDetails = useDemoFlag('demodetails');
   /* Off by default: slides hidden in the original deck stay out. The switch beside the search bar turns them on. */
   const [includeHidden, setIncludeHidden] = useState(false);
-  /* Archived decks stay out unless the switch in the filters' More panel is on (FD-32). */
+  /* Archived decks stay out unless the switch in the filters' More panel is on (FD-50). */
   const [includeArchived, setIncludeArchived] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
@@ -315,7 +315,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
   );
   const refreshLibrary = useCallback(() => setLibraryTry((n) => n + 1), []);
 
-  /* Archive and restore decks (FD-32). Nothing is deleted. The server does the hiding, so without its route
+  /* Archive and restore decks (FD-50). Nothing is deleted. The server does the hiding, so without its route
      nothing changes and the person is told. */
   const [archiveDialog, setArchiveDialog] = useState<ArchiveDialogState | null>(null);
   const openArchiveDialog = useCallback((d: ArchiveDialogState) => setArchiveDialog(d), []);

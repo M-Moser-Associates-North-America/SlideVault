@@ -32,6 +32,13 @@ type DeckRow = {
   slide_count: number;
   status: 'queued' | 'processing' | 'ready' | 'failed';
   error: string | null;
+  uploaded_at?: Date | string | null;
+  archived_at?: Date | string | null;
+  archived_by?: string | null;
+  created_by?: string | null;
+  file_created_at?: Date | string | null;
+  uploaded_by?: string | null;
+  project_location?: string | null;
 };
 
 export type NewDeckInput = {
@@ -47,6 +54,10 @@ export type NewDeckInput = {
   fileHash: string;
   bestOfTheBest: boolean;
   slideSize: string;
+  /** Deck details (FD-52): who uploaded it, and the author and date PowerPoint recorded in the file */
+  uploadedBy?: string | null;
+  createdBy?: string | null;
+  fileCreatedAt?: string | null;
 };
 
 export type NewSlideInput = {
@@ -103,11 +114,12 @@ export async function updateDeckDetails(deckId: string, changes: DetailChanges):
 
 export async function createDeck(input: NewDeckInput): Promise<string> {
   const [row] = await sql<{ id: string }>(
-    `insert into decks (id, client, year, category, source_path, title, source_filename, file_path, file_hash, source, best_of_the_best, slide_size, status)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'upload', $10, $11, 'processing')
+    `insert into decks (id, client, year, category, source_path, title, source_filename, file_path, file_hash, source, best_of_the_best, slide_size, status,
+       uploaded_by, created_by, file_created_at)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'upload', $10, $11, 'processing', $12, $13, $14)
      returning id`,
     [input.id, input.client, input.year, input.category, input.sourcePath, input.title, input.sourceFilename,
-      input.filePath, input.fileHash, input.bestOfTheBest, input.slideSize],
+      input.filePath, input.fileHash, input.bestOfTheBest, input.slideSize, input.uploadedBy ?? null, input.createdBy ?? null, input.fileCreatedAt ?? null],
   );
   return row.id;
 }
@@ -152,7 +164,10 @@ type SlideWithDeck = {
   decks: DeckRow;
 };
 
+const iso = (v: Date | string | null | undefined) => (v ? new Date(v).toISOString() : null);
+
 function toSlideSummary(row: SlideWithDeck): SlideSummary {
+  const d = row.decks;
   return {
     id: row.id,
     title: row.title || `Slide ${row.slide_number}`,
@@ -171,6 +186,13 @@ function toSlideSummary(row: SlideWithDeck): SlideSummary {
       deckYear: row.decks.year,
       category: row.decks.category,
       bestOfTheBest: row.decks.best_of_the_best,
+      location: d.project_location ?? null,
+      // Deck details (FD-52): real values only, null when nobody recorded them.
+      createdBy: d.created_by ?? null,
+      uploadedBy: d.uploaded_by ?? null,
+      createdAt: iso(d.file_created_at),
+      uploadedAt: iso(d.uploaded_at),
+      ...(d.archived_at ? { archived: true, archivedBy: d.archived_by ?? null, archivedAt: iso(d.archived_at) } : {}),
     },
   };
 }
@@ -188,17 +210,40 @@ export async function getSlidePg(slideId: string): Promise<{ summary: SlideSumma
   return { summary: toSlideSummary(row), text: row.text ?? '', thumbnailStorageKey: row.thumbnail_path };
 }
 
-/** Basic keyword search against the generated search_text column (docs/DATA_AND_API.md, "Search and selection"). */
-export async function searchSlidesPg(query: string, limit: number): Promise<SlideSummary[]> {
+/** Which decks a listing covers: the default leaves archived decks out (FD-50, FD-52). */
+export type ArchivedFilter = 'exclude' | 'include' | 'only';
+const archivedWhere = (a: ArchivedFilter) => (a === 'include' ? 'true' : a === 'only' ? 'd.archived_at is not null' : 'd.archived_at is null');
+
+/** The whole library is listed in one go (no query): a ceiling well above M Moser's proposal library. */
+const LIBRARY_CEILING = 20000;
+
+/**
+ * Basic keyword search against the generated search_text column (docs/DATA_AND_API.md, "Search and
+ * selection"). With no query it lists the library: every slide of every ready deck, not just the
+ * first `limit`, so deck pages are never missing slides from older decks.
+ */
+export async function searchSlidesPg(query: string, limit: number, archived: ArchivedFilter = 'exclude'): Promise<SlideSummary[]> {
   const q = query.trim();
   const rows = q
     ? await sql<SlideWithDeck>(
-        `${SLIDE_WITH_DECK} where d.status = 'ready' and d.archived_at is null and s.search_text @@ plainto_tsquery('english', $1)
+        `${SLIDE_WITH_DECK} where d.status = 'ready' and ${archivedWhere(archived)} and s.search_text @@ plainto_tsquery('english', $1)
          order by ts_rank(s.search_text, plainto_tsquery('english', $1)) desc, d.title, s.slide_number limit $2`,
         [q, limit],
       )
-    : await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where d.status = 'ready' and d.archived_at is null order by d.uploaded_at desc, s.slide_number limit $1`, [limit]);
+    : await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where d.status = 'ready' and ${archivedWhere(archived)} order by d.uploaded_at desc, s.slide_number limit $1`, [LIBRARY_CEILING]);
   return rows.map(toSlideSummary);
+}
+
+/** Archive or restore a deck (FD-50, FD-52). Null when there's no such deck. Nothing is deleted. */
+export async function setDeckArchived(deckId: string, archived: boolean, by: string): Promise<{ id: string; title: string; archived: boolean; archivedBy: string | null; archivedAt: string | null } | null> {
+  if (!UUID.test(deckId)) return null;
+  const [d] = await sql<{ id: string; title: string; archived_at: Date | null; archived_by: string | null }>(
+    archived
+      ? `update decks set archived_at = coalesce(archived_at, now()), archived_by = case when archived_at is null then $2 else archived_by end where id = $1 returning id, title, archived_at, archived_by`
+      : `update decks set archived_at = null, archived_by = null where id = $1 and $2::text is not null returning id, title, archived_at, archived_by`,
+    [deckId, by],
+  );
+  return d ? { id: d.id, title: d.title, archived: !!d.archived_at, archivedBy: d.archived_by, archivedAt: iso(d.archived_at) } : null;
 }
 
 /**

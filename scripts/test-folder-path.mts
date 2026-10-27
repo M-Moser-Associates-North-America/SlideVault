@@ -37,6 +37,15 @@ for (const [file, want] of [
   ['Proposals/M Moser_TailspinMSA_SF_2025 (1).pptx', { deckYear: 2025, clientName: 'Tailspin', category: 'MSA' }],
   ['Proposals/MMoser_Fabrikam_2026 (1).pptx', { deckYear: 2026, clientName: 'Fabrikam', category: null }],
   ['Proposals/M Moser_Contoso_Vancouver_2025.pdf', { deckYear: 2025, clientName: 'Contoso', category: null }],
+  // Real Drive file names (Oct 2026): copy numbers, Moody_s, a year at the end of the name
+  ['MSA/M Moser_Datadog_Global_07102025.pptx', { deckYear: 2025, clientName: 'Datadog', category: 'MSA' }],
+  ['MSA/M Moser_OpenText_RFP_17032026 (1).pptx', { deckYear: 2026, clientName: 'OpenText', category: 'MSA' }],
+  ['MSA/M Moser_StripeMSA_SF_2025 (1) (1).pptx', { deckYear: 2025, clientName: 'Stripe', category: 'MSA' }],
+  ['SME/M Moser_NYT(2)_RFP_07292026 (1).pptx', { deckYear: 2026, clientName: 'NYT', category: 'SME' }],
+  ['IDD/Scotiabank - Progressive Integrated Design and Build - March.pptx', { deckYear: null, clientName: 'Scotiabank', category: 'IDD' }],
+  ['Design Consultancy 2025/2025 3/M Moser_Moody_s_RFP_06202025.pptx', { deckYear: 2025, clientName: "Moody's", category: 'Design Consultancy' }],
+  ['Design Consultancy 2025/2025/MMoser_Next Level Games (Nintendo)_VC.pptx', { deckYear: 2025, clientName: 'Next Level Games (Nintendo)', category: 'Design Consultancy' }],
+  ['Design Consultancy 2025/2025/M Moser_Project Mango_NY_RFP_2024.pptx', { deckYear: 2025, clientName: 'Project Mango', category: 'Design Consultancy' }],
 ] as const) {
   const got = folderInfo(file);
   check(got.deckYear === want.deckYear && got.clientName === want.clientName && got.category === want.category && !got.bestOfTheBest, `reads ${file}`, JSON.stringify(got));

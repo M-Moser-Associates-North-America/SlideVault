@@ -19,7 +19,7 @@ export type Deck = {
   bestOfTheBest: boolean;
   /** Where the client is (FD-35), or null */
   location?: string | null;
-  /** Archived: hidden from the app, search and AI until restored (FD-32) */
+  /** Archived: hidden from the app, search and AI until restored (FD-50) */
   archived?: boolean;
   createdBy?: string | null;
   uploadedBy?: string | null;
@@ -232,7 +232,7 @@ export function dateLabel(iso: string | null | undefined): string | null {
 
 /**
  * How many slides of a deck are not in the list because they were hidden in the original deck: the gaps in its
- * slide numbers (FD-32). 0 when none are missing, or when hidden slides are being shown.
+ * slide numbers (FD-50). 0 when none are missing, or when hidden slides are being shown.
  */
 export function hiddenGap(slides: SlideSummary[]): number {
   if (slides.length === 0) return 0;

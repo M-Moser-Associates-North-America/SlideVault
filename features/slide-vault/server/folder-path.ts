@@ -89,8 +89,10 @@ export function folderInfo(relativePath: string): FolderInfo {
     if (!info.category && CATEGORY_NAMES[nameCategory]) info.category = CATEGORY_NAMES[nameCategory];
   }
   // M Moser's naming: "M Moser_<Client>_<place or RFP>_<date>"
-  const mm = /^m\s*moser\s*_\s*([^_]+?)\s*(?:_|$)/i.exec(stem);
-  if (mm && !info.clientName) info.clientName = mm[1].trim();
+  // "Moody_s": file names swap an apostrophe for an underscore, so a lone "s" after it is "'s".
+  // A copy number in the name ("NYT(2)") isn't part of the client.
+  const mm = /^m\s*moser\s*_\s*([^_]+?)(_s(?=_|$))?\s*(?:_|$)/i.exec(stem);
+  if (mm && !info.clientName) info.clientName = (mm[1].replace(/\s*\(\d+\)\s*/g, ' ').trim() || mm[1].trim()) + (mm[2] ? "'s" : '');
   // A kind glued to the client ("StripeMSA") is the kind, not part of the name.
   const glued = info.clientName ? /^(.+?[a-z])(MSA|RFP)$/.exec(info.clientName) : null;
   if (glued && mm) {
