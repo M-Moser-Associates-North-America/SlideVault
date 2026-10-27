@@ -1,6 +1,8 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
 import type { PlanReader } from '@/features/slide-vault/server/ai/reader';
 import { withPacks } from '@/features/slide-vault/server/packs';
+import { isInternalOnly } from '@/features/slide-vault/server/pg-repository';
+import { withTags } from '@/features/slide-vault/server/tags';
 import { configuredReader, searchLibrary } from '@/features/slide-vault/server/services/library-smart-search';
 
 // GET /smart-search?q=&limit=&read=1 (docs/DECISIONS.md FD-16, FD-17)
@@ -30,9 +32,10 @@ export async function GET(request: Request) {
   try {
     const result = await searchLibrary(query, limit, { reader, read: url.searchParams.get('read') === '1' });
     // Hidden-in-source slides (usually internal notes) only when asked for (FD-50).
-    if (url.searchParams.get('hidden') !== 'include') result.items = result.items.filter((i) => !i.slide.hiddenInSource);
+    // ...and so are slides the team marked "internal - never show" (FD-53).
+    if (url.searchParams.get('hidden') !== 'include') result.items = result.items.filter((i) => !i.slide.hiddenInSource && !isInternalOnly(i.slide));
     // Each slide in a pack carries the whole pack (FD-38, FD-52).
-    const packed = await withPacks(result.items.map((i) => i.slide));
+    const packed = await withTags(await withPacks(result.items.map((i) => i.slide)));
     result.items = result.items.map((i, n) => ({ ...i, slide: packed[n] }));
     return ok(result);
   } catch (e) {

@@ -14,6 +14,8 @@ import {
   withDuplicateBadges,
 } from '@/features/slide-vault/server';
 import { withPacks } from '@/features/slide-vault/server/packs';
+import { isInternalOnly } from '@/features/slide-vault/server/pg-repository';
+import { withTags } from '@/features/slide-vault/server/tags';
 import type { ArchivedFilter } from '@/features/slide-vault/server/pg-repository';
 import { withDownloadCounts } from '@/features/slide-vault/server/user-data';
 
@@ -36,22 +38,24 @@ export async function GET(request: Request) {
   // provenance.archived), archived=only lists just them, for the Archived decks page (FD-50, FD-52).
   const archivedParam = url.searchParams.get('archived');
   const archived: ArchivedFilter = archivedParam === 'include' ? 'include' : archivedParam === 'only' ? 'only' : 'exclude';
+  // tag=: only slides with that free-form tag, on the slide or its deck (FD-53). Sample decks have no tags.
+  const tag = url.searchParams.get('tag')?.trim() || null;
 
   const index = await loadLibraryIndex();
   // Sample decks are never archived, so "only archived" leaves them out.
-  const fixtureResult = index && archived !== 'only' ? searchSlides(index, { query, cursor: url.searchParams.get('cursor'), limit }) : { items: [], nextCursor: null };
+  const fixtureResult = index && archived !== 'only' && !tag ? searchSlides(index, { query, cursor: url.searchParams.get('cursor'), limit }) : { items: [], nextCursor: null };
 
   let uploadedItems: Awaited<ReturnType<typeof searchSlidesPg>> = [];
   try {
     // Uploaded decks come only with the first page: the sample decks' cursor pages, these don't.
-    uploadedItems = url.searchParams.get('cursor') ? [] : await searchSlidesPg(query, limit, archived);
+    uploadedItems = url.searchParams.get('cursor') ? [] : await searchSlidesPg(query, limit, archived, tag);
   } catch (e) {
     // Supabase not configured on this checkout yet, or a transient error: fall back to
     // fixture-only results rather than failing the whole search.
     console.error('Postgres search unavailable, showing fixture results only', e);
   }
 
-  if (!index && uploadedItems.length === 0 && archived !== 'only') {
+  if (!index && uploadedItems.length === 0 && archived !== 'only' && !tag) {
     return fail(503, 'LIBRARY_NOT_READY', 'The library is empty. Run `npm run ingest` or upload a deck.', true);
   }
 
@@ -71,11 +75,13 @@ export async function GET(request: Request) {
   // Slides hidden in the original deck are usually internal notes or checklists, so they're left out
   // unless the request asks for them with hidden=include (Grant, 21 Oct; docs/DECISIONS.md FD-50).
   const includeHidden = url.searchParams.get('hidden') === 'include';
-  const visible = [...uploadedItems, ...fixtureResult.items].filter((s) => includeHidden || !s.hiddenInSource);
+  // The same goes for slides the team marked "internal - never show" (FD-53).
+  const visible = [...uploadedItems, ...fixtureResult.items].filter((s) => includeHidden || (!s.hiddenInSource && !isInternalOnly(s)));
   const items = withDuplicateBadges(visible, groups, slideDeck, collapse);
 
   // Real "Most downloaded" counts (FD-18). Without the database, slides simply have no count.
   const counted = await withDownloadCounts(items, (e) => console.error('Download counts unavailable', e));
   // Each slide in a pack carries the whole pack, in order (FD-38, FD-52).
-  return ok(await withPacks(counted), { page: { nextCursor: fixtureResult.nextCursor } });
+  // Each slide in a pack carries the whole pack, in order (FD-38, FD-52), and its free tags (FD-53).
+  return ok(await withTags(await withPacks(counted)), { page: { nextCursor: fixtureResult.nextCursor } });
 }
