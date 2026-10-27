@@ -59,7 +59,7 @@ const TABS: {
     view: 'create',
     label: 'Create',
     icon: 'pencil',
-    tip: 'Build a new deck from your slides (coming later)',
+    tip: 'Storyboard with AI, or build manually',
   },
   {
     view: 'upload',

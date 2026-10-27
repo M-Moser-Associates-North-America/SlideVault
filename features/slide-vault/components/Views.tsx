@@ -27,9 +27,11 @@ import {
 import { findDecks } from './deck-finder';
 import { GroupTool, PackPanel } from './Packs';
 import { DeckCard, Link, SkeletonGrid, SkeletonRows, SlideCard, StateBlock, Thumb, useCartToggle } from './parts';
+import { MicButton } from './MicButton';
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { setHeroOut } from '../client/hero-visibility';
+import { useTipSeen } from '../client/tip-store';
 import { HiddenToggle } from './HiddenToggle';
 import { shownInFilterRow, withoutChip } from './search-reading';
 import { useRoot } from './root';
@@ -235,6 +237,14 @@ function HomeHeader() {
     e.preventDefault();
     if (query.trim()) submitSearch();
   };
+  /* Talking replaces what is in the bar and searches straight away, as Enter would. */
+  const spoken = useRef(false);
+  useEffect(() => {
+    if (spoken.current && query.trim()) {
+      spoken.current = false;
+      submitSearch();
+    }
+  }, [query, submitSearch]);
   /* Tell the header when this bar has scrolled up out of sight, so it can show a slim search shortcut. */
   const formRef = useRef<HTMLFormElement>(null);
   const { scroll } = useRoot();
@@ -285,6 +295,10 @@ function HomeHeader() {
               heroTouched = true;
               setTouched(true);
             }} />
+          <MicButton className="home-hero-mic" showWhenOff onText={(t) => {
+            spoken.current = true;
+            setQuery(t);
+          }} />
           <button type="submit" className="home-hero-btn" aria-label="Search">
             <Icon name="search" />
           </button>
@@ -1060,27 +1074,47 @@ export function SlideView({ id }: { id: string }) {
 /* ------------------------------------------------------- Create, Upload */
 
 export function CreateView() {
+  const { runtime } = useWorkspace();
+  const opened = useTipSeen('storyboard-opened');
   return (
     <div className="sv-wrap">
       <h1 className="h1" tabIndex={-1}>
         Create
       </h1>
       <p className="lede muted" style={{ marginTop: 4, maxWidth: '60ch' }}>
-        Planned feature. Deck building will be added in the next phase.
+        Two ways to put a deck together.
       </p>
-      <div className="ph-cards">
-        <div className="card">
+      <div className="create-cards">
+        <button
+          type="button"
+          className="card create-card create-card-ai"
+          onClick={() => {
+            opened.dismiss();
+            runtime.navigate({ view: 'story' });
+          }}
+        >
+          <Icon name="sparkle" className="ic-big" />
+          <h2 className="h2">Build with AI</h2>
+          <p className="meta">Describe the client and SlideVault pulls a story from your slides.</p>
+          <span className="create-go">
+            Open the Storyboard
+            <Icon name="right" className="ic-sm" />
+          </span>
+        </button>
+        <div className="card create-card create-card-planned">
           <Icon name="plus" className="ic-big" />
-          <h2 className="h2">Build</h2>
-          <p className="meta">Start a new deck and fill it with slides from Home.</p>
+          <h2 className="h2">Build it yourself</h2>
+          <p className="meta">
+            Step by step, from a blank deck. For now,{' '}
+            <Link to={{ view: 'pages' }} className="create-home">
+              go to Home
+            </Link>{' '}
+            and build.
+          </p>
           <span className="badge" style={{ alignSelf: 'flex-start' }}>
             Planned
           </span>
         </div>
-      </div>
-      <div className="notice info" style={{ marginTop: 20 }}>
-        <Icon name="info" />
-        <span>For now, select slides on Home and download them. Slides from one deck come as one file. Slides from several decks come as a zip.</span>
       </div>
     </div>
   );

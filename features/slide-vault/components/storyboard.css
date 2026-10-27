@@ -108,7 +108,9 @@
 .slidevault .btn.sb-launch-btn.is-glow { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-brand-strong); animation: sb-glow-btn 1.8s ease-in-out infinite, sb-tick 0.5s ease-out 1; }
 .slidevault .sb-launch-hint { position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; display: flex; gap: 6px; align-items: center; white-space: nowrap; margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--sv-surface); border: 1px solid var(--sv-brand); box-shadow: var(--sv-shadow-card); font-size: var(--sv-text-small); }
 .slidevault .sb-launch-hint .ic { color: var(--sv-brand); }
-.slidevault .sb-back { display: inline-flex; gap: 6px; align-items: center; margin: 16px 0 12px; font-size: var(--sv-text-small); }
+.slidevault .sb-crumbs { gap: 4px 36px; margin: 16px 0 12px; }
+.slidevault .sb-crumb-home { margin-right: 32px; display: inline-flex; gap: 6px; align-items: center; font-size: var(--sv-text-small); color: var(--sv-text-secondary); text-decoration: underline; text-underline-offset: 2px; }
+.slidevault .sb-crumb-home:hover { color: var(--sv-text); }
 @keyframes sb-glow-btn { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sv-brand) 45%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--sv-brand) 0%, transparent); } }
 @keyframes sb-tick { 0% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } 75% { transform: rotate(-2deg); } 100% { transform: rotate(0); } }
 @media (prefers-reduced-motion: reduce) { .slidevault .sb-launch-btn.is-glow { animation: none; } }

@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { SlideSummary, StoryBeat, StoryboardResult, StoryFeedbackVerdict, StoryRole } from '../contracts/dto';
-import { buildStory, refineStory, sendStoryFeedback, speechAvailable, transcribe } from '../client/api';
+import { buildStory, refineStory, sendStoryFeedback } from '../client/api';
 import { ROLE_CHOICES, useStoryRole } from '../client/role-store';
 import { takeHandedOffBrief } from '../client/story-handoff';
 import { useSavedStories } from '../client/story-store';
-import { startRecording, type Recording } from '../client/wav-recorder';
 import { Icon } from './icons';
 import { plural } from './library';
+import { MicButton } from './MicButton';
 import { Link, Thumb } from './parts';
 import { useWorkspace } from './state';
 import './storyboard.css';
@@ -488,55 +488,25 @@ function Composing({ elapsed, onStop }: { elapsed: number; onStop: () => void })
   );
 }
 
-/** The Storyboard opens from beside the search bar, not a tab, so it says how to get back. */
+/* Home and Create sit on the same level, so Home stands apart; the trail is Create › Storyboard. */
 function BackHome() {
   return (
-    <Link className="btn-link sb-back" to={{ view: 'pages' }}>
-      <Icon name="back" className="ic-sm" />
-      Back to Home
-    </Link>
+    <div className="crumbs sb-crumbs">
+      <Link className="sb-crumb-home" to={{ view: 'pages' }}>
+        <Icon name="back" className="ic-sm" />
+        Home
+      </Link>
+      <nav aria-label="Breadcrumb">
+        <ol>
+          <li>
+            <Link to={{ view: 'create' }}>Create</Link>
+          </li>
+          <li>
+            <span aria-current="page">Storyboard</span>
+          </li>
+        </ol>
+      </nav>
+    </div>
   );
 }
 
-/** Talk instead of type: records on this device and sends it only to the app's own speech service. Icon only. */
-function MicButton({ onText, disabled }: { onText: (text: string) => void; disabled?: boolean }) {
-  const { runtime, toast } = useWorkspace();
-  const [available, setAvailable] = useState(false);
-  const [state, setState] = useState<'idle' | 'listening' | 'hearing'>('idle');
-  const rec = useRef<Recording | null>(null);
-  useEffect(() => {
-    void speechAvailable(runtime).then(setAvailable);
-    return () => rec.current?.cancel();
-  }, [runtime]);
-  if (!available) return null;
-
-  async function toggle() {
-    if (state === 'listening' && rec.current) {
-      setState('hearing');
-      try {
-        const text = await transcribe(runtime, await rec.current.stop());
-        if (text) onText(text);
-        else toast("Didn't catch that. Try again a little closer to the mic.");
-      } catch (e) {
-        toast((e as Error).message);
-      } finally {
-        rec.current = null;
-        setState('idle');
-      }
-      return;
-    }
-    try {
-      rec.current = await startRecording(() => void toggle());
-      setState('listening');
-    } catch {
-      toast('The microphone is blocked. Allow it in the browser to talk instead of type.');
-    }
-  }
-
-  const label = state === 'listening' ? 'Listening: tap to stop' : state === 'hearing' ? 'Writing it down' : 'Talk instead of typing';
-  return (
-    <button type="button" className={`btn btn-icon sb-mic${state === 'listening' ? ' is-on' : ''}`} aria-label={label} title={label} aria-pressed={state === 'listening'} disabled={disabled || state === 'hearing'} onClick={() => void toggle()}>
-      <Icon name={state === 'hearing' ? 'spinner' : 'mic'} />
-    </button>
-  );
-}
