@@ -1,5 +1,6 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
 import type { PlanReader } from '@/features/slide-vault/server/ai/reader';
+import { withPacks } from '@/features/slide-vault/server/packs';
 import { configuredReader, searchLibrary } from '@/features/slide-vault/server/services/library-smart-search';
 
 // GET /smart-search?q=&limit=&read=1 (docs/DECISIONS.md FD-16, FD-17)
@@ -30,6 +31,9 @@ export async function GET(request: Request) {
     const result = await searchLibrary(query, limit, { reader, read: url.searchParams.get('read') === '1' });
     // Hidden-in-source slides (usually internal notes) only when asked for (FD-50).
     if (url.searchParams.get('hidden') !== 'include') result.items = result.items.filter((i) => !i.slide.hiddenInSource);
+    // Each slide in a pack carries the whole pack (FD-38, FD-52).
+    const packed = await withPacks(result.items.map((i) => i.slide));
+    result.items = result.items.map((i, n) => ({ ...i, slide: packed[n] }));
     return ok(result);
   } catch (e) {
     console.error('Smart search failed', e);

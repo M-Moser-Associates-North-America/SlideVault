@@ -10,6 +10,8 @@ export type ApiPage<T> = ApiOk<T[]> & { page: { nextCursor: string | null } };
 export type ApiErrorCode =
   | 'BAD_REQUEST'
   | 'NOT_FOUND'
+  /** The change clashes with what's stored, e.g. a slide that is already in a pack (FD-52) */
+  | 'CONFLICT'
   | 'INVALID_SELECTION'
   | 'UNSUPPORTED_SELECTION'
   | 'EXPORT_FAILED'
@@ -58,6 +60,9 @@ export type Provenance = {
   location?: string | null;
   /** True when the deck is archived (hidden from the app, search and AI, not deleted; FD-50). Only sent when archived decks are asked for. */
   archived?: boolean;
+  /** Who archived the deck and when (ISO date); only with archived (FD-52) */
+  archivedBy?: string | null;
+  archivedAt?: string | null;
   /**
    * Deck details from the file or the SharePoint-style view (FD-33). Real values only; null or absent
    * when the server does not know them. The filters and the Details panels show them only when they exist.

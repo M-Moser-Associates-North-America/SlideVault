@@ -16,6 +16,7 @@
     "test:v3": "tsx --conditions=react-server scripts/test-v3-live.mts",
     "test:smart-search": "tsx --conditions=react-server scripts/test-smart-search.mts",
     "test:user-data": "tsx --conditions=react-server scripts/test-user-data.mts",
+    "test:packs": "tsx --conditions=react-server scripts/test-packs-archive.mts",
     "test:reasoning-map": "tsx --conditions=react-server scripts/test-reasoning-map.mts",
     "test:storyboard": "tsx --conditions=react-server scripts/test-storyboard.mts",
     "test:deck-suggestions": "tsx --conditions=react-server scripts/test-deck-suggestions.mts",
@@ -29,7 +30,8 @@
     "db:check": "tsx scripts/check-mmoser-db.mts",
     "deck:archive": "tsx scripts/archive-deck.mts",
     "story:import": "tsx scripts/import-story-data.mts",
-    "deck:unstick": "tsx scripts/unstick-deck.mts"
+    "deck:unstick": "tsx scripts/unstick-deck.mts",
+    "deck:details": "tsx scripts/deck-details.mts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

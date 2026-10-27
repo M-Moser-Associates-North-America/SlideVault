@@ -1,6 +1,6 @@
 import 'server-only';
 import { hasMmoserConfig } from './config';
-import { fail } from './http';
+import { fail, ServiceError, toResponse } from './http';
 import { userOf } from './principal';
 import { rateLimit, RATE_POLICIES } from './rate-limit';
 
@@ -9,17 +9,19 @@ import { rateLimit, RATE_POLICIES } from './rate-limit';
  * database to keep their data in. `handle` only runs when all three are there; a database error
  * becomes a plain "try again" message, never the error itself.
  */
-export async function withUser(request: Request, handle: (user: string) => Promise<Response>): Promise<Response> {
+export async function withUser(request: Request, handle: (user: string) => Promise<Response>, signedOut = 'Sign in to keep saved slides, decks and activity.'): Promise<Response> {
   const limited = rateLimit(request, RATE_POLICIES.userData);
   if (limited) return limited;
   const user = userOf(request);
   // 400, not 401, on purpose: the app treats any 401 as "session expired" and reloads, and this
   // only means the request didn't name a signed-in person (see principal.ts).
-  if (!user) return fail(400, 'SIGNED_OUT', 'Sign in to keep saved slides, decks and activity.');
+  if (!user) return fail(400, 'SIGNED_OUT', signedOut);
   if (!hasMmoserConfig()) return fail(503, 'UNAVAILABLE', 'Saved slides and decks need the database, which is not set up on this server.', false);
   try {
     return await handle(user);
   } catch (e) {
+    // A rule the request broke (a 400, 404 or 409 with a clear message) goes back as it is.
+    if (e instanceof ServiceError) return toResponse(e);
     console.error('Per-person data request failed', e);
     return fail(503, 'UNAVAILABLE', 'That could not be saved or loaded right now. Please try again.', true);
   }

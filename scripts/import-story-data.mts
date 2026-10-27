@@ -293,16 +293,26 @@ try {
       [u.id, u.client, u.year, u.category, u.kind, u.sector, u.location],
     );
   }
-  // Decks where someone already confirmed packs keep them as they are; only unconfirmed imported packs are replaced.
-  const confirmed = new Set((await client.query<{ deck_id: string }>(`select distinct deck_id from slide_packs where status = 'confirmed'`)).rows.map((r) => r.deck_id));
-  const packDecks = [...new Set(packs.map((p) => p.deckId))].filter((id) => !confirmed.has(id));
-  if (packDecks.length) await client.query(`delete from slide_packs where source = 'import' and status = 'suggested' and deck_id = any($1::uuid[])`, [packDecks]);
-  for (const p of packs.filter((x) => !confirmed.has(x.deckId))) {
-    const { rows } = await client.query<{ id: string }>(`insert into slide_packs (deck_id, label) values ($1, $2) returning id`, [p.deckId, p.label]);
-    for (const [i, sid] of p.slideIds.entries()) await client.query(`insert into slide_pack_members (pack_id, slide_id, position) values ($1, $2, $3) on conflict do nothing`, [rows[0].id, sid, i + 1]);
+  // Replace only the suggestions this import made earlier. Packs a person made or confirmed stay, and
+  // dismissed suggestions stay dismissed (FD-52): a pack that matches one, or that would share a slide
+  // with a live pack, is skipped rather than suggested again.
+  await client.query(`delete from slide_packs where source = 'import' and status = 'suggested'`);
+  const kept = (await client.query<{ status: string; slide_ids: string[] }>(
+    `select p.status, array_agg(m.slide_id::text order by m.position) as slide_ids from slide_packs p join slide_pack_members m on m.pack_id = p.id group by p.id`,
+  )).rows;
+  const liveSlides = new Set(kept.filter((k) => k.status !== 'dismissed').flatMap((k) => k.slide_ids));
+  const dismissed = new Set(kept.filter((k) => k.status === 'dismissed').map((k) => [...k.slide_ids].sort().join(',')));
+  let added = 0, skippedPacks = 0;
+  for (const p of packs) {
+    if (dismissed.has([...p.slideIds].sort().join(',')) || p.slideIds.some((id) => liveSlides.has(id))) { skippedPacks++; continue; }
+    const { rows } = await client.query<{ id: string }>(`insert into slide_packs (deck_id, label, created_by) values ($1, $2, 'reviewed metadata import') returning id`, [p.deckId, p.label]);
+    for (const [i, sid] of p.slideIds.entries()) await client.query(`insert into slide_pack_members (pack_id, slide_id, position) values ($1, $2, $3)`, [rows[0].id, sid, i + 1]);
+    p.slideIds.forEach((id) => liveSlides.add(id));
+    added++;
   }
+  if (skippedPacks) console.log(`${skippedPacks} suggested pack(s) skipped: dismissed before, or a slide is already in a confirmed pack.`);
   await client.query('commit');
-  console.log(`\nDone: ${updates.length} slide(s), ${deckUpdates.length} deck(s), ${packs.length} pack(s).`);
+  console.log(`\nDone: ${updates.length} slide(s), ${deckUpdates.length} deck(s), ${added} pack(s) suggested.`);
 } catch (err) {
   await client.query('rollback').catch(() => {});
   console.error('Import failed, nothing was changed:', (err as Error).message);

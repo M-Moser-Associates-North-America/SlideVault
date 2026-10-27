@@ -13,6 +13,8 @@ import {
   type SlideText,
   withDuplicateBadges,
 } from '@/features/slide-vault/server';
+import { withPacks } from '@/features/slide-vault/server/packs';
+import type { ArchivedFilter } from '@/features/slide-vault/server/pg-repository';
 import { withDownloadCounts } from '@/features/slide-vault/server/user-data';
 
 // GET /search?q=&kind=slide&cursor=&limit= (docs/DATA_AND_API.md)
@@ -30,20 +32,26 @@ export async function GET(request: Request) {
   const limit = Number(url.searchParams.get('limit') ?? DEFAULT_LIMIT);
   if (!Number.isInteger(limit)) return fail(400, 'BAD_REQUEST', 'limit must be a whole number.');
   const query = url.searchParams.get('q') ?? '';
+  // Archived decks are left out unless asked for: archived=include adds them (marked
+  // provenance.archived), archived=only lists just them, for the Archived decks page (FD-50, FD-52).
+  const archivedParam = url.searchParams.get('archived');
+  const archived: ArchivedFilter = archivedParam === 'include' ? 'include' : archivedParam === 'only' ? 'only' : 'exclude';
 
   const index = await loadLibraryIndex();
-  const fixtureResult = index ? searchSlides(index, { query, cursor: url.searchParams.get('cursor'), limit }) : { items: [], nextCursor: null };
+  // Sample decks are never archived, so "only archived" leaves them out.
+  const fixtureResult = index && archived !== 'only' ? searchSlides(index, { query, cursor: url.searchParams.get('cursor'), limit }) : { items: [], nextCursor: null };
 
   let uploadedItems: Awaited<ReturnType<typeof searchSlidesPg>> = [];
   try {
-    uploadedItems = await searchSlidesPg(query, limit);
+    // Uploaded decks come only with the first page: the sample decks' cursor pages, these don't.
+    uploadedItems = url.searchParams.get('cursor') ? [] : await searchSlidesPg(query, limit, archived);
   } catch (e) {
     // Supabase not configured on this checkout yet, or a transient error: fall back to
     // fixture-only results rather than failing the whole search.
     console.error('Postgres search unavailable, showing fixture results only', e);
   }
 
-  if (!index && uploadedItems.length === 0) {
+  if (!index && uploadedItems.length === 0 && archived !== 'only') {
     return fail(503, 'LIBRARY_NOT_READY', 'The library is empty. Run `npm run ingest` or upload a deck.', true);
   }
 
@@ -68,5 +76,6 @@ export async function GET(request: Request) {
 
   // Real "Most downloaded" counts (FD-18). Without the database, slides simply have no count.
   const counted = await withDownloadCounts(items, (e) => console.error('Download counts unavailable', e));
-  return ok(counted, { page: { nextCursor: fixtureResult.nextCursor } });
+  // Each slide in a pack carries the whole pack, in order (FD-38, FD-52).
+  return ok(await withPacks(counted), { page: { nextCursor: fixtureResult.nextCursor } });
 }

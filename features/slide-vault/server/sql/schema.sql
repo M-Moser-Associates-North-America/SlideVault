@@ -178,3 +178,26 @@ create table if not exists free_tags (
 create unique index if not exists free_tags_one_per_target on free_tags (target_kind, target_id, lower(tag));
 create index if not exists free_tags_tag_idx on free_tags (lower(tag));
 create index if not exists slides_story_role_idx on slides (story_role);
+
+-- ---------------------------------------------------------------------------------------------
+-- Packs, archive and deck details served to the app (docs/DECISIONS.md FD-52).
+-- Packs can be confirmed, unconfirmed or dismissed, with who and when. A dismissed suggestion is
+-- kept (not deleted) so neither the import nor the storyboard suggests it again.
+alter table slide_packs drop constraint if exists slide_packs_status_check;
+alter table slide_packs add constraint slide_packs_status_check check (status in ('suggested', 'confirmed', 'dismissed'));
+alter table slide_packs add column if not exists created_by text;
+alter table slide_packs add column if not exists updated_at timestamptz not null default now();
+alter table slide_packs add column if not exists confirmed_by text;
+alter table slide_packs add column if not exists confirmed_at timestamptz;
+alter table slide_packs add column if not exists dismissed_by text;
+alter table slide_packs add column if not exists dismissed_at timestamptz;
+
+-- Who archived a deck (archived_at above says when).
+alter table decks add column if not exists archived_by text;
+
+-- Deck details for the SharePoint-style view and the Created by / Uploaded by filters. Real values
+-- only: created_by and file_created_at are what PowerPoint itself recorded in the file
+-- (docProps/core.xml); uploaded_by is the signed-in person who uploaded it.
+alter table decks add column if not exists created_by text;
+alter table decks add column if not exists file_created_at timestamptz;
+alter table decks add column if not exists uploaded_by text;

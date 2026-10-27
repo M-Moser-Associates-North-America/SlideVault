@@ -7,6 +7,7 @@
  *   npm run upload:library -- "<library folder>" --limit 20 --yes   # upload the first 20 decks
  *   npm run upload:library -- "<library folder>" --only Gusto --yes # only decks whose path contains "Gusto"
  *   npm run upload:library -- "<library folder>" --skip Newmark ... # leave out decks whose path contains "Newmark"
+ *   npm run upload:library -- "<library folder>" --as "Your Name" ... # recorded as who uploaded each deck
  *   npm run upload:library -- "<library folder>" --best-of-the-best # mark every deck as Best of the Best
  *                                                                    # (for a folder that IS that set but isn't named so)
  *   npm run upload:library -- "<library folder>" [base URL] ...
@@ -48,7 +49,14 @@ if (skipAt >= 0 && !skip) {
   process.exit(1);
 }
 const allBotb = flag('--best-of-the-best');
-const valueAt = new Set([limitAt, onlyAt, skipAt].filter((i) => i >= 0).map((i) => i + 1));
+// --as "Your Name": recorded as who uploaded each deck (the Uploaded by filter, FD-52).
+const asAt = args.indexOf('--as');
+const uploader = asAt >= 0 ? (args[asAt + 1] ?? '').trim() : '';
+if (asAt >= 0 && !uploader) {
+  console.error('--as needs your name, e.g. --as "Vincent Mizhquiri"');
+  process.exit(1);
+}
+const valueAt = new Set([limitAt, onlyAt, skipAt, asAt].filter((i) => i >= 0).map((i) => i + 1));
 const positional = args.filter((a, i) => !a.startsWith('--') && !valueAt.has(i));
 const SAMPLE = path.join(import.meta.dirname, '../tests/fixtures/sharepoint-library');
 const root = path.resolve(positional[0] ?? SAMPLE);
@@ -166,7 +174,7 @@ function postForm(url: string, form: FormData): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = (target.protocol === 'https:' ? https : http).request(
       target,
-      { method: 'POST', headers: { 'content-type': encoded.headers.get('content-type')! }, timeout: 0 },
+      { method: 'POST', headers: { 'content-type': encoded.headers.get('content-type')!, ...(uploader ? { 'x-slidevault-user': encodeURIComponent(uploader) } : {}) }, timeout: 0 },
       (res) => {
         const chunks: Buffer[] = [];
         res.on('data', (c: Buffer) => chunks.push(c));
