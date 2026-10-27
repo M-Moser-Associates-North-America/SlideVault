@@ -208,11 +208,11 @@ export function FilterBar() {
   const yearOn = filters.yfrom !== null || filters.yto !== null;
   const moreCount = (filters.bestOnly ? 1 : 0) + filters.createdBy.length + filters.uploadedBy.length;
   const items: { key: Key; label: string; icon: IconName; active: number }[] = [
-    { key: 'year', label: 'Year', icon: 'calendarFill', active: yearOn || fromYear ? 1 : 0 },
-    { key: 'client', label: 'Client', icon: 'buildingFill', active: filters.client.length + (fromClient ? 1 : 0) },
-    { key: 'category', label: 'Project type', icon: 'folderFill', active: filters.category.length },
-    { key: 'slideType', label: 'Slide type', icon: 'layersFill', active: filters.slideType.length + fromTypes.length },
-    { key: 'more', label: 'More', icon: 'slidersFill', active: moreCount },
+    { key: 'year', label: 'Year', icon: 'calendar', active: yearOn || fromYear ? 1 : 0 },
+    { key: 'client', label: 'Client', icon: 'building', active: filters.client.length + (fromClient ? 1 : 0) },
+    { key: 'category', label: 'Project type', icon: 'folder', active: filters.category.length },
+    { key: 'slideType', label: 'Slide type', icon: 'layers', active: filters.slideType.length + fromTypes.length },
+    { key: 'more', label: 'More', icon: 'sliders', active: moreCount },
   ];
 
   /* The chips under the row: one per active choice, each removable. */
@@ -350,7 +350,7 @@ export function FilterBar() {
       {heroOut && !compact && <StickySearch />}
       <div className="fbar-row" ref={rowRef} role="toolbar" aria-label="Filter slides">
         <button type="button" className={`fb-btn fb-all${activeTotal ? ' on' : ''}`} aria-haspopup="dialog" onClick={() => setSheet('all')}>
-          <Icon name="slidersFill" />
+          <Icon name="sliders" />
           <span className="fb-lbl">Filters</span>
           {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
         </button>
@@ -402,7 +402,7 @@ export function FilterBar() {
       )}
       {compact && rowOut && sheet === null && (
         <button type="button" className="fb-pin" onClick={() => setSheet('all')}>
-          <Icon name="slidersFill" />
+          <Icon name="sliders" />
           <span>Filters</span>
           {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
         </button>
