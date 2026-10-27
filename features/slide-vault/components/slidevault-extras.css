@@ -928,7 +928,9 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .create-card-ai .ic-big { color: var(--sv-brand-strong); }
 .slidevault .create-card-ai:hover { box-shadow: var(--sv-shadow-card); }
 .slidevault .create-card-ai:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
-.slidevault .create-go { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: 600; color: var(--sv-brand-strong); }
+.slidevault .create-card-ai .meta { color: var(--sv-text); }
+.slidevault .create-go { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: 700; color: var(--sv-text); text-decoration: underline; text-decoration-color: var(--sv-brand); text-underline-offset: 3px; }
+.slidevault .create-go .ic { color: var(--sv-brand-strong); }
 .slidevault .create-card-planned { border-style: dashed; box-shadow: none; }
 .slidevault .create-home { font-weight: 700; color: var(--sv-brand-strong); text-decoration: underline; text-underline-offset: 2px; }
 .slidevault .create-home:hover { text-decoration-thickness: 2px; }
