@@ -26,6 +26,7 @@ export function TagField({
   onChange,
   suggestions,
   disabled,
+  compact,
 }: {
   label: string;
   hint?: string;
@@ -33,6 +34,8 @@ export function TagField({
   onChange: (tags: string[]) => void;
   suggestions: TagSuggestion[];
   disabled?: boolean;
+  /** Small, for a slide card: the label is read out but not shown, and no hint or quick picks */
+  compact?: boolean;
 }) {
   const { announce } = useWorkspace();
   const id = useId();
@@ -77,6 +80,7 @@ export function TagField({
     add(typed);
     setText('');
     setActive(-1);
+    setOpen(false); /* closed after each tag; typing, or the arrow keys, open it again */
   }
   function pick(i: number) {
     const o = options[i];
@@ -84,6 +88,7 @@ export function TagField({
     add(o.tag);
     setText('');
     setActive(-1);
+    setOpen(false);
     inputRef.current?.focus();
   }
 
@@ -126,9 +131,10 @@ export function TagField({
 
   const popular = suggestions.filter((s) => !has(s.tag)).slice(0, 6);
   return (
-    <div className="field full tagfield-wrap">
-      <label htmlFor={`${id}-in`}>
-        {label} <span className="field-opt">optional</span>
+    <div className={compact ? 'tagfield-wrap is-compact' : 'field full tagfield-wrap'}>
+      <label htmlFor={`${id}-in`} className={compact ? 'sr-only' : undefined}>
+        {label}
+        {!compact && <span className="field-opt">optional</span>}
       </label>
       <div className={`tagfield${disabled ? ' is-disabled' : ''}`} onClick={() => inputRef.current?.focus()}>
         {value.length > 0 && (
@@ -157,7 +163,7 @@ export function TagField({
           maxLength={TAG_MAX_LENGTH}
           value={text}
           disabled={disabled || full}
-          placeholder={value.length ? '' : 'Type a tag and press Enter'}
+          placeholder={value.length ? '' : compact ? '+ Add tag' : 'Type a tag and press Enter'}
           onChange={(e) => {
             setText(e.target.value);
             setOpen(true);
@@ -195,10 +201,10 @@ export function TagField({
           </ul>
         )}
       </div>
-      <p className="field-hint" id={`${id}-hint`}>
+      <p className={compact ? 'sr-only' : 'field-hint'} id={`${id}-hint`}>
         {full ? `That's the most tags (${TAG_MAX_COUNT}) for one deck.` : hint ?? 'Press Enter or comma after each tag.'}
       </p>
-      {popular.length > 0 && !full && !disabled && (
+      {!compact && popular.length > 0 && !full && !disabled && (
         <div className="tagfield-popular">
           <span id={`${id}-pop`}>Often used:</span>
           <ul aria-labelledby={`${id}-pop`}>

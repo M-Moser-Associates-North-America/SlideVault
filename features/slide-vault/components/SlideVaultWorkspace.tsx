@@ -4,7 +4,6 @@ import { startNudges, stopNudge, useNudge } from '../client/draft-nudge';
 import { useTourOpen } from '../client/tour-store';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
-import { useNavPlacement } from '../client/nav-store';
 import { Cart, CartPill, focusDraftOpener } from './Cart';
 import { AlsoDialog, DownloadDialog, Lightbox } from './Dialogs';
 import { Icon, type IconName } from './icons';
@@ -73,7 +72,6 @@ function Workspace({ header }: { header?: ReactNode }) {
   const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, profile, setCartMin } = useWorkspace();
   const appRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { placement } = useNavPlacement();
   const root = useMemo(() => ({ app: appRef, scroll: scrollRef }), []);
   /* The draft deck starts open when there is room beside the page (desktop, a tablet on its side) and closed
      when it would cover the page (phone, a tablet held upright). Turning a tablet upright closes it. */
@@ -134,7 +132,7 @@ function Workspace({ header }: { header?: ReactNode }) {
 
   return (
     <RootContext.Provider value={root}>
-    <div className="sv-app" ref={appRef} data-nav={placement}>
+    <div className="sv-app" ref={appRef} data-nav="bottom">
       <div className="sv-scroll" ref={scrollRef}>
       {header}
       <div className="sv-top">
@@ -263,7 +261,7 @@ function Workspace({ header }: { header?: ReactNode }) {
 
 /**
  * The main tabs as a bar along the bottom of a phone, with the draft deck as the fifth item. It is shown
- * instead of the top tabs when the workspace is narrow and the placement is "bottom" (see client/nav-store.ts).
+ * instead of the top tabs when the workspace is narrow (the tabs always sit at the bottom on a phone).
  */
 function BottomBar({ view, deep }: { view: string; deep: boolean }) {
   const { runtime, selection, cartMin, setCartMin } = useWorkspace();

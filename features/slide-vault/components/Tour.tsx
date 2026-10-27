@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { ACTIONS, EVENTS, Joyride, STATUS, type EventData, type Step, type TooltipRenderProps } from 'react-joyride';
 import { endTour, startTour, useTourOpen } from '../client/tour-store';
 import { useTipSeen } from '../client/tip-store';
-import { useNavPlacement } from '../client/nav-store';
 import { Icon } from './icons';
 import { useRoot } from './root';
 import { useWorkspaceCompact, workspaceSizeOf } from './size';
@@ -73,9 +72,8 @@ export function Tour() {
     scroll.current?.scrollTo(0, 0);
     await nextFrame();
   };
-  const { placement } = useNavPlacement();
   const compact = useWorkspaceCompact();
-  const bottomTabs = compact && placement === 'bottom';
+  const bottomTabs = compact;
 
   const stepFor: Record<StepId, Step> = {
     welcome: {

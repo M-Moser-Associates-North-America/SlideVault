@@ -289,8 +289,8 @@ test('combining slides from several decks asks the server for one file, and show
   expect(requests[0].combine).toBe(true);
 });
 
-test('upload: pick a category and add tags; the tags are sent to the deck after the upload', async ({ page }) => {
-  // Stand-ins answer the upload and the tag routes so nothing is stored; the requests are inspected.
+test('upload: see the slides, tag the deck and a slide, confirm, and everything is sent together', async ({ page }) => {
+  // Stand-ins answer the upload, the library and the tag routes so nothing is stored; the requests are inspected.
   const tagPosts: { on: string; id: string; tag: string }[] = [];
   let uploadBody = '';
   await page.route('**/api/slide-vault/v1/tags', async (route) => {
@@ -302,33 +302,64 @@ test('upload: pick a category and add tags; the tags are sent to the deck after 
     tagPosts.push(body);
     await route.fulfill({ json: { data: { id: `t${tagPosts.length}`, tag: body.tag } } });
   });
+  let uploads = 0;
   await page.route('**/api/slide-vault/v1/uploads', async (route) => {
+    uploads += 1;
     uploadBody = route.request().postData() ?? '';
-    await route.fulfill({ json: { data: { id: 'deck-new', title: 'Test deck', status: 'ready', error: null, slideCount: 3 } } });
+    await route.fulfill({ json: { data: { id: 'deck-new', title: 'Harbor Bank HQ proposal', status: 'ready', error: null, slideCount: 4 } } });
+  });
+  await page.route('**/api/slide-vault/v1/search?*', async (route) => {
+    if (new URL(route.request().url()).searchParams.get('hidden') !== 'include') return route.continue();
+    const data = [1, 2, 3, 4].map((n) => ({ id: `s${n}`, provenance: { sourceId: 'deck-new', slideNumber: n } }));
+    await route.fulfill({ json: { data, page: { nextCursor: null } } });
   });
   await openHome(page);
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Upload' }).click();
   await expect(page.getByRole('heading', { name: 'Upload', level: 1 })).toBeVisible();
-  await page.locator('input[type=file]').setInputFiles({ name: 'test.pptx', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', buffer: Buffer.from('x') });
+  await expect(page.getByRole('button', { name: 'Upload deck' })).toBeDisabled();
+  await page.locator('input[type=file]').setInputFiles('tests/fixtures/harbor-bank-proposal.pptx');
+  // The slides appear below the deck details, one card each, before anything is sent.
+  await expect(page.locator('.upcard')).toHaveCount(4);
+  expect(uploads).toBe(0);
   const idd = page.getByRole('button', { name: 'IDD', exact: true });
   await idd.click();
   await expect(idd).toHaveAttribute('aria-pressed', 'true');
-  const box = page.getByRole('combobox', { name: /Tags/ });
-  await box.fill('health');
+  const deckBox = page.getByRole('combobox', { name: /Deck tags/ });
+  await deckBox.fill('health');
   await expect(page.getByRole('option', { name: /Healthcare/ })).toBeVisible();
   expect(await axe(page)).toEqual([]);
-  await box.press('ArrowDown');
-  await box.press('ArrowDown');
-  await box.press('Enter');
-  await box.pressSequentially('Pilot,'); // a comma ends a tag, like Enter
-  await box.fill('healthcare');
-  await box.press('Enter'); // already added, ignoring capital letters
-  await expect(page.locator('.tagchip')).toHaveText(['Healthcare', 'Pilot']);
+  await deckBox.press('ArrowDown');
+  await deckBox.press('ArrowDown');
+  await deckBox.press('Enter');
+  await deckBox.fill('healthcare');
+  await deckBox.press('Enter'); // already added, ignoring capital letters
+  await expect(page.locator('.tagfield-chips').first().locator('.tagchip')).toHaveText(['Healthcare']);
+  // One slide on its own, and two slides together.
+  const first = page.locator('.upcard').nth(0).getByRole('combobox');
+  await first.pressSequentially('Pilot,'); // a comma ends a tag, like Enter
+  await page.getByLabel(/Select slide 3/).click({ force: true });
+  await page.getByLabel(/Select slide 4/).click({ force: true });
+  await page.locator('.upgrid-bulk').getByRole('combobox').pressSequentially('Wellbeing,');
+  await page.getByRole('button', { name: 'Done' }).click();
+  expect(await axe(page)).toEqual([]);
+  // Nothing is sent until the pop-up is confirmed.
   await page.getByRole('button', { name: 'Upload deck' }).click();
-  await expect(page.getByText('Tags added: Healthcare, Pilot.')).toBeVisible();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Upload this deck?' })).toBeVisible();
+  await expect(dialog).toContainText('Deck tags: Healthcare');
+  await expect(dialog).toContainText('3 tags on 3 slides');
+  expect(await axe(page)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  expect(uploads).toBe(0);
+  await page.getByRole('button', { name: 'Upload deck' }).click();
+  await dialog.getByRole('button', { name: 'Upload deck' }).click();
+  await expect(page.getByText('Tags added: 1 deck tag and 3 slide tags.')).toBeVisible();
+  expect(uploads).toBe(1);
   expect(tagPosts).toEqual([
     { on: 'deck', id: 'deck-new', tag: 'Healthcare' },
-    { on: 'deck', id: 'deck-new', tag: 'Pilot' },
+    { on: 'slide', id: 's1', tag: 'Pilot' },
+    { on: 'slide', id: 's3', tag: 'Wellbeing' },
+    { on: 'slide', id: 's4', tag: 'Wellbeing' },
   ]);
   expect(uploadBody).toContain('IDD');
   expect(await axe(page)).toEqual([]);
@@ -356,10 +387,4 @@ test('phones: tabs along the bottom, the draft deck opens from the last tab, not
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
-
-  // The tabs can go back to the top from the account menu.
-  await page.getByRole('button', { name: /Account menu/ }).click();
-  await page.getByRole('menuitem', { name: 'Tabs at the top' }).click();
-  await expect(page.locator('.sv-nav')).toBeVisible();
-  await expect(tabs).toBeHidden();
 });
