@@ -743,6 +743,9 @@ export function ResultsView() {
 
 /* ----------------------------------------------------------------- Deck */
 
+/** Where "File created by" comes from, so nobody reads it as the person who made the pitch. */
+const FILE_CREATED_TIP = "From the PowerPoint file's own details. For a deck made from a template this can be the template's author and date.";
+
 export function DeckView({ id }: { id: string }) {
   const { library, openDownload, openArchiveDialog, setIncludeHidden } = useWorkspace();
   const [grouping, setGrouping] = useState(false);
@@ -790,7 +793,7 @@ export function DeckView({ id }: { id: string }) {
           </p>
           {(deck.createdBy || deck.uploadedBy) && (
             <p className="meta deck-who">
-              {deck.createdBy && <span>Created by {deck.createdBy}{dateLabel(deck.createdAt) ? ` · ${dateLabel(deck.createdAt)}` : ''}</span>}
+              {deck.createdBy && <span title={FILE_CREATED_TIP}>File created by {deck.createdBy}{dateLabel(deck.createdAt) ? ` · ${dateLabel(deck.createdAt)}` : ''}</span>}
               {deck.uploadedBy && <span>Uploaded by {deck.uploadedBy}{dateLabel(deck.uploadedAt) ? ` · ${dateLabel(deck.uploadedAt)}` : ''}</span>}
             </p>
           )}
@@ -1007,7 +1010,7 @@ export function SlideView({ id }: { id: string }) {
               <dd>{p.sourceFileName}</dd>
               {p.createdBy && (
                 <>
-                  <dt>Created by</dt>
+                  <dt title={FILE_CREATED_TIP}>File created by</dt>
                   <dd>
                     {p.createdBy}
                     {dateLabel(p.createdAt) ? ` · ${dateLabel(p.createdAt)}` : ''}

@@ -225,7 +225,7 @@ export function FilterBar() {
     ...filters.client.map((v) => ({ id: `c-${v}`, kind: 'Client', text: v, remove: () => patchFilters({ client: filters.client.filter((x) => x !== v) }) })),
     ...filters.category.map((v) => ({ id: `p-${v}`, kind: 'Project type', text: v, remove: () => patchFilters({ category: filters.category.filter((x) => x !== v) }) })),
     ...filters.slideType.map((v) => ({ id: `t-${v}`, kind: 'Slide type', text: v, remove: () => patchFilters({ slideType: filters.slideType.filter((x) => x !== v) }) })),
-    ...filters.createdBy.map((v) => ({ id: `cb-${v}`, kind: 'Created by', text: v, remove: () => patchFilters({ createdBy: filters.createdBy.filter((x) => x !== v) }) })),
+    ...filters.createdBy.map((v) => ({ id: `cb-${v}`, kind: 'File created by', text: v, remove: () => patchFilters({ createdBy: filters.createdBy.filter((x) => x !== v) }) })),
     ...filters.uploadedBy.map((v) => ({ id: `ub-${v}`, kind: 'Uploaded by', text: v, remove: () => patchFilters({ uploadedBy: filters.uploadedBy.filter((x) => x !== v) }) })),
     ...(filters.bestOnly ? [{ id: 'best', kind: 'Collection', text: 'Best of the Best', remove: () => patchFilters({ bestOnly: false }) }] : []),
     ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
@@ -315,9 +315,9 @@ export function FilterBar() {
     return (
       <div className="fb-more">
         {creators.length > 0 ? (
-          <Picker label="Created by" options={creators} picked={filters.createdBy} counts={creatorCounts} onToggle={(v) => patchFilters({ createdBy: toggle(filters.createdBy, v) })} />
+          <Picker label="File created by" options={creators} picked={filters.createdBy} counts={creatorCounts} onToggle={(v) => patchFilters({ createdBy: toggle(filters.createdBy, v) })} />
         ) : (
-          <NotYet label="Created by" />
+          <NotYet label="File created by" />
         )}
         {uploaders.length > 0 ? (
           <Picker label="Uploaded by" options={uploaders} picked={filters.uploadedBy} counts={uploaderCounts} onToggle={(v) => patchFilters({ uploadedBy: toggle(filters.uploadedBy, v) })} />

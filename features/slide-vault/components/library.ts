@@ -102,7 +102,7 @@ export function filterKinds(f: Filters): string[] {
     ...(f.client.length ? ['Client'] : []),
     ...(f.category.length ? ['Project type'] : []),
     ...(f.slideType.length ? ['Slide type'] : []),
-    ...(f.createdBy.length ? ['Created by'] : []),
+    ...(f.createdBy.length ? ['File created by'] : []),
     ...(f.uploadedBy.length ? ['Uploaded by'] : []),
     ...(f.bestOnly ? ['Best of the Best'] : []),
   ];
