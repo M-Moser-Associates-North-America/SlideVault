@@ -26,9 +26,17 @@ export function StoryLauncher() {
   };
   return (
     <div className="sb-launch">
-      <button type="button" className={`btn sb-launch-btn${brief ? ' is-glow' : ''}`} onClick={open} aria-describedby={brief ? 'sb-launch-hint' : undefined}>
+      <button type="button" className={`btn sb-launch-btn${brief ? ' is-glow' : ''}`} onClick={open} aria-describedby={brief ? 'sb-launch-desc sb-launch-hint' : 'sb-launch-desc'}>
         <Icon name="sparkle" />
-        Storyboard
+        <span className="sb-swap">
+          <span className="sb-swap1">Storyboard</span>
+          <span className="sb-swap2" aria-hidden="true">
+            Build with AI
+          </span>
+        </span>
+        <span id="sb-launch-desc" className="sr-only">
+          Build with AI
+        </span>
         {!opened.seen && !touring && <span className="sb-new">New</span>}
       </button>
       {brief && (

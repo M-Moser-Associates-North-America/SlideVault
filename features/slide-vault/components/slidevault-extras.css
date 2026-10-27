@@ -934,3 +934,16 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .create-card-planned { border-style: dashed; box-shadow: none; }
 .slidevault .create-home { font-weight: 700; color: var(--sv-brand-strong); text-decoration: underline; text-underline-offset: 2px; }
 .slidevault .create-home:hover { text-decoration-thickness: 2px; }
+
+/* The Storyboard button's label slides up to "Build with AI" on hover, focus and tap. Both words share one
+   grid cell, so the button is as wide as the longer one from the start and never changes size. */
+.slidevault .sb-swap { display: grid; overflow: hidden; line-height: 1.35; }
+.slidevault .sb-swap > span { grid-area: 1 / 1; text-align: center; white-space: nowrap; transition: transform .22s ease, opacity .22s ease; }
+.slidevault .sb-swap2 { transform: translateY(110%); opacity: 0; }
+.slidevault .btn.sb-launch-btn:focus-visible .sb-swap1, .slidevault .btn.sb-launch-btn:active .sb-swap1 { transform: translateY(-110%); opacity: 0; }
+.slidevault .btn.sb-launch-btn:focus-visible .sb-swap2, .slidevault .btn.sb-launch-btn:active .sb-swap2 { transform: none; opacity: 1; }
+@media (hover: hover) {
+  .slidevault .btn.sb-launch-btn:hover .sb-swap1 { transform: translateY(-110%); opacity: 0; }
+  .slidevault .btn.sb-launch-btn:hover .sb-swap2 { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .slidevault .sb-swap > span { transition: none; } }
