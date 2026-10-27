@@ -1,13 +1,17 @@
 'use client';
 
-import { useId, useState, type FormEvent } from 'react';
-import { uploadDeck } from '../client/api';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { addTag, listTags, uploadDeck } from '../client/api';
 import type { DeckSummary, UploadDeckMeta } from '../contracts/dto';
 import { Icon } from './icons';
 import { Link } from './parts';
 import { useWorkspace } from './state';
+import { TagField, type TagSuggestion } from './TagField';
 
-type UploadState = { kind: 'idle' } | { kind: 'uploading' } | { kind: 'error'; message: string } | { kind: 'done'; deck: DeckSummary };
+/* The kinds of deck M Moser keeps (the folders the library is sorted into). */
+const CATEGORIES = ['SME', 'IDD', 'MSA', 'Business Proposal', 'Design Consultancy', 'RFP'];
+
+type UploadState = { kind: 'idle' } | { kind: 'uploading' } | { kind: 'error'; message: string } | { kind: 'done'; deck: DeckSummary; tagNote: string | null };
 
 /**
  * Upload screen (docs/foundry/SLIDE_RECORD.md): a .pptx goes in unchanged, gets split into slides,
@@ -19,17 +23,45 @@ export function UploadView() {
   const [clientName, setClientName] = useState('');
   const [deckYear, setDeckYear] = useState('');
   const [category, setCategory] = useState('');
+  const [otherCategory, setOtherCategory] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  const [known, setKnown] = useState<TagSuggestion[]>([]);
+  const otherRef = useRef<HTMLInputElement>(null);
   const [bestOfTheBest, setBestOfTheBest] = useState(false);
   const [state, setState] = useState<UploadState>({ kind: 'idle' });
   const [over, setOver] = useState(false);
   const fieldId = useId();
   const canUpload = runtime.capabilities.has('source.upload');
+  /* Tags already in use, most used first, so a new deck reuses the words the library already has. */
+  useEffect(() => {
+    let live = true;
+    listTags(runtime).then((t) => live && setKnown(t), () => {});
+    return () => {
+      live = false;
+    };
+  }, [runtime]);
   const busy = state.kind === 'uploading';
 
   const pick = (f: File | null) => {
     setFile(f);
     if (state.kind !== 'uploading') setState({ kind: 'idle' });
   };
+
+  /* Tags go on after the deck exists. Says what happened in words; a deck that was already in the library is left as it was. */
+  async function saveTags(deck: DeckSummary): Promise<string | null> {
+    if (tags.length === 0) return null;
+    if (deck.alreadyUploaded) return 'Tags were not added because this deck was already in the library. Open it to tag it.';
+    let saved = 0;
+    for (const t of tags) {
+      try {
+        if (!(await addTag(runtime, 'deck', deck.id, t))) return saved ? `Added ${saved} of ${tags.length} tags; this server can't save the rest yet.` : "Tags can't be saved yet: this server has no tag route. Your deck is uploaded without them.";
+        saved++;
+      } catch {
+        return `Added ${saved} of ${tags.length} tags. The rest didn't save; open the deck to add them.`;
+      }
+    }
+    return `Tags added: ${tags.join(', ')}.`;
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -44,12 +76,15 @@ export function UploadView() {
     };
     try {
       const deck = await uploadDeck(runtime, file, meta);
-      setState({ kind: 'done', deck });
+      const tagNote = await saveTags(deck);
+      setState({ kind: 'done', deck, tagNote });
       announce(`Uploaded ${deck.title}, ${deck.slideCount} slides`);
       setFile(null);
       setClientName('');
       setDeckYear('');
       setCategory('');
+      setOtherCategory(false);
+      setTags([]);
       setBestOfTheBest(false);
       reloadLibrary();
     } catch (err) {
@@ -113,10 +148,52 @@ export function UploadView() {
             <label htmlFor={`${fieldId}-year`}>Year</label>
             <input id={`${fieldId}-year`} type="number" className="input" value={deckYear} onChange={(e) => setDeckYear(e.target.value)} placeholder="e.g. 2026" />
           </div>
-          <div className="field full">
-            <label htmlFor={`${fieldId}-category`}>Category</label>
-            <input id={`${fieldId}-category`} type="text" className="input" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Business Proposal" />
+          <div className="field full" role="group" aria-labelledby={`${fieldId}-category`}>
+            <span id={`${fieldId}-category`} className="field-label">
+              Category <span className="field-opt">optional</span>
+            </span>
+            <div className="catpills">
+              {CATEGORIES.map((c) => {
+                const on = !otherCategory && category === c;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className="catpill"
+                    aria-pressed={on}
+                    disabled={busy}
+                    onClick={() => {
+                      setOtherCategory(false);
+                      setCategory(on ? '' : c);
+                    }}
+                  >
+                    {on && <Icon name="check" className="ic-sm" />}
+                    {c}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                className="catpill"
+                aria-pressed={otherCategory}
+                disabled={busy}
+                onClick={() => {
+                  const next = !otherCategory;
+                  setOtherCategory(next);
+                  setCategory('');
+                  if (next) setTimeout(() => otherRef.current?.focus(), 0);
+                }}
+              >
+                {otherCategory && <Icon name="check" className="ic-sm" />}
+                Other
+              </button>
+            </div>
+            {otherCategory && (
+              <input ref={otherRef} type="text" className="input catother" aria-label="Other category" value={category} maxLength={60} onChange={(e) => setCategory(e.target.value)} placeholder="Name the category" />
+            )}
+            <p className="field-hint">Tap one. Tap it again to clear.</p>
           </div>
+          <TagField label="Tags" hint="Words people might search for, like a sector or topic. Press Enter or comma after each." value={tags} onChange={setTags} suggestions={known} disabled={busy} />
           <div className="radio-row full">
             <label>
               <input type="checkbox" checked={bestOfTheBest} onChange={(e) => setBestOfTheBest(e.target.checked)} />
@@ -139,7 +216,8 @@ export function UploadView() {
             <span>
               {state.deck.alreadyUploaded ? `“${state.deck.title}” was already in the library` : `“${state.deck.title}” uploaded`}, {state.deck.slideCount}{' '}
               {state.deck.slideCount === 1 ? 'slide' : 'slides'} ready.
-              {state.deck.addedDetails?.length ? ` Added: ${state.deck.addedDetails.join(', ')}.` : ''} <Link to={{ view: 'deck', id: state.deck.id }}>Open the deck</Link>
+              {state.deck.addedDetails?.length ? ` Added: ${state.deck.addedDetails.join(', ')}.` : ''}
+              {state.tagNote ? ` ${state.tagNote}` : ''} <Link to={{ view: 'deck', id: state.deck.id }}>Open the deck</Link>
             </span>
           </div>
         )}

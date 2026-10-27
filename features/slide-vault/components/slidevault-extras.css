@@ -947,3 +947,37 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
   .slidevault .btn.sb-launch-btn:hover .sb-swap2 { transform: none; opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) { .slidevault .sb-swap > span { transition: none; } }
+
+/* Upload: category pills and the tag box */
+.slidevault .field > .field-label { font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .field-opt { font-weight: 400; color: var(--sv-text-secondary); margin-left: 4px; }
+.slidevault .field-hint { margin: 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .catpills { display: flex; flex-wrap: wrap; gap: 8px; }
+.slidevault .catpill { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); font-weight: 500; cursor: pointer; }
+.slidevault .catpill:hover:not(:disabled) { background: var(--sv-surface-sunken); }
+.slidevault .catpill[aria-pressed="true"] { background: var(--sv-brand-tint); border-color: var(--sv-brand); font-weight: 600; }
+.slidevault .catpill:disabled { opacity: .6; cursor: default; }
+.slidevault .catpill .ic { color: var(--sv-brand-strong); }
+.slidevault .catother { max-width: 320px; margin-top: 4px; }
+.slidevault .tagfield-wrap { position: relative; }
+.slidevault .tagfield { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 46px; padding: 6px 10px; border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius, 12px); background: var(--sv-surface); cursor: text; }
+.slidevault .tagfield:focus-within { border-color: var(--sv-brand); }
+.slidevault .tagfield.is-disabled { opacity: .6; }
+.slidevault .tagfield-chips { display: contents; list-style: none; margin: 0; padding: 0; }
+.slidevault .tagchip { display: inline-flex; align-items: center; gap: 2px; min-height: 30px; padding: 0 4px 0 12px; border-radius: 999px; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); font-size: var(--sv-text-small); color: var(--sv-text); }
+.slidevault .tagchip-x { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: pointer; }
+.slidevault .tagchip-x:hover:not(:disabled) { background: var(--sv-border); color: var(--sv-text); }
+.slidevault .tagchip-x .ic { width: 14px; height: 14px; }
+.slidevault .tagfield input { flex: 1 1 140px; min-width: 120px; height: 32px; border: none; outline: none; background: transparent; color: var(--sv-text); font: inherit; padding: 0; }
+.slidevault .tagfield input:focus-visible { outline: none; }
+.slidevault .tagfield-list { position: absolute; z-index: 20; left: -1px; right: -1px; top: calc(100% + 4px); margin: 0; padding: 6px; list-style: none; border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius, 12px); background: var(--sv-surface); box-shadow: var(--sv-shadow-card); max-height: 260px; overflow: auto; }
+.slidevault .tagfield-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 8px; cursor: pointer; font-size: var(--sv-text-small); }
+.slidevault .tagfield-opt:hover, .slidevault .tagfield-opt.is-active { background: var(--sv-surface-sunken); }
+.slidevault .tagfield-opt.is-active { box-shadow: inset 0 0 0 2px var(--sv-brand); }
+.slidevault .tagfield-count { color: var(--sv-text-secondary); font-size: 12px; }
+.slidevault .tagfield-popular { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .tagfield-popular ul { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.slidevault .tagquick { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 12px 0 8px; border: 1px dashed var(--sv-border-strong); border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); cursor: pointer; }
+.slidevault .tagquick:hover { background: var(--sv-surface-sunken); border-style: solid; }
+.slidevault .tagquick .ic { width: 14px; height: 14px; color: var(--sv-text-secondary); }
+.slidevault .tagfield-add { display: inline-flex; align-items: center; gap: 8px; }

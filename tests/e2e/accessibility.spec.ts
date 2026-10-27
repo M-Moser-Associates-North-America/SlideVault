@@ -289,6 +289,51 @@ test('combining slides from several decks asks the server for one file, and show
   expect(requests[0].combine).toBe(true);
 });
 
+test('upload: pick a category and add tags; the tags are sent to the deck after the upload', async ({ page }) => {
+  // Stand-ins answer the upload and the tag routes so nothing is stored; the requests are inspected.
+  const tagPosts: { on: string; id: string; tag: string }[] = [];
+  let uploadBody = '';
+  await page.route('**/api/slide-vault/v1/tags', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: { data: [{ tag: 'Healthcare', slides: 40, decks: 6 }, { tag: 'Workplace strategy', slides: 22, decks: 4 }] } });
+      return;
+    }
+    const body = route.request().postDataJSON();
+    tagPosts.push(body);
+    await route.fulfill({ json: { data: { id: `t${tagPosts.length}`, tag: body.tag } } });
+  });
+  await page.route('**/api/slide-vault/v1/uploads', async (route) => {
+    uploadBody = route.request().postData() ?? '';
+    await route.fulfill({ json: { data: { id: 'deck-new', title: 'Test deck', status: 'ready', error: null, slideCount: 3 } } });
+  });
+  await openHome(page);
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Upload' }).click();
+  await expect(page.getByRole('heading', { name: 'Upload', level: 1 })).toBeVisible();
+  await page.locator('input[type=file]').setInputFiles({ name: 'test.pptx', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', buffer: Buffer.from('x') });
+  const idd = page.getByRole('button', { name: 'IDD', exact: true });
+  await idd.click();
+  await expect(idd).toHaveAttribute('aria-pressed', 'true');
+  const box = page.getByRole('combobox', { name: /Tags/ });
+  await box.fill('health');
+  await expect(page.getByRole('option', { name: /Healthcare/ })).toBeVisible();
+  expect(await axe(page)).toEqual([]);
+  await box.press('ArrowDown');
+  await box.press('ArrowDown');
+  await box.press('Enter');
+  await box.pressSequentially('Pilot,'); // a comma ends a tag, like Enter
+  await box.fill('healthcare');
+  await box.press('Enter'); // already added, ignoring capital letters
+  await expect(page.locator('.tagchip')).toHaveText(['Healthcare', 'Pilot']);
+  await page.getByRole('button', { name: 'Upload deck' }).click();
+  await expect(page.getByText('Tags added: Healthcare, Pilot.')).toBeVisible();
+  expect(tagPosts).toEqual([
+    { on: 'deck', id: 'deck-new', tag: 'Healthcare' },
+    { on: 'deck', id: 'deck-new', tag: 'Pilot' },
+  ]);
+  expect(uploadBody).toContain('IDD');
+  expect(await axe(page)).toEqual([]);
+});
+
 test('phones: tabs along the bottom, the draft deck opens from the last tab, nothing scrolls sideways', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openResults(page, 'leadership');
