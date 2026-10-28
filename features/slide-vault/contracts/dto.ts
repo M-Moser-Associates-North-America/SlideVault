@@ -192,6 +192,22 @@ export type DeckSummary = {
   alreadyUploaded?: boolean;
   /** What the second copy's folder added to the existing deck, e.g. ["Best of the Best", "year 2024"] */
   addedDetails?: string[];
+  /** How many free-form tags sent with the upload were saved (FD-54) */
+  tagsAdded?: number;
+};
+
+/**
+ * POST /uploads/preview (FD-54): a chosen .pptx's slides as pictures, before anything is stored.
+ * Each previewPath is relative to the API root (runtime.assetUrl), served for about two hours.
+ */
+export type UploadPreview = {
+  /** The file's fingerprint; the pictures are kept under it */
+  token: string;
+  fileName: string;
+  slideCount: number;
+  /** Set when this exact file is already in the library: the deck's title */
+  alreadyUploadedAs: string | null;
+  slides: { number: number; title: string; hiddenInSource: boolean; previewPath: string }[];
 };
 
 /** GET /library: every ready deck and slide, for screens that browse and filter in the browser (V3 prototype). */

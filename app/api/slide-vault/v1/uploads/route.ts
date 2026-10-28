@@ -2,6 +2,7 @@ import type { UploadDeckMeta } from '@/features/slide-vault/contracts/dto';
 import { fail, ok, RATE_POLICIES, rateLimit, ServiceError, toResponse } from '@/features/slide-vault/server';
 import { userOf } from '@/features/slide-vault/server/principal';
 import { processUpload } from '@/features/slide-vault/server/services/upload';
+import { addUploadTags } from '@/features/slide-vault/server/tags';
 
 // POST /uploads (multipart/form-data): file + clientName, deckYear, category, folderPath,
 // bestOfTheBest. A .pptx goes in, is stored unchanged, and is split into slide records.
@@ -27,9 +28,34 @@ export async function POST(request: Request) {
     bestOfTheBest: form.get('bestOfTheBest') === 'true',
   };
 
+  // Tags chosen on the upload page (FD-54): deckTags = ["..."], slideTags = { "3": ["..."] } (by slide number), both JSON.
+  let deckTags: string[] = [];
+  let slideTags: Record<string, string[]> = {};
+  try {
+    const d = form.get('deckTags');
+    const s = form.get('slideTags');
+    if (typeof d === 'string' && d) deckTags = JSON.parse(d);
+    if (typeof s === 'string' && s) slideTags = JSON.parse(s);
+    const okShape = Array.isArray(deckTags) && deckTags.every((t) => typeof t === 'string') && slideTags && typeof slideTags === 'object' && !Array.isArray(slideTags)
+      && Object.values(slideTags).every((v) => Array.isArray(v) && v.every((t) => typeof t === 'string'));
+    if (!okShape) throw new Error('shape');
+  } catch {
+    return fail(400, 'BAD_REQUEST', 'deckTags must be a JSON list of text, and slideTags a JSON object of slide number to a list of text.');
+  }
+
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const summary = await processUpload(file.name, bytes, meta, userOf(request));
+    const user = userOf(request);
+    const summary = await processUpload(file.name, bytes, meta, user);
+    if ((deckTags.length || Object.keys(slideTags).length) && summary.status === 'ready') {
+      try {
+        summary.tagsAdded = await addUploadTags(summary.id, deckTags, slideTags, user ?? 'uploader (not signed in)');
+      } catch (e) {
+        // The deck is stored either way; tags can be added from the slide page afterwards.
+        console.error('Upload tags could not be saved', e);
+        summary.tagsAdded = 0;
+      }
+    }
     return ok(summary);
   } catch (e) {
     if (e instanceof ServiceError) return toResponse(e);

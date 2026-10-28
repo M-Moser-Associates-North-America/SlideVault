@@ -4,6 +4,7 @@ import { sql } from './db';
 import type { DetailChanges } from './deck-details';
 import type { SlideText } from './duplicates';
 import { anyOfQuery, type SearchPlan, type SlideFacts } from './ai/search-plan';
+import { tidyPersonName } from './file-facts';
 
 /**
  * Postgres-backed deck/slide storage in M Moser's Supabase project (docs/DECISIONS.md FD-12;
@@ -221,7 +222,8 @@ function toSlideSummary(row: SlideWithDeck): SlideSummary {
       bestOfTheBest: row.decks.best_of_the_best,
       location: d.project_location ?? null,
       // Deck details (FD-52): real values only, null when nobody recorded them.
-      createdBy: d.created_by ?? null,
+      // Shown tidied ("ChelseaTerrell - M Moser Associates" -> "Chelsea Terrell"); stored as recorded.
+      createdBy: tidyPersonName(d.created_by),
       uploadedBy: d.uploaded_by ?? null,
       createdAt: iso(d.file_created_at),
       uploadedAt: iso(d.uploaded_at),
@@ -252,6 +254,15 @@ const archivedWhere = (a: ArchivedFilter) => (a === 'include' ? 'true' : a === '
 
 /** The whole library is listed in one go (no query): a ceiling well above M Moser's proposal library. */
 const LIBRARY_CEILING = 20000;
+
+/** Slides by id, in the order given (ids that aren't database slides are skipped). */
+export async function getSlideSummariesPg(ids: string[]): Promise<SlideSummary[]> {
+  const wanted = ids.filter((id) => UUID.test(id));
+  if (!wanted.length) return [];
+  const rows = await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where s.id = any($1::uuid[])`, [wanted]);
+  const byId = new Map(rows.map((r) => [r.id, toSlideSummary(r)]));
+  return wanted.map((id) => byId.get(id)).filter((x): x is SlideSummary => !!x);
+}
 
 /**
  * Basic keyword search against the generated search_text column (docs/DATA_AND_API.md, "Search and

@@ -43,7 +43,10 @@ export function db(): pg.Pool {
   return pool;
 }
 
-/** Connections that have already switched role and schema. */
+/**
+ * Connections that have already switched role and schema. The search path also names "extensions",
+ * where Supabase keeps pgvector (FD-55); Postgres skips it where that schema doesn't exist.
+ */
 const prepared = new WeakSet<pg.PoolClient>();
 
 /** Run one statement and return its rows. Values always go in as parameters ($1, $2...), never pasted into SQL. */
@@ -52,7 +55,7 @@ export async function sql<T = Record<string, unknown>>(text: string, values: unk
   try {
     if (!prepared.has(client)) {
       // Every connection first switches to the shared role and our schema, before running anything.
-      await client.query(`SET ROLE slidevault_developer; SET search_path TO ${pg.escapeIdentifier(readMmoserConfig().db.schema)}, public`);
+      await client.query(`SET ROLE slidevault_developer; SET search_path TO ${pg.escapeIdentifier(readMmoserConfig().db.schema)}, public, extensions`);
       prepared.add(client);
     }
     const res = await client.query(text, values);
@@ -70,7 +73,7 @@ export async function transaction<R>(work: (q: <T = Record<string, unknown>>(tex
   const client = await db().connect();
   try {
     if (!prepared.has(client)) {
-      await client.query(`SET ROLE slidevault_developer; SET search_path TO ${pg.escapeIdentifier(readMmoserConfig().db.schema)}, public`);
+      await client.query(`SET ROLE slidevault_developer; SET search_path TO ${pg.escapeIdentifier(readMmoserConfig().db.schema)}, public, extensions`);
       prepared.add(client);
     }
     await client.query('begin');
