@@ -27,7 +27,14 @@ export const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
 
 type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 
-export type Transcriber = { name: string; transcribe(audio: Blob, fileName: string): Promise<string> };
+export type Transcriber = {
+  name: string;
+  transcribe(audio: Blob, fileName: string): Promise<string>;
+  /** Whether the service answers at all right now (it may be set up but stopped, e.g. after a restart) */
+  answers(): Promise<boolean>;
+};
+
+const HEALTH_TIMEOUT_MS = 2000;
 
 export function openAiCompatibleTranscriber(config: Extract<SpeechConfig, { provider: 'openai-compatible' }>, fetchFn: FetchLike = fetch): Transcriber {
   return {
@@ -46,6 +53,16 @@ export function openAiCompatibleTranscriber(config: Extract<SpeechConfig, { prov
       if (!res.ok) throw new Error(`Speech service request failed (${res.status})`);
       const body = (await res.json()) as { text?: unknown };
       return typeof body.text === 'string' ? body.text.replace(/\s+/g, ' ').trim() : '';
+    },
+    // Any reply counts, even a 404 or 401: hosted services and Whisper's own server answer /models
+    // differently, but only a service that is down gives no reply at all.
+    async answers() {
+      try {
+        await fetchFn(`${config.baseUrl}/models`, { method: 'GET', headers: config.apiKey ? { authorization: `Bearer ${config.apiKey}` } : {}, signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS) });
+        return true;
+      } catch {
+        return false;
+      }
     },
   };
 }

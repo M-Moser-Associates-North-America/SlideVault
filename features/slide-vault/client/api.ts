@@ -145,10 +145,14 @@ export async function sendStoryFeedback(runtime: Transport, feedback: { role: St
 }
 
 /** Whether talking instead of typing is set up on this server. */
-export async function speechAvailable(runtime: Transport): Promise<boolean> {
-  const res = await runtime.request({ path: '/speech', method: 'GET' });
-  if (!res.ok) return false;
-  return ((await res.json()) as ApiOk<{ available: boolean }>).data.available;
+/** 'on', 'off' (not set up here) or 'down' (set up, but the speech service isn't answering) */
+export type SpeechStatus = 'on' | 'off' | 'down';
+
+export async function speechStatus(runtime: Transport): Promise<SpeechStatus> {
+  const res = await runtime.request({ path: '/speech', method: 'GET' }).catch(() => null);
+  if (!res?.ok) return 'off';
+  const data = ((await res.json()) as ApiOk<{ available: boolean; status?: SpeechStatus }>).data;
+  return data.status ?? (data.available ? 'on' : 'off');
 }
 
 /** A WAV recording -> the words said. */

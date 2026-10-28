@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { speechAvailable, transcribe } from '../client/api';
+import { speechStatus, transcribe, type SpeechStatus } from '../client/api';
 import { startRecording, type Recording } from '../client/wav-recorder';
 import { Icon } from './icons';
 import { useWorkspace } from './state';
@@ -9,14 +9,28 @@ import { useWorkspace } from './state';
 /** Talk instead of type: records on this device and sends it only to the app's own speech service. Icon only. */
 export function MicButton({ onText, disabled, className = 'btn btn-icon sb-mic', showWhenOff }: { onText: (text: string) => void; disabled?: boolean; className?: string; showWhenOff?: boolean }) {
   const { runtime, toast } = useWorkspace();
-  const [available, setAvailable] = useState(false);
+  const [status, setStatus] = useState<SpeechStatus>('off');
   const [state, setState] = useState<'idle' | 'listening' | 'hearing'>('idle');
   const rec = useRef<Recording | null>(null);
   useEffect(() => {
-    void speechAvailable(runtime).then(setAvailable);
+    void speechStatus(runtime).then(setStatus);
     return () => rec.current?.cancel();
   }, [runtime]);
-  if (!available) {
+  if (status === 'down') {
+    /* Set up, but the speech service isn't answering (it stops when the computer restarts). Shown
+       greyed out everywhere so it's clear it needs starting; a tap checks again. */
+    const recheck = async () => {
+      const now = await speechStatus(runtime);
+      setStatus(now);
+      if (now === 'down') toast("Voice isn't answering on this computer right now. Type for now, or start the voice service and tap again.");
+    };
+    return (
+      <button type="button" className={className} aria-disabled="true" aria-label="Talk instead of typing (voice isn't answering right now)" data-tip="Voice isn't answering right now" data-tip-pos="end" onClick={() => void recheck()}>
+        <Icon name="mic" />
+      </button>
+    );
+  }
+  if (status === 'off') {
     /* Home shows it greyed out until talking is set up here; the Storyboard hides it. */
     if (!showWhenOff) return null;
     return (
@@ -35,6 +49,7 @@ export function MicButton({ onText, disabled, className = 'btn btn-icon sb-mic',
         else toast("Didn't catch that. Try again a little closer to the mic.");
       } catch (e) {
         toast((e as Error).message);
+        void speechStatus(runtime).then(setStatus);
       } finally {
         rec.current = null;
         setState('idle');
