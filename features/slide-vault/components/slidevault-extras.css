@@ -786,8 +786,11 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* "New" badge on the Storyboard button, until it has been opened once. */
 .slidevault .sb-launch-btn { position: relative; }
 .slidevault .sb-new { position: absolute; top: -8px; right: 10px; padding: 1px 8px; border-radius: 999px; background: var(--sv-brand-tint); color: var(--sv-text); border: 1px solid var(--sv-brand); font-size: 11px; font-weight: 700; letter-spacing: 0.02em; line-height: 16px; }
-/* Storyboard button: a faint orange tint and orange edge, no animation. (The brief glow keeps its own.) */
-.slidevault .btn.sb-launch-btn:not(.is-glow) { background: var(--sv-brand-tint); border-color: color-mix(in srgb, var(--sv-brand) 55%, transparent); color: var(--sv-text); }
+/* Storyboard button: white at rest, exactly like the eye and mic buttons beside it; it lights up orange
+   and says Build with AI on hover, focus and tap. (The brief glow keeps its own.) */
+.slidevault .btn.sb-launch-btn:not(.is-glow) { background: var(--sv-surface); border: 1px solid var(--sv-border-strong); color: var(--sv-text); box-shadow: var(--sv-shadow-card); }
+.slidevault .btn.sb-launch-btn:not(.is-glow) .ic { color: inherit; }
+.slidevault .btn.sb-launch-btn:not(.is-glow):focus-visible { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
 .slidevault .btn.sb-launch-btn { -webkit-tap-highlight-color: transparent; }
 .slidevault .btn.sb-launch-btn:not(.is-glow):active { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
 .slidevault .btn.sb-launch-btn:not(.is-glow):active .ic { color: #fff; }

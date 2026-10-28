@@ -29,6 +29,9 @@ export function StoryboardView() {
   const { role, setRole } = useStoryRole(profile);
   // A brief typed in search arrives here when the person chose "Build a story instead".
   const [situation, setSituation] = useState(() => takeHandedOffBrief() ?? '');
+  // Pull the story always looks ready (like the Storyboard button on Home); too short a brief says so instead.
+  const [tooShort, setTooShort] = useState(false);
+  const situationRef = useRef<HTMLTextAreaElement>(null);
   const [phase, setPhase] = useState<'start' | 'building' | 'ready' | 'error'>('start');
   const [error, setError] = useState('');
   const [story, setStory] = useState<StoryboardResult | null>(null);
@@ -162,7 +165,10 @@ export function StoryboardView() {
           <label htmlFor="sb-situation" className="sr-only">
             The client&apos;s situation
           </label>
-          <textarea id="sb-situation" value={situation} onChange={(e) => setSituation(e.target.value)} rows={5} placeholder="Who is the client, what's happening, what worries them, and what would a win look like?" />
+          <textarea id="sb-situation" ref={situationRef} value={situation} aria-describedby={tooShort ? 'sb-too-short' : undefined} onChange={(e) => {
+              setSituation(e.target.value);
+              if (e.target.value.trim().length >= 20) setTooShort(false);
+            }} rows={5} placeholder="Who is the client, what's happening, what worries them, and what would a win look like?" />
           <div className="sb-compose-row">
             <MicButton onText={(t) => setSituation((s) => [s.trim(), t].filter(Boolean).join(' '))} />
             {/* The same setting as in My decks (FD-25), picked right here. */}
@@ -177,12 +183,28 @@ export function StoryboardView() {
                 ))}
               </select>
             </p>
-            <button type="button" className="sb-pull" disabled={situation.trim().length < 20} onClick={() => void run('')}>
-              Pull the story
+            {/* Clear like Tuned for beside it; lights up orange as Start planning story on hover, focus and tap. */}
+            <button type="button" className="sb-pull" aria-label="Pull the story" onClick={() => {
+                if (situation.trim().length < 20) {
+                  setTooShort(true);
+                  situationRef.current?.focus();
+                  return;
+                }
+                void run('');
+              }}>
+              <span className="sb-pull-swap" aria-hidden="true">
+                <span className="sb-pull-1">Pull the story</span>
+                <span className="sb-pull-2">Start planning story</span>
+              </span>
               <Icon name="right" className="ic-sm" />
             </button>
           </div>
         </div>
+        {tooShort && (
+          <p className="sb-too-short" id="sb-too-short" role="alert">
+            Describe the client&apos;s situation in a sentence or more, then pull the story.
+          </p>
+        )}
         {phase === 'error' && (
           <div className="notice danger" role="alert" style={{ marginTop: 16 }}>
             <Icon name="alert" />

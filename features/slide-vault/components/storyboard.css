@@ -22,9 +22,15 @@
 .slidevault .sb-board-title b { font-weight: 700; }
 .slidevault .sb-board-title:focus { outline: none; }
 /* "Pull the story": the orange pill from the Home page's launch button, at the end of the brief's row */
-.slidevault .sb-pull { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--sv-brand); color: #fff; font: inherit; font-size: 15px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: opacity var(--sv-duration-fast) var(--sv-ease-out); }
-.slidevault .sb-pull:hover:not(:disabled) { opacity: 0.88; }
-.slidevault .sb-pull:disabled { opacity: 0.45; cursor: not-allowed; }
+.slidevault .sb-pull { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 1px solid var(--sv-text-secondary); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-card); font: inherit; font-size: var(--sv-text-small); font-weight: 600; white-space: nowrap; cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .sb-pull:is(:hover, :focus-visible, :active) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+/* The label slides from Pull the story to Start planning story; the wider label sets the size, so nothing jumps. */
+.slidevault .sb-pull-swap { display: inline-grid; overflow: hidden; }
+.slidevault .sb-pull-1, .slidevault .sb-pull-2 { grid-area: 1 / 1; transition: transform var(--sv-duration-fast) var(--sv-ease-out), opacity var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .sb-pull-2 { transform: translateY(110%); opacity: 0; }
+.slidevault .sb-pull:is(:hover, :focus-visible, :active) .sb-pull-1 { transform: translateY(-110%); opacity: 0; }
+.slidevault .sb-pull:is(:hover, :focus-visible, :active) .sb-pull-2 { transform: none; opacity: 1; }
+.slidevault .sb-too-short { margin: 10px 0 0; font-size: var(--sv-text-small); color: var(--sv-text); }
 
 /* ---- Composing: the real steps, in order, inline ---- */
 .slidevault .sb-composing { max-width: 680px; margin: 24px auto 0; }
@@ -91,7 +97,7 @@
 .slidevault .sb-sharpen-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
 .slidevault .sb-sharpen-row textarea { flex: 1 1 auto; }
 @media (prefers-reduced-motion: reduce) {
-  .slidevault .sb-pull, .slidevault .sb-progress i, .slidevault .sb-steps li { transition: none; }
+  .slidevault .sb-pull, .slidevault .sb-pull-1, .slidevault .sb-pull-2, .slidevault .sb-progress i, .slidevault .sb-steps li { transition: none; }
 }
 @container (max-width: 560px) {
   .slidevault .sb .sb-pull { width: 100%; justify-content: center; }
