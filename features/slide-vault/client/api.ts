@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta, UploadPreview } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -106,8 +106,11 @@ export async function exportPptx(runtime: Transport, slides: SlideSummary[], opt
 }
 
 /** POST /uploads (multipart/form-data). Throws ApiCallError on failure, including duplicates (409). */
-export async function uploadDeck(runtime: Transport, file: File, meta: UploadDeckMeta): Promise<DeckSummary> {
+export async function uploadDeck(runtime: Transport, file: File, meta: UploadDeckMeta, tags: { deckTags?: string[]; slideTags?: Record<number, string[]> } = {}): Promise<DeckSummary> {
   const form = new FormData();
+  // Tags chosen on the upload page, saved with the deck (FD-54)
+  if (tags.deckTags?.length) form.set('deckTags', JSON.stringify(tags.deckTags));
+  if (tags.slideTags && Object.keys(tags.slideTags).length) form.set('slideTags', JSON.stringify(tags.slideTags));
   form.set('file', file);
   if (meta.clientName) form.set('clientName', meta.clientName);
   if (meta.deckYear !== null) form.set('deckYear', String(meta.deckYear));
@@ -250,4 +253,17 @@ export async function slidesWithTag(runtime: Transport, tag: string, signal?: Ab
   const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiPage<SlideSummary>).data;
+}
+
+
+/* ---------------------------------------------------------------- Upload preview (FD-54) */
+
+/** The chosen file's slides as pictures, before anything is stored. Null when the server has no such route yet. */
+export async function previewUpload(runtime: Transport, file: File, signal?: AbortSignal): Promise<UploadPreview | null> {
+  const form = new FormData();
+  form.set('file', file);
+  const res = await runtime.request({ path: '/uploads/preview', method: 'POST', body: form, signal });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<UploadPreview>).data;
 }
