@@ -13,7 +13,7 @@ import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures, type Search
 import { answersIntent, asksForAnything, intentScore, intentWhy, searchIntent } from './slide-intent';
 import { loadSlideReadings } from '../slide-knowledge';
 import { smartSearch, type SmartSearchResponse } from './smart-search';
-import { buildStoryboard, type StoryboardResponse } from './storyboard';
+import { buildStoryboard, keptOutOfStories, type StoryboardResponse } from './storyboard';
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
 import { familiesOf } from './families';
@@ -211,7 +211,7 @@ export async function refineStoryboard(req: StoryRefineRequest, opts: { reader: 
     })
     .filter((b): b is StoryBeat => !!b);
   const pinned = new Set(req.pinned.filter((id) => ids.includes(id)));
-  const tellable = (i: StoryboardSlide) => !i.slide.hiddenInSource && !neverShow(i.slide.id);
+  const tellable = (i: StoryboardSlide) => !keptOutOfStories(i.slide) && !neverShow(i.slide.id);
   const toSlide = (r: { summary: SlideSummary }, why: string): StoryboardSlide => ({ slide: r.summary, why, matched: [], reasons: { brief: [], part: [], from: [] } });
 
   const result = await refineStory(beats, req.message, pinned, {

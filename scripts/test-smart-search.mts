@@ -119,7 +119,7 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
 // ---- Short codes, and never "everything"
 {
   const seen: SearchPlan[] = [];
-  const r = await smartSearch('QA/QC', 10, { context, thisYear: 2026, search: async (p) => { seen.push(p); return []; } });
+  await smartSearch('QA/QC', 10, { context, thisYear: 2026, search: async (p) => { seen.push(p); return []; } });
   check(JSON.stringify(seen[0]?.keywords) === JSON.stringify(['qa/qc', 'qa', 'qc']), 'short codes: "QA/QC" searches for qa/qc, qa and qc', seen[0]?.keywords);
   const spelled: PlanReader = { name: 'fake', read: async () => cleanPlan({ keywords: ['quality assurance', 'quality control'] }, ctx) };
   const seenAi: SearchPlan[] = [];
