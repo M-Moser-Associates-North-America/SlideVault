@@ -12,8 +12,8 @@ import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
 import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures, type SearchKnowledge } from './fixture-smart-search';
 import { answersIntent, asksForAnything, intentScore, intentWhy, searchIntent } from './slide-intent';
 import { loadSlideReadings } from '../slide-knowledge';
-import { smartSearch, type SmartSearchResponse } from './smart-search';
-import { buildStoryboard, keptOutOfStories, type StoryboardResponse } from './storyboard';
+import { mentionsWord, smartSearch, type SmartSearchResponse } from './smart-search';
+import { buildStoryboard, clientSectors, keptOutOfStories, type StoryboardResponse } from './storyboard';
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
 import { familiesOf } from './families';
@@ -56,6 +56,34 @@ async function orWithoutDb<T>(what: string, run: () => Promise<T>, fallback: T):
   }
 }
 
+/** Share of the library's slides whose title or text mentions a word, counted once per library load. */
+const shares = new WeakMap<object, Map<string, number>>();
+function wordShare(index: Awaited<ReturnType<typeof loadLibraryIndex>>, word: string): number {
+  if (!index) return 1;
+  let seen = shares.get(index);
+  if (!seen) shares.set(index, (seen = new Map()));
+  const cached = seen.get(word);
+  if (cached !== undefined) return cached;
+  const slides = index.sources.flatMap((s) => s.slides);
+  const share = slides.length ? slides.filter((s) => mentionsWord(`${s.title} ${s.text}`, word)).length / slides.length : 1;
+  seen.set(word, share);
+  return share;
+}
+
+/** Single words the library knows as names: clients, places, sectors, themes and projects. */
+const names = new WeakMap<object, Set<string>>();
+function knownNames(index: Awaited<ReturnType<typeof loadLibraryIndex>>, readings: Awaited<ReturnType<typeof loadSlideReadings>>): Set<string> {
+  const key = index ?? readings;
+  const have = names.get(key);
+  if (have) return have;
+  const out = new Set<string>();
+  const add = (s?: string | null) => s?.toLowerCase().split(/[^a-z0-9]+/).forEach((w) => w.length >= 3 && out.add(w));
+  for (const src of index?.sources ?? []) { const f = deckFacts(src); add(f.clientName); add(f.location); }
+  for (const r of readings.values()) { r.sectors?.forEach(add); r.themes?.forEach(add); r.projects?.forEach(add); add(r.clientSector); }
+  names.set(key, out);
+  return out;
+}
+
 export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean }): Promise<SmartSearchResponse> {
   const index = await loadLibraryIndex();
   // What the search asks for beyond its words (FD-33): a kind of slide, a sector, a theme, matched
@@ -83,6 +111,12 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
       },
       reader: opts.reader,
       search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
+      howCommon: (word) => wordShare(index, word),
+      isKnownName: (word) => knownNames(index, readings).has(word),
+      alsoMeans: (word) => clientSectors(word),
+      rankLast: (s) => readings.get(s.id)?.type === 'team_resume' && !intent.types.includes('team_resume'),
+      // A slide "mentions" Toronto when its deck was made there, and HSBC when the model read it on the slide.
+      alsoSays: (s) => { const k = readings.get(s.id); return [k?.about, k?.topics.join(' '), k?.sectors?.join(' '), k?.clientSector, k?.themes?.join(' '), k?.projects?.join(' '), s.provenance.sourceTitle, s.provenance.sourceFileName, s.provenance.location, s.provenance.clientName].filter(Boolean).join(' '); },
       log: (m) => console.warn(m),
     },
     { read: opts.read },

@@ -10,7 +10,7 @@ import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '.
 import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/rate-limit';
 import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, typedCodes, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
-import { smartSearch } from '../features/slide-vault/server/services/smart-search';
+import { mentionsWord, smartSearch } from '../features/slide-vault/server/services/smart-search';
 import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
 
 let failures = 0;
@@ -302,6 +302,34 @@ for (const [env, label] of [
   const index = { generatedAt: '', sources: [copy('one'), copy('two'), { id: 'other', title: 'o', fileName: 'o.pptx', versionId: 'o', sha256: 'o', slides: [{ id: 's3', number: 1, title: 'c', text: '', hidden: false }] }] };
   const ids = fixtureRowsWhere(index, (id) => ['s1', 's2', 's3'].includes(id), 3).map((r) => r.summary.id);
   check(JSON.stringify(ids) === '["s1","s2","s3"]', 'rows: each slide is read once, so copies never crowd out the last ones asked for', ids);
+}
+
+// ---- What the person named is required when it's rare (FD-56: "HSBC case study" means HSBC)
+{
+  check(JSON.stringify(standInPlan('HSBC case study', ctx).named) === '["HSBC"]', 'named: "HSBC case study" names HSBC, the case study is a topic', standInPlan('HSBC case study', ctx).named);
+  check(!(standInPlan('Kestrel Law team', ctx).named ?? []).length, 'named: a client is a filter, not a named word');
+  check(mentionsWord('Our hospitals', 'hospital') && !mentionsWord('Hospitality suites', 'hospital'), 'named: whole words, plural allowed ("hospital" is not "hospitality")');
+  check(mentionsWord('Résumés of the team', 'resume'), 'named: accents don\'t matter ("resume" finds "Résumés")');
+
+  const row = (id: string, text: string, title = id) => ({ summary: slide(id), facts: facts({ title, text }) });
+  const rows = [row('plain', 'Our approach to case studies.'), row('hsbc', 'HSBC regional headquarters case study.'), row('deckonly', 'A trading floor.')];
+  const named = (q: string, d: Partial<Parameters<typeof smartSearch>[2]> = {}) =>
+    smartSearch(q, 10, { context, thisYear: 2026, search: async () => rows, howCommon: () => 0.03, alsoSays: (s) => (s.id === 'deckonly' ? 'HSBC deck' : ''), ...d });
+  const r = await named('HSBC case study');
+  check(JSON.stringify(r.items.map((i) => i.slide.id)) === '["hsbc","deckonly"]', 'named: only slides that mention it, the slide\'s own words first, then its deck', r.items.map((i) => i.slide.id));
+  check(r.chips.some((c) => c.kind === 'Mentions' && c.label === 'HSBC'), 'named: shown as a "Mentions" chip, as typed', r.chips);
+  const common = await named('HSBC case study', { howCommon: () => 0.3 });
+  check(common.items.length === 3 && !common.chips.some((c) => c.kind === 'Mentions'), 'named: a word on many slides only ranks, it isn\'t required');
+  const sentence = await named('slides that demonstrate our value proposition', { howCommon: () => 0.01 });
+  check(sentence.items.length === 3, 'named: in a sentence, an ordinary rare word ("proposition") isn\'t a name');
+  const known = await smartSearch('which case studies are in toronto?', 10, { context, thisYear: 2026, search: async () => [row('a', 'Toronto office'), row('b', 'Vancouver office')], howCommon: () => 0.03, isKnownName: (w) => w === 'toronto' });
+  check(JSON.stringify(known.items.map((i) => i.slide.id)) === '["a"]', 'named: in a sentence, a place the library knows is a name even in lower case', known.items.map((i) => i.slide.id));
+  const sector = await smartSearch('hospital case study', 10, { context, thisYear: 2026, search: async () => [row('a', 'A clinic fit-out'), row('b', 'A bank')], howCommon: () => 0.01, alsoSays: (s) => (s.id === 'a' ? 'healthcare' : 'financial services'), alsoMeans: (w) => (w === 'hospital' ? ['healthcare'] : []) });
+  check(JSON.stringify(sector.items.map((i) => i.slide.id)) === '["a"]', 'named: "hospital" is also met by a healthcare slide', sector.items.map((i) => i.slide.id));
+  const bios = await smartSearch('HSBC', 10, { context, thisYear: 2026, search: async () => [row('bio', 'Led the HSBC fit-out'), row('case', 'HSBC case study')], howCommon: () => 0.03, rankLast: (s) => s.id === 'bio' });
+  check(JSON.stringify(bios.items.map((i) => i.slide.id)) === '["case","bio"]', 'named: a passing mention in a bio comes last', bios.items.map((i) => i.slide.id));
+  const missing = await named('Zephyr case study', { alsoSays: () => '' });
+  check(missing.relaxed && missing.items.length === 3 && !missing.chips.some((c) => c.kind === 'Mentions'), 'named: when nothing mentions it, the rest is shown and marked relaxed');
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smart search checks passed');

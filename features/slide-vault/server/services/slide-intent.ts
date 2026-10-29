@@ -60,7 +60,10 @@ export function intentScore(i: SearchIntent, k: KnownForSearch): number {
   const at = k.type ? i.types.indexOf(k.type) : -1;
   // Never-show pages and copies that still name another client stay findable, just last.
   const doubtful = k.reuse === 'internal - never show' || !!k.flags?.some((f) => /names another client|leftover/i.test(f));
-  return (at < 0 ? 0 : 6 - Math.min(at, 2)) + (inSector(i, k) ? 3 : 0) + (k.themes?.some((t) => i.themes.includes(t)) ? 2 : 0) - (doubtful ? 6 : 0);
+  // A résumé that only mentions a word in someone's bio isn't what a search for that word wants
+  // (Alina, 28 Oct: "he just happened to mention hospitality in his interview"), unless it asks for people.
+  const passingBio = k.type === 'team_resume' && !i.types.includes('team_resume') ? 4 : 0;
+  return (at < 0 ? 0 : 6 - Math.min(at, 2)) + (inSector(i, k) ? 3 : 0) + (k.themes?.some((t) => i.themes.includes(t)) ? 2 : 0) - (doubtful ? 6 : 0) - passingBio;
 }
 
 /** Does a slide answer what the search asks for at all (its kind, sector or theme)? */

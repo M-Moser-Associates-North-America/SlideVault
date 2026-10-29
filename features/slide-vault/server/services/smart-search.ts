@@ -28,9 +28,34 @@ export type SmartSearchDeps = {
   /** The configured AI reader; absent for rules only */
   reader?: PlanReader | null;
   search: (plan: SearchPlan, limit: number) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]>;
+  /** Share of library slides (0 to 1) that mention a word; without it nothing named is required */
+  howCommon?: (word: string) => number;
+  /** More text that counts as the slide mentioning something: what was read on it, its deck's name and place */
+  alsoSays?: (slide: SlideSummary) => string;
+  /** Is this word a client, place, sector, theme or project the library knows? */
+  isKnownName?: (word: string) => boolean;
+  /** What else a named word is met by: "hospital" by the healthcare sector */
+  alsoMeans?: (word: string) => string[];
+  /** Slides that only mention things in passing for this search (a bio, when people weren't asked for) go last */
+  rankLast?: (slide: SlideSummary) => boolean;
   thisYear?: number;
   log?: (message: string) => void;
 };
+
+/**
+ * A named thing on fewer than this share of slides is what the person is after ("HSBC", "Toronto",
+ * "QA/QC"), so every result must mention it. Common words ("workplace", "strategy") only rank.
+ */
+export const RARE_SHARE = 0.08;
+const ROWS_WHEN_NAMED = 400;
+
+const plain = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+/** A named thing is a whole word, plural allowed: "hospital" finds "hospitals", never "hospitality"; "resume" finds "Résumés". */
+export function mentionsWord(hay: string, w: string): boolean {
+  const e = plain(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${e}(?:e?s)?\\b`).test(plain(hay));
+}
 
 /**
  * `read` is true only when the person submitted the search (Enter or the Search button). While they
@@ -62,11 +87,41 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
   if (!plan.keywords.length && !hasFilters(plan)) plan = { ...plan, keywords: standInPlan(query, ctx).keywords };
   // Short codes the rules skip ("QA/QC", "MSA", "FF&E") are still what the person asked for.
   if (!plan.keywords.length && !hasFilters(plan)) plan = { ...plan, keywords: literalWords(query) };
+  // What the person named is read from their own words by the rules, whoever read the rest (FD-56).
+  // Only the rare ones are required; each is also searched for, so slides that have it are found.
+  // In a sentence, a rare word is only a name when it looks like one ("Toronto", "QA/QC") or the
+  // library knows it; "slides that show our value proposition" doesn't require "proposition".
+  const sentence = !isBasicQuery(query);
+  const looksLikeName = (w: string) => /[A-Z]/.test(w) || /[/&]/.test(w) || !!deps.isKnownName?.(w.toLowerCase());
+  const named = (standInPlan(query, ctx).named ?? []).filter((w) => {
+    const share = deps.howCommon?.(w.toLowerCase()) ?? 1;
+    return share > 0 && share <= RARE_SHARE && (!sentence || looksLikeName(w));
+  });
+  plan = { ...plan, named, keywords: [...new Set([...named.map((w) => w.toLowerCase()), ...plan.keywords])].slice(0, MAX_KEYWORDS) };
   // Nothing at all to search for means no results, never the whole library.
   if (!plan.keywords.length && !hasFilters(plan)) return { query, reader, readerNote, plan, chips: chipsFor(plan), relaxed: false, items: [] };
 
   let relaxed = false;
-  let rows = await deps.search(plan, limit);
+  let rows = await deps.search(plan, named.length ? Math.max(limit, ROWS_WHEN_NAMED) : limit);
+  if (named.length) {
+    type Row = (typeof rows)[number];
+    const says = (r: Row) => `${r.facts.title} ${r.facts.text} ${deps.alsoSays?.(r.summary) ?? ''}`;
+    // "Hospital" is also met by a slide tagged with the healthcare sector it belongs to.
+    const has = (r: Row, w: string) => [w, ...(deps.alsoMeans?.(w.toLowerCase()) ?? [])].some((x) => mentionsWord(says(r), x));
+    const all = rows.filter((r) => named.every((w) => has(r, w)));
+    const some = all.length ? all : rows.filter((r) => named.some((w) => has(r, w)));
+    // Slides that say it themselves first, then ones where the reading, the sector or the deck does,
+    // then passing mentions (a bio); best match first within each.
+    const ownWords = (r: Row) => named.some((w) => mentionsWord(`${r.facts.title} ${r.facts.text}`, w));
+    const tier = (r: Row) => (deps.rankLast?.(r.summary) ? 2 : ownWords(r) ? 0 : 1);
+    if (some.length) rows = some.map((r, i) => ({ r, i, t: tier(r) })).sort((a, b) => a.t - b.t || a.i - b.i).map((x) => x.r);
+    else {
+      // Nothing found mentions what was named: show the rest, and say so.
+      relaxed = true;
+      plan = { ...plan, named: [] };
+    }
+    rows = rows.slice(0, limit);
+  }
   if (!rows.length && hasFilters(plan) && plan.keywords.length) {
     rows = await deps.search(withoutFilters(plan), limit);
     relaxed = rows.length > 0;
