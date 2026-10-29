@@ -680,3 +680,31 @@ Acceptance evidence / affected PR criteria: test:smart-search (9 new section che
 Documents/contracts changed: server/services/sections.ts (new), server/services/library-smart-search.ts, contracts/dto.ts (SlideSummary.section), scripts/test-smart-search.mts.
 Revisit trigger: decks whose dividers are pictures with no words (then the local model reads them); Gabby's expected-results list; the screens open a section from a result.
 ```
+
+```text
+Decision ID and title: FD-58 People's own tags lead a search
+Status: proposed
+Decision date: 2026-10-29
+Decision owner/reviewer: Schiffon (search); Vincent to check the tag query on M Moser's Supabase
+Context and evidence: Gabby, 28 Oct: "once I have that page, I would like to add tags and say, for example, Moira. So next time I look for it, I type Moira and then SlideVault knows who Moira is… that's the best way to train it." Free-form tags exist (FD-53) and /search?tag= filters by one, but typing a tag into Home search did nothing.
+Options considered: (a) after the search ranks, put slides tagged with what was typed first, then slides whose deck carries it; (b) add tags to the keyword index (a schema change, and tags would only rank like any word).
+Chosen outcome: (a). GET /smart-search looks up tags whose words appear in the search, as whole words (server/tags.ts tagsInQuery, a read-only select on free_tags); services/tagged-first.ts puts the slides tagged with them first (fetched if the search missed them), then slides from a tagged deck, each with "Tagged “Moira” by someone on the team." Hidden and internal-only slides stay out. Without a database nothing changes.
+Consequences for scope, cost, security and integration: One small query per search. Tags only exist on decks in M Moser's database, so this works there, not on a laptop's file-backed library. The screens still need a way to add a tag from the slide page (Khushali; the API is POST /tags, FD-53).
+Acceptance evidence / affected PR criteria: test:smart-search (5 new checks: tagged slide first and fetched when missed, its deck next, reason names the tag, whole words only, untouched when no tag is typed). Not run against a database here (the laptop has no database settings): Vincent to confirm on Supabase that typing a tag brings its slide first.
+Documents/contracts changed: server/tags.ts (tagsInQuery), server/services/tagged-first.ts (new), app/api/slide-vault/v1/smart-search/route.ts, scripts/test-smart-search.mts.
+Revisit trigger: tags get owners or tiers (Alina); many tags per slide.
+```
+
+```text
+Decision ID and title: FD-59 Search learns from Useful / Not relevant, and leans a little by role
+Status: proposed
+Decision date: 2026-10-29
+Decision owner/reviewer: Schiffon (search); Khushali (the buttons on results); Vincent (search_feedback table)
+Context and evidence: Alina, 28 Oct: "In this search result, if I don't like a particular search result, how do I train the search?… I didn't want to see like a director's interview… So I could click on like, not relevant." Gabby: "to be able to say… this is working, this is not working." The storyboard already learns this way (FD-24, FD-37). Gabby said personalising should follow role ("proposal specialists"), and the BD survey split by role: BD support wanted "finding one specific slide quickly", a director "suggestions for a set of slides that answer a client's need".
+Options considered: (a) a search verdict like the storyboard's: the slide, the verdict and the search's words, opt-in only, used to rank later searches that share a word; plus a light lean by role; (b) per-person learning (needs real sign-in, FD-01); (c) no learning until M Moser's AI is chosen.
+Chosen outcome: (a). POST /smart-search/feedback { query, slideId, verdict: useful | not-relevant, by? } keeps { slideId, verdict, words, by_role } (server/search-feedback.ts; table search_feedback in sql/schema.sql, else a file in the data dir), never the search or a name, and only from people who turned on "learn from my activity". A later search sharing a word moves a slide up for useful, down for not relevant, and to the end once it has more not-relevant than useful; someone in the same role counts double. GET /smart-search takes role= (Home sends the person's role): a director leans to why-us and value slides, a business developer to the client's challenge and case studies, BD support not at all; the lean is small, so a named thing or a section always wins. client/api.ts has sendSearchFeedback for the buttons.
+Consequences for scope, cost, security and integration: No names stored; opt-in as FD-37. The table needs npm run db:setup on M Moser's database (Vincent). The Useful / Not relevant buttons on search results are a screen change (Khushali).
+Acceptance evidence / affected PR criteria: test:smart-search (6 new checks: words not text, bad input refused, only searches sharing a word count, same role double, up and down). Live, on this laptop: one not-relevant moved a slide from 1st to 93rd of 93 for "hospitality", and the saved row held only ["hospitality"] (removed after). The meeting test set passes 15 of 15 with no role and with each of the three roles.
+Documents/contracts changed: server/search-feedback.ts (new), server/sql/schema.sql (search_feedback), server/rate-limit.ts, app/api/slide-vault/v1/smart-search/feedback (new), smart-search route (role), server/services/library-smart-search.ts, client/api.ts (sendSearchFeedback, role), client/role-store.ts (currentStoryRole), components/state.tsx (sends the role), scripts/test-smart-search.mts.
+Revisit trigger: real sign-in (per-person learning); enough verdicts to tune the weights.
+```

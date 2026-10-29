@@ -6,6 +6,7 @@ import { withDemoDetails } from '../client/demo-details';
 import { useLocalPacks } from '../client/pack-store';
 import { buildPacks, NO_PACKS, type Pack, type PacksIndex } from '../client/packs';
 import { useActivity, useDrafts, useProfile, useSaved, type ActivityEntry, type Draft } from '../client/profile-store';
+import { currentStoryRole } from '../client/role-store';
 import { useSelection } from '../client/selection-store';
 import { tourIsOpen } from '../client/tour-store';
 import type { SlideSummary, SmartSearchResult } from '../contracts/dto';
@@ -209,7 +210,7 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
     if (!q) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      smartSearch(transport, q, q === submitted, controller.signal, { includeHidden })
+      smartSearch(transport, q, q === submitted, controller.signal, { includeHidden, role: currentStoryRole() })
         .then((result) => setSearch({ status: 'ready', result }))
         .catch((e: Error) => e.name !== 'AbortError' && setSearch({ status: 'error', message: e.message }));
     }, SEARCH_DELAY_MS);

@@ -22,6 +22,7 @@ import { refineStory } from './story-refine';
 import type { StoryBeat, StoryRefineRequest, StoryRefineResult, StoryboardSlide } from '../../contracts/dto';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
+import { learnedScore, searchLearning } from '../search-feedback';
 import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
 
 /**
@@ -71,6 +72,22 @@ function wordShare(index: Awaited<ReturnType<typeof loadLibraryIndex>>, word: st
   return share;
 }
 
+/**
+ * A light lean by how the person builds proposals (FD-59), in the words of each role (client/role-store):
+ * a director's stories "lean on why M Moser, value"; a business developer's "lead with the client's
+ * challenge and what we've learned"; BD support wants "one specific slide quickly" (survey), so no lean.
+ * Small next to a named thing or a section, so it only reorders close calls.
+ */
+const LEAN: Partial<Record<StoryUserRole, { roles: string[]; types: string[] }>> = {
+  director: { roles: ['why-us', 'outcome'], types: ['firm_profile', 'differentiator', 'fees_commercial'] },
+  'business-developer': { roles: ['client-challenge', 'insight', 'experience'], types: ['case_study_detail', 'case_study_hero', 'client_understanding'] },
+};
+function roleLean(by: StoryUserRole | null, k: { role?: string; type?: string } | undefined): number {
+  const lean = by ? LEAN[by] : undefined;
+  if (!lean || !k) return 0;
+  return (k.type && lean.types.includes(k.type)) || (k.role && lean.roles.includes(k.role)) ? 1.5 : 0;
+}
+
 /** Single words the library knows as names: clients, places, sectors, themes and projects. */
 const names = new WeakMap<object, Set<string>>();
 function knownNames(index: Awaited<ReturnType<typeof loadLibraryIndex>>, readings: Awaited<ReturnType<typeof loadSlideReadings>>): Set<string> {
@@ -85,8 +102,10 @@ function knownNames(index: Awaited<ReturnType<typeof loadLibraryIndex>>, reading
   return out;
 }
 
-export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean }): Promise<SmartSearchResponse> {
+export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean; by?: StoryUserRole | null }): Promise<SmartSearchResponse> {
   const index = await loadLibraryIndex();
+  // What colleagues marked useful or not relevant for searches with these words (FD-59).
+  const learned = await searchLearning(query, opts.by ?? null);
   // What the search asks for beyond its words (FD-33): a kind of slide, a sector, a theme, matched
   // against the reviewed metadata and the local model's reading of each slide.
   const readings = await loadSlideReadings();
@@ -103,9 +122,10 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     // The cover leads when one is asked for; otherwise the section's first pages ("the Moira page and the four after it").
     return 5 + (sec.divider ? (cover ? 12 : 1) : cover ? 0 : Math.max(0, 3 - sec.position) * 0.5);
   };
+  const notRelevant = (id: string) => { const l = learned.get(id); return !!l && l.notRelevant > l.useful; };
   const known: SearchKnowledge = {
     about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
-    boost: (id) => intentScore(intent, readings.get(id)) + sectionScore(id),
+    boost: (id) => intentScore(intent, readings.get(id)) + sectionScore(id) + learnedScore(learned.get(id)) + roleLean(opts.by ?? null, readings.get(id)),
     answers: (id) => (asksForAnything(intent) && answersIntent(intent, readings.get(id))) || inAsked(id),
   };
   const result = await smartSearch(
@@ -125,7 +145,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
       howCommon: (word) => wordShare(index, word),
       isKnownName: (word) => knownNames(index, readings).has(word),
       alsoMeans: (word) => clientSectors(word),
-      rankLast: (s) => readings.get(s.id)?.type === 'team_resume' && !intent.types.includes('team_resume'),
+      rankLast: (s) => (readings.get(s.id)?.type === 'team_resume' && !intent.types.includes('team_resume')) || notRelevant(s.id),
       // A slide "mentions" Toronto when its deck was made there, and HSBC when the model read it on the slide.
       alsoSays: (s) => { const k = readings.get(s.id); return [k?.about, k?.topics.join(' '), k?.sectors?.join(' '), k?.clientSector, k?.themes?.join(' '), k?.projects?.join(' '), s.provenance.sourceTitle, s.provenance.sourceFileName, s.provenance.location, s.provenance.clientName].filter(Boolean).join(' '); },
       log: (m) => console.warn(m),
@@ -153,6 +173,9 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     const order = result.items.filter((i) => first.has(i.slide.id));
     result.items = [...order, ...result.items.filter((i) => !first.has(i.slide.id))];
   }
+
+  // Marked not relevant for searches like this more often than useful: shown last (Alina: "I didn't want to see… a director's interview").
+  if (learned.size) result.items = [...result.items.filter((i) => !notRelevant(i.slide.id)), ...result.items.filter((i) => notRelevant(i.slide.id))];
 
   const texts: SlideText[] = [...fixtureSlideTexts(index), ...(await orWithoutDb('slide text', listSlideTextsPg, [] as SlideText[]))];
   const slideDeck = new Map(texts.map((t) => [t.id, t.sourceId]));

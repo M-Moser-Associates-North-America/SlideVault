@@ -84,6 +84,27 @@ export async function removeTag(id: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+/**
+ * Tags whose text appears in a search (FD-58), on slides and on decks. The database narrows by
+ * substring; the caller keeps whole words only. Empty when the database can't be reached.
+ */
+export async function tagsInQuery(query: string): Promise<{ tag: string; on: 'slide' | 'deck'; id: string }[]> {
+  const q = query.trim().toLowerCase().slice(0, 500);
+  if (!q) return [];
+  try {
+    const rows = await sql<{ tag: string; target_kind: 'slide' | 'deck'; target_id: string }>(
+      `select tag, target_kind, target_id::text as target_id from free_tags
+       where length(tag) >= 2 and strpos($1, lower(tag)) > 0
+       limit 500`,
+      [q],
+    );
+    return rows.map((r) => ({ tag: r.tag, on: r.target_kind, id: r.target_id }));
+  } catch (e) {
+    console.error('Free tags unavailable, search goes on without them', e);
+    return [];
+  }
+}
+
 /** A tag as people type it: spaces tidied; null when empty, too long or containing control characters. */
 export function cleanTag(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;

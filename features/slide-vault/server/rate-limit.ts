@@ -26,6 +26,8 @@ export const RATE_POLICIES = {
   speech: { name: 'speech', limit: 30, windowMs: 60_000 },
   // "Was this helpful?" on a storyboard (FD-24): one click each.
   storyFeedback: { name: 'story-feedback', limit: 120, windowMs: 60_000 },
+  // Useful / Not relevant on a search result (FD-59): one click each.
+  searchFeedback: { name: 'search-feedback', limit: 120, windowMs: 60_000 },
   // Saved slides, My decks, activity (FD-18): small, frequent writes from normal use.
   userData: { name: 'user-data', limit: 120, windowMs: 60_000 },
 } as const satisfies Record<string, RatePolicy>;

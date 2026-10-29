@@ -12,6 +12,8 @@ import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, typedCode
 import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
 import { mentionsWord, smartSearch } from '../features/slide-vault/server/services/smart-search';
 import { asksForCover, deckSections, isSectionSearch, sectionKind, sectionKinds } from '../features/slide-vault/server/services/sections';
+import { taggedFirst, typedTags, type TagHit } from '../features/slide-vault/server/services/tagged-first';
+import { cleanSearchFeedback, learnedForSearch, learnedScore, searchWords } from '../features/slide-vault/server/search-feedback';
 import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
 
 let failures = 0;
@@ -356,6 +358,39 @@ for (const [env, label] of [
   check(JSON.stringify(sectionKinds('Firm background / relevant experience')) === '["case-studies","firm"]' && sectionKind('Appendix B Team resumes') === 'team' && sectionKind('Appendix') === 'appendix' && sectionKind('How we will run the portfolio') === 'approach', 'sections: a name can be two sections; an appendix of résumés is the team; "How we…" is the approach');
   check(isSectionSearch('resumes') && isSectionSearch('banner slides in case studies') && isSectionSearch('firm overview') && !isSectionSearch('HSBC case study') && !isSectionSearch('Workplace strategy process') && !isSectionSearch('2026'), 'sections: a search that is only a section, with nothing else named');
   check(asksForCover('banner slides in case studies') && asksForCover('the page breakers') && !asksForCover('case studies'), 'sections: asking for a cover');
+}
+
+// ---- People's own tags lead (FD-58: Gabby tags the page "Moira", then types Moira)
+{
+  const sl = (id: string, deck = 'd') => ({ ...slide(id), provenance: { ...slide(id).provenance, sourceId: deck } });
+  const items = [{ slide: sl('a'), why: 'Matched.', matched: [] }, { slide: sl('b', 'deck2'), why: 'Matched.', matched: [] }, { slide: sl('c'), why: 'Matched.', matched: [] }];
+  const hits: TagHit[] = [{ tag: 'Moira', on: 'slide', id: 'm' }, { tag: 'Moira', on: 'deck', id: 'deck2' }, { tag: 'Moi', on: 'slide', id: 'c' }];
+  let asked: string[] = [];
+  const out = await taggedFirst('Moira resume', items, hits, async (ids) => { asked = ids; return ids.map((id) => sl(id)); });
+  check(JSON.stringify(out.map((i) => i.slide.id)) === '["m","b","a","c"]', 'tags: the tagged slide first (fetched if search missed it), then its tagged deck, then the rest', out.map((i) => i.slide.id));
+  check(JSON.stringify(asked) === '["m"]', 'tags: only slides the search missed are fetched', asked);
+  check(out[0].why.startsWith('Tagged “Moira” by someone') && out[1].why.startsWith('Tagged “Moira” (its deck)'), 'tags: the reason says which tag', out.slice(0, 2).map((i) => i.why));
+  check(JSON.stringify(typedTags('Moira resume', hits).map((h) => h.tag)) === '["Moira","Moira"]', 'tags: whole words only ("Moi" is not typed in "Moira")');
+  const none = await taggedFirst('case studies', items, hits, async () => []);
+  check(none === items, 'tags: a search that types no tag is left as it was');
+}
+
+// ---- Useful / Not relevant on a search result (FD-59: "how do I train the search?")
+{
+  check(JSON.stringify(searchWords('Show me hospitality firms slides')) === '["hospitality","firm"]', 'feedback: a search is kept as its words, never as typed', searchWords('Show me hospitality firms slides'));
+  check(cleanSearchFeedback({ query: 'hospitality', slideId: 's1', verdict: 'not-relevant' })?.words.join() === 'hospitality', 'feedback: a valid not-relevant');
+  check(cleanSearchFeedback({ query: 'hospitality', slideId: 's1', verdict: 'nope' }) === null && cleanSearchFeedback({ query: '', slideId: 's1', verdict: 'useful' }) === null && cleanSearchFeedback({ query: 'the', slideId: 's1', verdict: 'useful' }) === null, 'feedback: bad verdict, empty search or no words is refused');
+  const at = '2026-10-29T00:00:00Z';
+  const rows = [
+    { slideId: 'bio', verdict: 'not-relevant' as const, words: ['hospitality'], at },
+    { slideId: 'bio', verdict: 'not-relevant' as const, words: ['hospitality', 'deck'], at, by: 'director' as const },
+    { slideId: 'case', verdict: 'useful' as const, words: ['hospitality'], at },
+    { slideId: 'other', verdict: 'not-relevant' as const, words: ['fees'], at },
+  ];
+  const l = learnedForSearch(rows, ['hospitality']);
+  check(l.get('bio')?.notRelevant === 2 && l.get('case')?.useful === 1 && !l.has('other'), 'feedback: counts only searches that share a word', Object.fromEntries(l));
+  check(learnedForSearch(rows, ['hospitality'], 'director').get('bio')?.notRelevant === 3, 'feedback: someone in the same role counts double');
+  check(learnedScore(l.get('case')) > 0 && learnedScore(l.get('bio')) < 0 && learnedScore(undefined) === 0, 'feedback: useful moves a slide up, not relevant moves it down');
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smart search checks passed');

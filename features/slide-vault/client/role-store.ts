@@ -20,6 +20,15 @@ function read(profile: string | null): StoryUserRole | null {
   }
 }
 
+/** The signed-in person's role right now, for a request (search sends it, FD-59); null when not set. */
+export function currentStoryRole(): StoryUserRole | null {
+  try {
+    return read(localStorage.getItem('slidevault:profile'));
+  } catch {
+    return null;
+  }
+}
+
 export function useStoryRole(profile: string | null) {
   const role = useSyncExternalStore(
     (cb) => {

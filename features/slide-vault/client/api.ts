@@ -38,9 +38,10 @@ export async function searchSlides(runtime: Transport, query: string, signal?: A
  * Quick AI search (FD-16, FD-17). `read` is true only when the person submitted the search; while
  * they type, the server reads with rules only, so a long question never calls the AI mid-sentence.
  */
-export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean } = {}): Promise<SmartSearchResult> {
+export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean; role?: StoryUserRole | null } = {}): Promise<SmartSearchResult> {
   const params = new URLSearchParams({ q: query.trim(), limit: '100' });
   if (opts.includeHidden) params.set('hidden', 'include'); // slides hidden in the original deck (FD-50)
+  if (opts.role) params.set('role', opts.role); // how this person builds proposals tunes the results (FD-59)
   if (read) params.set('read', '1');
   const res = await runtime.request({ path: `/smart-search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
@@ -143,6 +144,13 @@ export async function refineStory(runtime: Transport, request: StoryRefineReques
 /** saved: false when learning from this person's activity is off (FD-37): nothing was stored. */
 export async function sendStoryFeedback(runtime: Transport, feedback: { role: StoryRole; slideId: string | null; verdict: StoryFeedbackVerdict; topics: string[]; by?: StoryUserRole | null }): Promise<{ saved: boolean }> {
   const res = await runtime.request({ path: '/storyboard/feedback', method: 'POST', body: feedback });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ saved: boolean }>).data;
+}
+
+/** Useful / Not relevant on a search result (FD-59); { saved: false } when the person hasn't turned on learning. */
+export async function sendSearchFeedback(runtime: Transport, feedback: { query: string; slideId: string; verdict: 'useful' | 'not-relevant'; by?: StoryUserRole | null }): Promise<{ saved: boolean }> {
+  const res = await runtime.request({ path: '/smart-search/feedback', method: 'POST', body: feedback });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<{ saved: boolean }>).data;
 }
