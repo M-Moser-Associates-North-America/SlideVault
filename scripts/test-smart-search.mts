@@ -11,6 +11,7 @@ import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/
 import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, typedCodes, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
 import { mentionsWord, smartSearch } from '../features/slide-vault/server/services/smart-search';
+import { asksForCover, deckSections, isSectionSearch, sectionKind, sectionKinds } from '../features/slide-vault/server/services/sections';
 import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
 
 let failures = 0;
@@ -330,6 +331,31 @@ for (const [env, label] of [
   check(JSON.stringify(bios.items.map((i) => i.slide.id)) === '["case","bio"]', 'named: a passing mention in a bio comes last', bios.items.map((i) => i.slide.id));
   const missing = await named('Zephyr case study', { alsoSays: () => '' });
   check(missing.relaxed && missing.items.length === 3 && !missing.chips.some((c) => c.kind === 'Mentions'), 'named: when nothing mentions it, the rest is shown and marked relaxed');
+}
+
+// ---- Deck sections, the "page breakers" (FD-57)
+{
+  const deck = (...pages: [string, string?][]) => ({ slides: pages.map(([title, text], i) => ({ id: `p${i + 1}`, number: i + 1, title, text: text ?? title, hidden: false })) });
+  const names = (d: ReturnType<typeof deck>) => [...deckSections(d)].filter(([, s]) => s.divider).map(([id, s]) => `${id}:${s.kind}:${s.name}`);
+
+  const numbered = deck(['Kestrel Law workplace'], ['01 Firm profile', '01\nFirm profile\nABOUT US'], ['Our founder', 'Founded 1981 by our founder'], ['02 Approach', '02\nApproach'], ['How we deliver', 'Weekly reviews'], ['03 Relevant experience', '03\nRelevant experience\nWHERE WE’VE DONE IT'], ['Halcyon Health HQ']);
+  check(JSON.stringify(names(numbered)) === '["p2:firm:Firm profile","p4:approach:Approach","p6:case-studies:Relevant experience"]', 'sections: numbered dividers name their sections', names(numbered));
+  const sec = deckSections(numbered);
+  check(sec.get('p3')?.kind === 'firm' && sec.get('p3')?.position === 1 && sec.get('p3')?.dividerId === 'p2', 'sections: a slide belongs to the section it sits in, and knows its place', sec.get('p3'));
+  check(!sec.has('p1'), 'sections: slides before the first divider have none');
+
+  const lettered = deck(['A FIRM BACKGROUND WHO WE ARE KESTREL X M MOSER', 'A FIRM BACKGROUND WHO WE ARE KESTREL X M MOSER\n4\nFirm\nBackground'], ['A FIRM BACKGROUND WHO WE ARE KESTREL X M MOSER', 'Offices in 30 cities'], ['F PROPOSED TEAM AND RESUMES KESTREL X M MOSER', 'F PROPOSED TEAM AND RESUMES KESTREL X M MOSER\n44\nProposed\nTeam and Resumes'], ['F PROPOSED TEAM AND RESUMES KESTREL X M MOSER', 'Jane Doe, design lead']);
+  check(JSON.stringify(names(lettered)) === '["p1:firm:Firm Background","p3:team:Proposed Team and Resumes"]', 'sections: a PDF\'s lettered heading opens a section once, not on every page', names(lettered));
+
+  const titled = deck(['Design Services RFP', 'Design Services RFP\nM Moser x Kestrel 2025\nSection 00\nOur\nunderstanding\nof Kestrel'], ['Your goals'], ['Design Services RFP', 'Design Services RFP\nM Moser x Kestrel 2025\nSection 01\nCompany\nbackground'], ['Who we are'], ['Design Services RFP', 'Design Services RFP\nM Moser x Kestrel 2025\nSection 02\nMEET THE MEET THE TEAM\nTEAM']);
+  check(JSON.stringify(names(titled)) === '["p1:understanding:Our understanding of Kestrel","p3:firm:Company background","p5:team:Meet the team"]', 'sections: a document title on every divider is skipped, the name comes after "Section 00", doubled words undone', names(titled));
+
+  const contents = deck(['What’s inside', 'TABLE OF CONTENTS\n01\nThe right team\n02\nThe portfolio'], ['Intro'], ['THE RIGHT TEAM', 'THE RIGHT TEAM'], ['Jane Doe'], ['THE PORTFOLIO', 'THE PORTFOLIO'], ['Halcyon Health HQ']);
+  check(JSON.stringify(names(contents)) === '["p3:team:The right team","p5:case-studies:The portfolio"]', 'sections: an unnumbered divider listed on the contents page is found', names(contents));
+
+  check(JSON.stringify(sectionKinds('Firm background / relevant experience')) === '["case-studies","firm"]' && sectionKind('Appendix B Team resumes') === 'team' && sectionKind('Appendix') === 'appendix' && sectionKind('How we will run the portfolio') === 'approach', 'sections: a name can be two sections; an appendix of résumés is the team; "How we…" is the approach');
+  check(isSectionSearch('resumes') && isSectionSearch('banner slides in case studies') && isSectionSearch('firm overview') && !isSectionSearch('HSBC case study') && !isSectionSearch('Workplace strategy process') && !isSectionSearch('2026'), 'sections: a search that is only a section, with nothing else named');
+  check(asksForCover('banner slides in case studies') && asksForCover('the page breakers') && !asksForCover('case studies'), 'sections: asking for a cover');
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smart search checks passed');

@@ -155,6 +155,8 @@ export type SlideSummary = {
   story?: SlideStory | null;
   /** Free-form tags on this slide or its deck, when any (FD-53) */
   tags?: FreeTag[];
+  /** The deck section the slide sits in (FD-57, "page breakers"), set by search when known; divider is its cover */
+  section?: { name: string; kind: string; divider: boolean; dividerId: string } | null;
 };
 
 export type SlideDetail = SlideSummary & { text: string };

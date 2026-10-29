@@ -101,7 +101,10 @@ export function namedWords(query: string, ctx: PlanContext, plan: SearchPlan): s
   // Shown as typed ("HSBC", "Toronto"); matched without regard to case.
   const typed = query.split(/\s+/).map((w) => w.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '').replace(/['’]s$/i, ''));
   const asTyped = (w: string) => typed.find((t) => t.toLowerCase() === w) ?? typed.find((t) => t.toLowerCase().startsWith(w)) ?? w;
-  return [...new Set(out)].slice(0, 4).map(asTyped);
+  // The parts of a code ("qa", "qc" of "QA/QC") are the code, not more names.
+  const codes = out.filter((w) => /[/&+-]/.test(w));
+  const kept = [...new Set(out)].filter((w) => !codes.some((c) => c !== w && c.split(/[/&+-]+/).includes(w)));
+  return [...new Set(kept.slice(0, 4).map(asTyped))];
 }
 
 /**

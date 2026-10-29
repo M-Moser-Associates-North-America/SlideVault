@@ -17,6 +17,7 @@ import { buildStoryboard, clientSectors, keptOutOfStories, type StoryboardRespon
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
 import { familiesOf } from './families';
+import { askedSections, asksForCover, isSectionSearch, librarySections, sectionWhy } from './sections';
 import { refineStory } from './story-refine';
 import type { StoryBeat, StoryRefineRequest, StoryRefineResult, StoryboardSlide } from '../../contracts/dto';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
@@ -90,13 +91,23 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   // against the reviewed metadata and the local model's reading of each slide.
   const readings = await loadSlideReadings();
   const intent = searchIntent(query);
-  const known: SearchKnowledge | undefined = readings.size
-    ? {
-        about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
-        boost: (id) => intentScore(intent, readings.get(id)),
-        answers: (id) => asksForAnything(intent) && answersIntent(intent, readings.get(id)),
-      }
-    : undefined;
+  // The deck sections a search asks for (FD-57, "page breakers"): "resumes" finds each deck's résumé
+  // section, "banner slides in case studies" each case-study section's cover.
+  const sections = librarySections(index, (id) => readings.get(id)?.type);
+  const asked = askedSections(query);
+  const cover = asksForCover(query);
+  const inAsked = (id: string) => { const sec = sections.get(id); return !!sec && sec.kinds.some((k) => asked.includes(k)); };
+  const sectionScore = (id: string) => {
+    if (!inAsked(id)) return 0;
+    const sec = sections.get(id)!;
+    // The cover leads when one is asked for; otherwise the section's first pages ("the Moira page and the four after it").
+    return 5 + (sec.divider ? (cover ? 12 : 1) : cover ? 0 : Math.max(0, 3 - sec.position) * 0.5);
+  };
+  const known: SearchKnowledge = {
+    about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
+    boost: (id) => intentScore(intent, readings.get(id)) + sectionScore(id),
+    answers: (id) => (asksForAnything(intent) && answersIntent(intent, readings.get(id))) || inAsked(id),
+  };
   const result = await smartSearch(
     query,
     limit,
@@ -122,6 +133,27 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     { read: opts.read },
   );
 
+  // A search for a section shows each deck's section once before the rest (Alina, 28 Oct: "search
+  // between different decks for that particular bunch of slides"), led by its first page (Gabby: "the
+  // Moira page… those 1, 2, 3, 4 next pages"), or by its cover when a cover is asked for.
+  // A search that also asks for a kind of slide ("resumes", "case study") is led by its best slide of that kind.
+  if (isSectionSearch(query)) {
+    const lead = new Map<string, (typeof result.items)[number]>();
+    const byKind = intent.types.length > 0 && !cover;
+    for (const item of result.items) {
+      const sec = sections.get(item.slide.id);
+      if (!sec || !sec.kinds.some((k) => asked.includes(k))) continue;
+      // Only a slide of that kind leads ("resumes": a résumé, not the section's org chart).
+      if (byKind && !intent.types.includes(readings.get(item.slide.id)?.type ?? '')) continue;
+      const have = lead.get(sec.dividerId);
+      const rank = (id: string) => { const x = sections.get(id)!; return cover ? (x.divider ? 0 : 1 + x.position) : x.divider ? 1000 : x.position; };
+      if (!have || (!byKind && rank(item.slide.id) < rank(have.slide.id))) lead.set(sec.dividerId, item);
+    }
+    const first = new Set([...lead.values()].map((i) => i.slide.id));
+    const order = result.items.filter((i) => first.has(i.slide.id));
+    result.items = [...order, ...result.items.filter((i) => !first.has(i.slide.id))];
+  }
+
   const texts: SlideText[] = [...fixtureSlideTexts(index), ...(await orWithoutDb('slide text', listSlideTextsPg, [] as SlideText[]))];
   const slideDeck = new Map(texts.map((t) => [t.id, t.sourceId]));
   const badged = withDuplicateBadges(result.items.map((i) => i.slide), groupDuplicates(texts), slideDeck);
@@ -131,9 +163,11 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   // Say what each slide is in the search's terms, ahead of the words it matched.
   const said = (id: string, why: string) => {
     const kind = intentWhy(intent, readings.get(id));
-    return kind ? `${kind} ${why}`.trim() : why;
+    const where = sectionWhy(sections.get(id), asked, cover);
+    return [where, kind, why].filter(Boolean).join(' ').trim();
   };
-  return { ...result, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide, why: said(slide.id, item.why) }; }) };
+  const sectionOf = (id: string) => { const sec = sections.get(id); return sec ? { name: sec.name, kind: sec.kind, divider: sec.divider, dividerId: sec.dividerId } : null; };
+  return { ...result, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
 }
 
 /** The configured storyboard reader, or null for the standard story order. Throws when misconfigured. */
