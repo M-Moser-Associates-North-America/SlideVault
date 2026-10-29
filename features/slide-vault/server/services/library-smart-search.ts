@@ -10,7 +10,7 @@ import { listFilterValuesPg, listSlideTextsPg, smartSearchPg } from '../pg-repos
 import { withDownloadCounts } from '../user-data';
 import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
 import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures, type SearchKnowledge } from './fixture-smart-search';
-import { answersIntent, asksForAnything, intentScore, intentWhy, searchIntent } from './slide-intent';
+import { answersIntent, asksForAnything, intentScore, intentWhy, knownFromStory, searchIntent } from './slide-intent';
 import { loadSlideReadings } from '../slide-knowledge';
 import { smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, type StoryboardResponse } from './storyboard';
@@ -79,7 +79,8 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
         };
       },
       reader: opts.reader,
-      search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
+      // The real decks are searched with what's known about each slide too: kind, sector, theme (FD-56).
+      search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max, intent), [])), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
       log: (m) => console.warn(m),
     },
     { read: opts.read },
@@ -93,7 +94,8 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   const byId = new Map(result.items.map((i) => [i.slide.id, i]));
   // Say what each slide is in the search's terms, ahead of the words it matched.
   const said = (id: string, why: string) => {
-    const kind = intentWhy(intent, readings.get(id));
+    // What the local files know (sample decks), else what the database knows (real decks, FD-56).
+    const kind = intentWhy(intent, readings.get(id) ?? knownFromStory(byId.get(id)!.slide));
     return kind ? `${kind} ${why}`.trim() : why;
   };
   return { ...result, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide, why: said(slide.id, item.why) }; }) };

@@ -201,3 +201,15 @@ alter table decks add column if not exists archived_by text;
 alter table decks add column if not exists created_by text;
 alter table decks add column if not exists file_created_at timestamptz;
 alter table decks add column if not exists uploaded_by text;
+
+-- "Not relevant" on search results (Alina and Gaby, 28 Oct; docs/DECISIONS.md FD-56). No person is
+-- stored, only the search (as normalized words) and the slide, so it needs no opt-in. A slide marked
+-- not relevant for a search moves to the end of that search's results; it is never hidden.
+create table if not exists search_feedback (
+  id bigint generated always as identity primary key,
+  query_key text not null,
+  slide_id uuid not null references slides (id) on delete cascade,
+  verdict text not null default 'not-relevant' check (verdict in ('not-relevant')),
+  created_at timestamptz not null default now()
+);
+create index if not exists search_feedback_query_idx on search_feedback (query_key);

@@ -20,6 +20,7 @@
     "test:tags": "tsx --conditions=react-server scripts/test-tags.mts",
     "test:upload-preview": "tsx --conditions=react-server scripts/test-upload-preview.mts",
     "test:meaning": "tsx --conditions=react-server scripts/test-meaning-search.mts",
+    "test:search-context": "tsx --conditions=react-server scripts/test-search-context.mts",
     "test:reasoning-map": "tsx --conditions=react-server scripts/test-reasoning-map.mts",
     "test:storyboard": "tsx --conditions=react-server scripts/test-storyboard.mts",
     "test:deck-suggestions": "tsx --conditions=react-server scripts/test-deck-suggestions.mts",

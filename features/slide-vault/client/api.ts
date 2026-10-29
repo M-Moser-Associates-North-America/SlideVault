@@ -256,3 +256,13 @@ export async function previewUpload(runtime: Transport, file: File, signal?: Abo
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<UploadPreview>).data;
 }
+
+/* ---------------------------------------------------------------- "Not relevant" on search (FD-56) */
+
+/** Mark a search result not relevant for this search (or undo with false). Returns false when the server has no such route yet. */
+export async function markNotRelevant(runtime: Transport, query: string, slideId: string, notRelevant = true): Promise<boolean> {
+  const res = await runtime.request({ path: '/search-feedback', method: 'POST', body: { query, slideId, notRelevant } });
+  if (notThere(res)) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
+}
