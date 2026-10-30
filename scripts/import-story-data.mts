@@ -6,6 +6,10 @@
  *   npm run story:import -- --data ~/Desktop/MMoser-RealData --csv <file.csv>     # also slide packs and deck kind, sector, location
  *   npm run story:import -- --data ~/Desktop/MMoser-RealData --csv <file.csv> --yes   # writes it
  *
+ *   npm run story:import -- --export <folder> --data <folder> --csv <file.csv>     # Schiffon's Oct 28 export as well (newest wins)
+ *
+ * --export reads Schiffon's export (slide-tags.json, slide-readings.json, decks.json, packs.json), where
+ * every record carries fileSha256 + slideNumber, matched exactly to decks.file_hash.
  * Reads, from the data folder (never the repo: they describe real decks):
  *   slide-metadata.json  reviewed metadata per slide (FD-28): role, type, reuse, flags, themes, sectors, projects
  *   discover-scan.json   the AI's reading of each slide (FD-26): role, topics, shows, convinces, confidence
@@ -34,13 +38,14 @@ const opt = (name: string) => {
 const dataDir = opt('--data');
 const csvFile = opt('--csv');
 const yes = args.includes('--yes');
-if (!dataDir) {
-  console.error('Give the folder with the data files, e.g. npm run story:import -- --data ~/Desktop/MMoser-RealData');
+if (!dataDir && !opt('--export')) {
+  console.error('Give the folder with the data files, e.g. npm run story:import -- --export ~/Desktop/MMoser-RealData/lola-export-oct28 (or --data for the older files)');
   process.exit(1);
 }
 
 // ---- reading the files ----------------------------------------------------------------------
 const readJson = <T,>(file: string): Record<string, T> => {
+  if (!dataDir) return {};
   const p = path.join(dataDir, file);
   if (!existsSync(p)) return {};
   return JSON.parse(readFileSync(p, 'utf8')) as Record<string, T>;
@@ -51,6 +56,37 @@ type CatalogRow = { clientName?: unknown; deckYear?: unknown; category?: unknown
 const meta = readJson<MetaRow>('slide-metadata.json');
 const scan = readJson<ScanRow>('discover-scan.json');
 const catalog = readJson<CatalogRow>('deck-catalog.json');
+
+// Schiffon's Supabase export (README, refreshed Oct 28): every record carries fileSha256 + slideNumber,
+// the same fingerprint Supabase keeps in decks.file_hash, so matching is exact. --export <folder>.
+const exportDir = opt('--export');
+type ExportRecord = Record<string, unknown> & { fileSha256?: unknown; slideNumber?: unknown };
+const exportRecords = (file: string): ExportRecord[] => {
+  if (!exportDir) return [];
+  const p = path.join(exportDir, file);
+  if (!existsSync(p)) return [];
+  const raw: unknown = JSON.parse(readFileSync(p, 'utf8'));
+  const box = raw as { records?: unknown; data?: unknown } | null;
+  const arr = Array.isArray(raw) ? raw : Array.isArray(box?.records) ? box!.records as unknown[] : Array.isArray(box?.data) ? box!.data as unknown[]
+    : Object.values((raw ?? {}) as Record<string, unknown>).flatMap((v) => (Array.isArray(v) ? v : [v]));
+  return arr.filter((x): x is ExportRecord => !!x && typeof x === 'object' && typeof (x as ExportRecord).fileSha256 === 'string');
+};
+const hk = (sha: unknown, n: unknown) => `${String(sha).toLowerCase()}#${Number(n)}`;
+const exTagList = exportRecords('slide-tags.json');
+const exReadingList = exportRecords('slide-readings.json');
+const exTags = new Map(exTagList.map((r) => [hk(r.fileSha256, r.slideNumber), r as MetaRow & ExportRecord]));
+const exReadings = new Map(exReadingList.map((r) => [hk(r.fileSha256, r.slideNumber), r as ScanRow & ExportRecord]));
+const exDecks = new Map(exportRecords('decks.json').map((r) => [String(r.fileSha256).toLowerCase(), r]));
+const exPacks = exportRecords('packs.json');
+const exFirstTag = new Map<string, ExportRecord>();
+for (const t of exTagList) if (!exFirstTag.has(String(t.fileSha256).toLowerCase())) exFirstTag.set(String(t.fileSha256).toLowerCase(), t);
+if (exportDir && !exTagList.length && !exReadingList.length) {
+  console.error(`Nothing readable in ${exportDir}: expected slide-tags.json and slide-readings.json with fileSha256 and slideNumber on each record.`);
+  process.exit(1);
+}
+// The export uses the storyboard's part names; the database keeps the words the reviewed sheet used.
+const ROLE_WORDS: Record<string, string> = { 'client-challenge': 'client challenge', strategy: 'approach', experience: 'proof', 'why-us': 'why us' };
+const roleOf = (v: unknown) => { const r = typeof v === 'string' ? v.trim() : ''; return r ? ROLE_WORDS[r] ?? r : null; };
 const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 const list = (v: unknown) => (Array.isArray(v) ? v.filter((t): t is string => typeof t === 'string' && !!t.trim()).map((t) => t.trim()) : typeof v === 'string' && v.trim() ? v.split(';').map((t) => t.trim()).filter(Boolean) : []);
 
@@ -167,13 +203,18 @@ type SlideUpdate = {
 const updates: SlideUpdate[] = [];
 const report: { deck: Deck; reviewed: number; readOnly: number; slides: number }[] = [];
 const usedIds = new Set<string>();
+const exMatched = { tags: 0, readings: 0, packs: 0 };
 
 for (const d of decks) {
   const own = slidesByDeck.get(d.id) ?? [];
   let reviewed = 0, readOnly = 0;
   for (const s of own) {
     const key = storyboardId(d.file_hash, s.slide_number);
-    const m = meta[key], r = scan[key];
+    const hkey = hk(d.file_hash, s.slide_number);
+    // The Oct 28 export is newer than the earlier files, so it wins where both have a slide.
+    const m = exTags.get(hkey) ?? meta[key], r = exReadings.get(hkey) ?? scan[key];
+    if (exTags.has(hkey)) exMatched.tags++;
+    if (exReadings.has(hkey)) exMatched.readings++;
     const c = csvForSlide.get(s.id);
     if (!m && !r && !c) continue;
     usedIds.add(key);
@@ -181,10 +222,10 @@ for (const d of decks) {
     if (isReviewed) reviewed++; else readOnly++;
     updates.push({
       id: s.id,
-      role: str(m?.role) ?? str(c?.reviewed_role) ?? str(r?.role),
+      role: roleOf(m?.role) ?? roleOf(c?.reviewed_role) ?? roleOf(r?.role),
       reuse: str(m?.reuse) ?? str(c?.reuse_status),
       type: str(m?.type) ?? str(c?.reviewed_type),
-      image: str(c?.image_kind),
+      image: str(c?.image_kind) ?? str((m as { imageKind?: unknown } | undefined)?.imageKind),
       themes: [...new Set([...list(m?.themes ?? c?.themes), ...(isReviewed ? [] : list(r?.topics))])].slice(0, 12),
       sectors: list(m?.proofSectors ?? c?.proof_sectors),
       projects: list(m?.projects ?? c?.projects),
@@ -210,14 +251,18 @@ const deckUpdates: DeckUpdate[] = [];
 for (const d of decks) {
   const cat = catalogByName.get(norm(d.source_filename));
   const row = csvDeckFor.get(d.id);
-  if (!cat && !row) continue;
-  const yearNum = Number(cat?.deckYear ?? row?.year);
+  // The export's deck facts by fingerprint. Its "category" (RFP / MSA) is a different list from our
+  // folder categories, so it isn't used; client, year and location are.
+  const ex = exDecks.get(d.file_hash.toLowerCase());
+  const exTag = exFirstTag.get(d.file_hash.toLowerCase());
+  if (!cat && !row && !ex && !exTag) continue;
+  const yearNum = Number(cat?.deckYear ?? row?.year ?? ex?.deckYear);
   deckUpdates.push({
     id: d.id, title: d.title,
-    client: str(cat?.clientName) ?? str(row?.client),
+    client: str(cat?.clientName) ?? str(row?.client) ?? str(ex?.clientName),
     year: Number.isInteger(yearNum) && yearNum > 1950 ? yearNum : null,
     category: str(cat?.category),
-    kind: str(row?.deck_kind), sector: str(row?.client_sector), location: str(row?.location),
+    kind: str(row?.deck_kind) ?? str(exTag?.deckKind), sector: str(row?.client_sector) ?? str(exTag?.clientSector), location: str(row?.location) ?? str(ex?.location),
   });
 }
 
@@ -226,6 +271,20 @@ for (const d of decks) {
 type Pack = { deckId: string; deckTitle: string; label: string; slideIds: string[] };
 const packs: Pack[] = [];
 const slideById = new Map(slides.map((s) => [s.id, s]));
+// The export's packs first (exact, by fingerprint and slide numbers, in order); then the CSV's, where they don't overlap.
+const inExportPack = new Set<string>();
+const deckByHash = new Map(decks.map((d) => [d.file_hash.toLowerCase(), d]));
+for (const p of exPacks) {
+  const d = deckByHash.get(String(p.fileSha256).toLowerCase());
+  const nums = Array.isArray(p.slideNumbers) ? (p.slideNumbers as unknown[]).map(Number) : [];
+  if (!d || nums.length < 2) continue;
+  const bySlide = new Map((slidesByDeck.get(d.id) ?? []).map((s) => [s.slide_number, s.id]));
+  const ids = nums.map((n) => bySlide.get(n)).filter((x): x is string => !!x);
+  if (ids.length !== nums.length || new Set(ids).size !== ids.length || ids.some((id) => inExportPack.has(id))) continue;
+  ids.forEach((id) => inExportPack.add(id));
+  packs.push({ deckId: d.id, deckTitle: d.title, label: str(p.label) ?? 'Pack', slideIds: ids });
+  exMatched.packs++;
+}
 const packGroups = new Map<string, Slide[]>();
 for (const [slideId, r] of csvForSlide) {
   if (!(r.pack ?? '').trim()) continue;
@@ -234,7 +293,7 @@ for (const [slideId, r] of csvForSlide) {
 }
 for (const [k, members] of packGroups) {
   const deckIds = new Set(members.map((m) => m.deck_id));
-  if (members.length < 2 || deckIds.size !== 1) continue;
+  if (members.length < 2 || deckIds.size !== 1 || members.some((m) => inExportPack.has(m.id))) continue;
   const d = deckById.get(members[0].deck_id)!;
   packs.push({ deckId: d.id, deckTitle: d.title, label: `Pack ${k.split('#').pop()}`, slideIds: members.sort((a, b) => a.slide_number - b.slide_number).map((m) => m.id) });
 }
@@ -242,7 +301,9 @@ for (const [k, members] of packGroups) {
 // ---- the report -----------------------------------------------------------------------------
 const metaKeys = Object.keys(meta).length, scanKeys = Object.keys(scan).length;
 console.log(`${yes ? 'IMPORT' : 'DRY RUN: nothing is changed.'}\n`);
-console.log(`Files: ${metaKeys} reviewed slide(s), ${scanKeys} AI reading(s), ${Object.keys(catalog).length} catalog deck(s)${csvFile ? `, ${csv.length} CSV row(s)` : ''}.\n`);
+console.log(`Files: ${metaKeys} reviewed slide(s), ${scanKeys} AI reading(s), ${Object.keys(catalog).length} catalog deck(s)${csvFile ? `, ${csv.length} CSV row(s)` : ''}.`);
+if (exportDir) console.log(`Export: ${exTagList.length} reviewed tag(s), ${exReadingList.length} AI reading(s), ${exDecks.size} deck(s), ${exPacks.length} pack(s). Matched to Supabase by fingerprint: ${exMatched.tags} tag(s), ${exMatched.readings} reading(s), ${exMatched.packs} pack(s).`);
+console.log('');
 if (csvFile) {
   console.log('The CSV, deck by deck (which slides were found in Supabase):');
   for (const rep of csvReport) {

@@ -275,3 +275,21 @@ export async function previewUpload(runtime: Transport, file: File, signal?: Abo
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<UploadPreview>).data;
 }
+
+/* ---------------------------------------------------------------- Role on the server (FD-71) */
+
+/** The signed-in person's role and activity opt-in. Null when the server has no such route yet. */
+export async function getMySettings(runtime: Transport): Promise<{ role: StoryUserRole | null; activityOptedIn: boolean } | null> {
+  const res = await runtime.request({ path: '/me/settings', method: 'GET' });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ role: StoryUserRole | null; activityOptedIn: boolean }>).data;
+}
+
+/** Save the person's role on the server (null clears it). Returns false when the server has no such route yet. */
+export async function setMyRole(runtime: Transport, role: StoryUserRole | null): Promise<boolean> {
+  const res = await runtime.request({ path: '/me/settings', method: 'PATCH', body: { role } });
+  if (notThere(res)) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
+}

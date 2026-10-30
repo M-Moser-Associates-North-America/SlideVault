@@ -10,7 +10,7 @@ import { listFilterValuesPg, listSlideTextsPg, smartSearchPg } from '../pg-repos
 import { withDownloadCounts } from '../user-data';
 import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
 import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures, type SearchKnowledge } from './fixture-smart-search';
-import { answersIntent, asksForAnything, intentScore, intentWhy, searchIntent } from './slide-intent';
+import { answersIntent, asksForAnything, intentScore, intentWhy, knownFromStory, searchIntent } from './slide-intent';
 import { loadSlideReadings } from '../slide-knowledge';
 import { mentionsWord, smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, clientSectors, keptOutOfStories, type StoryboardResponse } from './storyboard';
@@ -141,7 +141,8 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
         };
       },
       reader: opts.reader,
-      search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
+      // The real decks are searched with what's known about each slide too: kind, sector, theme (FD-70).
+      search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max, intent), [])), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
       howCommon: (word) => wordShare(index, word),
       isKnownName: (word) => knownNames(index, readings).has(word),
       alsoMeans: (word) => clientSectors(word),
@@ -185,7 +186,8 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   const byId = new Map(result.items.map((i) => [i.slide.id, i]));
   // Say what each slide is in the search's terms, ahead of the words it matched.
   const said = (id: string, why: string) => {
-    const kind = intentWhy(intent, readings.get(id));
+    // What the local files know (sample decks), else what the database knows (real decks, FD-70).
+    const kind = intentWhy(intent, readings.get(id) ?? knownFromStory(byId.get(id)!.slide));
     const where = sectionWhy(sections.get(id), asked, cover);
     return [where, kind, why].filter(Boolean).join(' ').trim();
   };

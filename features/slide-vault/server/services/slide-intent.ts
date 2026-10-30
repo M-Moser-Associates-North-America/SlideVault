@@ -17,7 +17,13 @@ const KINDS: { asks: RegExp; types: string[] }[] = [
   { asks: /\b(fees?|pricing|commercials?|cost proposal)\b/, types: ['fees_commercial'] },
   { asks: /\b(references?|testimonials?)\b/, types: ['client_references'] },
   { asks: /\b(schedule|timeline|programme)\b/, types: ['schedule'] },
-  { asks: /\b(about us|firm profile|who we are|our firm|company profile)\b/, types: ['firm_profile', 'differentiator'] },
+  { asks: /\b(about us|firm profile|who we are|our firm|company profile|company overview|firm overview|about m ?moser)\b/, types: ['firm_profile', 'differentiator'] },
+  // Words BD uses for slides that frame a deck (Gaby, 28 Oct): banners and dividers, covers, endings, contents
+  { asks: /\b(banners?|dividers?|section (break|breaker|header|title)s?|page breakers?)\b/, types: ['section_divider'] },
+  { asks: /\b(covers?|cover page|title slide|front page)\b/, types: ['cover'] },
+  { asks: /\b(ending|end slide|closing|closer|thank you|final slide|last slide|back cover)\b/, types: ['closing'] },
+  { asks: /\b(table of contents|contents|agenda)\b/, types: ['table_of_contents'] },
+  { asks: /\b(client logos?|logo wall)\b/, types: ['client_logos'] },
   { asks: /\b(risk|governance)\b/, types: ['risk_governance'] },
 ];
 
@@ -91,7 +97,18 @@ const KIND_SAID: Record<string, string> = {
   schedule: 'A schedule',
   firm_profile: 'About the firm',
   differentiator: 'What sets us apart',
+  section_divider: 'A section banner',
+  cover: 'A cover',
+  closing: 'A closing slide',
+  table_of_contents: 'A contents page',
+  client_logos: 'A client logo wall',
 };
+
+/** What's known about a database slide (FD-51, FD-53), in the shape the intent rules read. */
+export function knownFromStory(s: { story?: { type: string | null; sectors: string[]; themes: string[]; reuse: string | null; flags: string[] } | null }): KnownForSearch {
+  const k = s.story;
+  return k ? { type: k.type ?? undefined, sectors: k.sectors, themes: k.themes, reuse: k.reuse ?? undefined, flags: k.flags } : undefined;
+}
 
 /** One line on what the slide is, in the search's terms: "A case study for the same kind of client, on sustainability / net zero." */
 export function intentWhy(i: SearchIntent, k: KnownForSearch): string | null {

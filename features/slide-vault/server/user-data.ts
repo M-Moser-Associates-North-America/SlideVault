@@ -118,6 +118,26 @@ export async function setActivityOptIn(user: string, on: boolean): Promise<void>
   if (!on) await sql(`delete from activity_events where user_key = $1`, [user]);
 }
 
+/* ---- Role (FD-71) ------------------------------------------------------------------------------ */
+
+export const ROLES = ['business-developer', 'director', 'bd-support'] as const;
+export type UserRole = (typeof ROLES)[number];
+
+/** The person's role, or null when they haven't picked one. */
+export async function getRole(user: string): Promise<UserRole | null> {
+  const rows = await sql<{ role: UserRole | null }>(`select role from user_settings where user_key = $1`, [user]);
+  return rows[0]?.role ?? null;
+}
+
+/** Set or clear (null) the person's role. Changes nothing else in their settings. */
+export async function setRole(user: string, role: UserRole | null): Promise<void> {
+  await sql(
+    `insert into user_settings (user_key, role, updated_at) values ($1, $2, now())
+     on conflict (user_key) do update set role = excluded.role, updated_at = now()`,
+    [user, role],
+  );
+}
+
 /** Deletes everyone's activity older than the retention period. Run on every write, so it never builds up. */
 export async function purgeExpiredActivity(): Promise<number> {
   const rows = await sql<{ n: number }>(

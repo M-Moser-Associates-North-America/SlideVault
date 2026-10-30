@@ -304,10 +304,28 @@ export async function setDeckArchived(deckId: string, archived: boolean, by: str
 }
 
 /**
+ * Everything known about a slide beyond its own words (FD-70): its story tags (part of the story,
+ * type, themes, sectors, projects, the AI's one-line reading), its deck's client, sector and kind,
+ * and free-form tags on the slide or its deck. Searched alongside the slide's words, so "hospitality"
+ * finds slides about hospitality, not only slides that happen to say the word.
+ */
+const STORY_TEXT = `concat_ws(' ', s.story_role, replace(coalesce(s.slide_type, ''), '_', ' '), array_to_string(s.themes, ' '),
+  array_to_string(s.proof_sectors, ' '), array_to_string(s.projects, ' '), s.shows, s.convinces, d.client, d.client_sector, d.deck_kind,
+  (select string_agg(f.tag, ' ') from free_tags f where (f.target_kind = 'slide' and f.target_id = s.id) or (f.target_kind = 'deck' and f.target_id = d.id)))`;
+
+/** What a search asks for beyond its words (slide-intent.ts): kinds of slide, client sectors, themes. */
+export type PgSearchIntent = { types: string[]; sectors: string[]; themes: string[] };
+
+/**
  * Quick AI search (FD-16): slides matching ANY of the plan's keywords, inside its filters, best
  * match first. With no keywords, the filters alone decide (newest decks first).
+ *
+ * FD-70: the keywords are also matched against what's known about each slide (STORY_TEXT), and when
+ * the search asks for a kind of slide, a sector or a theme ("a team slide for a healthcare client",
+ * "hospitality", "banner"), slides that ARE that come first, ahead of slides that only mention the
+ * words. Slides marked internal-only or naming another client stay findable, just last.
  */
-export async function smartSearchPg(plan: SearchPlan, limit: number): Promise<{ summary: SlideSummary; facts: SlideFacts }[]> {
+export async function smartSearchPg(plan: SearchPlan, limit: number, intent?: PgSearchIntent): Promise<{ summary: SlideSummary; facts: SlideFacts }[]> {
   const where: string[] = [`d.status = 'ready' and d.archived_at is null`];
   const values: unknown[] = [];
   const add = (v: unknown) => {
@@ -315,23 +333,44 @@ export async function smartSearchPg(plan: SearchPlan, limit: number): Promise<{ 
     return `$${values.length}`;
   };
   const q = anyOfQuery(plan.keywords);
-  let order = 'd.uploaded_at desc, s.slide_number';
+  const types = intent?.types ?? [];
+  const themes = intent?.themes ?? [];
+  const sectors = (intent?.sectors ?? []).map((x) => `${x.toLowerCase()}%`);
+  const asks = types.length + themes.length + sectors.length > 0;
+  const match: string[] = [];
+  const score: string[] = [];
   if (q) {
     const p = add(q);
-    where.push(`s.search_text @@ websearch_to_tsquery('english', ${p})`);
-    order = `ts_rank(s.search_text, websearch_to_tsquery('english', ${p})) desc, d.title, s.slide_number`;
+    match.push(`s.search_text @@ websearch_to_tsquery('english', ${p})`, `to_tsvector('english', ${STORY_TEXT}) @@ websearch_to_tsquery('english', ${p})`);
+    score.push(`ts_rank(s.search_text, websearch_to_tsquery('english', ${p}))`, `0.6 * ts_rank(to_tsvector('english', ${STORY_TEXT}), websearch_to_tsquery('english', ${p}))`);
   }
+  if (asks) {
+    const t = add(types), th = add(themes), se = add(sectors);
+    const isType = `s.slide_type = any(${t}::text[])`;
+    const isTheme = `s.themes && ${th}::text[]`;
+    const isSector = `(exists (select 1 from unnest(s.proof_sectors) x where lower(x) like any(${se}::text[])) or lower(coalesce(d.client_sector, '')) like any(array(select '%' || y from unnest(${se}::text[]) y)))`;
+    match.push(isType, isTheme, isSector);
+    score.push(`case when ${isType} then 1.0 else 0 end`, `case when ${isSector} then 0.5 else 0 end`, `case when ${isTheme} then 0.35 else 0 end`);
+  }
+  if (match.length) where.push(`(${match.join(' or ')})`);
+  if (q || asks) score.push(`case when s.reuse_status = 'internal - never show' or exists (select 1 from unnest(s.flags) fl where fl ilike '%names another client%') then -1.0 else 0 end`);
   if (plan.client) where.push(`lower(d.client) = lower(${add(plan.client)})`);
   if (plan.yearFrom) where.push(`d.year >= ${add(plan.yearFrom)}`);
   if (plan.yearTo) where.push(`d.year <= ${add(plan.yearTo)}`);
   if (plan.category) where.push(`lower(d.category) = lower(${add(plan.category)})`);
   if (plan.bestOfTheBest) where.push('d.best_of_the_best');
-  const rows = await sql<SlideWithDeck>(`${SLIDE_WITH_DECK} where ${where.join(' and ')} order by ${order} limit ${add(limit)}`, values);
+  const order = score.length ? `(${score.join(' + ')}) desc, d.title, s.slide_number` : 'd.uploaded_at desc, s.slide_number';
+  const rows = await sql<SlideWithDeck & { story_text: string | null }>(
+    `${SLIDE_WITH_DECK.replace('to_jsonb(d.*) as decks', `to_jsonb(d.*) as decks, ${STORY_TEXT} as story_text`)}
+       where ${where.join(' and ')} order by ${order} limit ${add(limit)}`,
+    values,
+  );
   return rows.map((row) => ({
     summary: toSlideSummary(row),
     facts: {
       title: row.title ?? '',
-      text: row.text ?? '',
+      // What's known about the slide counts as its words too, so "why it fits" can name a matched theme or tag.
+      text: [row.text ?? '', row.story_text ?? ''].join(' '),
       client: row.decks.client,
       year: row.decks.year,
       category: row.decks.category,

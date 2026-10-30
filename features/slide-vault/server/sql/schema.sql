@@ -213,3 +213,8 @@ alter table decks add column if not exists archived_by text;
 alter table decks add column if not exists created_by text;
 alter table decks add column if not exists file_created_at timestamptz;
 alter table decks add column if not exists uploaded_by text;
+
+-- Each person's role, chosen in their profile (docs/DECISIONS.md FD-71): business developer, director or
+-- BD support (Grant's three groups, 21 Oct). Kept on the server so Suggested for you can be role-based
+-- (Gaby, 28 Oct): counts of what people in a role use, never names. Null until someone picks one.
+alter table user_settings add column if not exists role text check (role in ('business-developer', 'director', 'bd-support'));

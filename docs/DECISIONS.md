@@ -708,3 +708,31 @@ Acceptance evidence / affected PR criteria: test:smart-search (6 new checks: wor
 Documents/contracts changed: server/search-feedback.ts (new), server/sql/schema.sql (search_feedback), server/rate-limit.ts, app/api/slide-vault/v1/smart-search/feedback (new), smart-search route (role), server/services/library-smart-search.ts, client/api.ts (sendSearchFeedback, role), client/role-store.ts (currentStoryRole), components/state.tsx (sends the role), scripts/test-smart-search.mts.
 Revisit trigger: real sign-in (per-person learning); enough verdicts to tune the weights.
 ```
+
+```text
+Decision ID and title: FD-70 Search on the real decks understands more than words: slide kind, sector, theme and tags rank first
+Status: proposed
+Decision date: 2026-10-29
+Decision owner/reviewer: Vincent (build), Schiffon (search rules, slide-intent.ts), Alina Pak and Gaby (28 Oct check-in)
+Context and evidence: At the 28 Oct check-in Gaby searched "hospitality" and got a director interview that mentions the word instead of hospitality project slides. Alina set the order: find a specific slide, group related slides, build a deck, and asked that search tell apart words on the slide, a year, a kind of slide (banner, company overview, ending slide) and a deck's category or tag. Gaby asked to tag slides by name ("Moira") and find them that way. The intent rules (FD-33) already read kinds, sectors and themes, but only for the sample decks, from files; the 1,874 real slides in Supabase were matched on their words alone.
+Options considered: (a) search the database with what it now knows (story tags FD-51, free tags FD-53) and rank by the same intent rules; (b) wait for meaning search (FD-55) to cover it; (c) make the AI reader do it (slower, and off without a model).
+Chosen outcome: (a), with (b) on top when it's live. smartSearchPg takes the search's intent: slides of the asked-for kind (+1.0), from a client in the asked-for sector (+0.5) or on the asked-for theme (+0.35) rank above slides that only contain the words; a slide's story tags, its deck's client, sector and kind, and free-form tags on the slide or its deck are searched alongside its words; internal-only slides and slides naming another client stay findable, just last (and out of the app's results unless hidden=include). The rules now know BD's words for framing slides: banner, divider and page breaker (section_divider), cover and title slide, ending, closing and thank you, contents and agenda, client logos, and company overview. "Why it fits" names the kind, sector and theme for real slides too. A year typed alone ("2026") was already read as a year filter; it's now covered by a test.
+Consequences for scope, cost, security and integration: No AI calls. "Not relevant" on search results is Schiffon's (her FD-56 to FD-59, branch lola-search-sections), not part of this decision. The storyboard keeps its own search; the 6 decks with no story tags are still found by their words, and by meaning once FD-55 is live.
+Acceptance evidence / affected PR criteria: npm run test:search-context (9 checks on a local Postgres: hospitality, team for a healthcare client, banner, ending slide, 2026, a "Moira" tag, why it fits, internal-only left out); test:smart-search, test:storyboard, test:story-learning, test:deck-finder, test:reasoning-map and the earlier database tests still pass; typecheck and lint.
+Documents/contracts changed: server/pg-repository.ts (smartSearchPg), server/services/slide-intent.ts (new kinds, knownFromStory), server/services/library-smart-search.ts, scripts/test-search-context.mts (new), package.json.
+Revisit trigger: Gaby's annotated queries arrive (score search against them); meaning search goes live; Schiffon's sections and named words move to Supabase.
+```
+
+```text
+Decision ID and title: FD-71 Each person's role is kept on the server, for a role-based Suggested for you
+Status: proposed
+Decision date: 2026-10-29
+Decision owner/reviewer: Vincent (build), Schiffon (Suggested for you by role), Khushali (the role choice in the profile), Gaby and Grant (role-based, not personal)
+Context and evidence: At the 28 Oct check-in Gaby confirmed Suggested for you should follow the person's role ("proposal specialists"), as agreed with Grant, not their individual activity. The role (business developer, director, BD support, FD-25) lived only in the browser, so the server couldn't count what people in a role use.
+Options considered: (a) a role column on user_settings with GET and PATCH /me/settings; (b) send the role with every request (FD-58 does this for search leaning, but can't build a shared count); (c) keep it in the browser.
+Chosen outcome: (a). user_settings.role is business-developer, director, bd-support or null; GET /me/settings returns { role, activityOptedIn }, PATCH /me/settings { role } sets or clears it without touching the opt-in. client/api.ts has getMySettings and setMyRole. Schiffon builds Suggested for you on it: counts by role only, never names, and only once 3 or more people in that role have used a slide.
+Consequences for scope, cost, security and integration: The role is a choice the person makes, not something inferred. Personal activity stays opt-in and 90 days (FD-18); a role count shows nothing about any one person. At integration the role can come from M Moser's own directory instead.
+Acceptance evidence / affected PR criteria: test:user-data (5 new checks: no role until picked, saved and returned, opt-in untouched, bad values refused, cleared, per person); typecheck and lint.
+Documents/contracts changed: server/sql/schema.sql (user_settings.role), server/user-data.ts (getRole, setRole), app/api/slide-vault/v1/me/settings (new), client/api.ts, scripts/test-user-data.mts.
+Revisit trigger: M Moser's login supplies roles; Alina sets the minimum group size.
+```
