@@ -304,7 +304,7 @@ export async function setDeckArchived(deckId: string, archived: boolean, by: str
 }
 
 /**
- * Everything known about a slide beyond its own words (FD-56): its story tags (part of the story,
+ * Everything known about a slide beyond its own words (FD-70): its story tags (part of the story,
  * type, themes, sectors, projects, the AI's one-line reading), its deck's client, sector and kind,
  * and free-form tags on the slide or its deck. Searched alongside the slide's words, so "hospitality"
  * finds slides about hospitality, not only slides that happen to say the word.
@@ -320,7 +320,7 @@ export type PgSearchIntent = { types: string[]; sectors: string[]; themes: strin
  * Quick AI search (FD-16): slides matching ANY of the plan's keywords, inside its filters, best
  * match first. With no keywords, the filters alone decide (newest decks first).
  *
- * FD-56: the keywords are also matched against what's known about each slide (STORY_TEXT), and when
+ * FD-70: the keywords are also matched against what's known about each slide (STORY_TEXT), and when
  * the search asks for a kind of slide, a sector or a theme ("a team slide for a healthcare client",
  * "hospitality", "banner"), slides that ARE that come first, ahead of slides that only mention the
  * words. Slides marked internal-only or naming another client stay findable, just last.

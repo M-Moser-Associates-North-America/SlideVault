@@ -1,8 +1,8 @@
 /**
- * Search that understands more than words (docs/DECISIONS.md FD-56), against a LOCAL test database.
+ * Search that understands more than words (docs/DECISIONS.md FD-70), against a LOCAL test database.
  * Gaby's cases from the 28 Oct check-in: "hospitality" should find hospitality slides before a slide
  * that only says the word, "2026" is a year, "banner" is a kind of slide, a tag like "Moira" is
- * searchable, and "not relevant" pushes a slide down for that search.
+ * searchable. ("Not relevant" is Schiffon's, on her search branch.)
  *
  *   SV_DB_HOST=localhost SV_DB_SSL=disable SV_DB_PORT=... SV_DB_USER=... SV_DB_PASSWORD=... SV_DB_SCHEMA=... npm run test:search-context
  */
@@ -25,7 +25,6 @@ const { standInPlan, groundFilters } = await import('../features/slide-vault/ser
 const { searchIntent } = await import('../features/slide-vault/server/services/slide-intent');
 const { resetRateLimits } = await import('../features/slide-vault/server/rate-limit');
 const smartRoute = await import('../app/api/slide-vault/v1/smart-search/route');
-const feedbackRoute = await import('../app/api/slide-vault/v1/search-feedback/route');
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -87,27 +86,6 @@ const get = async (q: string) => (await (await smartRoute.GET(new Request(`http:
 const r1 = await get('hospitality');
 check(r1.data.items[0]?.slide.title === 'Guest lounge and amenities' && /hospitality/i.test(r1.data.items[0].why), 'GET /smart-search puts it first and says why', r1.data.items[0]);
 check(!r1.data.items.some((i) => i.slide.title === 'Internal checklist'), 'internal-only slides are left out of the app\'s results unless hidden=include');
-const first = r1.data.items[0].slide;
-const mark = async (body: unknown, user: string | null = 'Pat') => {
-  resetRateLimits();
-  return feedbackRoute.POST(new Request('http://localhost/x', { method: 'POST', headers: { 'content-type': 'application/json', ...(user ? { 'x-slidevault-user': user } : {}) }, body: JSON.stringify(body) }));
-};
-check((await mark({ query: 'Hospitality!', slideId: first.id, notRelevant: true })).status === 200, 'POST /search-feedback marks a result not relevant');
-const [row] = await sql<{ query_key: string }>('select query_key from search_feedback');
-check(row.query_key === 'hospitality', 'only the search words are stored, not who said it', row);
-resetRateLimits();
-const r2 = await get('hospitality');
-check(r2.data.items.at(-1)?.slide.id === first.id && r2.data.items.length === r1.data.items.length, 'that slide moves to the end of that search, and nothing is hidden', r2.data.items.map((i) => i.slide.title));
-resetRateLimits();
-const other = await get('lounge');
-check(other.data.items[0]?.slide.id === first.id, 'other searches are not affected');
-await mark({ query: 'hospitality', slideId: first.id, notRelevant: false });
-resetRateLimits();
-check((await get('hospitality')).data.items[0]?.slide.id === first.id, 'notRelevant: false undoes it');
-check((await mark({ query: '', slideId: first.id, notRelevant: true })).status === 400, 'an empty search is refused');
-check((await mark({ query: 'x y', slideId: 'nope', notRelevant: true })).status === 400, 'a sample-deck or bad slide id is refused');
-check((await mark({ query: 'hospitality', slideId: first.id, notRelevant: true }, null)).status === 400, 'signed out cannot mark');
-
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll search-in-context checks passed');
 await sql('drop table if exists search_feedback, free_tags, slide_pack_members, slide_packs, story_feedback, activity_events, user_settings, drafts, saved_slides, slide_downloads, slides, decks cascade');
 process.exit(failures ? 1 : 0);

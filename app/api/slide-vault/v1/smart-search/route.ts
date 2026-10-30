@@ -2,7 +2,6 @@ import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/serve
 import type { PlanReader } from '@/features/slide-vault/server/ai/reader';
 import { meaningSearch } from '@/features/slide-vault/server/meaning-search';
 import { withPacks } from '@/features/slide-vault/server/packs';
-import { notRelevantFor } from '@/features/slide-vault/server/search-feedback';
 import { isInternalOnly } from '@/features/slide-vault/server/pg-repository';
 import { withTags } from '@/features/slide-vault/server/tags';
 import { configuredReader, searchLibrary } from '@/features/slide-vault/server/services/library-smart-search';
@@ -50,9 +49,6 @@ export async function GET(request: Request) {
         have.add(hit.slide.id);
       }
     }
-    // Slides people marked "not relevant" for this search go to the end, never out (FD-56).
-    const notRelevant = await notRelevantFor(query, result.items.map((i) => i.slide.id));
-    if (notRelevant.size) result.items = [...result.items.filter((i) => !notRelevant.has(i.slide.id)), ...result.items.filter((i) => notRelevant.has(i.slide.id))];
     // Each slide in a pack carries the whole pack (FD-38, FD-52).
     const packed = await withTags(await withPacks(result.items.map((i) => i.slide)));
     result.items = result.items.map((i, n) => ({ ...i, slide: packed[n] }));

@@ -79,7 +79,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
         };
       },
       reader: opts.reader,
-      // The real decks are searched with what's known about each slide too: kind, sector, theme (FD-56).
+      // The real decks are searched with what's known about each slide too: kind, sector, theme (FD-70).
       search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max, intent), [])), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
       log: (m) => console.warn(m),
     },
@@ -94,7 +94,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   const byId = new Map(result.items.map((i) => [i.slide.id, i]));
   // Say what each slide is in the search's terms, ahead of the words it matched.
   const said = (id: string, why: string) => {
-    // What the local files know (sample decks), else what the database knows (real decks, FD-56).
+    // What the local files know (sample decks), else what the database knows (real decks, FD-70).
     const kind = intentWhy(intent, readings.get(id) ?? knownFromStory(byId.get(id)!.slide));
     return kind ? `${kind} ${why}`.trim() : why;
   };
