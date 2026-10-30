@@ -1,4 +1,4 @@
-import { isStopWord, simParse } from '../../components/simulation';
+import { isStopWord, parseQuery } from '../../components/search-rules';
 
 /**
  * Quick AI search (docs/DECISIONS.md FD-16, FD-17): how a typed request becomes a search, and how
@@ -6,7 +6,7 @@ import { isStopWord, simParse } from '../../components/simulation';
  *
  *   1. Read the request into a SearchPlan: keywords (with likely synonyms) plus optional filters.
  *      The configured AI reader does this (ai/reader.ts); with none configured, or if it fails, the
- *      stand-in below does, using the same rules as the front end's simulated search.
+ *      stand-in below does, using the same rules as the filter row (components/search-rules.ts).
  *   2. Search Postgres for slides matching ANY keyword, inside the filters, best match first.
  *   3. Explain each result from what actually matched. The note is worked out from the slide's
  *      own words, not written by the model, so it can't claim something the slide doesn't say.
@@ -24,12 +24,18 @@ export type SearchPlan = {
   yearTo: number | null;
   category: string | null;
   bestOfTheBest: boolean | null;
+  /**
+   * The specific things the person named that no filter or topic explains ("QNBC" in "QNBC case
+   * study", "Toronto", "QA/QC"). Read by the rules from the typed words, never by a model. A named
+   * thing that is rare in the library must be on every result (FD-56).
+   */
+  named?: string[];
 };
 
 /** What the reader is allowed to pick from, so filters always match real values. */
 export type PlanContext = { clients: string[]; categories: string[]; thisYear: number };
 
-export type Chip = { kind: 'Topic' | 'Client' | 'Year' | 'Category' | 'Collection'; label: string };
+export type Chip = { kind: 'Topic' | 'Client' | 'Year' | 'Category' | 'Collection' | 'Mentions'; label: string };
 
 export const MAX_KEYWORDS = 12;
 
@@ -40,12 +46,15 @@ export const MAX_KEYWORDS = 12;
  */
 const GENERIC_WORDS = new Set(['deck', 'decks', 'slide', 'slides', 'page', 'pages', 'proposal', 'proposals', 'presentation', 'presentations', 'pitch', 'ppt', 'pptx', 'powerpoint', 'm moser', 'mmoser']);
 
+/** Words that say what a slide should do, not what it's about ("slides that demonstrate…"): never a named thing. */
+const ASKING_WORDS = /^(demonstrat|show|highlight|explain|describ|prove|convey|communicat|illustrat|present|tell|help|support|cover|need|want|look|find|search|example|type|kind|sort|good|great|strong|similar|relevant|specific|particular|other|new|old|last|first|next)/;
+
 /** Rules-only reader, used when no AI reader is configured or it can't be reached. */
 export function standInPlan(query: string, ctx: PlanContext): SearchPlan {
-  const p = simParse(query, ctx.clients);
+  const p = parseQuery(query, ctx.clients);
   const q = ` ${query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ')} `;
   const keywords = [...p.tokens, ...p.concepts.flatMap((c) => c.words)];
-  // The simulated reader picks a client from any word of its name, so "a bank pitch" would become
+  // The rules pick a client from any word of its name, so "a bank pitch" would become
   // the client "Northgate Bank". Only keep the client if its first word (the distinctive one) was
   // typed; otherwise put the words back as keywords.
   if (p.client) {
@@ -64,7 +73,7 @@ export function standInPlan(query: string, ctx: PlanContext): SearchPlan {
     p.client ? `for ${p.client}` : null,
     p.year ? `from ${p.year}` : p.recent ? 'from the last few years' : null,
   ].filter(Boolean);
-  return cleanPlan(
+  const plan = cleanPlan(
     {
       summary: parts.length ? `Slides about ${parts.join(' ')}.` : `Slides that mention ${p.tokens.slice(0, 3).join(', ') || 'your words'}.`,
       keywords: category ? keywords.filter((k) => k !== category.toLowerCase()) : keywords,
@@ -77,6 +86,25 @@ export function standInPlan(query: string, ctx: PlanContext): SearchPlan {
     },
     ctx,
   );
+  return { ...plan, named: namedWords(query, ctx, plan) };
+}
+
+/**
+ * What the person named that the plan's filters and topics don't already cover: the words left
+ * after topics, client, year and category are read, plus codes typed as codes ("QA/QC"). Whether a
+ * named word is rare enough to be required is decided against the library, in smartSearch.
+ */
+export function namedWords(query: string, ctx: PlanContext, plan: SearchPlan): string[] {
+  const p = parseQuery(query, ctx.clients);
+  const taken = new Set([plan.category, plan.client].filter(Boolean).flatMap((x) => x!.toLowerCase().split(/\s+/)));
+  const out = [...p.tokens, ...typedCodes(query)].filter((w) => !taken.has(w) && !GENERIC_WORDS.has(w) && !isStopWord(w) && !ASKING_WORDS.test(w));
+  // Shown as typed ("QNBC", "Toronto"); matched without regard to case.
+  const typed = query.split(/\s+/).map((w) => w.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '').replace(/['’]s$/i, ''));
+  const asTyped = (w: string) => typed.find((t) => t.toLowerCase() === w) ?? typed.find((t) => t.toLowerCase().startsWith(w)) ?? w;
+  // The parts of a code ("qa", "qc" of "QA/QC") are the code, not more names.
+  const codes = out.filter((w) => /[/&+-]/.test(w));
+  const kept = [...new Set(out)].filter((w) => !codes.some((c) => c !== w && c.split(/[/&+-]+/).includes(w)));
+  return [...new Set(kept.slice(0, 4).map(asTyped))];
 }
 
 /**
@@ -189,6 +217,7 @@ export function chipsFor(p: SearchPlan): Chip[] {
   }
   if (p.category) chips.push({ kind: 'Category', label: p.category });
   if (p.bestOfTheBest) chips.push({ kind: 'Collection', label: 'Best of the Best' });
+  for (const w of p.named ?? []) chips.push({ kind: 'Mentions', label: w });
   return chips;
 }
 
@@ -217,7 +246,8 @@ export type SlideFacts = {
 export function whyItFits(plan: SearchPlan, slide: SlideFacts): { why: string; matched: string[] } {
   const title = slide.title.toLowerCase();
   const text = slide.text.toLowerCase();
-  const has = (hay: string, k: string) => new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i').test(hay);
+  // A short word must be the whole word ("app" is not "approach"), as in the search itself.
+  const has = (hay: string, k: string) => { const e = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return new RegExp(k.length <= 3 ? `\\b${e}s?\\b` : `\\b${e}`, 'i').test(hay); };
   const inTitle = plan.keywords.filter((k) => has(title, k));
   const inText = plan.keywords.filter((k) => !inTitle.includes(k) && has(text, k));
   const matched = [...inTitle, ...inText];

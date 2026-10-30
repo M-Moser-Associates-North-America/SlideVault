@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, SlideDetail, SlideSummary, SmartSearchResult, UploadDeckMeta } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta, UploadPreview } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -38,9 +38,10 @@ export async function searchSlides(runtime: Transport, query: string, signal?: A
  * Quick AI search (FD-16, FD-17). `read` is true only when the person submitted the search; while
  * they type, the server reads with rules only, so a long question never calls the AI mid-sentence.
  */
-export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean } = {}): Promise<SmartSearchResult> {
+export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean; role?: StoryUserRole | null } = {}): Promise<SmartSearchResult> {
   const params = new URLSearchParams({ q: query.trim(), limit: '100' });
-  if (opts.includeHidden) params.set('hidden', 'include'); // slides hidden in the original deck (FD-32)
+  if (opts.includeHidden) params.set('hidden', 'include'); // slides hidden in the original deck (FD-50)
+  if (opts.role) params.set('role', opts.role); // how this person builds proposals tunes the results (FD-59)
   if (read) params.set('read', '1');
   const res = await runtime.request({ path: `/smart-search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
@@ -54,13 +55,15 @@ const MAX_LIBRARY_PAGES = 30;
  * Follows the cursor until the server says there are no more pages. Slides can repeat across pages
  * (uploaded decks are returned on every page for now), so they are de-duplicated by id.
  */
-/** Slides hidden in their original deck are left out unless includeHidden is set (FD-32). */
-export async function listLibrary(runtime: Transport, signal?: AbortSignal, opts: { includeHidden?: boolean } = {}): Promise<SlideSummary[]> {
+/** Slides hidden in their original deck are left out unless includeHidden is set (FD-50). */
+export async function listLibrary(runtime: Transport, signal?: AbortSignal, opts: { includeHidden?: boolean; includeArchived?: boolean; onlyArchived?: boolean } = {}): Promise<SlideSummary[]> {
   const byId = new Map<string, SlideSummary>();
   let cursor: string | null = null;
   for (let page = 0; page < MAX_LIBRARY_PAGES; page++) {
     const params = new URLSearchParams({ kind: 'slide', limit: '1000', duplicates: 'all' });
     if (opts.includeHidden) params.set('hidden', 'include');
+    if (opts.onlyArchived) params.set('archived', 'only'); // only the archived decks, for the Archived decks page
+    else if (opts.includeArchived) params.set('archived', 'include'); // archived decks, marked provenance.archived (FD-50)
     if (cursor) params.set('cursor', cursor);
     const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
     if (!res.ok) return failure(runtime, res);
@@ -104,8 +107,11 @@ export async function exportPptx(runtime: Transport, slides: SlideSummary[], opt
 }
 
 /** POST /uploads (multipart/form-data). Throws ApiCallError on failure, including duplicates (409). */
-export async function uploadDeck(runtime: Transport, file: File, meta: UploadDeckMeta): Promise<DeckSummary> {
+export async function uploadDeck(runtime: Transport, file: File, meta: UploadDeckMeta, tags: { deckTags?: string[]; slideTags?: Record<number, string[]> } = {}): Promise<DeckSummary> {
   const form = new FormData();
+  // Tags chosen on the upload page, saved with the deck (FD-54)
+  if (tags.deckTags?.length) form.set('deckTags', JSON.stringify(tags.deckTags));
+  if (tags.slideTags && Object.keys(tags.slideTags).length) form.set('slideTags', JSON.stringify(tags.slideTags));
   form.set('file', file);
   if (meta.clientName) form.set('clientName', meta.clientName);
   if (meta.deckYear !== null) form.set('deckYear', String(meta.deckYear));
@@ -116,4 +122,174 @@ export async function uploadDeck(runtime: Transport, file: File, meta: UploadDec
   const res = await runtime.request({ path: '/uploads', method: 'POST', body: form });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<DeckSummary>).data;
+}
+
+/* ---- Storyboard (FD-22, FD-24) ---------------------------------------------------------------- */
+
+/** A client situation turned into a story of slides. `read` lets the configured AI read it (slower). */
+export async function buildStory(runtime: Transport, situation: string, opts: { read: boolean; answers?: string; role?: StoryUserRole | null; mode?: 'retrieve' | 'reimagine' | 'build' }, signal?: AbortSignal): Promise<StoryboardResult> {
+  const res = await runtime.request({ path: '/storyboard', method: 'POST', body: { situation, read: opts.read, answers: opts.answers || undefined, role: opts.role ?? undefined, mode: opts.mode }, signal });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<StoryboardResult>).data;
+}
+
+/** "Was this helpful?": saved without a name or the brief, used to rank the next similar storyboard. */
+/** One message in a conversation about the story on screen (FD-43): the story continues, Useful slides stay. */
+export async function refineStory(runtime: Transport, request: StoryRefineRequest, signal?: AbortSignal): Promise<StoryRefineResult> {
+  const res = await runtime.request({ path: '/storyboard/refine', method: 'POST', body: request, signal });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<StoryRefineResult>).data;
+}
+
+/** saved: false when learning from this person's activity is off (FD-37): nothing was stored. */
+export async function sendStoryFeedback(runtime: Transport, feedback: { role: StoryRole; slideId: string | null; verdict: StoryFeedbackVerdict; topics: string[]; by?: StoryUserRole | null }): Promise<{ saved: boolean }> {
+  const res = await runtime.request({ path: '/storyboard/feedback', method: 'POST', body: feedback });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ saved: boolean }>).data;
+}
+
+/** Useful / Not relevant on a search result (FD-59); { saved: false } when the person hasn't turned on learning. */
+export async function sendSearchFeedback(runtime: Transport, feedback: { query: string; slideId: string; verdict: 'useful' | 'not-relevant'; by?: StoryUserRole | null }): Promise<{ saved: boolean }> {
+  const res = await runtime.request({ path: '/smart-search/feedback', method: 'POST', body: feedback });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ saved: boolean }>).data;
+}
+
+/** Whether talking instead of typing is set up on this server. */
+/** 'on', 'off' (not set up here) or 'down' (set up, but the speech service isn't answering) */
+export type SpeechStatus = 'on' | 'off' | 'down';
+
+export async function speechStatus(runtime: Transport): Promise<SpeechStatus> {
+  const res = await runtime.request({ path: '/speech', method: 'GET' }).catch(() => null);
+  if (!res?.ok) return 'off';
+  const data = ((await res.json()) as ApiOk<{ available: boolean; status?: SpeechStatus }>).data;
+  return data.status ?? (data.available ? 'on' : 'off');
+}
+
+/** A WAV recording -> the words said. */
+export async function transcribe(runtime: Transport, wav: Blob, signal?: AbortSignal): Promise<string> {
+  const form = new FormData();
+  form.append('audio', wav, 'speech.wav');
+  const res = await runtime.request({ path: '/speech', method: 'POST', body: form, signal });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ text: string }>).data.text;
+}
+
+/* ---------------------------------------------------------------- Packs (FD-38) */
+
+/** What the server returns for a pack it stored. */
+export type PackResult = { id: string; label: string | null; status: 'suggested' | 'confirmed'; confirmedBy?: string | null; confirmedAt?: string | null; slideIds: string[] };
+
+/**
+ * Packs are stored by the server (POST, PATCH and DELETE /packs). Until it has those routes a call
+ * answers 404 or 405; these functions then return null so the caller can keep the change in this browser.
+ */
+const notThere = (res: Response) => res.status === 404 || res.status === 405 || res.status === 501;
+
+export async function createPack(runtime: Transport, body: { slideIds: string[]; label: string | null }): Promise<PackResult | null> {
+  const res = await runtime.request({ path: '/packs', method: 'POST', body });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<PackResult>).data;
+}
+
+export async function renamePack(runtime: Transport, packId: string, label: string | null): Promise<PackResult | null> {
+  const res = await runtime.request({ path: `/packs/${encodeURIComponent(packId)}`, method: 'PATCH', body: { label } });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<PackResult>).data;
+}
+
+/** Confirm a suggested pack, or move a confirmed one back to suggested. The server records who and when. */
+export async function setPackStatus(runtime: Transport, packId: string, status: 'suggested' | 'confirmed'): Promise<PackResult | null> {
+  const res = await runtime.request({ path: `/packs/${encodeURIComponent(packId)}`, method: 'PATCH', body: { status } });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<PackResult>).data;
+}
+
+/** Ungroup: the pack goes, its slides stay. Returns false when the server has no such route yet. */
+export async function deletePack(runtime: Transport, packId: string): Promise<boolean> {
+  const res = await runtime.request({ path: `/packs/${encodeURIComponent(packId)}`, method: 'DELETE' });
+  if (notThere(res)) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
+}
+
+/* ---------------------------------------------------------------- Archive (FD-50) */
+
+/**
+ * Archive or restore a deck: PATCH /decks/:id { archived }. Hidden from the app, search and AI; nothing
+ * is deleted. Returns false when the server has no such route yet (404, 405 or 501), so nothing is faked.
+ */
+export async function archiveDeck(runtime: Transport, deckId: string, archived: boolean): Promise<boolean> {
+  const res = await runtime.request({ path: `/decks/${encodeURIComponent(deckId)}`, method: 'PATCH', body: { archived } });
+  if (res.status === 404 || res.status === 405 || res.status === 501) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
+}
+
+/* ---------------------------------------------------------------- Free tags (FD-53) */
+
+/** Every free-form tag in use, most used first, for the filter list. Empty when the server has none. */
+export async function listTags(runtime: Transport, signal?: AbortSignal): Promise<{ tag: string; slides: number; decks: number }[]> {
+  const res = await runtime.request({ path: '/tags', method: 'GET', signal });
+  if (notThere(res)) return [];
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ tag: string; slides: number; decks: number }[]>).data;
+}
+
+/** Tag a slide, or a whole deck (then every slide in it shows the tag). Adding one that's already there returns it. */
+export async function addTag(runtime: Transport, on: 'slide' | 'deck', id: string, tag: string): Promise<FreeTag | null> {
+  const res = await runtime.request({ path: '/tags', method: 'POST', body: { on, id, tag } });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<FreeTag>).data;
+}
+
+/** Remove a tag by its id (FreeTag.id). Returns false when the server has no such route yet. */
+export async function removeTag(runtime: Transport, tagId: string): Promise<boolean> {
+  const res = await runtime.request({ path: `/tags/${encodeURIComponent(tagId)}`, method: 'DELETE' });
+  if (notThere(res)) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
+}
+
+/** Slides with a given free tag, on the slide or its deck. Search with the library's own params plus tag=. */
+export async function slidesWithTag(runtime: Transport, tag: string, signal?: AbortSignal): Promise<SlideSummary[]> {
+  const params = new URLSearchParams({ kind: 'slide', limit: '1000', duplicates: 'all', tag });
+  const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiPage<SlideSummary>).data;
+}
+
+
+/* ---------------------------------------------------------------- Upload preview (FD-54) */
+
+/** The chosen file's slides as pictures, before anything is stored. Null when the server has no such route yet. */
+export async function previewUpload(runtime: Transport, file: File, signal?: AbortSignal): Promise<UploadPreview | null> {
+  const form = new FormData();
+  form.set('file', file);
+  const res = await runtime.request({ path: '/uploads/preview', method: 'POST', body: form, signal });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<UploadPreview>).data;
+}
+
+/* ---------------------------------------------------------------- Role on the server (FD-71) */
+
+/** The signed-in person's role and activity opt-in. Null when the server has no such route yet. */
+export async function getMySettings(runtime: Transport): Promise<{ role: StoryUserRole | null; activityOptedIn: boolean } | null> {
+  const res = await runtime.request({ path: '/me/settings', method: 'GET' });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ role: StoryUserRole | null; activityOptedIn: boolean }>).data;
+}
+
+/** Save the person's role on the server (null clears it). Returns false when the server has no such route yet. */
+export async function setMyRole(runtime: Transport, role: StoryUserRole | null): Promise<boolean> {
+  const res = await runtime.request({ path: '/me/settings', method: 'PATCH', body: { role } });
+  if (notThere(res)) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
 }

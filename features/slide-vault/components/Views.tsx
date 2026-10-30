@@ -10,6 +10,8 @@ import {
   categoryOf,
   clientOf,
   countBy,
+  dateLabel,
+  hiddenGap,
   deckMatches,
   downloadedNote,
   downloadsOf,
@@ -22,23 +24,21 @@ import {
   yearOf,
   type Deck,
 } from './library';
-import { DeckCard, Link, SimFlag, SkeletonGrid, SkeletonRows, SlideCard, StateBlock, StatusBadge, Thumb, useCartToggle } from './parts';
+import { findDecks } from './deck-finder';
+import { GroupTool, PackPanel } from './Packs';
+import { DeckCard, Link, SkeletonGrid, SkeletonRows, SlideCard, StateBlock, Thumb, useCartToggle } from './parts';
+import { MicButton } from './MicButton';
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { setHeroOut } from '../client/hero-visibility';
+import { useTipSeen } from '../client/tip-store';
+import { HiddenToggle } from './HiddenToggle';
 import { shownInFilterRow, withoutChip } from './search-reading';
 import { useRoot } from './root';
-import { simTags, simTier, TIER_TEXT } from './simulation';
 import { useWorkspace } from './state';
+import { StoryLauncher } from './StoryLauncher';
 
 const ROW_LIMIT = 12;
-
-/** Small, deterministic string hash -- picks the same "lane" for the same profile every time. */
-function hashString(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h << 5) - h + s.charCodeAt(i);
-  return h;
-}
 
 /** The browse tiles (client, year, category): scroll sideways like the card rows. */
 function TileRow({ children }: { children: ReactNode }) {
@@ -46,7 +46,7 @@ function TileRow({ children }: { children: ReactNode }) {
 }
 
 /** One horizontally scrolling row of cards, with "See all". */
-function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; title: string; sub?: string; seeAll?: string; total?: number; sim?: boolean; children: ReactNode }) {
+function Row({ id, title, sub, seeAll, total, children }: { id: string; title: string; sub?: string; seeAll?: string; total?: number; children: ReactNode }) {
   const ref = useRef<HTMLUListElement>(null);
   const scroll = (dir: -1 | 1) =>
     ref.current?.scrollBy({
@@ -58,11 +58,11 @@ function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; tit
       <div className="row-head">
         <div className="row-title">
           <h2 id={`row-${id}`}>{title}</h2>
-          {(sub || sim) && (
+          {sub && (
             <button
               type="button"
               className="row-info"
-              data-tip={[sub, sim ? 'Simulated for now: not connected to real data yet.' : ''].filter(Boolean).join(' ')}
+              data-tip={sub}
               data-tip-pos="start"
               aria-label={`About ${title}`}
             >
@@ -92,9 +92,8 @@ function Row({ id, title, sub, seeAll, total, sim, children }: { id: string; tit
 }
 
 /**
- * Local design prototype: "Today's Top 10"-style row, with the big outlined rank numbers from
- * the Netflix reference video, rather than the small corner ribbon the rest of the app uses
- * (not pushed, not part of Khushali's approved build).
+ * "Top 10"-style row with big outlined rank numbers, rather than the small corner ribbon the
+ * rest of the app uses.
  */
 function TopTenRow({ slides, sub }: { slides: SlideSummary[]; sub: string }) {
   const top = slides.slice(0, 10);
@@ -154,8 +153,7 @@ function useReadyLibrary(): { slides: SlideSummary[]; decks: Deck[] } | { blocke
 /* ------------------------------------------------------------------ Home */
 
 /**
- * Local-only design prototype (not pushed, not touching Khushali's build): the original
- * reference HTML's typewriter headline, timing copied exactly from reference/SlideVault.html
+ * The original reference HTML's typewriter headline, timing copied exactly from reference/SlideVault.html
  * (85ms per typed character, 45ms per deleted character, 1500ms pause on a complete phrase),
  * reimplemented as a hook instead of the reference's class-component state. Honors
  * prefers-reduced-motion by showing the first phrase complete and static, no animation.
@@ -239,6 +237,14 @@ function HomeHeader() {
     e.preventDefault();
     if (query.trim()) submitSearch();
   };
+  /* Talking replaces what is in the bar and searches straight away, as Enter would. */
+  const spoken = useRef(false);
+  useEffect(() => {
+    if (spoken.current && query.trim()) {
+      spoken.current = false;
+      submitSearch();
+    }
+  }, [query, submitSearch]);
   /* Tell the header when this bar has scrolled up out of sight, so it can show a slim search shortcut. */
   const formRef = useRef<HTMLFormElement>(null);
   const { scroll } = useRoot();
@@ -261,7 +267,7 @@ function HomeHeader() {
       if (e.key.length !== 1 || e.key === ' ') return;
       if ((e.target as Element | null)?.closest?.(busy)) return;
       if (document.querySelector('dialog[open], .tour-pop')) return;
-      document.getElementById('sv-hero-q')?.focus();
+      (document.getElementById('sv-fb-q') ?? document.getElementById('sv-hero-q'))?.focus();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -289,11 +295,17 @@ function HomeHeader() {
               heroTouched = true;
               setTouched(true);
             }} />
+          <MicButton className="home-hero-mic" showWhenOff onText={(t) => {
+            spoken.current = true;
+            setQuery(t);
+          }} />
           <button type="submit" className="home-hero-btn" aria-label="Search">
             <Icon name="search" />
           </button>
         </span>
+        <HiddenToggle />
       </form>
+      <StoryLauncher />
     </div>
   );
 }
@@ -326,7 +338,7 @@ export function HomeView() {
 }
 
 function LibraryView() {
-  const { filters, clearFilters, profile, savedIds, activity } = useWorkspace();
+  const { filters, clearFilters, savedIds, activity } = useWorkspace();
   const lib = useReadyLibrary();
   const ready = 'slides' in lib;
   const slides = useMemo(() => (ready ? lib.slides.filter((s) => slideMatches(s, filters)) : []), [ready, lib, filters]);
@@ -335,21 +347,10 @@ function LibraryView() {
   const best = browseSlides('best', slides);
   const recent = browseSlides('recent', slides);
   const popular = browseSlides('popular', slides);
-  const suggested = browseSlides('suggested', slides);
-  const retired = browseSlides('retired', slides);
 
-  /* Local design prototype: a personalized row (profile -> one real category, deterministically
-     so the same profile always sees the same lane) and a "because you saved" row keyed off the
-     first saved slide's category -- the right-sized stand-in for real recommendations discussed
-     with Schiffon, not real ML (not pushed, not part of Khushali's approved build). */
-  const categoryList = useMemo(() => [...new Set(slides.map(categoryOf).filter((c): c is string => c !== null))].sort(), [slides]);
-  const pickedCategory = profile && categoryList.length > 0 ? categoryList[Math.abs(hashString(profile)) % categoryList.length] : null;
-  const picked = pickedCategory ? slides.filter((s) => categoryOf(s) === pickedCategory) : [];
-
-  /* Top 10: actual per-profile usage frequency (how often this profile has opened each slide),
-     not category membership -- two people can share a category and still rely on very different
-     individual slides, per Schiffon. Falls back to the category lane, then to the site-wide best,
-     only so a freshly-reset demo profile with no view history isn't left with an empty row. */
+  /* Top 10: how often this person has opened each slide (their own opt-in activity, FD-18), so two
+     people in the same area still get their own row. With no history yet the row is left out rather
+     than filled with something that isn't their ranking (Alina, 2026-10-19). */
   const usageRanked = useMemo(() => {
     const counts = new Map<string, number>();
     for (const a of activity) {
@@ -361,21 +362,15 @@ function LibraryView() {
       .filter((s): s is SlideSummary => s !== undefined)
       .slice(0, 10);
   }, [activity, slides]);
-  const top10 = usageRanked.length > 0 ? usageRanked : picked.length > 0 ? [...picked].reverse() : best;
-  const top10Sub =
-    usageRanked.length > 0
-      ? `The slides ${profile} opens most.`
-      : picked.length > 0
-        ? `Based on what ${profile} looks at most.`
-        : 'Most added to a draft deck.';
+  const top10 = usageRanked;
+  const top10Sub = 'The slides you open most.';
 
   const firstSaved = slides.find((s) => savedIds.has(s.id));
   const becauseCategory = firstSaved ? categoryOf(firstSaved) : null;
   const because = firstSaved && becauseCategory ? slides.filter((s) => s.id !== firstSaved.id && categoryOf(s) === becauseCategory) : [];
-  /* One "Suggested for you" row: slides like the first one this person saved come first, then the
-     profile's category lane (a stand-in for real recommendations), without repeats. */
-  const forYou = [...because, ...picked.filter((s) => !because.some((b) => b.id === s.id))];
-  const forYouSub = firstSaved && because.length > 0 ? `Because you saved “${firstSaved.title}”, plus slides in your usual area.` : 'Slides in an area you often use. A sample for now.';
+  /* "Suggested for you": slides in the same category as one this person saved. Left out until they save one. */
+  const forYou = because;
+  const forYouSub = firstSaved ? `Because you saved “${firstSaved.title}”.` : '';
   const tileCounts = (pick: (s: SlideSummary) => string | number | null) => {
     const slideN = countBy(slides, pick);
     const deckN = new Map<string, Set<string>>();
@@ -449,24 +444,6 @@ function LibraryView() {
               {decks.slice(0, 24).map((d) => (
                 <li key={d.id}>
                   <DeckCard deck={d} />
-                </li>
-              ))}
-            </Row>
-          )}
-          {suggested.length > 0 && (
-            <Row id="suggested" title="Awaiting approval" sub="Added or labelled by AI. A person has not checked them yet." seeAll="suggested" total={suggested.length} sim>
-              {suggested.slice(0, ROW_LIMIT).map((s) => (
-                <li key={s.id}>
-                  <SlideCard slide={s} list={suggested.slice(0, ROW_LIMIT)} />
-                </li>
-              ))}
-            </Row>
-          )}
-          {retired.length > 0 && (
-            <Row id="retired" title="Out of date" sub="Kept for records. Curators only. Can’t be downloaded." seeAll="retired" total={retired.length} sim>
-              {retired.slice(0, ROW_LIMIT).map((s) => (
-                <li key={s.id}>
-                  <SlideCard slide={s} list={retired.slice(0, ROW_LIMIT)} />
                 </li>
               ))}
             </Row>
@@ -548,9 +525,8 @@ function BrowsePage({ id }: { id: string }) {
   );
 }
 
-function SelectAll({ slides: every }: { slides: SlideSummary[] }) {
+function SelectAll({ slides }: { slides: SlideSummary[] }) {
   const { selection, updateSelection, announce } = useWorkspace();
-  const slides = every.filter((s) => simTier(s) !== 'Retired'); // retired slides can't be downloaded
   const all = slides.length > 0 && slides.every((s) => selection.some((x) => x.id === s.id));
   const click = () => {
     updateSelection((cur) => (all ? cur.filter((c) => !slides.some((s) => s.id === c.id)) : [...cur, ...slides.filter((s) => !cur.some((c) => c.id === s.id))]));
@@ -612,6 +588,13 @@ export function ResultsView() {
   /* Real search (FD-16, FD-17): the server reads the request, finds slides and says why each fits.
      The filter row narrows the results further here; sorting is a view choice. */
   const result = search.status === 'ready' ? search.result : null;
+  /* Premade decks the request names (FD-31): "Barlow's proposal 2025", "all proposals from 2025".
+     Found from the library's own deck facts, at once, before and beside the slide search. */
+  const lib = useReadyLibrary();
+  const found = useMemo(
+    () => ('decks' in lib ? findDecks(q, lib.decks.map((d) => ({ ...d, versionId: d.slides[0]?.provenance.sourceVersionId }))) : null),
+    [lib, q],
+  );
   const shown = useMemo(() => {
     if (!result) return [];
     const kept = result.items.filter((i) => slideMatches(i.slide, filters));
@@ -634,6 +617,32 @@ export function ResultsView() {
           Results for “{q}”
         </h1>
       </div>
+      {/* Honest misses (FD-34): a name or year asked for that no deck goes by */}
+      {found && !found.decks.length && (found.missing.name || found.missing.years.length > 0) && (
+        <p className="meta" role="status">
+          {found.missing.name ? `No ${found.missing.name} deck in the library.` : `No decks from ${found.missing.years.join(' or ')} in the library.`}
+          {result && result.items.length > 0 ? ' The slides below mention it.' : ''}
+        </p>
+      )}
+      {found && found.decks.length > 0 && (
+        <Row
+          id="found-decks"
+          title={found.decks.length === 1 ? 'Deck' : 'Decks'}
+          sub={
+            found.yearMissing
+              ? `No ${found.clients.join(', ')} deck from ${found.years.join(', ')}. Here is what there is.`
+              : found.places.length
+                ? `Decks for clients in ${found.places.join(' or ')}, as saved. Open one to see every slide.`
+                : `The original ${found.decks.length === 1 ? 'deck' : 'decks'}, as saved. Open one to see every slide.`
+          }
+        >
+          {found.decks.map((d) => (
+            <li key={d.id}>
+              <DeckCard deck={d} />
+            </li>
+          ))}
+        </Row>
+      )}
       {search.status === 'error' && (
         <StateBlock error icon="alert" title="Search did not work" text={search.message}>
           <button type="button" className="btn" onClick={retrySearch}>
@@ -690,7 +699,7 @@ export function ResultsView() {
             <span className="spacer" />
             {slides.length > 0 && <SelectAll slides={slides} />}
           </div>
-          {shown.length === 0 ? (
+          {shown.length === 0 && found && found.decks.length > 0 ? null : shown.length === 0 ? (
             <StateBlock
               icon="search"
               title={`No slides match “${q}”`}
@@ -734,8 +743,12 @@ export function ResultsView() {
 
 /* ----------------------------------------------------------------- Deck */
 
+/** Where "File created by" comes from, so nobody reads it as the person who made the pitch. */
+const FILE_CREATED_TIP = "From the PowerPoint file's own details. For a deck made from a template this can be the template's author and date.";
+
 export function DeckView({ id }: { id: string }) {
-  const { library, openDownload } = useWorkspace();
+  const { library, openDownload, openArchiveDialog, setIncludeHidden } = useWorkspace();
+  const [grouping, setGrouping] = useState(false);
   const lib = useReadyLibrary();
   const deck = library.status === 'ready' ? library.decks.find((d) => d.id === id) : undefined;
   if ('blocker' in lib) return <div className="sv-wrap">{lib.blocker}</div>;
@@ -758,6 +771,7 @@ export function DeckView({ id }: { id: string }) {
             {deck.title}
           </h1>
           <div className="badges" style={{ marginTop: 8 }}>
+            {deck.archived && <span className="badge badge-archived">Archived</span>}
             {deck.category && <span className="badge">{deck.category}</span>}
             {deck.year && <span className="badge">{deck.year}</span>}
             <span className="badge">
@@ -765,21 +779,50 @@ export function DeckView({ id }: { id: string }) {
               {folderLabel(deck)}
             </span>
           </div>
-          <p className="lede">{plural(deck.slides.length, 'slide')} in this deck.</p>
+          <p className="lede">
+            {plural(deck.slides.length, 'slide')} in this deck.
+            {hiddenGap(deck.slides) > 0 && (
+              <>
+                {' '}
+                {plural(hiddenGap(deck.slides), 'hidden slide')} not shown.{' '}
+                <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
+                  Show {hiddenGap(deck.slides) === 1 ? 'it' : 'them'}
+                </button>
+              </>
+            )}
+          </p>
+          {(deck.createdBy || deck.uploadedBy) && (
+            <p className="meta deck-who">
+              {deck.createdBy && <span title={FILE_CREATED_TIP}>File created by {deck.createdBy}{dateLabel(deck.createdAt) ? ` · ${dateLabel(deck.createdAt)}` : ''}</span>}
+              {deck.uploadedBy && <span>Uploaded by {deck.uploadedBy}{dateLabel(deck.uploadedAt) ? ` · ${dateLabel(deck.uploadedAt)}` : ''}</span>}
+            </p>
+          )}
         </div>
         <div className="row-flex">
           <SelectAll slides={deck.slides} />
-          <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload(deck.slides.filter((s) => simTier(s) !== 'Retired'))}>
+          <button type="button" className="btn btn-sm" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}>
+            <Icon name="archive" />
+            <span>{deck.archived ? 'Restore deck' : 'Archive deck'}</span>
+          </button>
+          <button type="button" className="btn btn-sm" aria-pressed={grouping} onClick={() => setGrouping((g) => !g)}>
+            <Icon name="layers" />
+            <span>{grouping ? 'Stop grouping' : 'Group slides into a pack'}</span>
+          </button>
+          <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload(deck.slides)}>
             <Icon name="download" />
             <span>Download whole deck</span>
           </button>
         </div>
       </div>
-      <div className="grid" style={{ marginTop: 16 }}>
-        {deck.slides.map((s) => (
-          <SlideCard key={s.id} slide={s} list={deck.slides} />
-        ))}
-      </div>
+      {grouping ? (
+        <GroupTool deckSlides={deck.slides} onDone={() => setGrouping(false)} />
+      ) : (
+        <div className="grid" style={{ marginTop: 16 }}>
+          {deck.slides.map((s) => (
+            <SlideCard key={s.id} slide={s} list={deck.slides} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -800,8 +843,8 @@ function FromFolder() {
 }
 
 export function SlideView({ id }: { id: string }) {
-  const { runtime, library, openPreview, openDownload, logActivity } = useWorkspace();
-  const { isSelected, set } = useCartToggle();
+  const { runtime, library, openPreview, openDownload, logActivity, packs, selection, addPackToDraft, openArchiveDialog, setIncludeHidden } = useWorkspace();
+  const { isSelected, setOne } = useCartToggle();
   const lib = useReadyLibrary();
   const slide = library.status === 'ready' ? library.slides.find((s) => s.id === id) : undefined;
   const deck = library.status === 'ready' && slide ? library.decks.find((d) => d.id === slide.provenance.sourceId) : undefined;
@@ -823,9 +866,9 @@ export function SlideView({ id }: { id: string }) {
       .catch((e: Error) => e.name !== 'AbortError' && setDetail({ id, error: e.message }));
     return () => controller.abort();
   }, [request, onSessionExpired, id]);
-  /* Local design prototype: record a visit to this slide on the signed-in profile's activity log.
-     Views.tsx's TopTenRow counts these per slide to rank "what this profile actually uses most,"
-     per Schiffon: two people in the same category can still have very different real usage. */
+  /* Record a visit to this slide in the signed-in person's activity (kept only after they opt in,
+     FD-18). TopTenRow counts these per slide, so two people in the same area still get their own
+     ranking. */
   useEffect(() => {
     if (slide) logActivity('viewed', slide.title, slide.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -847,10 +890,8 @@ export function SlideView({ id }: { id: string }) {
   const sibs = deck.slides;
   const i = sibs.findIndex((s) => s.id === id);
   const sel = isSelected(id);
+  const slidePack = packs.of(id);
   const p = slide.provenance;
-  const tier = simTier(slide);
-  const tags = simTags(slide);
-  const retired = tier === 'Retired';
   const text = detail && detail.id === id ? ('slide' in detail ? detail.slide.text : null) : undefined;
   const textError = detail && detail.id === id && 'error' in detail ? detail.error : null;
   const more = (library.status === 'ready' ? library.slides : [])
@@ -864,11 +905,6 @@ export function SlideView({ id }: { id: string }) {
           <h1 className="h1" tabIndex={-1} style={{ marginBottom: 12 }}>
             {slide.title}
           </h1>
-          {tier !== 'Approved' && (
-            <div className="badges" style={{ marginBottom: 12 }}>
-              <StatusBadge tier={tier} />
-            </div>
-          )}
           <button
             type="button"
             className="big-preview"
@@ -902,7 +938,16 @@ export function SlideView({ id }: { id: string }) {
               <span className="btn-icon" style={{ width: 36 }} />
             )}
             <span className="meta">
-              Slide {p.slideNumber} of {sibs.length} in this deck
+              Slide {p.slideNumber} of {sibs.length + hiddenGap(sibs)} in this deck
+              {hiddenGap(sibs) > 0 && (
+                <>
+                  {' · '}
+                  {plural(hiddenGap(sibs), 'hidden slide')} not shown.{' '}
+                  <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
+                    Show {hiddenGap(sibs) === 1 ? 'it' : 'them'}
+                  </button>
+                </>
+              )}
             </span>
             {i < sibs.length - 1 ? (
               <Link className="btn btn-sm btn-icon" to={{ view: 'slide', id: sibs[i + 1].id }} aria-label="Next slide in this deck" title="Next slide">
@@ -930,11 +975,17 @@ export function SlideView({ id }: { id: string }) {
           <section className="panel">
             <h2>Use this slide</h2>
             <div className="row-flex">
-              <button type="button" className="btn btn-sm" aria-pressed={sel} disabled={retired} onClick={() => set(slide, !sel)}>
+              <button type="button" className="btn btn-sm" aria-pressed={sel} onClick={() => setOne(slide, !sel)}>
                 <Icon name="check" />
-                <span>{sel ? 'Selected' : 'Select'}</span>
+                <span>{sel ? 'In draft deck' : 'Add to draft deck'}</span>
               </button>
-              <button type="button" className="btn btn-sm btn-primary" disabled={retired} onClick={() => openDownload([slide])}>
+              {slidePack && (
+                <button type="button" className="btn btn-sm" disabled={slidePack.slideIds.every((pid) => selection.some((x) => x.id === pid))} onClick={() => addPackToDraft(slidePack)}>
+                  <Icon name="plus" />
+                  <span>Add whole pack ({slidePack.slideIds.length})</span>
+                </button>
+              )}
+              <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload([slide])}>
                 <Icon name="download" />
                 <span>Download only this slide</span>
               </button>
@@ -942,19 +993,39 @@ export function SlideView({ id }: { id: string }) {
                 Open deck
               </Link>
             </div>
-            {retired && (
-              <p className="meta" style={{ marginTop: 8 }}>
-                {TIER_TEXT.Retired}
-              </p>
-            )}
           </section>
+          {slidePack && <PackPanel slide={slide} pack={slidePack} />}
           <section className="panel">
             <h2>Details</h2>
             <dl className="trust">
               <dt>Deck</dt>
-              <dd>{p.sourceTitle}</dd>
+              <dd>
+                {p.sourceTitle}
+                <button type="button" className="btn-link arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
+                  <Icon name="archive" className="ic-sm" />
+                  {deck.archived ? `Restore this deck (${deck.slides.length} slides)` : `Archive this deck (${deck.slides.length} slides)`}
+                </button>
+              </dd>
               <dt>File</dt>
               <dd>{p.sourceFileName}</dd>
+              {p.createdBy && (
+                <>
+                  <dt title={FILE_CREATED_TIP}>File created by</dt>
+                  <dd>
+                    {p.createdBy}
+                    {dateLabel(p.createdAt) ? ` · ${dateLabel(p.createdAt)}` : ''}
+                  </dd>
+                </>
+              )}
+              {p.uploadedBy && (
+                <>
+                  <dt>Uploaded by</dt>
+                  <dd>
+                    {p.uploadedBy}
+                    {dateLabel(p.uploadedAt) ? ` · ${dateLabel(p.uploadedAt)}` : ''}
+                  </dd>
+                </>
+              )}
               <dt>Folder</dt>
               <dd>
                 {folderLabel(deck)}
@@ -982,35 +1053,6 @@ export function SlideView({ id }: { id: string }) {
               </dd>
             </dl>
           </section>
-          <section className="panel sim-panel">
-            <h2>
-              Status and labels <SimFlag />
-            </h2>
-            <div className="badges">
-              <StatusBadge tier={tier} />
-            </div>
-            <p className="meta" style={{ marginTop: 8 }}>
-              {TIER_TEXT[tier]}
-            </p>
-            <h3 className="h3" style={{ marginTop: 12 }}>
-              Labels suggested by AI
-            </h3>
-            {tags.length ? (
-              <div className="tags" style={{ marginTop: 6 }}>
-                {tags.map((t) => (
-                  <span key={t} className="tag sim">
-                    <Icon name="sparkle" className="ic-sm" />
-                    {t}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="meta">No labels suggested for this slide.</p>
-            )}
-            <p className="meta" style={{ marginTop: 8 }}>
-              Simulated: worked out from the slide title and deck name. The real build reads the whole slide and a person checks the labels before they count.
-            </p>
-          </section>
           {slide.alsoIn && (
             <section className="panel">
               <h2>Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</h2>
@@ -1035,27 +1077,47 @@ export function SlideView({ id }: { id: string }) {
 /* ------------------------------------------------------- Create, Upload */
 
 export function CreateView() {
+  const { runtime } = useWorkspace();
+  const opened = useTipSeen('storyboard-opened');
   return (
     <div className="sv-wrap">
       <h1 className="h1" tabIndex={-1}>
         Create
       </h1>
       <p className="lede muted" style={{ marginTop: 4, maxWidth: '60ch' }}>
-        Planned feature. Deck building will be added in the next phase.
+        Two ways to put a deck together.
       </p>
-      <div className="ph-cards">
-        <div className="card">
+      <div className="create-cards">
+        <button
+          type="button"
+          className="card create-card create-card-ai"
+          onClick={() => {
+            opened.dismiss();
+            runtime.navigate({ view: 'story' });
+          }}
+        >
+          <Icon name="sparkle" className="ic-big" />
+          <h2 className="h2">Build with AI</h2>
+          <p className="meta">Describe the client and SlideVault pulls a story from your slides.</p>
+          <span className="create-go">
+            Open the Storyboard
+            <Icon name="right" className="ic-sm" />
+          </span>
+        </button>
+        <div className="card create-card create-card-planned">
           <Icon name="plus" className="ic-big" />
-          <h2 className="h2">Build</h2>
-          <p className="meta">Start a new deck and fill it with slides from Home.</p>
+          <h2 className="h2">Build it yourself</h2>
+          <p className="meta">
+            Step by step, from a blank deck. For now,{' '}
+            <Link to={{ view: 'pages' }} className="create-home">
+              go to Home
+            </Link>{' '}
+            and build.
+          </p>
           <span className="badge" style={{ alignSelf: 'flex-start' }}>
             Planned
           </span>
         </div>
-      </div>
-      <div className="notice info" style={{ marginTop: 20 }}>
-        <Icon name="info" />
-        <span>For now, select slides on Home and download them. Slides from one deck come as one file. Slides from several decks come as a zip.</span>
       </div>
     </div>
   );

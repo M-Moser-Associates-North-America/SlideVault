@@ -1,8 +1,15 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
 import type { PlanReader } from '@/features/slide-vault/server/ai/reader';
+import { roleOf } from '@/features/slide-vault/server/ai/roles';
+import { meaningSearch } from '@/features/slide-vault/server/meaning-search';
+import { withPacks } from '@/features/slide-vault/server/packs';
+import { hasMmoserConfig } from '@/features/slide-vault/server/config';
+import { getSlideSummariesPg, isInternalOnly } from '@/features/slide-vault/server/pg-repository';
+import { tagsInQuery, withTags } from '@/features/slide-vault/server/tags';
+import { taggedFirst } from '@/features/slide-vault/server/services/tagged-first';
 import { configuredReader, searchLibrary } from '@/features/slide-vault/server/services/library-smart-search';
 
-// GET /smart-search?q=&limit=&read=1 (docs/DECISIONS.md FD-16, FD-17)
+// GET /smart-search?q=&limit=&read=1&role= (docs/DECISIONS.md FD-16, FD-17, FD-59)
 // One search over sample and uploaded decks. read=1 (sent when the person submits the search)
 // lets the configured AI reader read a sentence or question; otherwise, and for basic searches,
 // the rules do. Each result says why it fits; near-identical slides are grouped.
@@ -27,9 +34,33 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await searchLibrary(query, limit, { reader, read: url.searchParams.get('read') === '1' });
-    // Hidden-in-source slides (usually internal notes) only when asked for (FD-32).
-    if (url.searchParams.get('hidden') !== 'include') result.items = result.items.filter((i) => !i.slide.hiddenInSource);
+    const result = await searchLibrary(query, limit, { reader, read: url.searchParams.get('read') === '1', by: roleOf(url.searchParams.get('role')) });
+    // Hidden-in-source slides (usually internal notes) only when asked for (FD-50).
+    // ...and so are slides the team marked "internal - never show" (FD-53).
+    if (url.searchParams.get('hidden') !== 'include') result.items = result.items.filter((i) => !i.slide.hiddenInSource && !isInternalOnly(i.slide));
+    // Meaning search (FD-55): when the person submits a search, slides close in meaning are added
+    // after the keyword results, so it never finds less than before. Off when it isn't set up.
+    if (url.searchParams.get('read') === '1' && result.items.length < limit) {
+      const minSimilarity = Number(process.env.SV_MEANING_MIN_SIMILARITY || 0.55);
+      const meaning = await meaningSearch(query, limit);
+      const have = new Set(result.items.map((i) => i.slide.id));
+      for (const hit of meaning?.items ?? []) {
+        if (result.items.length >= limit) break;
+        if (have.has(hit.slide.id) || hit.similarity < minSimilarity) continue;
+        if (url.searchParams.get('hidden') !== 'include' && (hit.slide.hiddenInSource || isInternalOnly(hit.slide))) continue;
+        result.items.push({ slide: hit.slide, why: 'Close in meaning to your search, even where the words differ.', matched: [] });
+        have.add(hit.slide.id);
+      }
+    }
+    // People's own tags lead (FD-58): "Priya" finds the page someone tagged Priya. Off without a database.
+    if (hasMmoserConfig()) {
+      const hits = await tagsInQuery(query);
+      const hide = url.searchParams.get('hidden') !== 'include';
+      result.items = (await taggedFirst(query, result.items, hits, getSlideSummariesPg)).filter((i) => !hide || (!i.slide.hiddenInSource && !isInternalOnly(i.slide))).slice(0, limit);
+    }
+    // Each slide in a pack carries the whole pack (FD-38, FD-52).
+    const packed = await withTags(await withPacks(result.items.map((i) => i.slide)));
+    result.items = result.items.map((i, n) => ({ ...i, slide: packed[n] }));
     return ok(result);
   } catch (e) {
     console.error('Smart search failed', e);

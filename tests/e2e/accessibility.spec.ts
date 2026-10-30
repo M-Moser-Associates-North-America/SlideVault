@@ -36,13 +36,20 @@ async function axe(page: Page) {
   return violations.map((v) => `${v.id} (${v.impact}): ${v.help} — ${v.nodes.length} element(s)`);
 }
 
+// The API rate-limits per caller (FD-17: 60 searches a minute, keyed on X-Forwarded-For). The whole
+// suite runs from one address in under a minute, so give each test its own documentation-range
+// address and its own limit; otherwise the last tests see "Too many requests" instead of the app.
+let caller = 0;
+
 test.beforeEach(async ({ page }) => {
+  caller += 1;
+  await page.context().setExtraHTTPHeaders({ 'x-forwarded-for': `198.51.100.${(caller % 250) + 1}` });
   await page.goto('/slide-vault/pages');
   await page.evaluate(() => {
     localStorage.clear();
-    // Local design prototype: a fake sign-in now gates the app (SlideVaultWorkspace.tsx). Most
-    // of this suite is about the real app behind it, so sign in a demo profile here; the
-    // login/pick screens themselves get their own accessibility test below.
+    // The placeholder sign-in gates the app (SlideVaultWorkspace.tsx). Most of this suite is
+    // about the app behind it, so sign in a demo profile here; the sign-in screen itself gets
+    // its own accessibility test below.
     localStorage.setItem('slidevault:profile', 'Anna Wintour');
     // The quick tour starts by itself on a first sign-in and dims the page; mark it seen so these
     // tests reach the app. The tour gets its own test below.
@@ -189,7 +196,7 @@ test('primary workflow works with the keyboard alone', async ({ page }) => {
   await page.getByRole('dialog').getByRole('button', { name: 'Download', exact: true }).focus();
   const download = page.waitForEvent('download');
   await page.keyboard.press('Enter');
-  // With the broader simulated smart search, these three titles can now span multiple decks,
+  // With the broader smart search, these three titles can now span multiple decks,
   // which correctly downloads as a zip (one file per deck) instead of a single .pptx.
   expect((await download).suggestedFilename()).toMatch(/^SlideVault-export\.(pptx|zip)$/);
 });
@@ -238,7 +245,7 @@ test('no WCAG 2.2 AA violations on the sign-in screen; Sign in goes straight to 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
   expect(await axe(page)).toEqual([]);
-  // The sign-in is simulated: the fields start empty and Sign in works as it is, as the demo profile.
+  // The sign-in is a placeholder for M Moser's login: the fields start empty and Sign in works as it is.
   await expect(page.getByLabel('Email address')).toHaveValue('');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
@@ -282,6 +289,82 @@ test('combining slides from several decks asks the server for one file, and show
   expect(requests[0].combine).toBe(true);
 });
 
+test('upload: see the slides, tag the deck and a slide, confirm, and everything is sent together', async ({ page }) => {
+  // Stand-ins answer the upload, the library and the tag routes so nothing is stored; the requests are inspected.
+  const tagPosts: { on: string; id: string; tag: string }[] = [];
+  let uploadBody = '';
+  await page.route('**/api/slide-vault/v1/tags', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: { data: [{ tag: 'Healthcare', slides: 40, decks: 6 }, { tag: 'Workplace strategy', slides: 22, decks: 4 }] } });
+      return;
+    }
+    const body = route.request().postDataJSON();
+    tagPosts.push(body);
+    await route.fulfill({ json: { data: { id: `t${tagPosts.length}`, tag: body.tag } } });
+  });
+  let uploads = 0;
+  await page.route('**/api/slide-vault/v1/uploads', async (route) => {
+    uploads += 1;
+    uploadBody = route.request().postData() ?? '';
+    await route.fulfill({ json: { data: { id: 'deck-new', title: 'Harbor Bank HQ proposal', status: 'ready', error: null, slideCount: 4 } } });
+  });
+  await page.route('**/api/slide-vault/v1/search?*', async (route) => {
+    if (new URL(route.request().url()).searchParams.get('hidden') !== 'include') return route.continue();
+    const data = [1, 2, 3, 4].map((n) => ({ id: `s${n}`, provenance: { sourceId: 'deck-new', slideNumber: n } }));
+    await route.fulfill({ json: { data, page: { nextCursor: null } } });
+  });
+  await openHome(page);
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Upload' }).click();
+  await expect(page.getByRole('heading', { name: 'Upload', level: 1 })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Upload deck' })).toBeDisabled();
+  await page.locator('input[type=file]').setInputFiles('tests/fixtures/harbor-bank-proposal.pptx');
+  // The slides appear below the deck details, one card each, before anything is sent.
+  await expect(page.locator('.upcard')).toHaveCount(4);
+  expect(uploads).toBe(0);
+  const idd = page.getByRole('button', { name: 'IDD', exact: true });
+  await idd.click();
+  await expect(idd).toHaveAttribute('aria-pressed', 'true');
+  const deckBox = page.getByRole('combobox', { name: /Deck tags/ });
+  await deckBox.fill('health');
+  await expect(page.getByRole('option', { name: /Healthcare/ })).toBeVisible();
+  expect(await axe(page)).toEqual([]);
+  await deckBox.press('ArrowDown');
+  await deckBox.press('ArrowDown');
+  await deckBox.press('Enter');
+  await deckBox.fill('healthcare');
+  await deckBox.press('Enter'); // already added, ignoring capital letters
+  await expect(page.locator('.tagfield-chips').first().locator('.tagchip')).toHaveText(['Healthcare']);
+  // One slide on its own, and two slides together.
+  const first = page.locator('.upcard').nth(0).getByRole('combobox');
+  await first.pressSequentially('Pilot,'); // a comma ends a tag, like Enter
+  await page.getByLabel(/Select slide 3/).click({ force: true });
+  await page.getByLabel(/Select slide 4/).click({ force: true });
+  await page.locator('.upgrid-bulk').getByRole('combobox').pressSequentially('Wellbeing,');
+  await page.getByRole('button', { name: 'Done' }).click();
+  expect(await axe(page)).toEqual([]);
+  // Nothing is sent until the pop-up is confirmed.
+  await page.getByRole('button', { name: 'Upload deck' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Upload this deck?' })).toBeVisible();
+  await expect(dialog).toContainText('Deck tags: Healthcare');
+  await expect(dialog).toContainText('3 tags on 3 slides');
+  expect(await axe(page)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  expect(uploads).toBe(0);
+  await page.getByRole('button', { name: 'Upload deck' }).click();
+  await dialog.getByRole('button', { name: 'Upload deck' }).click();
+  await expect(page.getByText('Tags added: 1 deck tag and 3 slide tags.')).toBeVisible();
+  expect(uploads).toBe(1);
+  expect(tagPosts).toEqual([
+    { on: 'deck', id: 'deck-new', tag: 'Healthcare' },
+    { on: 'slide', id: 's1', tag: 'Pilot' },
+    { on: 'slide', id: 's3', tag: 'Wellbeing' },
+    { on: 'slide', id: 's4', tag: 'Wellbeing' },
+  ]);
+  expect(uploadBody).toContain('IDD');
+  expect(await axe(page)).toEqual([]);
+});
+
 test('phones: tabs along the bottom, the draft deck opens from the last tab, nothing scrolls sideways', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openResults(page, 'leadership');
@@ -294,15 +377,14 @@ test('phones: tabs along the bottom, the draft deck opens from the last tab, not
 
   await page.getByLabel('Add to draft deck: Leadership team').check({ force: true });
   const deck = tabs.getByRole('button', { name: /Draft deck, 1 slide/ });
-  await deck.click();
+  // The first slide added to an empty draft deck opens it by itself, so the person sees it land.
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
   await expect(deck).toBeFocused();
-
-  // The tabs can go back to the top from the account menu.
-  await page.getByRole('button', { name: /Account menu/ }).click();
-  await page.getByRole('menuitem', { name: 'Tabs at the top' }).click();
-  await expect(page.locator('.sv-nav')).toBeVisible();
-  await expect(tabs).toBeHidden();
+  // The last tab opens it again.
+  await deck.click();
+  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
 });

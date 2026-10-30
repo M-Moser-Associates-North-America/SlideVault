@@ -76,5 +76,17 @@ if (tables.rows.some((r) => r.table_schema === env.SV_DB_SCHEMA && r.table_name 
     if (d.error) console.log(`    error: ${d.error}`);
   }
 }
+// Meaning-based search needs the pgvector extension, which only the project owner can switch on (FD-17).
+try {
+  const ext = await client.query<{ installed: string | null; available: string | null }>(
+    `select (select extversion from pg_extension where extname = 'vector') as installed,
+            (select default_version from pg_available_extensions where name = 'vector') as available`,
+  );
+  const v = ext.rows[0];
+  console.log(`\npgvector (meaning search): ${v?.installed ? `switched on (version ${v.installed})` : v?.available ? `available but not switched on yet (version ${v.available}); the project owner turns it on under Database > Extensions` : 'not available on this database'}`);
+} catch (e) {
+  console.log(`\npgvector (meaning search): couldn't check (${(e as Error).message})`);
+}
+
 await client.end();
 console.log('\nNothing was changed.');

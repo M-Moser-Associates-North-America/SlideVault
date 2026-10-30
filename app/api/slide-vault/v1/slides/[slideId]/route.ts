@@ -1,4 +1,6 @@
 import { fail, findSlide, getSlidePg, loadLibraryIndex, ok, toSummary } from '@/features/slide-vault/server';
+import { withPacks } from '@/features/slide-vault/server/packs';
+import { withTags } from '@/features/slide-vault/server/tags';
 
 // GET /slides/:id: slide details, provenance and text (docs/DATA_AND_API.md)
 // Checks the fixture index first, then Postgres (uploaded decks).
@@ -9,7 +11,10 @@ export async function GET(_request: Request, ctx: RouteContext<'/api/slide-vault
   if (found) return ok({ ...toSummary(found.source, found.slide), text: found.slide.text });
 
   const pg = await getSlidePg(slideId).catch(() => null);
-  if (pg) return ok({ ...pg.summary, text: pg.text });
+  if (pg) {
+    const [summary] = await withTags(await withPacks([pg.summary]));
+    return ok({ ...summary, text: pg.text });
+  }
 
   return fail(404, 'NOT_FOUND', 'Slide not found.');
 }

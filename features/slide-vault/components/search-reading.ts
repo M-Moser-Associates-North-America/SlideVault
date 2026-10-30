@@ -1,5 +1,5 @@
 import type { SmartSearchChip, SmartSearchResult } from '../contracts/dto';
-import { slideTypeForTopic } from './simulation';
+import { slideTypeForTopic } from './search-rules';
 
 /**
  * How the server read the search (GET /smart-search chips), shared by the filter row and the

@@ -80,6 +80,9 @@ export async function exportSlides(
     if (fixture) {
       if (fixture.source.versionId !== item.sourceVersionId)
         throw new ServiceError(400, 'INVALID_SELECTION', `"${fixture.slide.title}" has a newer version. Re-add it and try again.`);
+      // A PDF has no editable slides to copy: say so rather than fail, and never pass a picture off as PowerPoint.
+      if (/\.pdf$/i.test(fixture.source.fileName))
+        throw new ServiceError(400, 'INVALID_SELECTION', `"${fixture.slide.title}" comes from a PDF, so it can't be downloaded as editable PowerPoint. Remove it to download the rest.`);
       const file = sourceFilePath(fixture.source);
       return {
         deckKey: `fixture:${fixture.source.id}`,

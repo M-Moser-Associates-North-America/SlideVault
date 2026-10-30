@@ -120,5 +120,18 @@ const left = await sql<{ n: number }>(`select count(*)::int as n from activity_e
 got = await json(await activityRoute.GET(as('Ana', 'GET')));
 check(left[0].n === 0 && got.body.data?.optedIn === false, 'activity: opting out deletes everything recorded for me');
 
+// ---- Role (FD-71)
+const settingsRoute = await import('../app/api/slide-vault/v1/me/settings/route');
+const settings = async (who: string, method: string, body?: unknown) => json(await (settingsRoute as unknown as Record<string, (r: Request) => Promise<Response>>)[method](as(who, method, body)));
+check((await settings('Ana', 'GET')).body.data?.role === null, 'role: nobody has a role until they pick one');
+await activityRoute.PATCH(as('Ana', 'PATCH', { optedIn: true }));
+check((await settings('Ana', 'PATCH', { role: 'director' })).status === 200, 'role: PATCH /me/settings saves a role');
+let mine = await settings('Ana', 'GET');
+check(mine.body.data?.role === 'director' && mine.body.data?.activityOptedIn === true, 'role: GET /me/settings returns it, and setting a role leaves the opt-in alone', mine);
+check((await settings('Ana', 'PATCH', { role: 'ceo' })).status === 400 && (await settings('Ana', 'PATCH', {})).status === 400, 'role: unknown roles and a missing role are refused');
+await settings('Ana', 'PATCH', { role: null });
+mine = await settings('Ana', 'GET');
+check(mine.body.data?.role === null && (await settings('Ben', 'GET')).body.data?.role === null, 'role: null clears it, and roles are per person');
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll user data checks passed');
 process.exit(failures ? 1 : 0);

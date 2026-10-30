@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
-import { categoryOf, clientOf, countBy, filterCount, slideMatches, yearOf, type Filters } from './library';
-import { SimFlag } from './parts';
+import { categoryOf, clientOf, countBy, createdByOf, filterCount, slideMatches, uploadedByOf, yearOf, type Filters } from './library';
 import { backdropClose, useDialogOpen } from './Dialogs';
+import { Link } from './parts';
 import type { SmartSearchChip } from '../contracts/dto';
 import { rowReading, withoutChip } from './search-reading';
-import { SIM_PEOPLE, SLIDE_TYPES, TIER_LABEL, simContributor, simHasSlideType, simUploader, visibleTiers, type Tier } from './simulation';
+import { SLIDE_TYPES, hasSlideType } from './search-rules';
+import { useHeroOut } from '../client/hero-visibility';
+import { StickySearch } from './StickySearch';
 import { useRoot } from './root';
 import { useWorkspaceCompact } from './size';
 import { useWorkspace } from './state';
@@ -53,14 +55,12 @@ function Picker({
   picked,
   counts,
   onToggle,
-  simulated,
 }: {
   label: string;
   options: string[];
   picked: string[];
   counts?: Map<string, number>;
   onToggle: (v: string) => void;
-  simulated?: boolean;
 }) {
   const [text, setText] = useState('');
   const shown = options.filter((o) => o.toLowerCase().includes(text.trim().toLowerCase()));
@@ -69,7 +69,6 @@ function Picker({
     <div className="fb-picker">
       <div className="fb-picker-h">
         <span>{label}</span>
-        {simulated && <SimFlag />}
       </div>
       <input
         type="search"
@@ -96,8 +95,21 @@ function Picker({
   );
 }
 
+/** A filter the server cannot fill in yet: shown greyed out, so people know it is coming, with the reason. */
+function NotYet({ label }: { label: string }) {
+  return (
+    <div className="fb-picker is-off" aria-disabled="true">
+      <div className="fb-picker-h">
+        <span>{label}</span>
+      </div>
+      <input type="search" className="fb-find" placeholder="Type to find" aria-label={`Find in ${label} (not available yet)`} disabled />
+      <p className="fb-note">Not available yet. It switches on once SlideVault has this information for each deck.</p>
+    </div>
+  );
+}
+
 export function FilterBar() {
-  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search } = useWorkspace();
+  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search, includeArchived, setIncludeArchived } = useWorkspace();
   const [open, setOpen] = useState<Key | null>(null);
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
   const compact = useWorkspaceCompact();
@@ -111,6 +123,7 @@ export function FilterBar() {
   const sentinel = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
   const top = useTopOffset();
+  const heroOut = useHeroOut();
   const nowYear = new Date().getFullYear();
 
   const slides = useMemo(() => (library.status === 'ready' ? library.slides : []), [library]);
@@ -122,17 +135,19 @@ export function FilterBar() {
   const without = useCallback((omit: Partial<Filters>) => slides.filter((s) => slideMatches(s, { ...filters, ...omit })), [slides, filters]);
   const clientCounts = useMemo(() => countBy(without({ client: [] }), clientOf), [without]);
   const categoryCounts = useMemo(() => countBy(without({ category: [] }), categoryOf), [without]);
+  /* Who made and who uploaded a deck: real values only, so these lists exist only once the server sends them. */
+  const creators = useMemo(() => [...countBy(slides, createdByOf).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
+  const uploaders = useMemo(() => [...countBy(slides, uploadedByOf).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
+  const creatorCounts = useMemo(() => countBy(without({ createdBy: [] }), createdByOf), [without]);
+  const uploaderCounts = useMemo(() => countBy(without({ uploadedBy: [] }), uploadedByOf), [without]);
   const typeCounts = useMemo(() => {
     const base = without({ slideType: [] });
-    return new Map(SLIDE_TYPES.map((t) => [t.label, base.filter((s) => simHasSlideType(s, t.label)).length]));
+    return new Map(SLIDE_TYPES.map((t) => [t.label, base.filter((s) => hasSlideType(s, t.label)).length]));
   }, [without]);
-  const uploaderCounts = useMemo(() => countBy(without({ uploader: [] }), simUploader), [without]);
-  const contributorCounts = useMemo(() => countBy(without({ contributor: [] }), simContributor), [without]);
   const yearCounts = useMemo(() => {
     const base = without({ yfrom: null, yto: null });
     return new Map(YEAR_PRESETS.map(([k]) => [k, base.filter((s) => (yearOf(s) ?? -1) >= new Date().getFullYear() - k + 1).length]));
   }, [without]);
-  const tiers = visibleTiers(runtime.capabilities);
 
   /* What the search was read as (client, year, kind of slide), straight from the server, so the
      row and the results header always agree. */
@@ -191,13 +206,13 @@ export function FilterBar() {
   }, [compact, scroll]);
 
   const yearOn = filters.yfrom !== null || filters.yto !== null;
-  const moreCount = filters.uploader.length + filters.contributor.length + filters.status.length + (filters.bestOnly ? 1 : 0);
+  const moreCount = (filters.bestOnly ? 1 : 0) + filters.createdBy.length + filters.uploadedBy.length;
   const items: { key: Key; label: string; icon: IconName; active: number }[] = [
-    { key: 'year', label: 'Year', icon: 'calendarFill', active: yearOn || fromYear ? 1 : 0 },
-    { key: 'client', label: 'Client', icon: 'buildingFill', active: filters.client.length + (fromClient ? 1 : 0) },
-    { key: 'category', label: 'Project type', icon: 'folderFill', active: filters.category.length },
-    { key: 'slideType', label: 'Slide type', icon: 'layersFill', active: filters.slideType.length + fromTypes.length },
-    { key: 'more', label: 'More', icon: 'slidersFill', active: moreCount },
+    { key: 'year', label: 'Year', icon: 'calendar', active: yearOn || fromYear ? 1 : 0 },
+    { key: 'client', label: 'Client', icon: 'building', active: filters.client.length + (fromClient ? 1 : 0) },
+    { key: 'category', label: 'Project type', icon: 'folder', active: filters.category.length },
+    { key: 'slideType', label: 'Slide type', icon: 'layers', active: filters.slideType.length + fromTypes.length },
+    { key: 'more', label: 'More', icon: 'sliders', active: moreCount },
   ];
 
   /* The chips under the row: one per active choice, each removable. */
@@ -210,9 +225,8 @@ export function FilterBar() {
     ...filters.client.map((v) => ({ id: `c-${v}`, kind: 'Client', text: v, remove: () => patchFilters({ client: filters.client.filter((x) => x !== v) }) })),
     ...filters.category.map((v) => ({ id: `p-${v}`, kind: 'Project type', text: v, remove: () => patchFilters({ category: filters.category.filter((x) => x !== v) }) })),
     ...filters.slideType.map((v) => ({ id: `t-${v}`, kind: 'Slide type', text: v, remove: () => patchFilters({ slideType: filters.slideType.filter((x) => x !== v) }) })),
-    ...filters.uploader.map((v) => ({ id: `u-${v}`, kind: 'Uploaded by', text: v, remove: () => patchFilters({ uploader: filters.uploader.filter((x) => x !== v) }) })),
-    ...filters.contributor.map((v) => ({ id: `k-${v}`, kind: 'Contributed by', text: v, remove: () => patchFilters({ contributor: filters.contributor.filter((x) => x !== v) }) })),
-    ...filters.status.map((v) => ({ id: `s-${v}`, kind: 'Status', text: TIER_LABEL[v], remove: () => patchFilters({ status: filters.status.filter((x) => x !== v) }) })),
+    ...filters.createdBy.map((v) => ({ id: `cb-${v}`, kind: 'File created by', text: v, remove: () => patchFilters({ createdBy: filters.createdBy.filter((x) => x !== v) }) })),
+    ...filters.uploadedBy.map((v) => ({ id: `ub-${v}`, kind: 'Uploaded by', text: v, remove: () => patchFilters({ uploadedBy: filters.uploadedBy.filter((x) => x !== v) }) })),
     ...(filters.bestOnly ? [{ id: 'best', kind: 'Collection', text: 'Best of the Best', remove: () => patchFilters({ bestOnly: false }) }] : []),
     ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
     ...(fromClient ? [{ id: 'sc', kind: 'Client', text: fromClient.label, remove: () => removeFromSearch(fromClient), fromSearch: true }] : []),
@@ -291,7 +305,6 @@ export function FilterBar() {
           options={SLIDE_TYPES.map((t) => t.label)}
           picked={[...filters.slideType, ...fromTypes.map((t) => t.label)]}
           counts={typeCounts}
-          simulated
           onToggle={(v) => {
             const fromSearchType = fromTypes.find((t) => t.label === v);
             if (fromSearchType) removeFromSearch(fromSearchType.chip);
@@ -301,27 +314,27 @@ export function FilterBar() {
       );
     return (
       <div className="fb-more">
-        <Picker label="Uploaded by" options={SIM_PEOPLE} picked={filters.uploader} counts={uploaderCounts} simulated onToggle={(v) => patchFilters({ uploader: toggle(filters.uploader, v) })} />
-        <Picker label="Contributed by" options={SIM_PEOPLE} picked={filters.contributor} counts={contributorCounts} simulated onToggle={(v) => patchFilters({ contributor: toggle(filters.contributor, v) })} />
-        {tiers.length > 1 && (
-          <div className="fb-picker">
-            <div className="fb-picker-h">
-              <span>Status</span>
-              <SimFlag />
-            </div>
-            <div className="fb-presets">
-              {tiers.map((t) => (
-                <button key={t} type="button" className="pchip" aria-pressed={filters.status.includes(t)} onClick={() => patchFilters({ status: toggle(filters.status, t) as Tier[] })}>
-                  {TIER_LABEL[t]}
-                </button>
-              ))}
-            </div>
-          </div>
+        {creators.length > 0 ? (
+          <Picker label="File created by" options={creators} picked={filters.createdBy} counts={creatorCounts} onToggle={(v) => patchFilters({ createdBy: toggle(filters.createdBy, v) })} />
+        ) : (
+          <NotYet label="File created by" />
+        )}
+        {uploaders.length > 0 ? (
+          <Picker label="Uploaded by" options={uploaders} picked={filters.uploadedBy} counts={uploaderCounts} onToggle={(v) => patchFilters({ uploadedBy: toggle(filters.uploadedBy, v) })} />
+        ) : (
+          <NotYet label="Uploaded by" />
         )}
         <label className="fb-check">
           <input type="checkbox" checked={filters.bestOnly} onChange={(e) => patchFilters({ bestOnly: e.target.checked })} />
           <span>Best of the Best only</span>
         </label>
+        <label className="fb-check">
+          <input type="checkbox" checked={includeArchived} onChange={(e) => setIncludeArchived(e.target.checked)} />
+          <span>Show archived decks</span>
+        </label>
+        <Link className="btn-link" to={{ view: 'archive' }} onNavigate={() => setOpen(null)}>
+          Open the archived decks page
+        </Link>
       </div>
     );
   };
@@ -333,10 +346,11 @@ export function FilterBar() {
   return (
     <>
     <div ref={sentinel} className="fbar-sentinel" aria-hidden="true" />
-    <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
+    <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}${heroOut && !compact ? ' has-search' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
+      {heroOut && !compact && <StickySearch />}
       <div className="fbar-row" ref={rowRef} role="toolbar" aria-label="Filter slides">
         <button type="button" className={`fb-btn fb-all${activeTotal ? ' on' : ''}`} aria-haspopup="dialog" onClick={() => setSheet('all')}>
-          <Icon name="slidersFill" />
+          <Icon name="sliders" />
           <span className="fb-lbl">Filters</span>
           {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
         </button>
@@ -388,7 +402,7 @@ export function FilterBar() {
       )}
       {compact && rowOut && sheet === null && (
         <button type="button" className="fb-pin" onClick={() => setSheet('all')}>
-          <Icon name="slidersFill" />
+          <Icon name="sliders" />
           <span>Filters</span>
           {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
         </button>

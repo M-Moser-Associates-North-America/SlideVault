@@ -9,8 +9,12 @@ import { openAiCompatibleReader, parsePlan } from '../features/slide-vault/serve
 import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../features/slide-vault/server/ai/reader';
 import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/rate-limit';
 import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, typedCodes, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
-import { fixtureFilterValues, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
-import { smartSearch } from '../features/slide-vault/server/services/smart-search';
+import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
+import { mentionsWord, smartSearch } from '../features/slide-vault/server/services/smart-search';
+import { asksForCover, deckSections, isSectionSearch, sectionKind, sectionKinds } from '../features/slide-vault/server/services/sections';
+import { taggedFirst, typedTags, type TagHit } from '../features/slide-vault/server/services/tagged-first';
+import { cleanSearchFeedback, learnedForSearch, learnedScore, searchWords } from '../features/slide-vault/server/search-feedback';
+import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -118,7 +122,7 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
 // ---- Short codes, and never "everything"
 {
   const seen: SearchPlan[] = [];
-  const r = await smartSearch('QA/QC', 10, { context, thisYear: 2026, search: async (p) => { seen.push(p); return []; } });
+  await smartSearch('QA/QC', 10, { context, thisYear: 2026, search: async (p) => { seen.push(p); return []; } });
   check(JSON.stringify(seen[0]?.keywords) === JSON.stringify(['qa/qc', 'qa', 'qc']), 'short codes: "QA/QC" searches for qa/qc, qa and qc', seen[0]?.keywords);
   const spelled: PlanReader = { name: 'fake', read: async () => cleanPlan({ keywords: ['quality assurance', 'quality control'] }, ctx) };
   const seenAi: SearchPlan[] = [];
@@ -266,6 +270,127 @@ for (const [env, label] of [
   const body = second ? ((await second.json()) as { error: { code: string; retryable: boolean } }) : null;
   check(first === null && second?.status === 429 && Boolean(second.headers.get('retry-after')) && body?.error.code === 'RATE_LIMITED' && body.error.retryable, 'rate: over the limit returns 429 RATE_LIMITED with Retry-After');
   resetRateLimits();
+}
+
+// ---- What a search asks for beyond its words (FD-33)
+{
+  const team = searchIntent('team slide for a healthcare client');
+  check(team.types[0] === 'team_structure' && team.sectors.includes('healthcare'), 'intent: "team slide for a healthcare client" asks for a team slide and a healthcare client', team);
+  check(searchIntent('design lead résumé from Acme').types[0] === 'team_resume', 'intent: "résumé" with accents is read as a résumé');
+  check(JSON.stringify(searchIntent('sustainability slides for a bank')) === JSON.stringify({ types: [], sectors: ['financial services'], themes: ['sustainability / net zero'] }), 'intent: a theme and a sector, no kind');
+  const structure = { type: 'team_structure', clientSector: 'healthcare / medtech' };
+  const resume = { type: 'team_resume', clientSector: 'healthcare / medtech' };
+  const bankTeam = { type: 'team_structure', clientSector: 'financial services' };
+  check(intentScore(team, structure) > intentScore(team, resume) && intentScore(team, resume) > intentScore(team, bankTeam) - 3, 'intent: a team search puts the team structure ahead of résumés');
+  check(intentScore(team, structure) > intentScore(team, bankTeam), "intent: a slide from a healthcare client's deck counts as healthcare");
+  check(intentScore(team, { ...structure, reuse: 'internal - never show' }) < intentScore(team, bankTeam), 'intent: never-show pages stay findable, but last');
+  check(answersIntent(team, structure) && !answersIntent(team, bankTeam) && !answersIntent(team, undefined), 'intent: only slides of the kind and sector asked for are let in without matching words');
+  check(intentWhy(team, structure) === 'A team slide for the same kind of client.', 'intent: the slide says what it is in the search\'s terms', intentWhy(team, structure));
+
+  const index = { generatedAt: '', sources: [{ id: 'src', title: 'Deck', fileName: 'Proposals/M Moser_Acme_2025.pptx', versionId: 'v', sha256: 'h', slides: [
+    { id: 'words', number: 1, title: 'Our team', text: 'Team and people.', hidden: false },
+    { id: 'reading', number: 2, title: 'Phased move', text: 'Floors handed over in stages.', hidden: false },
+  ] }] };
+  const plan = cleanPlan({ keywords: ['occupied'] }, ctx);
+  const without = smartSearchFixtures(index, plan, 10).map((r) => r.summary.id);
+  const withKnown = smartSearchFixtures(index, plan, 10, { about: (id) => (id === 'reading' ? 'A building that stayed occupied during the work.' : ''), boost: () => 0, answers: () => false }).map((r) => r.summary.id);
+  check(without.length === 0 && JSON.stringify(withKnown) === '["reading"]', "search: a slide is found by what was read on it when its own words don't match", { without, withKnown });
+  const boosted = smartSearchFixtures(index, cleanPlan({ keywords: ['team'] }, ctx), 10, { about: () => '', boost: (id) => (id === 'reading' ? 6 : 0), answers: (id) => id === 'reading' }).map((r) => r.summary.id);
+  check(boosted[0] === 'reading', 'search: the kind asked for ranks ahead of word matches', boosted);
+}
+
+{
+  // Identical copies of one file share slide ids; reading a list must not let the copies use up the limit.
+  const copy = (id: string) => ({ id, title: id, fileName: `${id}.pptx`, versionId: 'same', sha256: 'same', slides: [{ id: 's1', number: 1, title: 'a', text: '', hidden: false }, { id: 's2', number: 2, title: 'b', text: '', hidden: false }] });
+  const index = { generatedAt: '', sources: [copy('one'), copy('two'), { id: 'other', title: 'o', fileName: 'o.pptx', versionId: 'o', sha256: 'o', slides: [{ id: 's3', number: 1, title: 'c', text: '', hidden: false }] }] };
+  const ids = fixtureRowsWhere(index, (id) => ['s1', 's2', 's3'].includes(id), 3).map((r) => r.summary.id);
+  check(JSON.stringify(ids) === '["s1","s2","s3"]', 'rows: each slide is read once, so copies never crowd out the last ones asked for', ids);
+}
+
+// ---- What the person named is required when it's rare (FD-56: "QNBC case study" means QNBC)
+{
+  check(JSON.stringify(standInPlan('QNBC case study', ctx).named) === '["QNBC"]', 'named: "QNBC case study" names QNBC, the case study is a topic', standInPlan('QNBC case study', ctx).named);
+  check(!(standInPlan('Kestrel Law team', ctx).named ?? []).length, 'named: a client is a filter, not a named word');
+  check(mentionsWord('Our hospitals', 'hospital') && !mentionsWord('Hospitality suites', 'hospital'), 'named: whole words, plural allowed ("hospital" is not "hospitality")');
+  check(mentionsWord('Résumés of the team', 'resume'), 'named: accents don\'t matter ("resume" finds "Résumés")');
+
+  const row = (id: string, text: string, title = id) => ({ summary: slide(id), facts: facts({ title, text }) });
+  const rows = [row('plain', 'Our approach to case studies.'), row('qnbc', 'QNBC regional headquarters case study.'), row('deckonly', 'A trading floor.')];
+  const named = (q: string, d: Partial<Parameters<typeof smartSearch>[2]> = {}) =>
+    smartSearch(q, 10, { context, thisYear: 2026, search: async () => rows, howCommon: () => 0.03, alsoSays: (s) => (s.id === 'deckonly' ? 'QNBC deck' : ''), ...d });
+  const r = await named('QNBC case study');
+  check(JSON.stringify(r.items.map((i) => i.slide.id)) === '["qnbc","deckonly"]', 'named: only slides that mention it, the slide\'s own words first, then its deck', r.items.map((i) => i.slide.id));
+  check(r.chips.some((c) => c.kind === 'Mentions' && c.label === 'QNBC'), 'named: shown as a "Mentions" chip, as typed', r.chips);
+  const common = await named('QNBC case study', { howCommon: () => 0.3 });
+  check(common.items.length === 3 && !common.chips.some((c) => c.kind === 'Mentions'), 'named: a word on many slides only ranks, it isn\'t required');
+  const sentence = await named('slides that demonstrate our value proposition', { howCommon: () => 0.01 });
+  check(sentence.items.length === 3, 'named: in a sentence, an ordinary rare word ("proposition") isn\'t a name');
+  const known = await smartSearch('which case studies are in toronto?', 10, { context, thisYear: 2026, search: async () => [row('a', 'Toronto office'), row('b', 'Vancouver office')], howCommon: () => 0.03, isKnownName: (w) => w === 'toronto' });
+  check(JSON.stringify(known.items.map((i) => i.slide.id)) === '["a"]', 'named: in a sentence, a place the library knows is a name even in lower case', known.items.map((i) => i.slide.id));
+  const sector = await smartSearch('hospital case study', 10, { context, thisYear: 2026, search: async () => [row('a', 'A clinic fit-out'), row('b', 'A bank')], howCommon: () => 0.01, alsoSays: (s) => (s.id === 'a' ? 'healthcare' : 'financial services'), alsoMeans: (w) => (w === 'hospital' ? ['healthcare'] : []) });
+  check(JSON.stringify(sector.items.map((i) => i.slide.id)) === '["a"]', 'named: "hospital" is also met by a healthcare slide', sector.items.map((i) => i.slide.id));
+  const bios = await smartSearch('QNBC', 10, { context, thisYear: 2026, search: async () => [row('bio', 'Led the QNBC fit-out'), row('case', 'QNBC case study')], howCommon: () => 0.03, rankLast: (s) => s.id === 'bio' });
+  check(JSON.stringify(bios.items.map((i) => i.slide.id)) === '["case","bio"]', 'named: a passing mention in a bio comes last', bios.items.map((i) => i.slide.id));
+  const missing = await named('Zephyr case study', { alsoSays: () => '' });
+  check(missing.relaxed && missing.items.length === 3 && !missing.chips.some((c) => c.kind === 'Mentions'), 'named: when nothing mentions it, the rest is shown and marked relaxed');
+}
+
+// ---- Deck sections, the "page breakers" (FD-57)
+{
+  const deck = (...pages: [string, string?][]) => ({ slides: pages.map(([title, text], i) => ({ id: `p${i + 1}`, number: i + 1, title, text: text ?? title, hidden: false })) });
+  const names = (d: ReturnType<typeof deck>) => [...deckSections(d)].filter(([, s]) => s.divider).map(([id, s]) => `${id}:${s.kind}:${s.name}`);
+
+  const numbered = deck(['Kestrel Law workplace'], ['01 Firm profile', '01\nFirm profile\nABOUT US'], ['Our founder', 'Founded 1981 by our founder'], ['02 Approach', '02\nApproach'], ['How we deliver', 'Weekly reviews'], ['03 Relevant experience', '03\nRelevant experience\nWHERE WE’VE DONE IT'], ['Halcyon Health HQ']);
+  check(JSON.stringify(names(numbered)) === '["p2:firm:Firm profile","p4:approach:Approach","p6:case-studies:Relevant experience"]', 'sections: numbered dividers name their sections', names(numbered));
+  const sec = deckSections(numbered);
+  check(sec.get('p3')?.kind === 'firm' && sec.get('p3')?.position === 1 && sec.get('p3')?.dividerId === 'p2', 'sections: a slide belongs to the section it sits in, and knows its place', sec.get('p3'));
+  check(!sec.has('p1'), 'sections: slides before the first divider have none');
+
+  const lettered = deck(['A FIRM BACKGROUND WHO WE ARE KESTREL X M MOSER', 'A FIRM BACKGROUND WHO WE ARE KESTREL X M MOSER\n4\nFirm\nBackground'], ['A FIRM BACKGROUND WHO WE ARE KESTREL X M MOSER', 'Offices in 30 cities'], ['F PROPOSED TEAM AND RESUMES KESTREL X M MOSER', 'F PROPOSED TEAM AND RESUMES KESTREL X M MOSER\n44\nProposed\nTeam and Resumes'], ['F PROPOSED TEAM AND RESUMES KESTREL X M MOSER', 'Jane Doe, design lead']);
+  check(JSON.stringify(names(lettered)) === '["p1:firm:Firm Background","p3:team:Proposed Team and Resumes"]', 'sections: a PDF\'s lettered heading opens a section once, not on every page', names(lettered));
+
+  const titled = deck(['Design Services RFP', 'Design Services RFP\nM Moser x Kestrel 2025\nSection 00\nOur\nunderstanding\nof Kestrel'], ['Your goals'], ['Design Services RFP', 'Design Services RFP\nM Moser x Kestrel 2025\nSection 01\nCompany\nbackground'], ['Who we are'], ['Design Services RFP', 'Design Services RFP\nM Moser x Kestrel 2025\nSection 02\nMEET THE MEET THE TEAM\nTEAM']);
+  check(JSON.stringify(names(titled)) === '["p1:understanding:Our understanding of Kestrel","p3:firm:Company background","p5:team:Meet the team"]', 'sections: a document title on every divider is skipped, the name comes after "Section 00", doubled words undone', names(titled));
+
+  const contents = deck(['What’s inside', 'TABLE OF CONTENTS\n01\nThe right team\n02\nThe portfolio'], ['Intro'], ['THE RIGHT TEAM', 'THE RIGHT TEAM'], ['Jane Doe'], ['THE PORTFOLIO', 'THE PORTFOLIO'], ['Halcyon Health HQ']);
+  check(JSON.stringify(names(contents)) === '["p3:team:The right team","p5:case-studies:The portfolio"]', 'sections: an unnumbered divider listed on the contents page is found', names(contents));
+
+  check(JSON.stringify(sectionKinds('Firm background / relevant experience')) === '["case-studies","firm"]' && sectionKind('Appendix B Team resumes') === 'team' && sectionKind('Appendix') === 'appendix' && sectionKind('How we will run the portfolio') === 'approach', 'sections: a name can be two sections; an appendix of résumés is the team; "How we…" is the approach');
+  check(isSectionSearch('resumes') && isSectionSearch('banner slides in case studies') && isSectionSearch('firm overview') && !isSectionSearch('QNBC case study') && !isSectionSearch('Workplace strategy process') && !isSectionSearch('2026'), 'sections: a search that is only a section, with nothing else named');
+  check(asksForCover('banner slides in case studies') && asksForCover('the page breakers') && !asksForCover('case studies'), 'sections: asking for a cover');
+}
+
+// ---- People's own tags lead (FD-58: Gabby tags the page "Priya", then types Priya)
+{
+  const sl = (id: string, deck = 'd') => ({ ...slide(id), provenance: { ...slide(id).provenance, sourceId: deck } });
+  const items = [{ slide: sl('a'), why: 'Matched.', matched: [] }, { slide: sl('b', 'deck2'), why: 'Matched.', matched: [] }, { slide: sl('c'), why: 'Matched.', matched: [] }];
+  const hits: TagHit[] = [{ tag: 'Priya', on: 'slide', id: 'm' }, { tag: 'Priya', on: 'deck', id: 'deck2' }, { tag: 'Moi', on: 'slide', id: 'c' }];
+  let asked: string[] = [];
+  const out = await taggedFirst('Priya resume', items, hits, async (ids) => { asked = ids; return ids.map((id) => sl(id)); });
+  check(JSON.stringify(out.map((i) => i.slide.id)) === '["m","b","a","c"]', 'tags: the tagged slide first (fetched if search missed it), then its tagged deck, then the rest', out.map((i) => i.slide.id));
+  check(JSON.stringify(asked) === '["m"]', 'tags: only slides the search missed are fetched', asked);
+  check(out[0].why.startsWith('Tagged “Priya” by someone') && out[1].why.startsWith('Tagged “Priya” (its deck)'), 'tags: the reason says which tag', out.slice(0, 2).map((i) => i.why));
+  check(JSON.stringify(typedTags('Priya resume', hits).map((h) => h.tag)) === '["Priya","Priya"]', 'tags: whole words only ("Moi" is not typed in "Priya")');
+  const none = await taggedFirst('case studies', items, hits, async () => []);
+  check(none === items, 'tags: a search that types no tag is left as it was');
+}
+
+// ---- Useful / Not relevant on a search result (FD-59: "how do I train the search?")
+{
+  check(JSON.stringify(searchWords('Show me hospitality firms slides')) === '["hospitality","firm"]', 'feedback: a search is kept as its words, never as typed', searchWords('Show me hospitality firms slides'));
+  check(cleanSearchFeedback({ query: 'hospitality', slideId: 's1', verdict: 'not-relevant' })?.words.join() === 'hospitality', 'feedback: a valid not-relevant');
+  check(cleanSearchFeedback({ query: 'hospitality', slideId: 's1', verdict: 'nope' }) === null && cleanSearchFeedback({ query: '', slideId: 's1', verdict: 'useful' }) === null && cleanSearchFeedback({ query: 'the', slideId: 's1', verdict: 'useful' }) === null, 'feedback: bad verdict, empty search or no words is refused');
+  const at = '2026-10-29T00:00:00Z';
+  const rows = [
+    { slideId: 'bio', verdict: 'not-relevant' as const, words: ['hospitality'], at },
+    { slideId: 'bio', verdict: 'not-relevant' as const, words: ['hospitality', 'deck'], at, by: 'director' as const },
+    { slideId: 'case', verdict: 'useful' as const, words: ['hospitality'], at },
+    { slideId: 'other', verdict: 'not-relevant' as const, words: ['fees'], at },
+  ];
+  const l = learnedForSearch(rows, ['hospitality']);
+  check(l.get('bio')?.notRelevant === 2 && l.get('case')?.useful === 1 && !l.has('other'), 'feedback: counts only searches that share a word', Object.fromEntries(l));
+  check(learnedForSearch(rows, ['hospitality'], 'director').get('bio')?.notRelevant === 3, 'feedback: someone in the same role counts double');
+  check(learnedScore(l.get('case')) > 0 && learnedScore(l.get('bio')) < 0 && learnedScore(undefined) === 0, 'feedback: useful moves a slide up, not relevant moves it down');
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smart search checks passed');

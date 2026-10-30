@@ -23,13 +23,29 @@ for (const line of readFileSync(path.join(LIBRARY, 'answer_key.csv'), 'utf8').tr
 
 // M Moser's real naming (first real decks, Oct 2026): category/year folders, client in the file name
 for (const [file, want] of [
-  ['Design Consultancy/2026/M Moser_Gusto_SF_2026.pptx', { deckYear: 2026, clientName: 'Gusto', category: 'Design Consultancy' }],
-  ['Design Consultancy 2/2026/M Moser_Airwallex HQ_SF_071526.pptx', { deckYear: 2026, clientName: 'Airwallex HQ', category: 'Design Consultancy' }],
-  ['Design Consultancy/2026/M Moser_Scotiabank_2026.pptx', { deckYear: 2026, clientName: 'Scotiabank', category: 'Design Consultancy' }],
+  ['Design Consultancy/2026/M Moser_Sprocket_SF_2026.pptx', { deckYear: 2026, clientName: 'Sprocket', category: 'Design Consultancy' }],
+  ['Design Consultancy 2/2026/M Moser_Tidewater HQ_SF_071526.pptx', { deckYear: 2026, clientName: 'Tidewater HQ', category: 'Design Consultancy' }],
+  ['Design Consultancy/2026/M Moser_Maplecrest_2026.pptx', { deckYear: 2026, clientName: 'Maplecrest', category: 'Design Consultancy' }],
   ['Design Consultancy/2026/M Moser Notes.pptx', { deckYear: 2026, clientName: null, category: 'Design Consultancy' }],
-  ['Design Consultancy 2025/M Moser_Gusto_SF_2025.pptx', { deckYear: 2025, clientName: 'Gusto', category: 'Design Consultancy' }],
-  ['MSA/M Moser_Acme_NY_2025.pptx', { deckYear: null, clientName: 'Acme', category: 'MSA' }],
-  ['IDD/M Moser_Acme_2024.pptx', { deckYear: null, clientName: 'Acme', category: 'IDD' }],
+  ['Design Consultancy 2025/M Moser_Sprocket_SF_2025.pptx', { deckYear: 2025, clientName: 'Sprocket', category: 'Design Consultancy' }],
+  ['MSA/M Moser_Acme_NY_2025.pptx', { deckYear: 2025, clientName: 'Acme', category: 'MSA' }],
+  ['IDD/M Moser_Acme_2024.pptx', { deckYear: 2024, clientName: 'Acme', category: 'IDD' }],
+  // Years and kinds from the name when no folder says them; PDFs and "MMoser_" too
+  ['Proposals/M Moser_Acme_RFP_06202025.pdf', { deckYear: 2025, clientName: 'Acme', category: 'RFP' }],
+  ['Proposals/M Moser_Northwind_RFP_17032026 (1).pptx', { deckYear: 2026, clientName: 'Northwind', category: 'RFP' }],
+  ['Proposals/M Moser_Kestrel_MSA.pptx', { deckYear: null, clientName: 'Kestrel', category: 'MSA' }],
+  ['Proposals/M Moser_TailspinMSA_SF_2025 (1).pptx', { deckYear: 2025, clientName: 'Tailspin', category: 'MSA' }],
+  ['Proposals/MMoser_Fabrikam_2026 (1).pptx', { deckYear: 2026, clientName: 'Fabrikam', category: null }],
+  ['Proposals/M Moser_Contoso_Vancouver_2025.pdf', { deckYear: 2025, clientName: 'Contoso', category: null }],
+  // Real Drive file names (Oct 2026): copy numbers, Barlow_s, a year at the end of the name
+  ['MSA/M Moser_Lumenwatch_Global_07102025.pptx', { deckYear: 2025, clientName: 'Lumenwatch', category: 'MSA' }],
+  ['MSA/M Moser_Inkwise_RFP_17032026 (1).pptx', { deckYear: 2026, clientName: 'Inkwise', category: 'MSA' }],
+  ['MSA/M Moser_FerrousMSA_SF_2025 (1) (1).pptx', { deckYear: 2025, clientName: 'Ferrous', category: 'MSA' }],
+  ['SME/M Moser_NYL(2)_RFP_07292026 (1).pptx', { deckYear: 2026, clientName: 'NYL', category: 'SME' }],
+  ['IDD/Maplecrest - Progressive Integrated Design and Build - March.pptx', { deckYear: null, clientName: 'Maplecrest', category: 'IDD' }],
+  ['Design Consultancy 2025/2025 3/M Moser_Barlow_s_RFP_06202025.pptx', { deckYear: 2025, clientName: "Barlow's", category: 'Design Consultancy' }],
+  ['Design Consultancy 2025/2025/MMoser_Bright Pixel Games (Arcadia)_VC.pptx', { deckYear: 2025, clientName: 'Bright Pixel Games (Arcadia)', category: 'Design Consultancy' }],
+  ['Design Consultancy 2025/2025/M Moser_Project Kiwi_NY_RFP_2024.pptx', { deckYear: 2025, clientName: 'Project Kiwi', category: 'Design Consultancy' }],
 ] as const) {
   const got = folderInfo(file);
   check(got.deckYear === want.deckYear && got.clientName === want.clientName && got.category === want.category && !got.bestOfTheBest, `reads ${file}`, JSON.stringify(got));
@@ -52,6 +68,15 @@ check(win.deckYear === 2026 && win.clientName === 'Orbit Air' && win.folderPath 
 const bare = folderInfo('random deck.pptx');
 check(bare.deckYear === null && bare.clientName === null && bare.category === null && !bare.bestOfTheBest,
   'a loose file with no folders or naming pattern stays unknown, not guessed', JSON.stringify(bare));
+
+// Where the client is, from a city code in M Moser's file names (FD-35)
+for (const [file, place] of [
+  ['Proposals/M Moser_Acme_NY_RFP_2025.pdf', 'New York'],
+  ['Proposals/M Moser_Acme_MSA_TO_2025.pptx', 'Toronto'],
+  ['Proposals/MMoser_Acme_RFP Response_SFO_2025.pdf', 'San Francisco'],
+  ['Proposals/M Moser_Acme_VC_2025.pdf', 'Vancouver'],
+  ['Proposals/M Moser_Acme_RFP_06202025.pdf', null],
+] as const) check(folderInfo(file).location === place, `reads where the client is from ${file}`, String(folderInfo(file).location));
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll folder-path checks passed');
 process.exit(failures ? 1 : 0);
