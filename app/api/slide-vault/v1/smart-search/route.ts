@@ -52,7 +52,7 @@ export async function GET(request: Request) {
         have.add(hit.slide.id);
       }
     }
-    // People's own tags lead (FD-58): "Moira" finds the page someone tagged Moira. Off without a database.
+    // People's own tags lead (FD-58): "Priya" finds the page someone tagged Priya. Off without a database.
     if (hasMmoserConfig()) {
       const hits = await tagsInQuery(query);
       const hide = url.searchParams.get('hidden') !== 'include';

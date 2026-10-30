@@ -25,9 +25,9 @@ function check(ok: boolean, label: string, detail: unknown = '') {
 }
 
 // ---- Tidy author names
-check(tidyPersonName('ChelseaTerrell - M Moser Associates') === 'Chelsea Terrell', 'tidies "ChelseaTerrell - M Moser Associates"');
-check(tidyPersonName('MackenzieFarquhar - M Moser Associates') === 'Mackenzie Farquhar', 'tidies "MackenzieFarquhar - M Moser Associates"');
-check(tidyPersonName('Annie N') === 'Annie N', 'leaves a name with a space alone');
+check(tidyPersonName('JordanEllis - M Moser Associates') === 'Jordan Ellis', 'tidies "JordanEllis - M Moser Associates"');
+check(tidyPersonName('TaylorMorgan - M Moser Associates') === 'Taylor Morgan', 'tidies "TaylorMorgan - M Moser Associates"');
+check(tidyPersonName('Sam K') === 'Sam K', 'leaves a name with a space alone');
 check(tidyPersonName('McDonald') === 'McDonald' && tidyPersonName('DeAndre') === 'DeAndre', 'does not split McDonald or DeAndre');
 check(tidyPersonName(null) === null && tidyPersonName('') === null, 'unknown stays unknown');
 

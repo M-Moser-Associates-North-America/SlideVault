@@ -19,7 +19,7 @@ check(mapProblems({ slideTypes: SLIDE_TYPES, needs: [{ id: 'x', label: 'x', slid
 // M Moser's example searches (business development team, 2026-10-20) and the slide type each should reach.
 const EXAMPLES: [string, string][] = [
   ['Can we add the North America Overview', 'regional-overview'],
-  ['Can we add the slide with Moira’s photo', 'people-profile'],
+  ['Can we add the slide with Priya’s photo', 'people-profile'],
   ['Can you add the map with all our offices', 'office-map'],
   ['Can we include the roles and responsibility slide?', 'roles-responsibilities'],
   ['What are the most recent/greatest IDD slides?', 'idd-overview'],

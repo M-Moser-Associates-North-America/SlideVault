@@ -222,7 +222,7 @@ function toSlideSummary(row: SlideWithDeck): SlideSummary {
       bestOfTheBest: row.decks.best_of_the_best,
       location: d.project_location ?? null,
       // Deck details (FD-52): real values only, null when nobody recorded them.
-      // Shown tidied ("ChelseaTerrell - M Moser Associates" -> "Chelsea Terrell"); stored as recorded.
+      // Shown tidied ("JordanEllis - M Moser Associates" -> "Jordan Ellis"); stored as recorded.
       createdBy: tidyPersonName(d.created_by),
       uploadedBy: d.uploaded_by ?? null,
       createdAt: iso(d.file_created_at),

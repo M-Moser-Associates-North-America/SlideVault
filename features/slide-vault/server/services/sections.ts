@@ -55,18 +55,18 @@ export const sectionKind = (text: string): SectionKind => sectionKinds(text)[0];
 
 /** A section marker on its own: "01", "01/", "Section 00", "2025 01", a page number. */
 const MARKER = /^((section|part)\s+)?[0-9]{1,3}\/?$|^20\d\d(\s+\d{1,2})?$|^[A-H]$/i;
-/** A line that carries on the one before: lower case ("thoughts", "of lululemon"), or after "of", "&", "we're", a possessive. */
+/** A line that carries on the one before: lower case ("thoughts", "of willowfit"), or after "of", "&", "we're", a possessive. */
 const CARRIES_ON = (prev: string, line: string) => /^[a-z]/.test(line) || /(\bof|\band|&|\bthe|\bto|\bfor|\bour|\bwe['’](re|ve)|['’]s)$/i.test(prev);
 
 /**
  * The section's name from its divider, skipping what every page carries (the RFP's running header,
- * "M Moser Associates x Lululemon", "Section 00", "2025 01"): "Section 00 / Our / understanding / of
- * lululemon" -> "Our understanding of lululemon"; "4 / Firm / Background / Information" -> "Firm Background".
+ * "M Moser Associates x Willowfit", "Section 00", "2025 01"): "Section 00 / Our / understanding / of
+ * willowfit" -> "Our understanding of willowfit"; "4 / Firm / Background / Information" -> "Firm Background".
  */
 function dividerName(title: string, text: string, seen: Map<string, number>, slideCount: number): string {
   const furniture = (l: string) => (seen.get(plain(l)) ?? 0) >= Math.max(3, slideCount * 0.6);
   let raw = `${text.includes(title.trim()) ? '' : `${title}\n`}${text}`.split('\n').map((l) => l.trim());
-  // "SSC Designer … RFP / M Moser x Lululemon / Section 00 / Our / understanding": when what comes
+  // "SSC Designer … RFP / M Moser x Willowfit / Section 00 / Our / understanding": when what comes
   // before "Section 00" is a document title printed on every divider, the name is what comes after it.
   const at = raw.findIndex((l) => /^(section|part)\s+0?\d{1,2}$/i.test(l));
   if (at > 0 && raw.slice(0, at).some((l) => words(l) >= 5 && !/\s[xX]\s/.test(l) && (seen.get(plain(l)) ?? 0) >= 3)) raw = raw.slice(at + 1);
@@ -145,7 +145,7 @@ export function deckSections(source: Pick<IndexedSource, 'slides'>, typeOf: (sli
     if (letter) lastLetter = letter;
     if (opensByLetter || looksLikeDivider(slide.title, slide.text, type, contents)) {
       const name = dividerName(slide.title, slide.text, seen, source.slides.length);
-      // A header repeated on the section's pages ("HOW WE WILL ACHIEVE AMEX'S AMBITIONS") doesn't start it again.
+      // A header repeated on the section's pages ("HOW WE WILL ACHIEVE MERIDIAN'S AMBITIONS") doesn't start it again.
       if (!current || plain(name) !== plain(current.name)) {
         const kinds = sectionKinds(name);
         current = { name, kind: kinds[0], kinds, dividerId: slide.id };

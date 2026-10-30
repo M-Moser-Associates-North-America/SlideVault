@@ -1,7 +1,7 @@
 /**
  * Search that understands more than words (docs/DECISIONS.md FD-70), against a LOCAL test database.
  * Gaby's cases from the 28 Oct check-in: "hospitality" should find hospitality slides before a slide
- * that only says the word, "2026" is a year, "banner" is a kind of slide, a tag like "Moira" is
+ * that only says the word, "2026" is a year, "banner" is a kind of slide, a tag like "Priya" is
  * searchable. ("Not relevant" is Schiffon's, on her search branch.)
  *
  *   SV_DB_HOST=localhost SV_DB_SSL=disable SV_DB_PORT=... SV_DB_USER=... SV_DB_PASSWORD=... SV_DB_SCHEMA=... npm run test:search-context
@@ -76,9 +76,9 @@ check(banner.length === 1 && banner[0] === 'Section two', '"banner" finds sectio
 check((await search('ending slide'))[0] === 'Thank you', '"ending slide" finds the closing slide');
 const y = await search('2026');
 check(y.length === 4 && !y.includes('Team') && !y.includes('Our approach'), '"2026" is a year: only slides from 2026 decks', y);
-await sql(`insert into free_tags (target_kind, target_id, tag, added_by) values ('deck', $1, 'Moira', 'Pat')`, [B]);
-const moira = await search('Moira');
-check(moira.length === 4 && moira.includes('Meet the project team'), 'a free tag ("Moira") on a deck makes its slides findable by it', moira);
+await sql(`insert into free_tags (target_kind, target_id, tag, added_by) values ('deck', $1, 'Priya', 'Pat')`, [B]);
+const priya = await search('Priya');
+check(priya.length === 4 && priya.includes('Meet the project team'), 'a free tag ("Priya") on a deck makes its slides findable by it', priya);
 
 // ---- The route: "why it fits" and "not relevant"
 resetRateLimits();

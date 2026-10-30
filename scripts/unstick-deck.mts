@@ -4,8 +4,8 @@
  * same deck. The original is already in the bucket and can't be overwritten, so nothing is
  * uploaded twice. Only touches decks that are stuck; ready decks are left alone.
  *
- *   npm run deck:unstick -- "Newmark"          # shows which stuck decks match; changes nothing
- *   npm run deck:unstick -- "Newmark" --yes    # marks them failed, then run upload:library again
+ *   npm run deck:unstick -- "Fieldmark"          # shows which stuck decks match; changes nothing
+ *   npm run deck:unstick -- "Fieldmark" --yes    # marks them failed, then run upload:library again
  *
  * Don't run it while that deck is still uploading. Uses your SV_DB_* login from .env.local.
  */
@@ -17,7 +17,7 @@ const args = process.argv.slice(2);
 const text = args.find((a) => !a.startsWith('--'));
 const yes = args.includes('--yes');
 if (!text || text.trim().length < 3) {
-  console.error('Give part of the deck title (at least 3 characters), e.g. npm run deck:unstick -- "Newmark"');
+  console.error('Give part of the deck title (at least 3 characters), e.g. npm run deck:unstick -- "Fieldmark"');
   process.exit(1);
 }
 

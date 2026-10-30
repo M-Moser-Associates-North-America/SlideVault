@@ -38,7 +38,7 @@ export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan
       const words = starts.reduce((n, re, i) => n + weight[i] * (re.test(slide.title) ? 2 : re.test(slide.text) || (about && re.test(about)) ? 1 : 0), 0);
       const answers = known?.answers(slide.id) ?? false;
       if (starts.length && words === 0 && !answers) continue;
-      // A deck named for what was asked ("New York Times · RFP, workplace strategy") lifts its matching slides.
+      // A deck named for what was asked ("New York Ledger · RFP, workplace strategy") lifts its matching slides.
       const deckNamed = words ? starts.reduce((n, re, i) => n + (re.test(p.sourceTitle) ? weight[i] : 0), 0) : 0;
       const score = words + deckNamed + (known?.boost(slide.id) ?? 0);
       scored.push({

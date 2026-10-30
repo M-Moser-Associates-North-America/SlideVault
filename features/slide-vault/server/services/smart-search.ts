@@ -43,7 +43,7 @@ export type SmartSearchDeps = {
 };
 
 /**
- * A named thing on fewer than this share of slides is what the person is after ("HSBC", "Toronto",
+ * A named thing on fewer than this share of slides is what the person is after ("QNBC", "Toronto",
  * "QA/QC"), so every result must mention it. Common words ("workplace", "strategy") only rank.
  */
 export const RARE_SHARE = 0.08;

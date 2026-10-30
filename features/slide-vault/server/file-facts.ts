@@ -31,8 +31,8 @@ export async function readFileFacts(bytes: Uint8Array | Buffer): Promise<FileFac
 }
 
 /**
- * A recorded author as people read it (FD-54): "ChelseaTerrell - M Moser Associates" becomes
- * "Chelsea Terrell". Drops a trailing " - M Moser..." (the company, not the person) and splits a
+ * A recorded author as people read it (FD-54): "JordanEllis - M Moser Associates" becomes
+ * "Jordan Ellis". Drops a trailing " - M Moser..." (the company, not the person) and splits a
  * name typed without a space where a lower-case letter meets a capital, only after at least three
  * letters, so "McDonald" and "DeAndre" stay as they are. The stored value is never changed.
  */

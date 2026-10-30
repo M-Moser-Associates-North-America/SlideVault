@@ -5,8 +5,8 @@
  *   npm run upload:library                                          # the synthetic library, to http://localhost:3000
  *   npm run upload:library -- "<library folder>" --dry-run          # list what WOULD happen; uploads nothing
  *   npm run upload:library -- "<library folder>" --limit 20 --yes   # upload the first 20 decks
- *   npm run upload:library -- "<library folder>" --only Gusto --yes # only decks whose path contains "Gusto"
- *   npm run upload:library -- "<library folder>" --skip Newmark ... # leave out decks whose path contains "Newmark"
+ *   npm run upload:library -- "<library folder>" --only Sprocket --yes # only decks whose path contains "Sprocket"
+ *   npm run upload:library -- "<library folder>" --skip Fieldmark ... # leave out decks whose path contains "Fieldmark"
  *   npm run upload:library -- "<library folder>" --as "Your Name" ... # recorded as who uploaded each deck
  *   npm run upload:library -- "<library folder>" --best-of-the-best # mark every deck as Best of the Best
  *                                                                    # (for a folder that IS that set but isn't named so)
@@ -39,13 +39,13 @@ if (limitAt >= 0 && (!Number.isInteger(limit) || limit < 1)) {
 const onlyAt = args.indexOf('--only');
 const only = onlyAt >= 0 ? (args[onlyAt + 1] ?? '').toLowerCase() : '';
 if (onlyAt >= 0 && !only) {
-  console.error('--only needs some text from the file or folder name, e.g. --only Gusto');
+  console.error('--only needs some text from the file or folder name, e.g. --only Sprocket');
   process.exit(1);
 }
 const skipAt = args.indexOf('--skip');
 const skip = skipAt >= 0 ? (args[skipAt + 1] ?? '').toLowerCase() : '';
 if (skipAt >= 0 && !skip) {
-  console.error('--skip needs some text from the file or folder name, e.g. --skip Newmark');
+  console.error('--skip needs some text from the file or folder name, e.g. --skip Fieldmark');
   process.exit(1);
 }
 const allBotb = flag('--best-of-the-best');

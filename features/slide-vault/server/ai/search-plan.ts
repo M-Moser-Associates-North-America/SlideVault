@@ -25,7 +25,7 @@ export type SearchPlan = {
   category: string | null;
   bestOfTheBest: boolean | null;
   /**
-   * The specific things the person named that no filter or topic explains ("HSBC" in "HSBC case
+   * The specific things the person named that no filter or topic explains ("QNBC" in "QNBC case
    * study", "Toronto", "QA/QC"). Read by the rules from the typed words, never by a model. A named
    * thing that is rare in the library must be on every result (FD-56).
    */
@@ -98,7 +98,7 @@ export function namedWords(query: string, ctx: PlanContext, plan: SearchPlan): s
   const p = parseQuery(query, ctx.clients);
   const taken = new Set([plan.category, plan.client].filter(Boolean).flatMap((x) => x!.toLowerCase().split(/\s+/)));
   const out = [...p.tokens, ...typedCodes(query)].filter((w) => !taken.has(w) && !GENERIC_WORDS.has(w) && !isStopWord(w) && !ASKING_WORDS.test(w));
-  // Shown as typed ("HSBC", "Toronto"); matched without regard to case.
+  // Shown as typed ("QNBC", "Toronto"); matched without regard to case.
   const typed = query.split(/\s+/).map((w) => w.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '').replace(/['’]s$/i, ''));
   const asTyped = (w: string) => typed.find((t) => t.toLowerCase() === w) ?? typed.find((t) => t.toLowerCase().startsWith(w)) ?? w;
   // The parts of a code ("qa", "qc" of "QA/QC") are the code, not more names.

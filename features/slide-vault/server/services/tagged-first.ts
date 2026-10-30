@@ -3,15 +3,15 @@ import { mentionsWord } from './smart-search';
 
 /**
  * People's own tags lead a search (docs/DECISIONS.md FD-58). Gabby, 28 Oct: "once I have that page, I
- * would like to add tags and say, for example, Moira. So next time I look for it, I type Moira and
- * then SlideVault knows who Moira is." A slide tagged with what was typed comes first, then slides
+ * would like to add tags and say, for example, Priya. So next time I look for it, I type Priya and
+ * then SlideVault knows who Priya is." A slide tagged with what was typed comes first, then slides
  * whose deck carries the tag, then everything else as the search ranked it.
  */
 
 export type TagHit = { tag: string; on: 'slide' | 'deck'; id: string };
 type Item = { slide: SlideSummary; why: string; matched: string[] };
 
-/** The tags whose words were typed, as whole words ("Moira" in "Moira resume", not "Moi"). */
+/** The tags whose words were typed, as whole words ("Priya" in "Priya resume", not "Moi"). */
 export const typedTags = (query: string, hits: TagHit[]) => hits.filter((h) => mentionsWord(query, h.tag));
 
 export async function taggedFirst(query: string, items: Item[], hits: TagHit[], fetch: (slideIds: string[]) => Promise<SlideSummary[]>): Promise<Item[]> {

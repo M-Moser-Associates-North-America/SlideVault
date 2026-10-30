@@ -312,7 +312,7 @@ check(wholeSentences('We start with you. Then we plan every site together with y
 }
 
 {
-  // Seen on the Moody's story (24 Oct): the summary stopped at "and", "why this slide" at "st".
+  // Seen on the Barlow's story (24 Oct): the summary stopped at "and", "why this slide" at "st".
   const long = 'This beat sets the stage by framing the client as a forward-thinking global leader, aligning with the firm\'s ability to deliver high-impact, strategic workplaces. It also shows we know their market and their people in detail.';
   const c = cleanComposition({ title: 'A very long title that goes on and on well past the point where any heading should have stopped talking', thesis: long, beats: [1, 2, 3].map((n) => ({ role: 'strategy', title: 't', bridge: long, lead: `s${n}`, more: [], narration: long, why: long, matches: [] })) }, new Map([['s1', 'strategy'], ['s2', 'strategy'], ['s3', 'strategy']]));
   const ends = (t: string) => /[.!?…]$/.test(t) || t === long;

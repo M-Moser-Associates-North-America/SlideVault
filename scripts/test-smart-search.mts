@@ -307,21 +307,21 @@ for (const [env, label] of [
   check(JSON.stringify(ids) === '["s1","s2","s3"]', 'rows: each slide is read once, so copies never crowd out the last ones asked for', ids);
 }
 
-// ---- What the person named is required when it's rare (FD-56: "HSBC case study" means HSBC)
+// ---- What the person named is required when it's rare (FD-56: "QNBC case study" means QNBC)
 {
-  check(JSON.stringify(standInPlan('HSBC case study', ctx).named) === '["HSBC"]', 'named: "HSBC case study" names HSBC, the case study is a topic', standInPlan('HSBC case study', ctx).named);
+  check(JSON.stringify(standInPlan('QNBC case study', ctx).named) === '["QNBC"]', 'named: "QNBC case study" names QNBC, the case study is a topic', standInPlan('QNBC case study', ctx).named);
   check(!(standInPlan('Kestrel Law team', ctx).named ?? []).length, 'named: a client is a filter, not a named word');
   check(mentionsWord('Our hospitals', 'hospital') && !mentionsWord('Hospitality suites', 'hospital'), 'named: whole words, plural allowed ("hospital" is not "hospitality")');
   check(mentionsWord('Résumés of the team', 'resume'), 'named: accents don\'t matter ("resume" finds "Résumés")');
 
   const row = (id: string, text: string, title = id) => ({ summary: slide(id), facts: facts({ title, text }) });
-  const rows = [row('plain', 'Our approach to case studies.'), row('hsbc', 'HSBC regional headquarters case study.'), row('deckonly', 'A trading floor.')];
+  const rows = [row('plain', 'Our approach to case studies.'), row('qnbc', 'QNBC regional headquarters case study.'), row('deckonly', 'A trading floor.')];
   const named = (q: string, d: Partial<Parameters<typeof smartSearch>[2]> = {}) =>
-    smartSearch(q, 10, { context, thisYear: 2026, search: async () => rows, howCommon: () => 0.03, alsoSays: (s) => (s.id === 'deckonly' ? 'HSBC deck' : ''), ...d });
-  const r = await named('HSBC case study');
-  check(JSON.stringify(r.items.map((i) => i.slide.id)) === '["hsbc","deckonly"]', 'named: only slides that mention it, the slide\'s own words first, then its deck', r.items.map((i) => i.slide.id));
-  check(r.chips.some((c) => c.kind === 'Mentions' && c.label === 'HSBC'), 'named: shown as a "Mentions" chip, as typed', r.chips);
-  const common = await named('HSBC case study', { howCommon: () => 0.3 });
+    smartSearch(q, 10, { context, thisYear: 2026, search: async () => rows, howCommon: () => 0.03, alsoSays: (s) => (s.id === 'deckonly' ? 'QNBC deck' : ''), ...d });
+  const r = await named('QNBC case study');
+  check(JSON.stringify(r.items.map((i) => i.slide.id)) === '["qnbc","deckonly"]', 'named: only slides that mention it, the slide\'s own words first, then its deck', r.items.map((i) => i.slide.id));
+  check(r.chips.some((c) => c.kind === 'Mentions' && c.label === 'QNBC'), 'named: shown as a "Mentions" chip, as typed', r.chips);
+  const common = await named('QNBC case study', { howCommon: () => 0.3 });
   check(common.items.length === 3 && !common.chips.some((c) => c.kind === 'Mentions'), 'named: a word on many slides only ranks, it isn\'t required');
   const sentence = await named('slides that demonstrate our value proposition', { howCommon: () => 0.01 });
   check(sentence.items.length === 3, 'named: in a sentence, an ordinary rare word ("proposition") isn\'t a name');
@@ -329,7 +329,7 @@ for (const [env, label] of [
   check(JSON.stringify(known.items.map((i) => i.slide.id)) === '["a"]', 'named: in a sentence, a place the library knows is a name even in lower case', known.items.map((i) => i.slide.id));
   const sector = await smartSearch('hospital case study', 10, { context, thisYear: 2026, search: async () => [row('a', 'A clinic fit-out'), row('b', 'A bank')], howCommon: () => 0.01, alsoSays: (s) => (s.id === 'a' ? 'healthcare' : 'financial services'), alsoMeans: (w) => (w === 'hospital' ? ['healthcare'] : []) });
   check(JSON.stringify(sector.items.map((i) => i.slide.id)) === '["a"]', 'named: "hospital" is also met by a healthcare slide', sector.items.map((i) => i.slide.id));
-  const bios = await smartSearch('HSBC', 10, { context, thisYear: 2026, search: async () => [row('bio', 'Led the HSBC fit-out'), row('case', 'HSBC case study')], howCommon: () => 0.03, rankLast: (s) => s.id === 'bio' });
+  const bios = await smartSearch('QNBC', 10, { context, thisYear: 2026, search: async () => [row('bio', 'Led the QNBC fit-out'), row('case', 'QNBC case study')], howCommon: () => 0.03, rankLast: (s) => s.id === 'bio' });
   check(JSON.stringify(bios.items.map((i) => i.slide.id)) === '["case","bio"]', 'named: a passing mention in a bio comes last', bios.items.map((i) => i.slide.id));
   const missing = await named('Zephyr case study', { alsoSays: () => '' });
   check(missing.relaxed && missing.items.length === 3 && !missing.chips.some((c) => c.kind === 'Mentions'), 'named: when nothing mentions it, the rest is shown and marked relaxed');
@@ -356,21 +356,21 @@ for (const [env, label] of [
   check(JSON.stringify(names(contents)) === '["p3:team:The right team","p5:case-studies:The portfolio"]', 'sections: an unnumbered divider listed on the contents page is found', names(contents));
 
   check(JSON.stringify(sectionKinds('Firm background / relevant experience')) === '["case-studies","firm"]' && sectionKind('Appendix B Team resumes') === 'team' && sectionKind('Appendix') === 'appendix' && sectionKind('How we will run the portfolio') === 'approach', 'sections: a name can be two sections; an appendix of résumés is the team; "How we…" is the approach');
-  check(isSectionSearch('resumes') && isSectionSearch('banner slides in case studies') && isSectionSearch('firm overview') && !isSectionSearch('HSBC case study') && !isSectionSearch('Workplace strategy process') && !isSectionSearch('2026'), 'sections: a search that is only a section, with nothing else named');
+  check(isSectionSearch('resumes') && isSectionSearch('banner slides in case studies') && isSectionSearch('firm overview') && !isSectionSearch('QNBC case study') && !isSectionSearch('Workplace strategy process') && !isSectionSearch('2026'), 'sections: a search that is only a section, with nothing else named');
   check(asksForCover('banner slides in case studies') && asksForCover('the page breakers') && !asksForCover('case studies'), 'sections: asking for a cover');
 }
 
-// ---- People's own tags lead (FD-58: Gabby tags the page "Moira", then types Moira)
+// ---- People's own tags lead (FD-58: Gabby tags the page "Priya", then types Priya)
 {
   const sl = (id: string, deck = 'd') => ({ ...slide(id), provenance: { ...slide(id).provenance, sourceId: deck } });
   const items = [{ slide: sl('a'), why: 'Matched.', matched: [] }, { slide: sl('b', 'deck2'), why: 'Matched.', matched: [] }, { slide: sl('c'), why: 'Matched.', matched: [] }];
-  const hits: TagHit[] = [{ tag: 'Moira', on: 'slide', id: 'm' }, { tag: 'Moira', on: 'deck', id: 'deck2' }, { tag: 'Moi', on: 'slide', id: 'c' }];
+  const hits: TagHit[] = [{ tag: 'Priya', on: 'slide', id: 'm' }, { tag: 'Priya', on: 'deck', id: 'deck2' }, { tag: 'Moi', on: 'slide', id: 'c' }];
   let asked: string[] = [];
-  const out = await taggedFirst('Moira resume', items, hits, async (ids) => { asked = ids; return ids.map((id) => sl(id)); });
+  const out = await taggedFirst('Priya resume', items, hits, async (ids) => { asked = ids; return ids.map((id) => sl(id)); });
   check(JSON.stringify(out.map((i) => i.slide.id)) === '["m","b","a","c"]', 'tags: the tagged slide first (fetched if search missed it), then its tagged deck, then the rest', out.map((i) => i.slide.id));
   check(JSON.stringify(asked) === '["m"]', 'tags: only slides the search missed are fetched', asked);
-  check(out[0].why.startsWith('Tagged “Moira” by someone') && out[1].why.startsWith('Tagged “Moira” (its deck)'), 'tags: the reason says which tag', out.slice(0, 2).map((i) => i.why));
-  check(JSON.stringify(typedTags('Moira resume', hits).map((h) => h.tag)) === '["Moira","Moira"]', 'tags: whole words only ("Moi" is not typed in "Moira")');
+  check(out[0].why.startsWith('Tagged “Priya” by someone') && out[1].why.startsWith('Tagged “Priya” (its deck)'), 'tags: the reason says which tag', out.slice(0, 2).map((i) => i.why));
+  check(JSON.stringify(typedTags('Priya resume', hits).map((h) => h.tag)) === '["Priya","Priya"]', 'tags: whole words only ("Moi" is not typed in "Priya")');
   const none = await taggedFirst('case studies', items, hits, async () => []);
   check(none === items, 'tags: a search that types no tag is left as it was');
 }

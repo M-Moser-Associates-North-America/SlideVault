@@ -588,7 +588,7 @@ export function ResultsView() {
   /* Real search (FD-16, FD-17): the server reads the request, finds slides and says why each fits.
      The filter row narrows the results further here; sorting is a view choice. */
   const result = search.status === 'ready' ? search.result : null;
-  /* Premade decks the request names (FD-31): "Moody's proposal 2025", "all proposals from 2025".
+  /* Premade decks the request names (FD-31): "Barlow's proposal 2025", "all proposals from 2025".
      Found from the library's own deck facts, at once, before and beside the slide search. */
   const lib = useReadyLibrary();
   const found = useMemo(

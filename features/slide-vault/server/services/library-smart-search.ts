@@ -119,7 +119,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   const sectionScore = (id: string) => {
     if (!inAsked(id)) return 0;
     const sec = sections.get(id)!;
-    // The cover leads when one is asked for; otherwise the section's first pages ("the Moira page and the four after it").
+    // The cover leads when one is asked for; otherwise the section's first pages ("the Priya page and the four after it").
     return 5 + (sec.divider ? (cover ? 12 : 1) : cover ? 0 : Math.max(0, 3 - sec.position) * 0.5);
   };
   const notRelevant = (id: string) => { const l = learned.get(id); return !!l && l.notRelevant > l.useful; };
@@ -147,7 +147,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
       isKnownName: (word) => knownNames(index, readings).has(word),
       alsoMeans: (word) => clientSectors(word),
       rankLast: (s) => (readings.get(s.id)?.type === 'team_resume' && !intent.types.includes('team_resume')) || notRelevant(s.id),
-      // A slide "mentions" Toronto when its deck was made there, and HSBC when the model read it on the slide.
+      // A slide "mentions" Toronto when its deck was made there, and QNBC when the model read it on the slide.
       alsoSays: (s) => { const k = readings.get(s.id); return [k?.about, k?.topics.join(' '), k?.sectors?.join(' '), k?.clientSector, k?.themes?.join(' '), k?.projects?.join(' '), s.provenance.sourceTitle, s.provenance.sourceFileName, s.provenance.location, s.provenance.clientName].filter(Boolean).join(' '); },
       log: (m) => console.warn(m),
     },
@@ -156,7 +156,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
 
   // A search for a section shows each deck's section once before the rest (Alina, 28 Oct: "search
   // between different decks for that particular bunch of slides"), led by its first page (Gabby: "the
-  // Moira page… those 1, 2, 3, 4 next pages"), or by its cover when a cover is asked for.
+  // Priya page… those 1, 2, 3, 4 next pages"), or by its cover when a cover is asked for.
   // A search that also asks for a kind of slide ("resumes", "case study") is led by its best slide of that kind.
   if (isSectionSearch(query)) {
     const lead = new Map<string, (typeof result.items)[number]>();
@@ -254,7 +254,7 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
         } }
     : undefined;
   // Retelling a deck: what the deck is ("RFP, HQ relocation/renovation") tells the rest of the
-  // library what a missing part should be about, when the request is only "the story of Moody's".
+  // library what a missing part should be about, when the request is only "the story of Barlow's".
   const brief = source ? `${situation}\n${source.deck.title.replace(/ · /g, ', ')}` : situation;
   const result = await buildStoryboard(brief, { reader: opts.reader, search, learned: learnedForTopics, knowledge, source, context, families, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
   const all = [...result.sections.flatMap((s) => s.items.map((i) => i.slide)), ...result.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide))];

@@ -363,7 +363,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   });
   // Slides hidden in their deck or from an archived deck, never-show pages and copies naming another client are never told.
   const tellable = (row: { summary: SlideSummary }) => !keptOutOfStories(row.summary) && !neverInStory(known(row.summary.id));
-  // What the deck itself is about, for a thesis when the request names no needs ("the story of Moody's")
+  // What the deck itself is about, for a thesis when the request names no needs ("the story of Barlow's")
   const themesOf = (ids: string[]) => {
     const count = new Map<string, number>();
     for (const id of ids) for (const t of known(id)?.themes ?? []) count.set(t, (count.get(t) ?? 0) + 1);
