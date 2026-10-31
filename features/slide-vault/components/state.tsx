@@ -10,7 +10,8 @@ import { currentStoryRole } from '../client/role-store';
 import { useSelection } from '../client/selection-store';
 import { tourIsOpen } from '../client/tour-store';
 import type { SlideSummary, SmartSearchResult } from '../contracts/dto';
-import type { SlideVaultRuntime } from '../contracts/runtime';
+import type { RuntimeRequest, SlideVaultRuntime } from '../contracts/runtime';
+import { USER_HEADER } from '../client/user-api';
 import { groupDecks, NO_FILTERS, plural, type Deck, type Filters } from './library';
 
 export type LibraryState = { status: 'loading' } | { status: 'ready'; slides: SlideSummary[]; decks: Deck[] } | { status: 'error'; message: string };
@@ -157,7 +158,19 @@ function useDemoFlag(name: string): boolean {
   );
 }
 
-export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRuntime; children: ReactNode }) {
+export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime: SlideVaultRuntime; children: ReactNode }) {
+  /* Every call to the server names the signed-in person (FD-18), not only the /me ones: archiving,
+     packs, tags, uploads and feedback record who did it, and the server refuses archive, pack and tag
+     changes without a name ("Sign in to archive", 31 Oct). The rest of the host's runtime is kept as is. */
+  const signedInRef = useRef<string | null>(null);
+  const runtime = useMemo<SlideVaultRuntime>(() => {
+    const signed = Object.create(hostRuntime) as SlideVaultRuntime;
+    signed.request = (input: RuntimeRequest) => {
+      const user = signedInRef.current;
+      return hostRuntime.request(user ? { ...input, headers: { [USER_HEADER]: encodeURIComponent(user), ...input.headers } } : input);
+    };
+    return signed;
+  }, [hostRuntime]);
   const { request, onSessionExpired } = runtime;
   const transport = useMemo(() => ({ request, onSessionExpired }), [request, onSessionExpired]);
 
@@ -286,6 +299,9 @@ export function WorkspaceProvider({ runtime, children }: { runtime: SlideVaultRu
 
   /* Fake sign-in (see below): the profile is needed earlier, for who confirmed a pack. */
   const { profile, signIn, signOut: signOutStore } = useProfile();
+  useEffect(() => {
+    signedInRef.current = profile;
+  }, [profile]);
 
   /* Packs (FD-38): slides that go together. They come from the server on each slide, plus any made in this
      browser while the server cannot store them. ?demopacks=1 in the address shows pretend ones. */
