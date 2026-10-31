@@ -12,6 +12,7 @@
     "test:combine": "tsx --conditions=react-server scripts/test-combine.mts",
     "test:duplicates": "tsx --conditions=react-server scripts/test-duplicates.mts",
     "test:folder-path": "tsx scripts/test-folder-path.mts",
+    "test:extract": "tsx --conditions=react-server scripts/test-extract-text.mts",
     "test:deck-details": "tsx scripts/test-deck-details.mts",
     "test:v3": "tsx --conditions=react-server scripts/test-v3-live.mts",
     "test:smart-search": "tsx --conditions=react-server scripts/test-smart-search.mts",
@@ -36,6 +37,7 @@
     "story:import": "tsx scripts/import-story-data.mts",
     "deck:unstick": "tsx scripts/unstick-deck.mts",
     "deck:details": "tsx scripts/deck-details.mts",
+    "slides:spacing": "tsx --conditions=react-server scripts/fix-slide-spacing.mts",
     "db:vector": "tsx scripts/db-vector.mts",
     "embed:slides": "tsx scripts/embed-slides.mts"
   },
