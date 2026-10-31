@@ -26,6 +26,7 @@ const savedRoute = await import('../app/api/slide-vault/v1/me/saved/route');
 const draftsRoute = await import('../app/api/slide-vault/v1/me/drafts/route');
 const draftRoute = await import('../app/api/slide-vault/v1/me/drafts/[draftId]/route');
 const activityRoute = await import('../app/api/slide-vault/v1/me/activity/route');
+const suggestedRoute = await import('../app/api/slide-vault/v1/me/suggested/route');
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -119,6 +120,44 @@ await activityRoute.PATCH(as('Ana', 'PATCH', { optedIn: false }));
 const left = await sql<{ n: number }>(`select count(*)::int as n from activity_events where user_key = 'Ana'`);
 got = await json(await activityRoute.GET(as('Ana', 'GET')));
 check(left[0].n === 0 && got.body.data?.optedIn === false, 'activity: opting out deletes everything recorded for me');
+
+// ---- Role (FD-71)
+const settingsRoute = await import('../app/api/slide-vault/v1/me/settings/route');
+const settings = async (who: string, method: string, body?: unknown) => json(await (settingsRoute as unknown as Record<string, (r: Request) => Promise<Response>>)[method](as(who, method, body)));
+check((await settings('Ana', 'GET')).body.data?.role === null, 'role: nobody has a role until they pick one');
+await activityRoute.PATCH(as('Ana', 'PATCH', { optedIn: true }));
+check((await settings('Ana', 'PATCH', { role: 'director' })).status === 200, 'role: PATCH /me/settings saves a role');
+let mine = await settings('Ana', 'GET');
+check(mine.body.data?.role === 'director' && mine.body.data?.activityOptedIn === true, 'role: GET /me/settings returns it, and setting a role leaves the opt-in alone', mine);
+check((await settings('Ana', 'PATCH', { role: 'ceo' })).status === 400 && (await settings('Ana', 'PATCH', {})).status === 400, 'role: unknown roles and a missing role are refused');
+await settings('Ana', 'PATCH', { role: null });
+mine = await settings('Ana', 'GET');
+check(mine.body.data?.role === null && (await settings('Ben', 'GET')).body.data?.role === null, 'role: null clears it, and roles are per person');
+
+
+// Suggested for you by role (FD-71): counts of opted-in saves and downloads, only from 3+ people in the role.
+const suggested = async (who: string) => json(await suggestedRoute.GET(as(who, 'GET')));
+check((await suggested('Ana')).body.data?.items instanceof Array && ((await suggested('Ana')).body.data?.items as unknown[]).length === 0, 'role suggestions: nothing without a role');
+for (const who of ['Dee1', 'Dee2', 'Dee3', 'Dee4', 'Bob1']) {
+  await activityRoute.PATCH(as(who, 'PATCH', { optedIn: true }));
+  await settings(who, 'PATCH', { role: who.startsWith('Dee') ? 'director' : 'business-developer' });
+}
+await settings('Nan', 'PATCH', { role: 'director' }); // a director who never opted in
+for (const who of ['Dee1', 'Dee2', 'Dee3']) await data.recordActivity(who, 'downloaded', 'popular', 'Popular slide');
+for (const who of ['Dee1', 'Dee2']) await data.recordActivity(who, 'saved', 'two-only', 'Two people');
+for (const who of ['Dee1', 'Dee2', 'Dee3', 'Dee4']) await data.recordActivity(who, 'viewed', 'viewed-only', 'Looked at');
+await data.recordActivity('Dee4', 'saved', 'two-plus-other', 'Mixed');
+await data.recordActivity('Bob1', 'saved', 'two-plus-other', 'Mixed');
+await data.recordActivity('Dee3', 'saved', 'two-plus-other', 'Mixed');
+await data.recordActivity('Nan', 'saved', 'two-plus-other', 'Mixed');
+await data.recordActivity('Dee1', 'saved', 'popular', 'Popular slide'); // the same person twice counts once
+const dir = await suggested('Dee4');
+const items = (dir.body.data?.items ?? []) as { slideId: string; people: number }[];
+check(dir.body.data?.role === 'director' && JSON.stringify(items) === '[{"slideId":"popular","people":3}]', 'role suggestions: only slides 3+ people in the role saved or downloaded, counted once per person; views, other roles and people who didn\'t opt in don\'t count', dir.body);
+check(!JSON.stringify(dir.body).includes('Dee'), 'role suggestions: no names in the answer');
+check(((await suggested('Bob1')).body.data?.items as unknown[]).length === 0, 'role suggestions: another role sees its own counts only');
+await activityRoute.PATCH(as('Dee3', 'PATCH', { optedIn: false }));
+check(((await suggested('Dee4')).body.data?.items as unknown[]).length === 0, 'role suggestions: someone opting out takes their activity with them, so the slide drops below 3 people');
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll user data checks passed');
 process.exit(failures ? 1 : 0);

@@ -138,6 +138,18 @@ export type FreeTag = {
   addedAt: string;
 };
 
+/** Who last set a slide's title (FD-73): a person, the AI, or the system (read automatically from the slide's text). Absent = the system. */
+export type TitleEdit = { kind: 'person' | 'ai' | 'system'; by?: string; at?: string };
+
+/** Reddit-style vote on a whole slide (FD-72): people who said up and down, and what the signed-in person said. Absent until the server counts votes. */
+export type SlideVotes = { up: number; down: number; myVote: 1 | -1 | 0 };
+
+/** A comment on a slide (FD-72). Plain text, never markup. */
+export type SlideComment = { id: string; text: string; author: string; at: string };
+
+/** A tag someone removed (FD-72), kept so the slide page can say who removed it and let anyone restore it. */
+export type TagRemoval = { id: string; tag: string; on: 'slide' | 'deck'; addedBy: string; removedBy: string; removedAt: string };
+
 export type SlideSummary = {
   id: string;
   title: string;
@@ -155,6 +167,13 @@ export type SlideSummary = {
   story?: SlideStory | null;
   /** Free-form tags on this slide or its deck, when any (FD-53) */
   tags?: FreeTag[];
+  /** Up and down votes on the slide and how many comments it has (FD-72); absent until the server has them */
+  votes?: SlideVotes;
+  commentCount?: number;
+  /** Who last set the title, and when (FD-73); absent until the server keeps that */
+  titleEdit?: TitleEdit;
+  /** The deck section the slide sits in (FD-57, "page breakers"), set by search when known; divider is its cover */
+  section?: { name: string; kind: string; divider: boolean; dividerId: string } | null;
 };
 
 export type SlideDetail = SlideSummary & { text: string };
@@ -192,6 +211,22 @@ export type DeckSummary = {
   alreadyUploaded?: boolean;
   /** What the second copy's folder added to the existing deck, e.g. ["Best of the Best", "year 2024"] */
   addedDetails?: string[];
+  /** How many free-form tags sent with the upload were saved (FD-54) */
+  tagsAdded?: number;
+};
+
+/**
+ * POST /uploads/preview (FD-54): a chosen .pptx's slides as pictures, before anything is stored.
+ * Each previewPath is relative to the API root (runtime.assetUrl), served for about two hours.
+ */
+export type UploadPreview = {
+  /** The file's fingerprint; the pictures are kept under it */
+  token: string;
+  fileName: string;
+  slideCount: number;
+  /** Set when this exact file is already in the library: the deck's title */
+  alreadyUploadedAs: string | null;
+  slides: { number: number; title: string; hiddenInSource: boolean; previewPath: string }[];
 };
 
 /** GET /library: every ready deck and slide, for screens that browse and filter in the browser (V3 prototype). */
@@ -227,7 +262,7 @@ export type LibrarySlide = {
 export type LibraryData = { decks: LibraryDeck[]; slides: LibrarySlide[] };
 
 /** GET /smart-search (docs/DECISIONS.md FD-16, FD-17): results with the reading shown and a reason per slide. */
-export type SmartSearchChip = { kind: 'Topic' | 'Client' | 'Year' | 'Category' | 'Collection'; label: string };
+export type SmartSearchChip = { kind: 'Topic' | 'Client' | 'Year' | 'Category' | 'Collection' | 'Mentions'; label: string };
 
 export type SmartSearchItem = {
   slide: SlideSummary;

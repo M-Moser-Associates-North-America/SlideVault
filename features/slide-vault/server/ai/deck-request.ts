@@ -4,9 +4,9 @@ import { findDecks, type FindableDeck } from '../../components/deck-finder';
  * What a storyboard request asks for (docs/DECISIONS.md FD-31). The same library answers three
  * different questions, and the person's words say which:
  *
- * - retrieve: an existing deck as it was saved ("Show me the Moody's proposal from 2025",
- *   "Retrieve the original Moody's proposal"). Nothing is built; the deck opens whole.
- * - reimagine: an existing deck told better ("Tell me the story of Moody's", "Improve the Moody's
+ * - retrieve: an existing deck as it was saved ("Show me the Barlow's proposal from 2025",
+ *   "Retrieve the original Barlow's proposal"). Nothing is built; the deck opens whole.
+ * - reimagine: an existing deck told better ("Tell me the story of Barlow's", "Improve the Barlow's
  *   deck"). Every slide of that deck is used, put in a client-first story.
  * - build: a new story from the whole library ("A hospital group is merging three campuses...").
  *

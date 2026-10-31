@@ -10,17 +10,20 @@ import { listFilterValuesPg, listSlideTextsPg, smartSearchPg } from '../pg-repos
 import { withDownloadCounts } from '../user-data';
 import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
 import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures, type SearchKnowledge } from './fixture-smart-search';
-import { answersIntent, asksForAnything, intentScore, intentWhy, searchIntent } from './slide-intent';
+import { answersIntent, asksForAnything, intentScore, intentWhy, knownFromStory, searchIntent } from './slide-intent';
 import { loadSlideReadings } from '../slide-knowledge';
-import { smartSearch, type SmartSearchResponse } from './smart-search';
-import { buildStoryboard, type StoryboardResponse } from './storyboard';
+import { mentionsWord, smartSearch, type SmartSearchResponse } from './smart-search';
+import { buildStoryboard, clientSectors, keptOutOfStories, type StoryboardResponse } from './storyboard';
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
 import { familiesOf } from './families';
+import { askedSections, asksForCover, isSectionSearch, librarySections, sectionWhy, type SlideSection } from './sections';
 import { refineStory } from './story-refine';
 import type { StoryBeat, StoryRefineRequest, StoryRefineResult, StoryboardSlide } from '../../contracts/dto';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
+import { learnedScore, searchLearning } from '../search-feedback';
+import { isInternalOnly, listDeckSlidesPg, type DeckSlidesPg } from '../pg-repository';
 import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
 
 /**
@@ -56,19 +59,126 @@ async function orWithoutDb<T>(what: string, run: () => Promise<T>, fallback: T):
   }
 }
 
-export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean }): Promise<SmartSearchResponse> {
+/**
+ * The uploaded decks' slides in order, for deck sections and named words (FD-57, FD-56), read at
+ * most once a minute. None without database settings, so a checkout without them is unchanged.
+ */
+const NO_UPLOADS: { sources: DeckSlidesPg[] } = { sources: [] };
+let uploads: { at: number; library: { sources: DeckSlidesPg[] } } | null = null;
+async function uploadedDecks(): Promise<{ sources: DeckSlidesPg[] }> {
+  if (!hasMmoserConfig()) return NO_UPLOADS;
+  if (uploads && Date.now() - uploads.at < 60_000) return uploads.library;
+  const sources = await orWithoutDb('deck slides', listDeckSlidesPg, [] as DeckSlidesPg[]);
+  uploads = { at: Date.now(), library: sources.length ? { sources } : NO_UPLOADS };
+  return uploads.library;
+}
+const currentUploads = () => uploads?.library ?? NO_UPLOADS;
+
+/** Worked out once per sample-library load and uploaded-decks read. */
+function onceFor<T>(cache: WeakMap<object, { uploads: object; value: T }>, key: object, make: () => T): T {
+  const have = cache.get(key);
+  if (have && have.uploads === currentUploads()) return have.value;
+  const value = make();
+  cache.set(key, { uploads: currentUploads(), value });
+  return value;
+}
+
+/** Share of the library's slides whose title or text mentions a word, counted once per library load. */
+const shares = new WeakMap<object, { uploads: object; value: Map<string, number> }>();
+function wordShare(index: Awaited<ReturnType<typeof loadLibraryIndex>>, word: string): number {
+  const all: { slides: { title: string; text: string }[] }[] = [...(index?.sources ?? []), ...currentUploads().sources];
+  if (!all.length) return 1;
+  const seen = onceFor(shares, index ?? NO_UPLOADS, () => new Map<string, number>());
+  const cached = seen.get(word);
+  if (cached !== undefined) return cached;
+  const slides = all.flatMap((s) => s.slides);
+  const share = slides.length ? slides.filter((s) => mentionsWord(`${s.title} ${s.text}`, word)).length / slides.length : 1;
+  seen.set(word, share);
+  return share;
+}
+
+/**
+ * A light lean by how the person builds proposals (FD-59), in the words of each role (client/role-store):
+ * a director's stories "lean on why M Moser, value"; a business developer's "lead with the client's
+ * challenge and what we've learned"; BD support wants "one specific slide quickly" (survey), so no lean.
+ * Small next to a named thing or a section, so it only reorders close calls.
+ */
+const LEAN: Partial<Record<StoryUserRole, { roles: string[]; types: string[] }>> = {
+  director: { roles: ['why-us', 'outcome'], types: ['firm_profile', 'differentiator', 'fees_commercial'] },
+  'business-developer': { roles: ['client-challenge', 'insight', 'experience'], types: ['case_study_detail', 'case_study_hero', 'client_understanding'] },
+};
+function roleLean(by: StoryUserRole | null, k: { role?: string; type?: string } | undefined): number {
+  const lean = by ? LEAN[by] : undefined;
+  if (!lean || !k) return 0;
+  return (k.type && lean.types.includes(k.type)) || (k.role && lean.roles.includes(k.role)) ? 1.5 : 0;
+}
+
+/** Single words the library knows as names: clients, places, sectors, themes and projects. */
+const names = new WeakMap<object, { uploads: object; value: Set<string> }>();
+function knownNames(index: Awaited<ReturnType<typeof loadLibraryIndex>>, readings: Awaited<ReturnType<typeof loadSlideReadings>>): Set<string> {
+  return onceFor(names, index ?? readings, () => {
+    const out = new Set<string>();
+    const add = (s?: string | null) => s?.toLowerCase().split(/[^a-z0-9]+/).forEach((w) => w.length >= 3 && out.add(w));
+    for (const src of index?.sources ?? []) { const f = deckFacts(src); add(f.clientName); add(f.location); }
+    // Uploaded decks name their client ("Unknown client" adds nothing new: both words are common).
+    for (const deck of currentUploads().sources) if (deck.client !== 'Unknown client') add(deck.client);
+    for (const r of readings.values()) { r.sectors?.forEach(add); r.themes?.forEach(add); r.projects?.forEach(add); add(r.clientSector); }
+    return out;
+  });
+}
+
+/**
+ * A database slide type counts for sections only when it uses the scan's names ("section_divider",
+ * "team_resume"); any other wording would hide a divider, so it's left to the slide's own words.
+ */
+const scanTypes = new WeakMap<object, Set<string>>();
+function typesFromScan(readings: Awaited<ReturnType<typeof loadSlideReadings>>): Set<string> {
+  let have = scanTypes.get(readings);
+  if (!have) scanTypes.set(readings, (have = new Set([...readings.values()].map((r) => r.type).filter((t): t is string => !!t))));
+  return have;
+}
+
+/** Each slide's section, sample decks and uploaded decks (FD-57). */
+const allSections = new WeakMap<object, { uploads: object; value: Map<string, SlideSection> }>();
+function sectionsOf(index: Awaited<ReturnType<typeof loadLibraryIndex>>, readings: Awaited<ReturnType<typeof loadSlideReadings>>): Map<string, SlideSection> {
+  return onceFor(allSections, index ?? readings, () => {
+    const known = typesFromScan(readings);
+    const dbType = new Map(currentUploads().sources.flatMap((d) => d.slides.map((s) => [s.id, s.type] as const)));
+    const typeOf = (id: string) => readings.get(id)?.type ?? (known.has(dbType.get(id) ?? '') ? dbType.get(id)! : undefined);
+    return new Map([...librarySections(index, typeOf), ...librarySections(currentUploads(), typeOf)]);
+  });
+}
+
+export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean; by?: StoryUserRole | null; includeHidden?: boolean }): Promise<SmartSearchResponse> {
   const index = await loadLibraryIndex();
+  // What colleagues marked useful or not relevant for searches with these words (FD-59).
+  const learned = await searchLearning(query, opts.by ?? null);
   // What the search asks for beyond its words (FD-33): a kind of slide, a sector, a theme, matched
   // against the reviewed metadata and the local model's reading of each slide.
   const readings = await loadSlideReadings();
   const intent = searchIntent(query);
-  const known: SearchKnowledge | undefined = readings.size
-    ? {
-        about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
-        boost: (id) => intentScore(intent, readings.get(id)),
-        answers: (id) => asksForAnything(intent) && answersIntent(intent, readings.get(id)),
-      }
-    : undefined;
+  // The deck sections a search asks for (FD-57, "page breakers"): "resumes" finds each deck's résumé
+  // section, "banner slides in case studies" each case-study section's cover.
+  await uploadedDecks();
+  const sections = sectionsOf(index, readings);
+  const asked = askedSections(query);
+  const cover = asksForCover(query);
+  const inAsked = (id: string) => { const sec = sections.get(id); return !!sec && sec.kinds.some((k) => asked.includes(k)); };
+  const sectionScore = (id: string) => {
+    if (!inAsked(id)) return 0;
+    const sec = sections.get(id)!;
+    // The cover leads when one is asked for; otherwise the section's first pages ("the Priya page and the four after it").
+    return 5 + (sec.divider ? (cover ? 12 : 1) : cover ? 0 : Math.max(0, 3 - sec.position) * 0.5);
+  };
+  const notRelevant = (id: string) => { const l = learned.get(id); return !!l && l.notRelevant > l.useful; };
+  const known: SearchKnowledge = {
+    about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
+    boost: (id) => intentScore(intent, readings.get(id)) + sectionScore(id) + learnedScore(learned.get(id)) + roleLean(opts.by ?? null, readings.get(id)),
+    answers: (id) => (asksForAnything(intent) && answersIntent(intent, readings.get(id))) || inAsked(id),
+    // Hidden-in-source and internal-only slides are left out before the limit (FD-50, FD-53): a deck
+    // that opens with hidden notes (Ferrous MSA) otherwise fills "ferrous msa" with slides the app then drops.
+    skip: (s) => !opts.includeHidden && (s.hiddenInSource || isInternalOnly(s)),
+  };
   const result = await smartSearch(
     query,
     limit,
@@ -82,11 +192,48 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
         };
       },
       reader: opts.reader,
-      search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
+      // The real decks are searched with what's known about each slide too: kind, sector, theme (FD-70).
+      search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max, intent), [])), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
+      howCommon: (word) => wordShare(index, word),
+      isKnownName: (word) => knownNames(index, readings).has(word),
+      alsoMeans: (word) => clientSectors(word),
+      rankLast: (s) => (readings.get(s.id)?.type === 'team_resume' && !intent.types.includes('team_resume')) || notRelevant(s.id),
+      // A slide "mentions" Toronto when its deck was made there, and QNBC when the model read it on the slide.
+      alsoSays: (s) => { const k = readings.get(s.id); return [k?.about, k?.topics.join(' '), k?.sectors?.join(' '), k?.clientSector, k?.themes?.join(' '), k?.projects?.join(' '), s.provenance.sourceTitle, s.provenance.sourceFileName, s.provenance.location, s.provenance.clientName].filter(Boolean).join(' '); },
       log: (m) => console.warn(m),
     },
     { read: opts.read },
   );
+
+  // A search for a section shows each deck's section once before the rest (Alina, 28 Oct: "search
+  // between different decks for that particular bunch of slides"), led by its first page (Gabby: "the
+  // Priya page… those 1, 2, 3, 4 next pages"), or by its cover when a cover is asked for.
+  // A search that also asks for a kind of slide ("resumes", "case study") is led by its best slide of that kind.
+  if (isSectionSearch(query)) {
+    const lead = new Map<string, (typeof result.items)[number]>();
+    // Only a narrow kind narrows the lead ("resumes": a résumé, not the team section's org chart). Every page
+    // of a firm section is about the firm, so "firm overview" leads with each section's first page, reviewed or not.
+    const byKind = intent.types.some((t) => t !== 'firm_profile' && t !== 'differentiator') && !cover;
+    for (const item of result.items) {
+      const sec = sections.get(item.slide.id);
+      if (!sec || !sec.kinds.some((k) => asked.includes(k))) continue;
+      // Only a slide of that kind leads ("resumes": a résumé, not the section's org chart).
+      if (byKind && !intent.types.includes(readings.get(item.slide.id)?.type ?? '')) continue;
+      const have = lead.get(sec.dividerId);
+      const rank = (id: string) => { const x = sections.get(id)!; return cover ? (x.divider ? 0 : 1 + x.position) : x.divider ? 1000 : x.position; };
+      if (!have || (!byKind && rank(item.slide.id) < rank(have.slide.id))) lead.set(sec.dividerId, item);
+    }
+    const first = new Set([...lead.values()].map((i) => i.slide.id));
+    // Sections named in the search's own words go first ("firm overview": a deck's "Firm profile" before its
+    // "About M Moser"), people type what the divider says. Otherwise the search's order stands.
+    const said = query.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
+    const named = (id: string) => { const n = sections.get(id)!.name.toLowerCase(); return said.filter((w) => n.includes(w)).length; };
+    const order = result.items.filter((i) => first.has(i.slide.id)).map((i, n) => ({ i, n, hits: named(i.slide.id) })).sort((a, b) => b.hits - a.hits || a.n - b.n).map((x) => x.i);
+    result.items = [...order, ...result.items.filter((i) => !first.has(i.slide.id))];
+  }
+
+  // Marked not relevant for searches like this more often than useful: shown last (Alina: "I didn't want to see… a director's interview").
+  if (learned.size) result.items = [...result.items.filter((i) => !notRelevant(i.slide.id)), ...result.items.filter((i) => notRelevant(i.slide.id))];
 
   const texts: SlideText[] = [...fixtureSlideTexts(index), ...(await orWithoutDb('slide text', listSlideTextsPg, [] as SlideText[]))];
   const slideDeck = new Map(texts.map((t) => [t.id, t.sourceId]));
@@ -96,10 +243,13 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   const byId = new Map(result.items.map((i) => [i.slide.id, i]));
   // Say what each slide is in the search's terms, ahead of the words it matched.
   const said = (id: string, why: string) => {
-    const kind = intentWhy(intent, readings.get(id));
-    return kind ? `${kind} ${why}`.trim() : why;
+    // What the local files know (sample decks), else what the database knows (real decks, FD-70).
+    const kind = intentWhy(intent, readings.get(id) ?? knownFromStory(byId.get(id)!.slide));
+    const where = sectionWhy(sections.get(id), asked, cover);
+    return [where, kind, why].filter(Boolean).join(' ').trim();
   };
-  return { ...result, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide, why: said(slide.id, item.why) }; }) };
+  const sectionOf = (id: string) => { const sec = sections.get(id); return sec ? { name: sec.name, kind: sec.kind, divider: sec.divider, dividerId: sec.dividerId } : null; };
+  return { ...result, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
 }
 
 /** The configured storyboard reader, or null for the standard story order. Throws when misconfigured. */
@@ -161,7 +311,7 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
         } }
     : undefined;
   // Retelling a deck: what the deck is ("RFP, HQ relocation/renovation") tells the rest of the
-  // library what a missing part should be about, when the request is only "the story of Moody's".
+  // library what a missing part should be about, when the request is only "the story of Barlow's".
   const brief = source ? `${situation}\n${source.deck.title.replace(/ · /g, ', ')}` : situation;
   const result = await buildStoryboard(brief, { reader: opts.reader, search, learned: learnedForTopics, knowledge, source, context, families, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
   const all = [...result.sections.flatMap((s) => s.items.map((i) => i.slide)), ...result.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide))];
@@ -211,7 +361,7 @@ export async function refineStoryboard(req: StoryRefineRequest, opts: { reader: 
     })
     .filter((b): b is StoryBeat => !!b);
   const pinned = new Set(req.pinned.filter((id) => ids.includes(id)));
-  const tellable = (i: StoryboardSlide) => !i.slide.hiddenInSource && !neverShow(i.slide.id);
+  const tellable = (i: StoryboardSlide) => !keptOutOfStories(i.slide) && !neverShow(i.slide.id);
   const toSlide = (r: { summary: SlideSummary }, why: string): StoryboardSlide => ({ slide: r.summary, why, matched: [], reasons: { brief: [], part: [], from: [] } });
 
   const result = await refineStory(beats, req.message, pinned, {

@@ -4,7 +4,7 @@
  * prototype stand-in for M Moser's sign-in (see server/principal.ts); a host that signs people in
  * itself can drop it.
  */
-import type { ActivityEntry, ActivityResponse, ApiError, ApiOk, Draft } from '../contracts/dto';
+import type { ActivityEntry, ActivityResponse, ApiError, ApiOk, Draft, StoryUserRole } from '../contracts/dto';
 import type { Transport } from './api';
 
 export const USER_HEADER = 'X-SlideVault-User';
@@ -44,4 +44,7 @@ export const userApi = {
   recordActivity: (rt: Transport, user: string, entry: Omit<ActivityEntry, 'at'>) =>
     call<{ recorded: boolean }>(rt, user, '/me/activity', 'POST', entry).then((d) => d.recorded),
   setActivityOptIn: (rt: Transport, user: string, optedIn: boolean) => call(rt, user, '/me/activity', 'PATCH', { optedIn }),
+  /** The person's role, kept on the server (FD-71); null when none is set. */
+  getRole: (rt: Transport, user: string) => call<{ role: StoryUserRole | null }>(rt, user, '/me/settings', 'GET').then((d) => d.role),
+  setRole: (rt: Transport, user: string, role: StoryUserRole | null) => call(rt, user, '/me/settings', 'PATCH', { role }),
 };

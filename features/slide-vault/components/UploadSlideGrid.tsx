@@ -4,7 +4,8 @@ import { useState } from 'react';
 import type { PreviewSlide } from '../client/pptx-preview';
 import { Icon } from './icons';
 import { plural } from './library';
-import { TagField, type TagSuggestion } from './TagField';
+import type { TagSuggestion } from './TagField';
+import { AddTagPill, LocalTagList } from './TagBits';
 
 const PAGE = 60;
 
@@ -29,7 +30,16 @@ export function UploadSlideGrid({
   onTags,
   suggestions,
   disabled,
+  pictures,
+  drawing,
+  deckTags = [],
 }: {
+  /** The deck's own tags (set above the grid): shown on every card, since they apply to every slide */
+  deckTags?: string[];
+  /** Slide number -> picture address, once the server has drawn them */
+  pictures?: Record<number, string>;
+  /** The server is still drawing the pictures */
+  drawing?: boolean;
   slides: PreviewSlide[];
   tags: SlideTags;
   onTags: (next: SlideTags) => void;
@@ -40,6 +50,9 @@ export function UploadSlideGrid({
   const [shown, setShown] = useState(PAGE);
   const visible = slides.slice(0, shown);
   const allOn = selected.size === slides.length;
+  /* A picture that fails to load falls back to the grey placeholder, so a card is never blank. */
+  const [broken, setBroken] = useState<Set<number>>(new Set());
+  const [loaded, setLoaded] = useState<Set<number>>(new Set());
 
   const toggle = (n: number) =>
     setSelected((cur) => {
@@ -67,7 +80,14 @@ export function UploadSlideGrid({
             Slides in this deck
           </h2>
           <p className="meta">
-            {plural(slides.length, 'slide')}. Tag any that need it, or skip this and tag later. Pictures appear after the upload; for now each card shows the slide&rsquo;s title and text.
+            {plural(slides.length, 'slide')}.{' '}
+            <span aria-live="polite">
+            {pictures
+              ? 'The pictures are a preview, kept for a couple of hours; nothing is saved until you upload.'
+              : drawing
+                ? 'Drawing the slide pictures…'
+                : 'Pictures are not available for this file, so each card shows the slide’s title and text. They appear after the upload.'}
+            </span>
           </p>
         </div>
         <button type="button" className="btn btn-sm" disabled={disabled} onClick={() => setSelected(allOn ? new Set() : new Set(slides.map((s) => s.number)))}>
@@ -79,7 +99,7 @@ export function UploadSlideGrid({
         <div className="upgrid-bulk" role="group" aria-label="Tag the selected slides">
           <strong>{plural(selected.size, 'slide')} selected</strong>
           <div className="upgrid-bulk-field">
-            <TagField compact label={`Add a tag to ${plural(selected.size, 'selected slide')}`} value={[]} onChange={(next) => next[0] && addToSelected(next[0])} suggestions={suggestions} disabled={disabled} />
+            <AddTagPill label={`Add a tag to ${plural(selected.size, 'selected slide')}`} known={suggestions} have={[]} disabled={disabled} onAdd={addToSelected} />
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelected(new Set())}>
             Done
@@ -91,7 +111,19 @@ export function UploadSlideGrid({
         {visible.map((s) => (
           <li key={s.number} className={`upcard${selected.has(s.number) ? ' is-selected' : ''}${s.hidden ? ' is-hidden' : ''}`}>
             <div className="upcard-thumb" aria-hidden="true">
-              <Icon name={s.hidden ? 'eyeOff' : 'layers'} />
+              {(() => {
+                const pic = pictures?.[s.number];
+                const showPic = !!pic && !broken.has(s.number);
+                return (
+                  <>
+                    {showPic && (
+                      // eslint-disable-next-line @next/next/no-img-element -- a temporary preview served by our own API, not an optimizable asset
+                      <img className={loaded.has(s.number) ? 'is-loaded' : undefined} src={pic} alt="" loading="lazy" decoding="async" onLoad={() => setLoaded((l) => new Set(l).add(s.number))} onError={() => setBroken((b) => new Set(b).add(s.number))} />
+                    )}
+                    {drawing || (showPic && !loaded.has(s.number)) ? <Icon name="spinner" className="spin" /> : !showPic ? <Icon name={s.hidden ? 'eyeOff' : 'layers'} /> : null}
+                  </>
+                );
+              })()}
               <span className="upcard-num">{s.number}</span>
             </div>
             <label className="upcard-pick">
@@ -102,7 +134,7 @@ export function UploadSlideGrid({
               <h3 className="upcard-title">{s.title}</h3>
               {s.hidden && <span className="badge">Hidden in the file</span>}
               {bodyOf(s) && <p className="upcard-text">{bodyOf(s)}</p>}
-              <TagField compact label={`Tags for slide ${s.number}`} value={tags[s.number] ?? []} onChange={(list) => setOne(s.number, list)} suggestions={suggestions} disabled={disabled} />
+              <LocalTagList label={`Tags for slide ${s.number}`} value={tags[s.number] ?? []} onChange={(list) => setOne(s.number, list)} inherited={deckTags} inheritedTip="Applies to the whole deck (set above)" suggestions={suggestions} disabled={disabled} />
             </div>
           </li>
         ))}

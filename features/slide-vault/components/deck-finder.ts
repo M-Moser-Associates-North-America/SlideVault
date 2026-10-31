@@ -1,12 +1,12 @@
 /**
- * Find premade decks from a plain request (docs/DECISIONS.md FD-31): "Moody's proposal 2025",
- * "Next Level Games", "all proposals from 2025". One set of rules for every deck, used by basic
+ * Find premade decks from a plain request (docs/DECISIONS.md FD-31): "Barlow's proposal 2025",
+ * "Bright Pixel Games", "all proposals from 2025". One set of rules for every deck, used by basic
  * search and by the AI alike, so neither has to rediscover what the library already knows.
  *
  * A deck is known by its client (the deck catalog's reviewed name, or the file name's), any other
- * name the file gives it ("Marvel" for Marvell, "NYT" for New York Times, "Project Mango"), its year
+ * name the file gives it ("Velora" for Velorra, "NYL" for New York Ledger, "Project Kiwi"), its year
  * and its kind (RFP, MSA). Slide words are never used to identify a deck: most slides don't name the
- * client in their text (on Moody's it is a logo), but every deck has a client.
+ * client in their text (on Barlow's it is a logo), but every deck has a client.
  */
 
 export type FindableDeck = {
@@ -80,7 +80,7 @@ function askedName(query: string): string | null {
 /** Never a client name on its own */
 const NOT_A_NAME = new Set(['m', 'moser', 'mmoser', 'the', 'and', 'of', 'x', 'rfp', 'msa', 'global', 'response', 'resumes', 'project', 'group', 'design', 'build', 'proposal']);
 
-/** Every name a deck goes by, normalized: its client, the parts of a name like "American Express (Project Mango)", and the file's own name for it. */
+/** Every name a deck goes by, normalized: its client, the parts of a name like "Meridian Card (Project Kiwi)", and the file's own name for it. */
 export function deckNames(d: FindableDeck): string[] {
   const names = new Set<string>();
   const add = (s: string | null | undefined) => {
@@ -90,11 +90,11 @@ export function deckNames(d: FindableDeck): string[] {
   add(d.clientName);
   for (const part of (d.clientName ?? '').split(/[()]/)) {
     add(part);
-    // "Siemens" for Siemens Healthineers: a distinctive first word stands for the whole name.
+    // "Halvorsen" for Halvorsen Medtech: a distinctive first word stands for the whole name.
     const first = norm(part).split(' ');
     if (first.length > 1 && first[0].length >= 6 && !COMMON_FIRST.has(first[0])) add(first[0]);
   }
-  // The file's name for the client: the part after "M Moser_" ("Marvel", "NYT(2)", "NextLevelGames")
+  // The file's name for the client: the part after "M Moser_" ("Velora", "NYL(2)", "BrightPixelGames")
   const file = d.fileName.split('/').pop() ?? '';
   const fromFile = /^m\s*moser\s*_\s*([^_]+)/i.exec(file)?.[1] ?? (file.includes(' - ') ? file.split(' - ')[0] : null);
   add(fromFile?.replace(/\(\d+\)/g, ''));
@@ -110,7 +110,7 @@ function yearsIn(q: string, thisYear: number): number[] {
 
 function namedIn(q: string, name: string): boolean {
   if (new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(q)) return true;
-  // "nextlevelgames" in a file, "next level games" in the request (or the other way round)
+  // "brightpixelgames" in a file, "bright pixel games" in the request (or the other way round)
   const s = name.replace(/ /g, '');
   return s.length >= 6 && squash(q).includes(s);
 }
@@ -135,7 +135,7 @@ export function findDecks<D extends FindableDeck>(query: string, decks: D[], thi
   // No client named: a year with deck words ("all proposals from 2025"), or a year on its own.
   const onlyYear = q.replace(/\b(19|20)\d\d\b/g, '').replace(/\b(show|me|all|our|the|from|in|of|every|list|find|give|pull|up|last|this|year)\b/g, '').trim();
   // A place the decks are from ("proposals in Vancouver"), when no client is named: the client always
-  // wins, so "New York Times" is never read as New York.
+  // wins, so "New York Ledger" is never read as New York.
   const placeOf = (d: D) => (d.location ?? '').split('/').map((x) => norm(x)).filter((x) => x.length >= 2);
   // Only when decks are asked for, or the place follows "in", "from" or "at": "global delivery approach" is a slide search.
   const places = [...new Set(unique.flatMap(placeOf))].filter((p) => namedIn(q, p) && (DECK_WORDS.test(q) || new RegExp(`\\b(in|from|at)\\s+${p}\\b`).test(q)));

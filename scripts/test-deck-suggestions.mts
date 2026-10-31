@@ -29,8 +29,8 @@ const THIS_YEAR = 2026;
   check(s.year?.value === 2024 && s.year.source === 'folder', 'year from the folder', s.year);
 }
 {
-  const s = suggestFromRules({ fileName: 'M Moser_Gusto_SF_2026.pptx', properties: NO_PROPS, slides: [], thisYear: THIS_YEAR });
-  check(s.client?.value === 'Gusto' && s.client.source === 'file name', "client from M Moser's file naming", s.client);
+  const s = suggestFromRules({ fileName: 'M Moser_Sprocket_SF_2026.pptx', properties: NO_PROPS, slides: [], thisYear: THIS_YEAR });
+  check(s.client?.value === 'Sprocket' && s.client.source === 'file name', "client from M Moser's file naming", s.client);
   check(s.year?.value === 2026 && s.year.source === 'file name', 'year from the file name', s.year);
 }
 {
@@ -87,10 +87,10 @@ const THIS_YEAR = 2026;
 
 // ---- The AI only fills gaps, and only with checked values
 {
-  const rules = suggestFromRules({ fileName: 'M Moser_Gusto_SF_2026.pptx', properties: NO_PROPS, slides: [], thisYear: THIS_YEAR });
+  const rules = suggestFromRules({ fileName: 'M Moser_Sprocket_SF_2026.pptx', properties: NO_PROPS, slides: [], thisYear: THIS_YEAR });
   check(JSON.stringify(missingFacts(rules)) === JSON.stringify(['category', 'office']), 'the AI is asked only about what is missing', missingFacts(rules));
   const merged = mergeAiFacts(rules, { client: 'Someone Else', year: 1999, office: 'San Francisco', category: 'idd' }, { categories: ['IDD', 'SME'], thisYear: THIS_YEAR, model: 'qwen3:8b' });
-  check(merged.client?.value === 'Gusto' && merged.year?.value === 2026, "the AI never replaces the rules' answers", merged);
+  check(merged.client?.value === 'Sprocket' && merged.year?.value === 2026, "the AI never replaces the rules' answers", merged);
   check(merged.office?.value === 'San Francisco' && merged.office.source === 'ai', 'the AI fills the office', merged.office);
   check(merged.category?.value === 'IDD', "a category is matched to the library's own spelling", merged.category);
 }

@@ -2,7 +2,7 @@
 
 import { startNudges, stopNudge, useNudge } from '../client/draft-nudge';
 import { useTourOpen } from '../client/tour-store';
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
 import { Cart, CartPill, focusDraftOpener } from './Cart';
 import { AlsoDialog, DownloadDialog, Lightbox } from './Dialogs';
@@ -22,6 +22,8 @@ import { ArchiveDialog } from './ArchiveDialog';
 import { ArchiveView } from './ArchiveView';
 import { PackDialog } from './Packs';
 import { Tour } from './Tour';
+import { HistoryButtons } from './HistoryButtons';
+import { LeaveUploadDialog } from './LeaveUploadDialog';
 import { UploadView } from './UploadView';
 import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './Views';
 import { StoryboardView } from './StoryboardView';
@@ -57,7 +59,7 @@ const TABS: {
   {
     view: 'create',
     label: 'Create',
-    icon: 'pencil',
+    icon: 'sparkle',
     tip: 'Storyboard with AI, or build manually',
   },
   {
@@ -69,7 +71,7 @@ const TABS: {
 ];
 
 function Workspace({ header }: { header?: ReactNode }) {
-  const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, profile, setCartMin } = useWorkspace();
+  const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, announce, profile, setCartMin, preview } = useWorkspace();
   const appRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const root = useMemo(() => ({ app: appRef, scroll: scrollRef }), []);
@@ -91,6 +93,29 @@ function Workspace({ header }: { header?: ReactNode }) {
   const mainRef = useRef<HTMLElement>(null);
   const first = useRef(true);
   const previousView = useRef(view);
+  const [uploadSeen, setUploadSeen] = useState(false);
+  /* Toasts sit in the browser's top layer, so they show in front of the preview and other dialogs. Showing
+     the popover again whenever a toast arrives (or a dialog opens) moves it back to the front. */
+  const toastHost = useRef<HTMLDivElement>(null);
+  const latestToast = toasts.length ? toasts[toasts.length - 1] : null;
+  const latestToastId = latestToast?.id;
+  const previewOpen = !!preview;
+  useEffect(() => {
+    const el = toastHost.current;
+    if (!el || typeof el.showPopover !== 'function') return;
+    if (toasts.length === 0) {
+      if (el.matches(':popover-open')) el.hidePopover();
+      return;
+    }
+    if (el.matches(':popover-open')) el.hidePopover();
+    el.showPopover();
+  }, [toasts.length, latestToastId, previewOpen]);
+  /* A popover isn't a reliable live region while it appears, so the words are also read out here. */
+  useEffect(() => {
+    if (latestToast) announce(latestToast.message);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latestToastId]);
+  if (view === 'upload' && !uploadSeen) setUploadSeen(true);
   useEffect(() => {
     const was = previousView.current;
     previousView.current = view;
@@ -103,7 +128,10 @@ function Workspace({ header }: { header?: ReactNode }) {
     /* Stepping through a deck slide by slide keeps the page where it is; the slide itself slides. */
     if (was === 'slide' && view === 'slide') return;
     scrollRef.current?.scrollTo(0, 0);
-    mainRef.current?.querySelector<HTMLElement>('h1')?.focus({ preventScroll: true });
+    /* The first heading that is showing: a hidden, kept-alive Upload page has one too. */
+    Array.from(mainRef.current?.querySelectorAll<HTMLElement>('h1') ?? [])
+      .find((h) => !h.closest('[hidden]'))
+      ?.focus({ preventScroll: true });
   }, [key, view]);
 
   const toHome = () => runtime.navigate({ view: 'pages' });
@@ -165,7 +193,10 @@ function Workspace({ header }: { header?: ReactNode }) {
                 </li>
               </ul>
             </nav>
-            {(view === 'pages' || view === 'browse') && <CompactSearch />}
+            <div className="sv-brandrow-end">
+              {(view === 'pages' || view === 'browse') && <CompactSearch />}
+              <HistoryButtons />
+            </div>
           </div>
         </div>
       </div>
@@ -196,7 +227,12 @@ function Workspace({ header }: { header?: ReactNode }) {
             {view === 'slide' && <SlideView id={loc.id ?? ''} />}
             {view === 'story' && <StoryboardView />}
             {view === 'create' && <CreateView />}
-            {view === 'upload' && <UploadView />}
+            {/* Upload stays mounted (hidden) once opened, so a half-filled form, its slide pictures and tags survive a trip to another tab. */}
+            {(view === 'upload' || uploadSeen) && (
+              <div hidden={view !== 'upload'}>
+                <UploadView />
+              </div>
+            )}
             {view === 'profile' && <ProfileView />}
             {view === 'settings' && <SettingsView />}
             {view === 'archive' && <ArchiveView />}
@@ -221,7 +257,7 @@ function Workspace({ header }: { header?: ReactNode }) {
           }}
         />
       )}
-      <div className={`toasts${selection.length ? ' lift' : ''}`} aria-live="polite" aria-relevant="additions">
+      <div ref={toastHost} popover="manual" className={`toasts${selection.length ? ' lift' : ''}`}>
         {toasts.map((t) => (
           <div key={t.id} className="toast">
             <span className="msg">{t.message}</span>
@@ -253,6 +289,7 @@ function Workspace({ header }: { header?: ReactNode }) {
       <AlsoDialog />
       <PackDialog />
       <ArchiveDialog />
+      <LeaveUploadDialog />
     </div>
     </RootContext.Provider>
   );

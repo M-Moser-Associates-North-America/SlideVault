@@ -37,6 +37,9 @@ const READ_AS: Record<StoryRole, string> = {
 
 export type StoryboardResponse = StoryboardResult;
 
+/** Slides hidden in their deck, and every slide of an archived deck (FD-50), never go in a story. */
+export const keptOutOfStories = (slide: SlideSummary) => slide.hiddenInSource || slide.provenance.archived === true;
+
 export type StoryboardDeps = {
   reader?: StoryReader | null;
   search: (plan: SearchPlan, limit: number) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]>;
@@ -260,7 +263,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     const theirRows = ABOUT_THE_CLIENT.has(section.role) ? (deps.context?.rows ?? []) : [];
     const seen = new Set<string>();
     const pool = [...theirRows, ...onTopicRows, ...storyRows, ...readRows]
-      .filter((row) => !row.summary.hiddenInSource && !seen.has(row.summary.id) && seen.add(row.summary.id))
+      .filter((row) => !keptOutOfStories(row.summary) && !seen.has(row.summary.id) && seen.add(row.summary.id))
       .map((row, order) => {
         const l = learned.get(`${section.role}:${row.summary.id}`);
         const known = deps.knowledge?.of(row.summary.id);
@@ -358,9 +361,9 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     reasons: { brief: [], part: [], from: [] },
     needs: needsMet(needs, `${row.facts.title} ${row.facts.text} ${known(row.summary.id)?.about ?? ''}`),
   });
-  // Slides hidden in their deck, never-show pages and copies naming another client are never told.
-  const tellable = (row: { summary: SlideSummary }) => !row.summary.hiddenInSource && !neverInStory(known(row.summary.id));
-  // What the deck itself is about, for a thesis when the request names no needs ("the story of Moody's")
+  // Slides hidden in their deck or from an archived deck, never-show pages and copies naming another client are never told.
+  const tellable = (row: { summary: SlideSummary }) => !keptOutOfStories(row.summary) && !neverInStory(known(row.summary.id));
+  // What the deck itself is about, for a thesis when the request names no needs ("the story of Barlow's")
   const themesOf = (ids: string[]) => {
     const count = new Map<string, number>();
     for (const id of ids) for (const t of known(id)?.themes ?? []) count.set(t, (count.get(t) ?? 0) + 1);
@@ -369,7 +372,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   if (deps.source) {
     // Reimagine (FD-31): the deck's own slides, every one, placed by what each one does.
     const { deck } = deps.source;
-    const rows = deps.source.rows.filter((r) => !r.summary.hiddenInSource);
+    const rows = deps.source.rows.filter((r) => !keptOutOfStories(r.summary));
     const inDeck = new Set(rows.map((r) => r.summary.id));
     // Retold without breaking it (FD-32): every slide stays where the deck had it, because it may
     // answer an RFP whose required pages and order we can't see. The story is woven through instead.

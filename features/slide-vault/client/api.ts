@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideComment, SlideVotes, TagRemoval, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta, UploadPreview } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -38,9 +38,10 @@ export async function searchSlides(runtime: Transport, query: string, signal?: A
  * Quick AI search (FD-16, FD-17). `read` is true only when the person submitted the search; while
  * they type, the server reads with rules only, so a long question never calls the AI mid-sentence.
  */
-export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean } = {}): Promise<SmartSearchResult> {
+export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean; role?: StoryUserRole | null } = {}): Promise<SmartSearchResult> {
   const params = new URLSearchParams({ q: query.trim(), limit: '100' });
   if (opts.includeHidden) params.set('hidden', 'include'); // slides hidden in the original deck (FD-50)
+  if (opts.role) params.set('role', opts.role); // how this person builds proposals tunes the results (FD-59)
   if (read) params.set('read', '1');
   const res = await runtime.request({ path: `/smart-search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
@@ -106,8 +107,11 @@ export async function exportPptx(runtime: Transport, slides: SlideSummary[], opt
 }
 
 /** POST /uploads (multipart/form-data). Throws ApiCallError on failure, including duplicates (409). */
-export async function uploadDeck(runtime: Transport, file: File, meta: UploadDeckMeta): Promise<DeckSummary> {
+export async function uploadDeck(runtime: Transport, file: File, meta: UploadDeckMeta, tags: { deckTags?: string[]; slideTags?: Record<number, string[]> } = {}): Promise<DeckSummary> {
   const form = new FormData();
+  // Tags chosen on the upload page, saved with the deck (FD-54)
+  if (tags.deckTags?.length) form.set('deckTags', JSON.stringify(tags.deckTags));
+  if (tags.slideTags && Object.keys(tags.slideTags).length) form.set('slideTags', JSON.stringify(tags.slideTags));
   form.set('file', file);
   if (meta.clientName) form.set('clientName', meta.clientName);
   if (meta.deckYear !== null) form.set('deckYear', String(meta.deckYear));
@@ -144,11 +148,22 @@ export async function sendStoryFeedback(runtime: Transport, feedback: { role: St
   return ((await res.json()) as ApiOk<{ saved: boolean }>).data;
 }
 
+/** Useful / Not relevant on a search result (FD-59); { saved: false } when the person hasn't turned on learning. */
+export async function sendSearchFeedback(runtime: Transport, feedback: { query: string; slideId: string; verdict: 'useful' | 'not-relevant'; by?: StoryUserRole | null }): Promise<{ saved: boolean }> {
+  const res = await runtime.request({ path: '/smart-search/feedback', method: 'POST', body: feedback });
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ saved: boolean }>).data;
+}
+
 /** Whether talking instead of typing is set up on this server. */
-export async function speechAvailable(runtime: Transport): Promise<boolean> {
-  const res = await runtime.request({ path: '/speech', method: 'GET' });
-  if (!res.ok) return false;
-  return ((await res.json()) as ApiOk<{ available: boolean }>).data.available;
+/** 'on', 'off' (not set up here) or 'down' (set up, but the speech service isn't answering) */
+export type SpeechStatus = 'on' | 'off' | 'down';
+
+export async function speechStatus(runtime: Transport): Promise<SpeechStatus> {
+  const res = await runtime.request({ path: '/speech', method: 'GET' }).catch(() => null);
+  if (!res?.ok) return 'off';
+  const data = ((await res.json()) as ApiOk<{ available: boolean; status?: SpeechStatus }>).data;
+  return data.status ?? (data.available ? 'on' : 'off');
 }
 
 /** A WAV recording -> the words said. */
@@ -240,10 +255,109 @@ export async function removeTag(runtime: Transport, tagId: string): Promise<bool
   return true;
 }
 
+/* Tag restore and the removal log, and votes and comments on a slide (FD-72). The server routes are asked for, not built yet: each call returns null until they exist. */
+
+/** Bring back a removed tag with its original adder and votes. */
+export async function restoreTag(runtime: Transport, tagId: string): Promise<FreeTag | null> {
+  const res = await runtime.request({ path: `/tags/${encodeURIComponent(tagId)}/restore`, method: 'POST' });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<FreeTag>).data;
+}
+
+/** The tags removed from a slide or deck, newest first, with who removed each. Null when the server has no log yet. */
+export async function listRemovedTags(runtime: Transport, on: 'slide' | 'deck', id: string, signal?: AbortSignal): Promise<TagRemoval[] | null> {
+  const res = await runtime.request({ path: `/tags/removed?${new URLSearchParams({ on, id })}`, method: 'GET', signal });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<TagRemoval[]>).data;
+}
+
+/** Rename a slide for everyone (FD-73). Returns the saved name, or null when the server has no such route yet. */
+export async function renameSlide(runtime: Transport, slideId: string, title: string): Promise<string | null> {
+  const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}`, method: 'PATCH', body: { title } });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ title: string }>).data.title;
+}
+
+/** Up (1), down (-1) or clear (0) your vote on a slide. Returns the slide's counts. */
+export async function voteSlide(runtime: Transport, slideId: string, value: 1 | -1 | 0): Promise<SlideVotes | null> {
+  const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}/vote`, method: 'POST', body: { value } });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<SlideVotes>).data;
+}
+
+/** The comments on a slide, oldest first. Null when the server has none yet. */
+export async function listComments(runtime: Transport, slideId: string, signal?: AbortSignal): Promise<SlideComment[] | null> {
+  const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}/comments`, method: 'GET', signal });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<SlideComment[]>).data;
+}
+
+export async function addComment(runtime: Transport, slideId: string, text: string): Promise<SlideComment | null> {
+  const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}/comments`, method: 'POST', body: { text } });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<SlideComment>).data;
+}
+
+/** Delete a comment (the server only lets the author do it). Returns false when the server has no such route yet. */
+export async function deleteComment(runtime: Transport, slideId: string, commentId: string): Promise<boolean> {
+  const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}/comments/${encodeURIComponent(commentId)}`, method: 'DELETE' });
+  if (notThere(res)) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
+}
+
 /** Slides with a given free tag, on the slide or its deck. Search with the library's own params plus tag=. */
 export async function slidesWithTag(runtime: Transport, tag: string, signal?: AbortSignal): Promise<SlideSummary[]> {
   const params = new URLSearchParams({ kind: 'slide', limit: '1000', duplicates: 'all', tag });
   const res = await runtime.request({ path: `/search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiPage<SlideSummary>).data;
+}
+
+
+/* ---------------------------------------------------------------- Upload preview (FD-54) */
+
+/** The chosen file's slides as pictures, before anything is stored. Null when the server has no such route yet. */
+export async function previewUpload(runtime: Transport, file: File, signal?: AbortSignal): Promise<UploadPreview | null> {
+  const form = new FormData();
+  form.set('file', file);
+  const res = await runtime.request({ path: '/uploads/preview', method: 'POST', body: form, signal });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<UploadPreview>).data;
+}
+
+/* ---------------------------------------------------------------- Role on the server (FD-71) */
+
+/** The signed-in person's role and activity opt-in. Null when the server has no such route yet. */
+export async function getMySettings(runtime: Transport): Promise<{ role: StoryUserRole | null; activityOptedIn: boolean } | null> {
+  const res = await runtime.request({ path: '/me/settings', method: 'GET' });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ role: StoryUserRole | null; activityOptedIn: boolean }>).data;
+}
+
+/** Save the person's role on the server (null clears it). Returns false when the server has no such route yet. */
+/**
+ * Suggested for you by role (FD-71): slide ids people in the signed-in person's role saved or downloaded
+ * most, with how many people, never who. Empty until they pick a role and 3+ people in it used a slide.
+ */
+export async function getRoleSuggestions(runtime: Transport): Promise<{ role: StoryUserRole | null; minPeople: number; items: { slideId: string; people: number }[] } | null> {
+  const res = await runtime.request({ path: '/me/suggested', method: 'GET' });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ role: StoryUserRole | null; minPeople: number; items: { slideId: string; people: number }[] }>).data;
+}
+
+export async function setMyRole(runtime: Transport, role: StoryUserRole | null): Promise<boolean> {
+  const res = await runtime.request({ path: '/me/settings', method: 'PATCH', body: { role } });
+  if (notThere(res)) return false;
+  if (!res.ok) return failure(runtime, res);
+  return true;
 }

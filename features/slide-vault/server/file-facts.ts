@@ -29,3 +29,16 @@ export async function readFileFacts(bytes: Uint8Array | Buffer): Promise<FileFac
     return { createdBy: null, createdAt: null };
   }
 }
+
+/**
+ * A recorded author as people read it (FD-54): "JordanEllis - M Moser Associates" becomes
+ * "Jordan Ellis". Drops a trailing " - M Moser..." (the company, not the person) and splits a
+ * name typed without a space where a lower-case letter meets a capital, only after at least three
+ * letters, so "McDonald" and "DeAndre" stay as they are. The stored value is never changed.
+ */
+export function tidyPersonName(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let name = raw.replace(/\s+-\s+M\s*Moser\b.*$/i, '').trim();
+  if (!/\s/.test(name)) name = name.replace(/([a-z]{3,})(?=[A-Z][a-z])/g, '$1 ');
+  return name || raw.trim();
+}

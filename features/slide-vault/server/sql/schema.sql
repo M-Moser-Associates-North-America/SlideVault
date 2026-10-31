@@ -114,6 +114,18 @@ create index if not exists story_feedback_slide_idx on story_feedback (slide_id)
 -- Who gave the verdict, by role only (FD-25): business-developer, director or bd-support.
 alter table story_feedback add column if not exists by_role text;
 
+-- Useful / Not relevant on a search result (docs/DECISIONS.md FD-59): the slide, the verdict and the
+-- search's words, never the search itself or a name. Only from people who opted in (FD-37).
+create table if not exists search_feedback (
+  id bigint generated always as identity primary key,
+  slide_id text not null,
+  verdict text not null check (verdict in ('useful', 'not-relevant')),
+  words text[] not null default '{}',
+  by_role text,
+  at timestamptz not null default now()
+);
+create index if not exists search_feedback_slide_idx on search_feedback (slide_id);
+
 -- Archived decks (docs/DECISIONS.md FD-50): hidden from the app, search and AI without deleting
 -- anything (the bucket can't delete). Set by scripts/archive-deck.mts for now; archive in the app
 -- (Khushali's archive and delete work) builds on this same column.
@@ -201,3 +213,8 @@ alter table decks add column if not exists archived_by text;
 alter table decks add column if not exists created_by text;
 alter table decks add column if not exists file_created_at timestamptz;
 alter table decks add column if not exists uploaded_by text;
+
+-- Each person's role, chosen in their profile (docs/DECISIONS.md FD-71): business developer, director or
+-- BD support (Grant's three groups, 21 Oct). Kept on the server so Suggested for you can be role-based
+-- (Gaby, 28 Oct): counts of what people in a role use, never names. Null until someone picks one.
+alter table user_settings add column if not exists role text check (role in ('business-developer', 'director', 'bd-support'));

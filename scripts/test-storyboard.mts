@@ -312,7 +312,7 @@ check(wholeSentences('We start with you. Then we plan every site together with y
 }
 
 {
-  // Seen on the Moody's story (24 Oct): the summary stopped at "and", "why this slide" at "st".
+  // Seen on the Barlow's story (24 Oct): the summary stopped at "and", "why this slide" at "st".
   const long = 'This beat sets the stage by framing the client as a forward-thinking global leader, aligning with the firm\'s ability to deliver high-impact, strategic workplaces. It also shows we know their market and their people in detail.';
   const c = cleanComposition({ title: 'A very long title that goes on and on well past the point where any heading should have stopped talking', thesis: long, beats: [1, 2, 3].map((n) => ({ role: 'strategy', title: 't', bridge: long, lead: `s${n}`, more: [], narration: long, why: long, matches: [] })) }, new Map([['s1', 'strategy'], ['s2', 'strategy'], ['s3', 'strategy']]));
   const ends = (t: string) => /[.!?…]$/.test(t) || t === long;
@@ -396,6 +396,11 @@ check(wholeSentences('We start with you. Then we plan every site together with y
   const like = await refineStory(story, 'more like these', new Set(['s2']), deps);
   check(like.beats.some((b) => b.lead.slide.id === 'p1' || b.more.some((i) => i.slide.id === 'p1')), 'talk: "more like these" brings slides that belong with the ones you liked');
   check(!(await refineStory(story, 'The client is a bank in Toronto.', new Set(), deps)).understood, 'talk: context about the client is handed back to rebuild, keeping the useful slides');
+  // Accents never split a word: "résumés" once became "sum" and took out every summary slide
+  const team = [beat('why-us', ['w1', 'cv1', 'sum1'])].map((b) => ({ ...b, more: [sl('cv1', 'Résumé: design lead'), sl('sum1', 'Executive summary')] }));
+  const cut = await refineStory(team, 'Take out the résumés', new Set(), deps);
+  const left = cut.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id));
+  check(!left.includes('cv1') && left.includes('sum1') && left.includes('w1'), 'talk: "take out the résumés" removes the résumé only, not the summary', left);
 }
 
 // ---- Clarifying questions
@@ -462,6 +467,16 @@ check(standInStory('Sustainability is the client\'s top priority.').sections.fin
   check(rf.json_schema.name === 'storyboard' && rf.json_schema.strict, 'reader: asks for the storyboard JSON schema, strict');
   const how = plan.sections.find((x) => x.role === 'strategy')!;
   check(plan.sections.length === 6 && how.title === 'How' && how.words[0] === 'phasing', 'reader: plan read back and cleaned', plan);
+}
+
+// ---- Archived decks are never told (FD-50): the same library, with the case study's deck archived
+{
+  const archivedSearch = async (plan: SearchPlan) =>
+    (await search(plan)).map((row) => (row.summary.id === 's-case' ? { ...row, summary: { ...row.summary, provenance: { ...row.summary.provenance, archived: true } } } : row));
+  const r = await buildStoryboard(situation, { search: archivedSearch });
+  const ids = r.sections.flatMap((s) => s.items.map((i) => i.slide.id));
+  const plain = (await buildStoryboard(situation, { search })).sections.flatMap((s) => s.items.map((i) => i.slide.id));
+  check(plain.includes('s-case') && !ids.includes('s-case') && ids.includes('s-challenge'), 'archived: a slide from an archived deck never goes in a story; the rest still do', { plain, ids });
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll storyboard checks passed');

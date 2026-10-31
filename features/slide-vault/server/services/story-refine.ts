@@ -63,14 +63,17 @@ export type RefineDeps = {
   known: (slideId: string) => { role?: string; about?: string; type?: string } | undefined;
   /** Other slides of the same family (FD-42), in order */
   familyMates?: (slideId: string) => Promise<StoryboardSlide[]>;
-  /** May this slide go in a story at all (not hidden, not never-show) */
+  /** May this slide go in a story at all (not hidden, not from an archived deck, not never-show) */
   tellable: (slide: StoryboardSlide) => boolean;
 };
 
 const PER_PHRASE = 2;
 const LIKE_LIMIT = 4;
 const roleOf = (role: string | undefined): StoryRole => (STORY_ROLES.includes(role as StoryRole) ? (role as StoryRole) : 'why-us');
-const words = (s: string) => s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
+// Accents folded first ("résumés" -> "resumes"), so a word is never split into pieces like "sum".
+const plain = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+// A plural asks for the same thing: "résumés" also takes out a slide titled "Résumé".
+const words = (s: string) => plain(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 3).map((w) => (w.length > 4 ? w.replace(/s$/, '') : w));
 
 /** Continue a story from one message. Returns the new beats and what was done, in plain words. */
 export async function refineStory(beats: StoryBeat[], message: string, pinned: Set<string>, deps: RefineDeps): Promise<{ beats: StoryBeat[]; reply: string; understood: boolean }> {
@@ -98,7 +101,7 @@ export async function refineStory(beats: StoryBeat[], message: string, pinned: S
     out = out
       .map((b) => {
         const items = [b.lead, ...b.more].filter((i) => {
-          const hay = `${i.slide.title} ${deps.known(i.slide.id)?.about ?? ''} ${b.title}`.toLowerCase();
+          const hay = plain(`${i.slide.title} ${deps.known(i.slide.id)?.about ?? ''} ${b.title}`);
           const hit = !pinned.has(i.slide.id) && w.length > 0 && w.every((x) => hay.includes(x));
           if (hit) n++;
           return !hit;

@@ -133,6 +133,10 @@ check(readSpeechConfig({}).provider === 'none', 'speech: off unless set up');
   let failed = false;
   try { await failing.transcribe(new Blob([]), 'x.wav'); } catch { failed = true; }
   check(failed, 'speech: a failing service is reported, not silently empty');
+  const c = cfg as Extract<typeof cfg, { provider: 'openai-compatible' }>;
+  let asked = '';
+  check(await openAiCompatibleTranscriber(c, async (u) => { asked = u; return new Response('', { status: 404 }); }).answers() && asked === 'http://127.0.0.1:8178/v1/models', 'speech: a service that replies at all (even 404) is answering', asked);
+  check(!(await openAiCompatibleTranscriber(c, async () => { throw new TypeError('fetch failed'); }).answers()), 'speech: a stopped service (no reply) is reported as not answering');
 }
 
 // ---- Only from people who turned learning on (FD-37)

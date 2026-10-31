@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { startTour, useProfile } from '@/features/slide-vault';
+import { askBeforeLeavingUpload, startTour, useProfile, useRoleLabel } from '@/features/slide-vault';
 import { useTheme } from './theme';
 import styles from './shell.module.css';
 
@@ -14,6 +14,7 @@ import styles from './shell.module.css';
 export function ShellHeader() {
   const { theme, toggle: toggleTheme } = useTheme();
   const { profile, signOut } = useProfile();
+  const roleLabel = useRoleLabel(profile);
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
@@ -60,7 +61,6 @@ export function ShellHeader() {
             </svg>
           </span>
           <div className={styles.title}>
-            <p className={styles.eyebrow}>Proposal library</p>
             <p className={styles.nameRow}>
               <span className={styles.brand}>SlideVault</span>
               <span className={styles.tag}>Prototype</span>
@@ -88,7 +88,7 @@ export function ShellHeader() {
               {open && (
                 <div className={styles.menu} role="menu" aria-label="Account" onKeyDown={onMenuKey}>
                   <p className={styles.menuHead}>
-                    Signed in as <strong>{profile}</strong>
+                    Signed in as <strong>{profile}</strong> ({roleLabel})
                   </p>
                   <button
                     type="button"
@@ -162,7 +162,7 @@ export function ShellHeader() {
                     className={styles.menuItem}
                     onClick={() => {
                       setOpen(false);
-                      signOut();
+                      askBeforeLeavingUpload(signOut); /* asks first when an upload would be lost */
                     }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

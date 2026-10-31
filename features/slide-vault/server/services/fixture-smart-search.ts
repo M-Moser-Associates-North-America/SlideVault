@@ -14,7 +14,13 @@ import { toSummary } from './search';
  * searched (what the local model read on it), `boost` ranks slides of the kind, sector and theme the
  * search asks for higher, and `answers` lets such a slide in even when none of its words match.
  */
-export type SearchKnowledge = { about: (slideId: string) => string; boost: (slideId: string) => number; answers: (slideId: string) => boolean };
+export type SearchKnowledge = {
+  about: (slideId: string) => string;
+  boost: (slideId: string) => number;
+  answers: (slideId: string) => boolean;
+  /** Slides the caller won't show (hidden in the source deck): left out before the limit, so they can't use it up. */
+  skip?: (slide: SlideSummary) => boolean;
+};
 
 export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan, limit: number, known?: SearchKnowledge): { summary: SlideSummary; facts: SlideFacts }[] {
   if (!index) return [];
@@ -28,6 +34,7 @@ export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan
     for (const slide of source.slides) {
       const summary = toSummary(source, slide);
       const p = summary.provenance;
+      if (known?.skip?.(summary)) continue;
       if (plan.client && p.clientName?.toLowerCase() !== plan.client.toLowerCase()) continue;
       if (plan.yearFrom && (p.deckYear ?? 0) < plan.yearFrom) continue;
       if (plan.yearTo && (p.deckYear ?? Infinity) > plan.yearTo) continue;
@@ -38,7 +45,9 @@ export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan
       const words = starts.reduce((n, re, i) => n + weight[i] * (re.test(slide.title) ? 2 : re.test(slide.text) || (about && re.test(about)) ? 1 : 0), 0);
       const answers = known?.answers(slide.id) ?? false;
       if (starts.length && words === 0 && !answers) continue;
-      const score = words + (known?.boost(slide.id) ?? 0);
+      // A deck named for what was asked ("New York Ledger · RFP, workplace strategy") lifts its matching slides.
+      const deckNamed = words ? starts.reduce((n, re, i) => n + (re.test(p.sourceTitle) ? weight[i] : 0), 0) : 0;
+      const score = words + deckNamed + (known?.boost(slide.id) ?? 0);
       scored.push({
         summary,
         score,
@@ -47,7 +56,8 @@ export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan
     }
   }
   return scored
-    .sort((a, b) => b.score - a.score || a.summary.provenance.sourceTitle.localeCompare(b.summary.provenance.sourceTitle) || a.summary.provenance.slideNumber - b.summary.provenance.slideNumber)
+    // Asked for recent work ("most updated slides": from a year on, no end): newest decks first among equals.
+    .sort((a, b) => b.score - a.score || (plan.yearFrom && !plan.yearTo ? (b.summary.provenance.deckYear ?? 0) - (a.summary.provenance.deckYear ?? 0) : 0) || a.summary.provenance.sourceTitle.localeCompare(b.summary.provenance.sourceTitle) || a.summary.provenance.slideNumber - b.summary.provenance.slideNumber)
     .slice(0, limit)
     .map(({ summary, facts }) => ({ summary, facts }));
 }

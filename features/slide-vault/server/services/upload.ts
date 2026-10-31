@@ -1,6 +1,6 @@
 import 'server-only';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { extractSlides } from '../../../../workers/slide-vault/processors/extract-text';
@@ -12,6 +12,7 @@ import { createDeck, findDeckByHash, insertSlides, markDeckFailed, markDeckReady
 import { readFileFacts } from '../file-facts';
 import { readSlideSize } from '../slide-size';
 import { uploadOriginal, uploadPreview } from '../storage';
+import { cachedPreviewDir } from './upload-preview';
 
 const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
@@ -104,9 +105,12 @@ async function inBatches<T, R>(items: T[], size: number, run: (item: T) => Promi
 async function processSlides(deckId: string, title: string, bytes: Uint8Array): Promise<DeckSummary> {
   try {
     const slides = await extractSlides(bytes);
-    const previewDir = mkdtempSync(path.join(tmpdir(), 'slidevault-upload-'));
+    // Pictures already rendered for this exact file by the upload preview (FD-54) are reused.
+    const cached = cachedPreviewDir(sha256(bytes));
+    const hasAll = !!cached && slides.every((s) => existsSync(path.join(cached, `${s.number}.png`)));
+    const previewDir = hasAll ? cached! : mkdtempSync(path.join(tmpdir(), 'slidevault-upload-'));
     try {
-      await renderPreviews(bytes, previewDir, (n) => `${n}.png`);
+      if (!hasAll) await renderPreviews(bytes, previewDir, (n) => `${n}.png`);
       const slideInputs = await inBatches(slides, PREVIEW_UPLOADS_AT_ONCE, async (slide) => {
         const previewBytes = new Uint8Array(readFileSync(path.join(previewDir, `${slide.number}.png`)));
         const thumbnailStorageKey = await uploadPreview(deckId, slide.number, previewBytes);
@@ -120,7 +124,7 @@ async function processSlides(deckId: string, title: string, bytes: Uint8Array): 
       });
       await insertSlides(deckId, slideInputs);
     } finally {
-      rmSync(previewDir, { recursive: true, force: true });
+      if (!hasAll) rmSync(previewDir, { recursive: true, force: true });
     }
 
     await markDeckReady(deckId, slides.length);

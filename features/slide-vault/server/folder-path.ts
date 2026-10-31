@@ -5,7 +5,7 @@
  *   Submittals/2024/Northwind Bank/deck.pptx         -> year 2024, client Northwind Bank
  *   Best of the Best/IDD/deck.pptx                   -> Best of the Best, category IDD
  *   Best of the Best/2024/Northwind Bank/deck.pptx   -> Best of the Best, year 2024, client Northwind Bank
- *   Design Consultancy/2026/M Moser_Gusto_SF_2026.pptx -> category Design Consultancy, year 2026, client Gusto
+ *   Design Consultancy/2026/M Moser_Sprocket_SF_2026.pptx -> category Design Consultancy, year 2026, client Sprocket
  *                                                         (the first real decks, Oct 2026)
  *
  * Falls back to the file name for anything the folders don't say: "Client - Category.pptx", or
@@ -89,11 +89,11 @@ export function folderInfo(relativePath: string): FolderInfo {
     if (!info.category && CATEGORY_NAMES[nameCategory]) info.category = CATEGORY_NAMES[nameCategory];
   }
   // M Moser's naming: "M Moser_<Client>_<place or RFP>_<date>"
-  // "Moody_s": file names swap an apostrophe for an underscore, so a lone "s" after it is "'s".
-  // A copy number in the name ("NYT(2)") isn't part of the client.
+  // "Barlow_s": file names swap an apostrophe for an underscore, so a lone "s" after it is "'s".
+  // A copy number in the name ("NYL(2)") isn't part of the client.
   const mm = /^m\s*moser\s*_\s*([^_]+?)(_s(?=_|$))?\s*(?:_|$)/i.exec(stem);
   if (mm && !info.clientName) info.clientName = (mm[1].replace(/\s*\(\d+\)\s*/g, ' ').trim() || mm[1].trim()) + (mm[2] ? "'s" : '');
-  // A kind glued to the client ("StripeMSA") is the kind, not part of the name.
+  // A kind glued to the client ("FerrousMSA") is the kind, not part of the name.
   const glued = info.clientName ? /^(.+?[a-z])(MSA|RFP)$/.exec(info.clientName) : null;
   if (glued && mm) {
     info.clientName = glued[1];

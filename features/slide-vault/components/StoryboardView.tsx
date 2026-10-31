@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SlideSummary, StoryBeat, StoryboardResult, StoryFeedbackVerdict, StoryRole } from '../contracts/dto';
 import { buildStory, refineStory, sendStoryFeedback } from '../client/api';
-import { ROLE_CHOICES, useStoryRole } from '../client/role-store';
+import { useStoryRole } from '../client/role-store';
 import { takeHandedOffBrief } from '../client/story-handoff';
 import { useSavedStories } from '../client/story-store';
 import { Icon } from './icons';
@@ -26,9 +26,12 @@ const two = (n: number) => String(n).padStart(2, '0');
 
 export function StoryboardView() {
   const { runtime, updateSelection, toast, announce, profile } = useWorkspace();
-  const { role, setRole } = useStoryRole(profile);
+  const { role } = useStoryRole(profile);
   // A brief typed in search arrives here when the person chose "Build a story instead".
   const [situation, setSituation] = useState(() => takeHandedOffBrief() ?? '');
+  // Pull the story always looks ready (like the Storyboard button on Home); too short a brief says so instead.
+  const [tooShort, setTooShort] = useState(false);
+  const situationRef = useRef<HTMLTextAreaElement>(null);
   const [phase, setPhase] = useState<'start' | 'building' | 'ready' | 'error'>('start');
   const [error, setError] = useState('');
   const [story, setStory] = useState<StoryboardResult | null>(null);
@@ -162,27 +165,34 @@ export function StoryboardView() {
           <label htmlFor="sb-situation" className="sr-only">
             The client&apos;s situation
           </label>
-          <textarea id="sb-situation" value={situation} onChange={(e) => setSituation(e.target.value)} rows={5} placeholder="Who is the client, what's happening, what worries them, and what would a win look like?" />
+          <textarea id="sb-situation" ref={situationRef} value={situation} aria-describedby={tooShort ? 'sb-too-short' : undefined} onChange={(e) => {
+              setSituation(e.target.value);
+              if (e.target.value.trim().length >= 20) setTooShort(false);
+            }} rows={5} placeholder="Who is the client, what's happening, what worries them, and what would a win look like?" />
           <div className="sb-compose-row">
             <MicButton onText={(t) => setSituation((s) => [s.trim(), t].filter(Boolean).join(' '))} />
-            {/* The same setting as in My decks (FD-25), picked right here. */}
-            <p className="sb-role-line">
-              <label htmlFor="sb-role-pick">Tuned for</label>{' '}
-              <select id="sb-role-pick" className="sb-role-pick" value={role ?? ''} onChange={(e) => setRole((e.target.value || null) as typeof role)}>
-                <option value="">Everyone</option>
-                {ROLE_CHOICES.map((c) => (
-                  <option key={c.role} value={c.role}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </p>
-            <button type="button" className="sb-pull" disabled={situation.trim().length < 20} onClick={() => void run('')}>
-              Pull the story
+            {/* Lights up orange as Start planning story on hover, focus and tap. */}
+            <button type="button" className="sb-pull" aria-label="Pull the story" onClick={() => {
+                if (situation.trim().length < 20) {
+                  setTooShort(true);
+                  situationRef.current?.focus();
+                  return;
+                }
+                void run('');
+              }}>
+              <span className="sb-pull-swap" aria-hidden="true">
+                <span className="sb-pull-1">Pull the story</span>
+                <span className="sb-pull-2">Start planning story</span>
+              </span>
               <Icon name="right" className="ic-sm" />
             </button>
           </div>
         </div>
+        {tooShort && (
+          <p className="sb-too-short" id="sb-too-short" role="alert">
+            Describe the client&apos;s situation in a sentence or more, then pull the story.
+          </p>
+        )}
         {phase === 'error' && (
           <div className="notice danger" role="alert" style={{ marginTop: 16 }}>
             <Icon name="alert" />

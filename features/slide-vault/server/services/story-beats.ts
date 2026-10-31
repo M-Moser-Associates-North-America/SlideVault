@@ -344,7 +344,7 @@ export async function weaveDeck(
     const title = first ? ROLE_TITLE[s.role] : s.role === 'experience' && k?.projects?.[0] ? k.projects[0] : (TYPE_TITLE[k?.type ?? ''] ?? ROLE_TITLE[s.role]);
     return { role: s.role, title, bridge: weaveLine(s.role, needs.length ? needs : opts.needs), narration: k?.about ? firstSentence(k.about) : '', why: s.role === 'experience' ? proofWhy(lead) : PART_WHY[s.role], matches: needs.slice(0, 2), lead, more };
   });
-  // No needs named ("the story of Moody's"): the thesis comes from what the deck itself is about.
+  // No needs named ("the story of Barlow's"): the thesis comes from what the deck itself is about.
   const thesis = opts.needs.length || !opts.themes?.length ? rulesThesis(opts.needs) : `Show ${opts.client ?? 'them'} we understand what matters to them (${joined(opts.themes)}), have a clear plan, and have done it before.`;
   const rules = { title: rulesTitle(brief), thesis, close: rulesClose(opts.needs), beats, composer: 'rules' as const };
 

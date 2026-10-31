@@ -83,3 +83,56 @@ export async function removeTag(id: string): Promise<boolean> {
   const rows = await sql<{ id: string }>('delete from free_tags where id = $1 returning id', [id]);
   return rows.length > 0;
 }
+
+/**
+ * Tags whose text appears in a search (FD-58), on slides and on decks. The database narrows by
+ * substring; the caller keeps whole words only. Empty when the database can't be reached.
+ */
+export async function tagsInQuery(query: string): Promise<{ tag: string; on: 'slide' | 'deck'; id: string }[]> {
+  const q = query.trim().toLowerCase().slice(0, 500);
+  if (!q) return [];
+  try {
+    const rows = await sql<{ tag: string; target_kind: 'slide' | 'deck'; target_id: string }>(
+      `select tag, target_kind, target_id::text as target_id from free_tags
+       where length(tag) >= 2 and strpos($1, lower(tag)) > 0
+       limit 500`,
+      [q],
+    );
+    return rows.map((r) => ({ tag: r.tag, on: r.target_kind, id: r.target_id }));
+  } catch (e) {
+    console.error('Free tags unavailable, search goes on without them', e);
+    return [];
+  }
+}
+
+/** A tag as people type it: spaces tidied; null when empty, too long or containing control characters. */
+export function cleanTag(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const tag = raw.replace(/\s+/g, ' ').trim();
+  return tag && tag.length <= 60 && !/[\u0000-\u001f\u007f]/.test(tag) ? tag : null;
+}
+
+/**
+ * Tags chosen on the upload page, saved once the deck's slides exist (FD-54): deckTags go on the deck,
+ * slideTags on slides by slide number. Tags already there are skipped. Returns how many were saved.
+ */
+export async function addUploadTags(deckId: string, deckTags: string[], slideTags: Record<string, string[]>, by: string): Promise<number> {
+  const slides = await sql<{ id: string; slide_number: number }>('select id, slide_number from slides where deck_id = $1', [deckId]);
+  const byNumber = new Map(slides.map((s) => [s.slide_number, s.id]));
+  const rows: [string, string, string][] = [];
+  for (const t of deckTags.map(cleanTag)) if (t) rows.push(['deck', deckId, t]);
+  for (const [n, tags] of Object.entries(slideTags)) {
+    const id = byNumber.get(Number(n));
+    if (id) for (const t of tags.map(cleanTag)) if (t) rows.push(['slide', id, t]);
+  }
+  let added = 0;
+  for (const [kind, id, tag] of rows) {
+    const r = await sql(
+      `insert into free_tags (target_kind, target_id, tag, added_by) values ($1, $2, $3, $4)
+       on conflict (target_kind, target_id, lower(tag)) do nothing returning id`,
+      [kind, id, tag, by],
+    );
+    added += r.length;
+  }
+  return added;
+}

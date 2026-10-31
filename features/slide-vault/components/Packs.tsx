@@ -191,9 +191,11 @@ export function PackPanel({ slide, pack }: { slide: SlideSummary; pack: Pack }) 
       <p className="meta">
         Slide {packPosition(pack, slide.id)} of {plural(pack.slideIds.length, 'slide')} that go together, in this order.
       </p>
-      <p className="meta pack-who" role="status">
-        {suggested ? 'Suggested, not yet confirmed by a person.' : `Confirmed${pack.confirmedBy ? ` by ${pack.confirmedBy}` : ''}${when ? ` · ${when}` : ''}`}
-      </p>
+      {!suggested && (
+        <p className="meta pack-who" role="status">
+          {`Confirmed${pack.confirmedBy ? ` by ${pack.confirmedBy}` : ''}${when ? ` · ${when}` : ''}`}
+        </p>
+      )}
       <PackStrip pack={pack} currentId={slide.id} />
       <div className="row-flex" style={{ marginTop: 10 }}>
         {suggested ? (

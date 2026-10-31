@@ -5,12 +5,15 @@ import { useMemo, type ReactNode } from 'react';
 import { CONTRACT_VERSION, SlideVaultWorkspace, type Capability, type RuntimeRequest, type SlideVaultRuntime } from '@/features/slide-vault';
 import { API_ROOT, locationFromSegments, pathFromLocation, UI_BASE } from './shell-config';
 import { useAccess } from './access';
+import { useAppHistory, useDialogBack } from './app-history';
 import { useTheme } from './theme';
 
 // Prototype (decision FD-01): no sign-in yet. One fixed session scope; the Access switch in the header
 // stands in for login and decides whether upload is allowed.
 const SESSION_SCOPE = 'local-dev';
-const READ_EXPORT: Capability[] = ['library.read', 'collection.write', 'export.create'];
+// Tags: for the MVP everyone signed in may add and remove them (decision FD-72). To limit it to curators,
+// take 'metadata.edit' out of this line; the tag screens then become read only. The server enforces it too.
+const READ_EXPORT: Capability[] = ['library.read', 'collection.write', 'export.create', 'metadata.edit'];
 const CAPABILITIES: Record<'viewer' | 'editor' | 'curator', ReadonlySet<Capability>> = {
   viewer: new Set(READ_EXPORT),
   editor: new Set([...READ_EXPORT, 'source.upload', 'metadata.edit']),
@@ -33,10 +36,17 @@ export function StandaloneWorkspace({ header }: { header?: ReactNode }) {
   const router = useRouter();
   const segments = useMemo(() => pathname.slice(UI_BASE.length).split('/').filter(Boolean).map(decodeURIComponent), [pathname]);
 
+  const history = useAppHistory(pathname, router);
+  useDialogBack();
+  const { notePush } = history;
+
   // Connection functions stay stable across navigation, so data isn't refetched when only the location changes.
   const services = useMemo(
     () => ({
-      navigate: ((next, options) => (options?.replace ? router.replace : router.push)(pathFromLocation(next), { scroll: false })) satisfies SlideVaultRuntime['navigate'],
+      navigate: ((next, options) => {
+        if (!options?.replace) notePush();
+        (options?.replace ? router.replace : router.push)(pathFromLocation(next), { scroll: false });
+      }) satisfies SlideVaultRuntime['navigate'],
       request: (({ path, method, body, headers, signal }: RuntimeRequest) => {
         assertFeaturePath(path);
         // FormData passes through untouched (decision FD-10): the browser sets its own
@@ -57,7 +67,7 @@ export function StandaloneWorkspace({ header }: { header?: ReactNode }) {
       hrefFor: pathFromLocation satisfies SlideVaultRuntime['hrefFor'],
       onSessionExpired: () => router.refresh(),
     }),
-    [router],
+    [router, notePush],
   );
 
   const { theme } = useTheme();
@@ -69,9 +79,10 @@ export function StandaloneWorkspace({ header }: { header?: ReactNode }) {
       capabilities: CAPABILITIES[access],
       theme,
       location: locationFromSegments(segments),
+      history: { canGoBack: history.canGoBack, canGoForward: history.canGoForward, back: history.back, forward: history.forward },
       ...services,
     }),
-    [segments, services, theme, access],
+    [segments, services, theme, access, history.canGoBack, history.canGoForward, history.back, history.forward],
   );
 
   // The shell owns theme: the workspace renders inside the .slidevault token scope.

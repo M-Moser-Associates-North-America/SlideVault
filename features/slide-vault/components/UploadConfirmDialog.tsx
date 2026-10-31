@@ -12,6 +12,8 @@ export type UploadSummary = {
   slideCount: number | null;
   hiddenCount: number;
   bestOfTheBest: boolean;
+  /** No category chosen: said in words before uploading */
+  incomplete?: boolean;
   deckTags: string[];
   slideTags: number;
   taggedSlides: number;
@@ -39,7 +41,7 @@ export function UploadConfirmDialog({ open, summary, onCancel, onConfirm }: { op
               <span className="arch-name">{s.title}</span>
               {s.details && <span className="meta">{s.details}</span>}
             </div>
-            <p className="arch-lead">It joins the shared library, with everything below saved together.</p>
+            {s.incomplete && <p className="arch-note">No category chosen. The deck is still uploaded; it just won’t appear under a category filter.</p>}
             <ul className="arch-list">
               <li>
                 {s.slideCount === null ? 'Slides are split after the upload.' : plural(s.slideCount, 'slide')}
