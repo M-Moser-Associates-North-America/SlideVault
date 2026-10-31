@@ -287,6 +287,17 @@ export async function getMySettings(runtime: Transport): Promise<{ role: StoryUs
 }
 
 /** Save the person's role on the server (null clears it). Returns false when the server has no such route yet. */
+/**
+ * Suggested for you by role (FD-71): slide ids people in the signed-in person's role saved or downloaded
+ * most, with how many people, never who. Empty until they pick a role and 3+ people in it used a slide.
+ */
+export async function getRoleSuggestions(runtime: Transport): Promise<{ role: StoryUserRole | null; minPeople: number; items: { slideId: string; people: number }[] } | null> {
+  const res = await runtime.request({ path: '/me/suggested', method: 'GET' });
+  if (notThere(res)) return null;
+  if (!res.ok) return failure(runtime, res);
+  return ((await res.json()) as ApiOk<{ role: StoryUserRole | null; minPeople: number; items: { slideId: string; people: number }[] }>).data;
+}
+
 export async function setMyRole(runtime: Transport, role: StoryUserRole | null): Promise<boolean> {
   const res = await runtime.request({ path: '/me/settings', method: 'PATCH', body: { role } });
   if (notThere(res)) return false;
