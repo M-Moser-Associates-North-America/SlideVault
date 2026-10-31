@@ -430,6 +430,22 @@ export async function listSlideTextsPg(): Promise<SlideText[]> {
   return rows.map((r) => ({ id: r.id, sourceId: r.deck_id, title: r.title ?? '', text: r.text ?? '' }));
 }
 
+export type DeckSlidesPg = { id: string; client: string; slides: { id: string; title: string; text: string; type: string | null }[] };
+
+/** Every ready uploaded deck's slides in slide order, for deck sections and named words (FD-57, FD-56). */
+export async function listDeckSlidesPg(): Promise<DeckSlidesPg[]> {
+  const rows = await sql<{ id: string; deck_id: string; client: string; title: string | null; text: string | null; slide_type: string | null }>(
+    `select s.id, s.deck_id, d.client, s.title, s.text, s.slide_type from slides s join decks d on d.id = s.deck_id where d.status = 'ready' and d.archived_at is null order by s.deck_id, s.slide_number`,
+  );
+  const decks = new Map<string, DeckSlidesPg>();
+  for (const r of rows) {
+    let deck = decks.get(r.deck_id);
+    if (!deck) decks.set(r.deck_id, (deck = { id: r.deck_id, client: r.client, slides: [] }));
+    deck.slides.push({ id: r.id, title: r.title ?? '', text: r.text ?? '', type: r.slide_type });
+  }
+  return [...decks.values()];
+}
+
 /** Every ready uploaded deck and its slides (GET /library). */
 export async function listLibraryPg(): Promise<{ decks: LibraryDeck[]; slides: Omit<LibrarySlide, 'duplicateGroupId'>[] }> {
   const deckRows = await sql<DeckRow & { uploaded_at: Date | string | null }>(`select * from decks where status = 'ready' and archived_at is null order by uploaded_at desc`);
