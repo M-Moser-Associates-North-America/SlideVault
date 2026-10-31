@@ -41,6 +41,10 @@ const ctx: PlanContext = { clients: ['Kestrel Law', 'Northgate Bank', 'Halcyon H
   const p = standInPlan('recent IDD decks', ctx);
   check(p.category === 'IDD', 'stand-in: picks a category', p);
   check(p.yearFrom === 2024 && p.yearTo === null, 'stand-in: "recent" means the last two years', p);
+  const upd = standInPlan('2026 most updated slides', ctx);
+  check(upd.yearFrom === 2026 && upd.yearTo === 2026 && upd.keywords.length === 0, 'stand-in: "2026, most updated slides" (Alina, 28 Oct) is the year, not the word "updated"', upd);
+  const cur = standInPlan('most current slides', ctx);
+  check(cur.yearFrom === 2024 && cur.keywords.length === 0, 'stand-in: "current" means recent work too', cur);
 }
 check(standInPlan('best of the best hybrid work', ctx).bestOfTheBest === true, 'stand-in: "best of the best" sets the collection filter');
 
@@ -295,6 +299,9 @@ for (const [env, label] of [
   const without = smartSearchFixtures(index, plan, 10).map((r) => r.summary.id);
   const withKnown = smartSearchFixtures(index, plan, 10, { about: (id) => (id === 'reading' ? 'A building that stayed occupied during the work.' : ''), boost: () => 0, answers: () => false }).map((r) => r.summary.id);
   check(without.length === 0 && JSON.stringify(withKnown) === '["reading"]', "search: a slide is found by what was read on it when its own words don't match", { without, withKnown });
+  const everyone = smartSearchFixtures(index, cleanPlan({ keywords: [], client: null }, ctx), 2, { about: () => '', boost: () => 0, answers: () => true }).map((r) => r.summary.id);
+  const skipped = smartSearchFixtures(index, cleanPlan({ keywords: [], client: null }, ctx), 1, { about: () => '', boost: () => 0, answers: () => true, skip: (s) => s.id === everyone[0] }).map((r) => r.summary.id);
+  check(everyone.length === 2 && JSON.stringify(skipped) === JSON.stringify([everyone[1]]), 'fixtures: skipped (hidden) slides are left out before the limit, so the next slides fill it', { everyone, skipped });
   const boosted = smartSearchFixtures(index, cleanPlan({ keywords: ['team'] }, ctx), 10, { about: () => '', boost: (id) => (id === 'reading' ? 6 : 0), answers: (id) => id === 'reading' }).map((r) => r.summary.id);
   check(boosted[0] === 'reading', 'search: the kind asked for ranks ahead of word matches', boosted);
 }
@@ -355,7 +362,21 @@ for (const [env, label] of [
   const contents = deck(['What’s inside', 'TABLE OF CONTENTS\n01\nThe right team\n02\nThe portfolio'], ['Intro'], ['THE RIGHT TEAM', 'THE RIGHT TEAM'], ['Jane Doe'], ['THE PORTFOLIO', 'THE PORTFOLIO'], ['Halcyon Health HQ']);
   check(JSON.stringify(names(contents)) === '["p3:team:The right team","p5:case-studies:The portfolio"]', 'sections: an unnumbered divider listed on the contents page is found', names(contents));
 
+  // Styles from the Oct 29 Drive decks (made-up words, same shapes).
+  const colon = deck(['WHAT TO EXPECT', 'Section:      00\nWHAT TO EXPECT'], ['Your goals', 'Grow the team to 400'], ['COMPANY BACKGROUND', 'Section:      01\nCOMPANY BACKGROUND'], ['appendix', 'Section:      AA\nappendix']);
+  check(JSON.stringify(names(colon)) === '["p1:other:What to expect","p3:firm:Company background","p4:appendix:appendix"]', 'sections: "Section: 01" with a colon, and "Section: AA", name the section after the marker', names(colon));
+
+  const nameOnly = deck(['STRATEGY & APPROACH', 'STRATEGY\n& APPROACH\nPAGE 14\nM MOSER ASSOCIATES\nMMOSER.COM\nSTRATEGY & APPROACH'], ['Our plan', 'Three phases over nine months for the move'], ['Design process', 'Design process\nPAGE 16'], ['RELEVANT EXPERIENCE', 'RELEVANT\nEXPERIENCE\nPAGE 20\nM MOSER ASSOCIATES\nMMOSER.COM']);
+  check(JSON.stringify(names(nameOnly)) === '["p1:approach:Strategy & approach","p4:case-studies:Relevant experience"]', 'sections: an unnumbered slide that is only a section name (beside the page footer) opens one; a sub-heading of the same kind does not', names(nameOnly));
+
+  const running = deck(['Relevant Experience', 'Relevant Experience\nSECTION 03\nCASE STUDIES'], ['North America', 'North America\nNEW YORK, BOSTON\nSECTION 03'], ['KESTREL X M MOSER SECTION 03', 'SECTION 03'], ['Fee Structure', 'Fee Structure\nSECTION 04\nPRICING']);
+  check(JSON.stringify(names(running)) === '["p1:case-studies:Relevant Experience","p4:fees:Fee Structure"]', 'sections: "SECTION 03" printed on every page of a section doesn\'t start it again', names(running));
+
+  const midNumber = deck(['Visio 01 The N', 'Visio\nOUR UNDERSTANDING\n01\nThe\nN'], ['Your goals', 'Grow the team to 400 people'], ['How we 04 do it', 'How we\n04\ndo it\nPROPOSED APPROACH & PROCESS']);
+  check(JSON.stringify(names(midNumber)) === '["p1:understanding:Our understanding","p3:approach:How we do it"]', 'sections: a number set inside the title opens a section; scrambled words fall back to the subtitle', names(midNumber));
+
   check(JSON.stringify(sectionKinds('Firm background / relevant experience')) === '["case-studies","firm"]' && sectionKind('Appendix B Team resumes') === 'team' && sectionKind('Appendix') === 'appendix' && sectionKind('How we will run the portfolio') === 'approach', 'sections: a name can be two sections; an appendix of résumés is the team; "How we…" is the approach');
+  check(sectionKind('How we think') === 'firm' && sectionKind('Project phases') === 'approach' && sectionKind("We've done this before") === 'case-studies', 'sections: Alina\'s creative divider names (28 Oct): "How we think" is the firm, "phases" the approach');
   check(isSectionSearch('resumes') && isSectionSearch('banner slides in case studies') && isSectionSearch('firm overview') && !isSectionSearch('QNBC case study') && !isSectionSearch('Workplace strategy process') && !isSectionSearch('2026'), 'sections: a search that is only a section, with nothing else named');
   check(asksForCover('banner slides in case studies') && asksForCover('the page breakers') && !asksForCover('case studies'), 'sections: asking for a cover');
 }

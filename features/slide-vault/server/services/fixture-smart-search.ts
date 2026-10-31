@@ -14,7 +14,13 @@ import { toSummary } from './search';
  * searched (what the local model read on it), `boost` ranks slides of the kind, sector and theme the
  * search asks for higher, and `answers` lets such a slide in even when none of its words match.
  */
-export type SearchKnowledge = { about: (slideId: string) => string; boost: (slideId: string) => number; answers: (slideId: string) => boolean };
+export type SearchKnowledge = {
+  about: (slideId: string) => string;
+  boost: (slideId: string) => number;
+  answers: (slideId: string) => boolean;
+  /** Slides the caller won't show (hidden in the source deck): left out before the limit, so they can't use it up. */
+  skip?: (slide: SlideSummary) => boolean;
+};
 
 export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan, limit: number, known?: SearchKnowledge): { summary: SlideSummary; facts: SlideFacts }[] {
   if (!index) return [];
@@ -28,6 +34,7 @@ export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan
     for (const slide of source.slides) {
       const summary = toSummary(source, slide);
       const p = summary.provenance;
+      if (known?.skip?.(summary)) continue;
       if (plan.client && p.clientName?.toLowerCase() !== plan.client.toLowerCase()) continue;
       if (plan.yearFrom && (p.deckYear ?? 0) < plan.yearFrom) continue;
       if (plan.yearTo && (p.deckYear ?? Infinity) > plan.yearTo) continue;
@@ -49,7 +56,8 @@ export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan
     }
   }
   return scored
-    .sort((a, b) => b.score - a.score || a.summary.provenance.sourceTitle.localeCompare(b.summary.provenance.sourceTitle) || a.summary.provenance.slideNumber - b.summary.provenance.slideNumber)
+    // Asked for recent work ("most updated slides": from a year on, no end): newest decks first among equals.
+    .sort((a, b) => b.score - a.score || (plan.yearFrom && !plan.yearTo ? (b.summary.provenance.deckYear ?? 0) - (a.summary.provenance.deckYear ?? 0) : 0) || a.summary.provenance.sourceTitle.localeCompare(b.summary.provenance.sourceTitle) || a.summary.provenance.slideNumber - b.summary.provenance.slideNumber)
     .slice(0, limit)
     .map(({ summary, facts }) => ({ summary, facts }));
 }

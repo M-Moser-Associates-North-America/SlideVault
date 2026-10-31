@@ -151,7 +151,7 @@ const CONCEPTS: Concept[] = [
 ];
 
 const STOP = new Set(
-  'intro a an the for to of and or show me find need needs want looking look slide slides deck decks about from our we with in on that this is are any some please give get something one into by at my us i can you what which how do does work works have has had was were it its be using use large introduce pitch project recent latest newest newer whats most greatest best add include could would there where should'.split(
+  'intro a an the for to of and or show me find need needs want looking look slide slides deck decks about from our we with in on that this is are any some please give get something one into by at my us i can you what which how do does work works have has had was were it its be using use large introduce pitch project recent latest newest newer updated current whats most greatest best add include could would there where should'.split(
     ' ',
   ),
 );
@@ -254,7 +254,8 @@ export function parseQuery(q: string, clients: string[]): Parsed {
     P.year = Number(ym[1]);
     P.chips.push({ key: 'year', kind: 'Year', label: ym[1], strip: [ym[1]] });
   }
-  const rec = ['recent', 'latest', 'newest', 'newer'].filter((w) => nq.includes(` ${w} `));
+  // "2026, most updated slides" (Alina, 28 Oct): updated and current ask for new work, not for the word.
+  const rec = ['recent', 'latest', 'newest', 'newer', 'updated', 'current'].filter((w) => nq.includes(` ${w} `));
   if (rec.length) {
     rec.forEach(strip);
     P.recent = true;

@@ -17,12 +17,13 @@ import { buildStoryboard, clientSectors, keptOutOfStories, type StoryboardRespon
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
 import { familiesOf } from './families';
-import { askedSections, asksForCover, isSectionSearch, librarySections, sectionWhy } from './sections';
+import { askedSections, asksForCover, isSectionSearch, librarySections, sectionWhy, type SlideSection } from './sections';
 import { refineStory } from './story-refine';
 import type { StoryBeat, StoryRefineRequest, StoryRefineResult, StoryboardSlide } from '../../contracts/dto';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
 import { learnedScore, searchLearning } from '../search-feedback';
+import { isInternalOnly, listDeckSlidesPg, type DeckSlidesPg } from '../pg-repository';
 import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
 
 /**
@@ -58,15 +59,39 @@ async function orWithoutDb<T>(what: string, run: () => Promise<T>, fallback: T):
   }
 }
 
+/**
+ * The uploaded decks' slides in order, for deck sections and named words (FD-57, FD-56), read at
+ * most once a minute. None without database settings, so a checkout without them is unchanged.
+ */
+const NO_UPLOADS: { sources: DeckSlidesPg[] } = { sources: [] };
+let uploads: { at: number; library: { sources: DeckSlidesPg[] } } | null = null;
+async function uploadedDecks(): Promise<{ sources: DeckSlidesPg[] }> {
+  if (!hasMmoserConfig()) return NO_UPLOADS;
+  if (uploads && Date.now() - uploads.at < 60_000) return uploads.library;
+  const sources = await orWithoutDb('deck slides', listDeckSlidesPg, [] as DeckSlidesPg[]);
+  uploads = { at: Date.now(), library: sources.length ? { sources } : NO_UPLOADS };
+  return uploads.library;
+}
+const currentUploads = () => uploads?.library ?? NO_UPLOADS;
+
+/** Worked out once per sample-library load and uploaded-decks read. */
+function onceFor<T>(cache: WeakMap<object, { uploads: object; value: T }>, key: object, make: () => T): T {
+  const have = cache.get(key);
+  if (have && have.uploads === currentUploads()) return have.value;
+  const value = make();
+  cache.set(key, { uploads: currentUploads(), value });
+  return value;
+}
+
 /** Share of the library's slides whose title or text mentions a word, counted once per library load. */
-const shares = new WeakMap<object, Map<string, number>>();
+const shares = new WeakMap<object, { uploads: object; value: Map<string, number> }>();
 function wordShare(index: Awaited<ReturnType<typeof loadLibraryIndex>>, word: string): number {
-  if (!index) return 1;
-  let seen = shares.get(index);
-  if (!seen) shares.set(index, (seen = new Map()));
+  const all: { slides: { title: string; text: string }[] }[] = [...(index?.sources ?? []), ...currentUploads().sources];
+  if (!all.length) return 1;
+  const seen = onceFor(shares, index ?? NO_UPLOADS, () => new Map<string, number>());
   const cached = seen.get(word);
   if (cached !== undefined) return cached;
-  const slides = index.sources.flatMap((s) => s.slides);
+  const slides = all.flatMap((s) => s.slides);
   const share = slides.length ? slides.filter((s) => mentionsWord(`${s.title} ${s.text}`, word)).length / slides.length : 1;
   seen.set(word, share);
   return share;
@@ -89,20 +114,42 @@ function roleLean(by: StoryUserRole | null, k: { role?: string; type?: string } 
 }
 
 /** Single words the library knows as names: clients, places, sectors, themes and projects. */
-const names = new WeakMap<object, Set<string>>();
+const names = new WeakMap<object, { uploads: object; value: Set<string> }>();
 function knownNames(index: Awaited<ReturnType<typeof loadLibraryIndex>>, readings: Awaited<ReturnType<typeof loadSlideReadings>>): Set<string> {
-  const key = index ?? readings;
-  const have = names.get(key);
-  if (have) return have;
-  const out = new Set<string>();
-  const add = (s?: string | null) => s?.toLowerCase().split(/[^a-z0-9]+/).forEach((w) => w.length >= 3 && out.add(w));
-  for (const src of index?.sources ?? []) { const f = deckFacts(src); add(f.clientName); add(f.location); }
-  for (const r of readings.values()) { r.sectors?.forEach(add); r.themes?.forEach(add); r.projects?.forEach(add); add(r.clientSector); }
-  names.set(key, out);
-  return out;
+  return onceFor(names, index ?? readings, () => {
+    const out = new Set<string>();
+    const add = (s?: string | null) => s?.toLowerCase().split(/[^a-z0-9]+/).forEach((w) => w.length >= 3 && out.add(w));
+    for (const src of index?.sources ?? []) { const f = deckFacts(src); add(f.clientName); add(f.location); }
+    // Uploaded decks name their client ("Unknown client" adds nothing new: both words are common).
+    for (const deck of currentUploads().sources) if (deck.client !== 'Unknown client') add(deck.client);
+    for (const r of readings.values()) { r.sectors?.forEach(add); r.themes?.forEach(add); r.projects?.forEach(add); add(r.clientSector); }
+    return out;
+  });
 }
 
-export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean; by?: StoryUserRole | null }): Promise<SmartSearchResponse> {
+/**
+ * A database slide type counts for sections only when it uses the scan's names ("section_divider",
+ * "team_resume"); any other wording would hide a divider, so it's left to the slide's own words.
+ */
+const scanTypes = new WeakMap<object, Set<string>>();
+function typesFromScan(readings: Awaited<ReturnType<typeof loadSlideReadings>>): Set<string> {
+  let have = scanTypes.get(readings);
+  if (!have) scanTypes.set(readings, (have = new Set([...readings.values()].map((r) => r.type).filter((t): t is string => !!t))));
+  return have;
+}
+
+/** Each slide's section, sample decks and uploaded decks (FD-57). */
+const allSections = new WeakMap<object, { uploads: object; value: Map<string, SlideSection> }>();
+function sectionsOf(index: Awaited<ReturnType<typeof loadLibraryIndex>>, readings: Awaited<ReturnType<typeof loadSlideReadings>>): Map<string, SlideSection> {
+  return onceFor(allSections, index ?? readings, () => {
+    const known = typesFromScan(readings);
+    const dbType = new Map(currentUploads().sources.flatMap((d) => d.slides.map((s) => [s.id, s.type] as const)));
+    const typeOf = (id: string) => readings.get(id)?.type ?? (known.has(dbType.get(id) ?? '') ? dbType.get(id)! : undefined);
+    return new Map([...librarySections(index, typeOf), ...librarySections(currentUploads(), typeOf)]);
+  });
+}
+
+export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean; by?: StoryUserRole | null; includeHidden?: boolean }): Promise<SmartSearchResponse> {
   const index = await loadLibraryIndex();
   // What colleagues marked useful or not relevant for searches with these words (FD-59).
   const learned = await searchLearning(query, opts.by ?? null);
@@ -112,7 +159,8 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   const intent = searchIntent(query);
   // The deck sections a search asks for (FD-57, "page breakers"): "resumes" finds each deck's résumé
   // section, "banner slides in case studies" each case-study section's cover.
-  const sections = librarySections(index, (id) => readings.get(id)?.type);
+  await uploadedDecks();
+  const sections = sectionsOf(index, readings);
   const asked = askedSections(query);
   const cover = asksForCover(query);
   const inAsked = (id: string) => { const sec = sections.get(id); return !!sec && sec.kinds.some((k) => asked.includes(k)); };
@@ -127,6 +175,9 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
     boost: (id) => intentScore(intent, readings.get(id)) + sectionScore(id) + learnedScore(learned.get(id)) + roleLean(opts.by ?? null, readings.get(id)),
     answers: (id) => (asksForAnything(intent) && answersIntent(intent, readings.get(id))) || inAsked(id),
+    // Hidden-in-source and internal-only slides are left out before the limit (FD-50, FD-53): a deck
+    // that opens with hidden notes (Ferrous MSA) otherwise fills "ferrous msa" with slides the app then drops.
+    skip: (s) => !opts.includeHidden && (s.hiddenInSource || isInternalOnly(s)),
   };
   const result = await smartSearch(
     query,
@@ -160,7 +211,9 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   // A search that also asks for a kind of slide ("resumes", "case study") is led by its best slide of that kind.
   if (isSectionSearch(query)) {
     const lead = new Map<string, (typeof result.items)[number]>();
-    const byKind = intent.types.length > 0 && !cover;
+    // Only a narrow kind narrows the lead ("resumes": a résumé, not the team section's org chart). Every page
+    // of a firm section is about the firm, so "firm overview" leads with each section's first page, reviewed or not.
+    const byKind = intent.types.some((t) => t !== 'firm_profile' && t !== 'differentiator') && !cover;
     for (const item of result.items) {
       const sec = sections.get(item.slide.id);
       if (!sec || !sec.kinds.some((k) => asked.includes(k))) continue;
@@ -171,7 +224,11 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
       if (!have || (!byKind && rank(item.slide.id) < rank(have.slide.id))) lead.set(sec.dividerId, item);
     }
     const first = new Set([...lead.values()].map((i) => i.slide.id));
-    const order = result.items.filter((i) => first.has(i.slide.id));
+    // Sections named in the search's own words go first ("firm overview": a deck's "Firm profile" before its
+    // "About M Moser"), people type what the divider says. Otherwise the search's order stands.
+    const said = query.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
+    const named = (id: string) => { const n = sections.get(id)!.name.toLowerCase(); return said.filter((w) => n.includes(w)).length; };
+    const order = result.items.filter((i) => first.has(i.slide.id)).map((i, n) => ({ i, n, hits: named(i.slide.id) })).sort((a, b) => b.hits - a.hits || a.n - b.n).map((x) => x.i);
     result.items = [...order, ...result.items.filter((i) => !first.has(i.slide.id))];
   }
 

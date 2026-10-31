@@ -138,6 +138,29 @@ export async function setRole(user: string, role: UserRole | null): Promise<void
   );
 }
 
+/** A slide is suggested to a role only once this many different people in that role have used it (FD-71). */
+export const ROLE_MIN_PEOPLE = 3;
+
+/**
+ * Suggested for you by role (FD-71, Gaby 28 Oct): the slides most people in this role saved or
+ * downloaded in the retention period, from opted-in activity only. Counts, never names, and only
+ * slides at least ROLE_MIN_PEOPLE different people in the role used, so no one person shows through.
+ */
+export async function roleSuggestions(role: UserRole, limit: number): Promise<{ slideId: string; people: number }[]> {
+  const rows = await sql<{ slide_id: string; people: number }>(
+    `select e.slide_id, count(distinct e.user_key)::int as people
+     from activity_events e
+     join user_settings u on u.user_key = e.user_key and u.activity_opt_in and u.role = $1
+     where e.slide_id is not null and e.kind in ('saved', 'downloaded') and e.at >= now() - make_interval(days => $2)
+     group by e.slide_id
+     having count(distinct e.user_key) >= $3
+     order by people desc, max(e.at) desc
+     limit $4`,
+    [role, ACTIVITY_RETENTION_DAYS, ROLE_MIN_PEOPLE, limit],
+  );
+  return rows.map((r) => ({ slideId: r.slide_id, people: r.people }));
+}
+
 /** Deletes everyone's activity older than the retention period. Run on every write, so it never builds up. */
 export async function purgeExpiredActivity(): Promise<number> {
   const rows = await sql<{ n: number }>(
