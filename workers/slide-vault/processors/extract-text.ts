@@ -13,11 +13,17 @@ type Shape = { paragraphs: string[]; placeholder: string | null; maxSize: number
 const decode = (s: string) =>
   s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
 const runs = (xml: string) => (xml.match(/<a:t>([^<]*)<\/a:t>/g) ?? []).map((t) => decode(t.slice(5, -6)));
+/**
+ * One paragraph's words. A line break inside a paragraph (<a:br>, Shift+Enter in PowerPoint) reads
+ * as a space, so "Sony Music" + break + "Mumbai, India" is "Sony Music Mumbai, India", not "Sony MusicMumbai".
+ */
+export const paragraphText = (pXml: string) =>
+  runs(pXml.replace(/<a:br\b[^>]*\/>|<a:br\b[^>]*>[\s\S]*?<\/a:br>/g, '<a:t> </a:t>')).join('').replace(/[ \t]+/g, ' ').trim();
 
 function shapesOf(slideXml: string): Shape[] {
   const shapes: Shape[] = [];
   for (const sp of slideXml.match(/<p:sp\b[\s\S]*?<\/p:sp>/g) ?? []) {
-    const paragraphs = (sp.match(/<a:p\b[\s\S]*?<\/a:p>/g) ?? []).map((p) => runs(p).join('').trim()).filter(Boolean);
+    const paragraphs = (sp.match(/<a:p\b[\s\S]*?<\/a:p>/g) ?? []).map(paragraphText).filter(Boolean);
     if (!paragraphs.length) continue;
     const placeholder = sp.match(/<p:ph\b[^>]*?type="([^"]+)"/)?.[1] ?? null;
     const sizes = (sp.match(/\bsz="(\d+)"/g) ?? []).map((m) => Number(m.slice(4, -1)));
