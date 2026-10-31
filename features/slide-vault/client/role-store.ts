@@ -8,6 +8,21 @@ import type { StoryUserRole } from '../contracts/dto';
  */
 const key = (profile: string) => `slidevault:${profile}:role`;
 const listeners = new Set<() => void>();
+/** Where a change of role is also saved (the server's user_settings, FD-71); set by the workspace. */
+let saveRole: ((role: StoryUserRole | null) => void) | null = null;
+export function onRoleChange(save: ((role: StoryUserRole | null) => void) | null) {
+  saveRole = save;
+}
+/** The role the server has for this person, when this browser has none yet (a new browser, a cleared one). */
+export function adoptServerRole(profile: string, role: StoryUserRole | null) {
+  if (!role || !ROLES.includes(role) || read(profile)) return;
+  try {
+    localStorage.setItem(key(profile), role);
+  } catch {
+    return;
+  }
+  listeners.forEach((l) => l());
+}
 const ROLES: readonly StoryUserRole[] = ['business-developer', 'director', 'bd-support'];
 
 function read(profile: string | null): StoryUserRole | null {
@@ -50,6 +65,7 @@ export function useStoryRole(profile: string | null) {
         // Private browsing: the choice lasts until the page is closed.
       }
       listeners.forEach((l) => l());
+      saveRole?.(next);
     },
     [profile],
   );

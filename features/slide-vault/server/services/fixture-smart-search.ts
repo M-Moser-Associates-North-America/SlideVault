@@ -56,7 +56,8 @@ export function smartSearchFixtures(index: LibraryIndex | null, plan: SearchPlan
     }
   }
   return scored
-    .sort((a, b) => b.score - a.score || a.summary.provenance.sourceTitle.localeCompare(b.summary.provenance.sourceTitle) || a.summary.provenance.slideNumber - b.summary.provenance.slideNumber)
+    // Asked for recent work ("most updated slides": from a year on, no end): newest decks first among equals.
+    .sort((a, b) => b.score - a.score || (plan.yearFrom && !plan.yearTo ? (b.summary.provenance.deckYear ?? 0) - (a.summary.provenance.deckYear ?? 0) : 0) || a.summary.provenance.sourceTitle.localeCompare(b.summary.provenance.sourceTitle) || a.summary.provenance.slideNumber - b.summary.provenance.slideNumber)
     .slice(0, limit)
     .map(({ summary, facts }) => ({ summary, facts }));
 }

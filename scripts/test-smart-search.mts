@@ -41,6 +41,10 @@ const ctx: PlanContext = { clients: ['Kestrel Law', 'Northgate Bank', 'Halcyon H
   const p = standInPlan('recent IDD decks', ctx);
   check(p.category === 'IDD', 'stand-in: picks a category', p);
   check(p.yearFrom === 2024 && p.yearTo === null, 'stand-in: "recent" means the last two years', p);
+  const upd = standInPlan('2026 most updated slides', ctx);
+  check(upd.yearFrom === 2026 && upd.yearTo === 2026 && upd.keywords.length === 0, 'stand-in: "2026, most updated slides" (Alina, 28 Oct) is the year, not the word "updated"', upd);
+  const cur = standInPlan('most current slides', ctx);
+  check(cur.yearFrom === 2024 && cur.keywords.length === 0, 'stand-in: "current" means recent work too', cur);
 }
 check(standInPlan('best of the best hybrid work', ctx).bestOfTheBest === true, 'stand-in: "best of the best" sets the collection filter');
 
