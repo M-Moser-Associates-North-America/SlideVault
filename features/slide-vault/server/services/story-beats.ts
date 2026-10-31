@@ -291,8 +291,11 @@ export async function weaveDeck(
   partOf: (id: string) => StoryRole | null,
   fills: Map<StoryRole, StoryboardSlide[]>,
   known: (id: string) => KnownSlide,
-  opts: { reader?: StoryReader | null; read?: boolean; log?: (m: string) => void; needs: string[]; order: StoryRole[]; client?: string; themes?: string[] },
+  opts: { reader?: StoryReader | null; read?: boolean; log?: (m: string) => void; needs: string[]; order: StoryRole[]; client?: string; themes?: string[]; isDivider?: (id: string) => boolean },
 ): Promise<{ title: string; thesis: string; close: string; beats: StoryBeat[]; composer: 'model' | 'rules' }> {
+  // A divider is what the scan read as one, or a page breaker the section reader found (FD-57: zero-padded
+  // numbers, "Section: AA", name-only and creative divider titles the scan can miss).
+  const isDivider = (id: string) => known(id)?.type === 'section_divider' || !!opts.isDivider?.(id);
   // The deck's sections: a new one at each divider, and wherever it turns from story to required pages or from one part to the next.
   const sections: Section[] = [];
   let last: StoryRole = opts.order[0];
@@ -301,7 +304,7 @@ export async function weaveDeck(
     const kind = part ? undefined : ('required' as const);
     const role = part ?? last;
     const prev = sections[sections.length - 1];
-    const divider = known(item.slide.id)?.type === 'section_divider';
+    const divider = isDivider(item.slide.id);
     if (!prev || divider || prev.kind !== kind || (!kind && prev.role !== role)) sections.push({ code: '', role, kind, items: [item] });
     else prev.items.push(item);
     if (part) last = part;
@@ -309,7 +312,7 @@ export async function weaveDeck(
   // A divider opens the section after it: keep it with that section, not on its own.
   for (let i = sections.length - 2; i >= 0; i--) {
     const s = sections[i];
-    if (s.items.length === 1 && known(s.items[0].slide.id)?.type === 'section_divider' && sections[i + 1]) {
+    if (s.items.length === 1 && isDivider(s.items[0].slide.id) && sections[i + 1]) {
       sections[i + 1].items.unshift(...s.items);
       sections.splice(i, 1);
     }

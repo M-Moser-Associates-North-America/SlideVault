@@ -47,6 +47,17 @@ export type StoryboardDeps = {
   /** What colleagues said about slides per part for briefs with these topics, keyed "role:slideId" (FD-24) */
   learned?: (topics: string[], role: StoryUserRole | null) => Promise<Map<string, { useful: number; notRight: number }>>;
   /**
+   * What search has learned (FD-59): Useful / Not relevant on search results for searches that share
+   * words with this brief, keyed by slide. Not tied to a part: it says a slide is (or isn't) about
+   * these words, never which part of a story it does.
+   */
+  searchLearned?: (topics: string[], role: StoryUserRole | null) => Promise<Map<string, { useful: number; notRelevant: number }>>;
+  /**
+   * People's own tags (FD-58) whose words are in the brief: `of` gives the tag on a slide or its deck,
+   * `rows` the tagged slides themselves, so a tagged slide can be picked even if no search found it.
+   */
+  tagged?: (brief: string) => Promise<{ of: (slideId: string, deckId: string) => string | undefined; rows: { summary: SlideSummary; facts: SlideFacts }[] }>;
+  /**
    * What the local model read on each slide (FD-26): `of` gives one slide's reading, `forPart` the
    * slides it read as doing that part of a story, so a part can find a slide that never uses its words.
    */
@@ -67,6 +78,8 @@ export type StoryboardDeps = {
    */
   context?: { decks: { id: string; title: string }[]; rows: { summary: SlideSummary; facts: SlideFacts }[] };
   /** Families of slides that belong together (FD-42): a slide's family, and a family's slides in its own order */
+  /** Page breakers found by the section reader (FD-57), so a retold deck splits where the deck itself does. */
+  isDivider?: (slideId: string) => boolean;
   families?: { of: (slideId: string) => { id: string; title: string; slideIds: string[] } | undefined; rows: (family: { id: string; title: string; slideIds: string[] }) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]> };
 };
 
@@ -242,6 +255,11 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   // The firm's memory: slides marked useful for this part on similar briefs lead, ones marked not
   // right go last. A failure here never stops the storyboard.
   const learned = deps.learned ? await deps.learned(topics.keywords, role).catch((e) => (deps.log?.(`Story feedback unavailable: ${(e as Error).message}`), new Map())) : new Map();
+  // What search has learned feeds the story too (FD-59, FD-58): a slide colleagues marked useful when
+  // searching these words speaks to the brief, one they marked not relevant stays out unless the
+  // storyboard's own votes say otherwise, and a slide someone tagged with a word of the brief leads.
+  const searched = deps.searchLearned && topics.keywords.length ? await deps.searchLearned(topics.keywords, role).catch((e) => (deps.log?.(`Search feedback unavailable: ${(e as Error).message}`), new Map())) : new Map();
+  const tags = deps.tagged ? await deps.tagged(text).catch((e) => (deps.log?.(`Tags unavailable: ${(e as Error).message}`), null)) : null;
   // A need on few slides ("healthcare") says more than one on most ("cost"), so rarer needs weigh more.
   const needCount = new Map<string, number>();
   const needScore = (met: string[]) => met.reduce((sum, n) => sum + 1 / Math.max(1, needCount.get(n) ?? 1), 0);
@@ -262,7 +280,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     const readRows = deps.knowledge ? await deps.knowledge.forPart(section.role, perPart * 8, sectors.length ? ownSector : undefined).catch(() => []) : [];
     const theirRows = ABOUT_THE_CLIENT.has(section.role) ? (deps.context?.rows ?? []) : [];
     const seen = new Set<string>();
-    const pool = [...theirRows, ...onTopicRows, ...storyRows, ...readRows]
+    const pool = [...theirRows, ...(tags?.rows ?? []), ...onTopicRows, ...storyRows, ...readRows]
       .filter((row) => !keptOutOfStories(row.summary) && !seen.has(row.summary.id) && seen.add(row.summary.id))
       .map((row, order) => {
         const l = learned.get(`${section.role}:${row.summary.id}`);
@@ -274,7 +292,9 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
         const sameSector = (known?.reviewed ? !!known.sectors?.some((x) => sectors.some((f) => x.toLowerCase().startsWith(f))) : SECTOR_WORDS.some(([name, re]) => sectors.includes(name) && re.test(`${facts.title} ${facts.text}`.toLowerCase()))) ? 1 : 0;
         const met = needsMet(needs, `${facts.title} ${facts.text}`);
         const theirs = ABOUT_THE_CLIENT.has(section.role) && contextIds.has(row.summary.id) ? 1 : 0;
-        return { row, order, l, readAs, known, sameSector, met, theirs, said: Math.sign((l?.useful ?? 0) - (l?.notRight ?? 0)), onTopic: whyItFits(topics, facts).matched.reduce((sum, k) => sum + weight(k), 0), inPart: whyItFits(story, row.facts).matched.length, readHere: readAs === section.role ? 1 : 0 };
+        const s = searched.get(row.summary.id);
+        const tag = tags?.of(row.summary.id, row.summary.provenance.sourceId);
+        return { row, order, l, readAs, known, sameSector, met, theirs, s, tag, ours: tag ? 1 : 0, found: Math.sign((s?.useful ?? 0) - (s?.notRelevant ?? 0)), said: Math.sign((l?.useful ?? 0) - (l?.notRight ?? 0)), onTopic: whyItFits(topics, facts).matched.reduce((sum, k) => sum + weight(k), 0), inPart: whyItFits(story, row.facts).matched.length, readHere: readAs === section.role ? 1 : 0 };
       })
       // A slide must do this part's job: its words say so, it was read that way, or colleagues said
       // it does. A slide whose role is known (reviewed metadata, FD-28, or a confident reading by the
@@ -287,9 +307,11 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
         if (neverInStory(r.known)) return false;
         // Reviewed as page furniture (a résumé, an admin page): never a part of the story, whatever the votes.
         if (r.known?.reviewed && NOT_PROOF.has(r.known.role)) return false;
+        // Marked not relevant in search for these words: out, unless the storyboard's votes or a tag say otherwise.
+        if (r.found < 0 && r.said <= 0 && !r.ours) return false;
         // It must speak to this brief (FD-29): a need the brief names, the client's sector, the
         // brief's own words, or colleagues said so. Doing the part's job alone is not enough.
-        if (!(r.said > 0 || r.theirs > 0 || r.sameSector > 0 || r.met.length > 0 || r.onTopic > 0 || !topics.keywords.length)) return false;
+        if (!(r.said > 0 || r.ours > 0 || r.found > 0 || r.theirs > 0 || r.sameSector > 0 || r.met.length > 0 || r.onTopic > 0 || !topics.keywords.length)) return false;
         if (r.known && (r.known.reviewed || !r.known.uncertain)) return r.readHere > 0 || r.said > 0;
         return (r.inPart > 0 || r.readHere > 0 || r.said > 0) && !(r.readAs && NOT_PROOF.has(r.readAs) && r.said <= 0);
       });
@@ -297,14 +319,14 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     // best in its part on the brief's words, unless it meets a need, is the client's sector or their
     // own deck, or colleagues said it helps here.
     const bestOnTopic = Math.max(0, ...pool.map((r) => r.onTopic));
-    const strong = (r: (typeof pool)[number]) => r.said > 0 || r.theirs > 0 || r.sameSector > 0 || r.met.length > 0 || r.onTopic >= bestOnTopic * 0.3;
+    const strong = (r: (typeof pool)[number]) => r.said > 0 || r.ours > 0 || r.found > 0 || r.theirs > 0 || r.sameSector > 0 || r.met.length > 0 || r.onTopic >= bestOnTopic * 0.3;
     pool.splice(0, pool.length, ...pool.filter(strong));
     for (const r of pool) considered.add(r.row.summary.id);
     needCount.clear();
     for (const r of pool) for (const n of r.met) needCount.set(n, (needCount.get(n) ?? 0) + 1);
     // In the proof, past work for the same kind of client leads: "have you done this for a hospital?"
     const sectorFirst = section.role === 'experience' ? 1 : 0;
-    const ranked = pool.sort((a, b) => b.said - a.said || b.theirs - a.theirs || sectorFirst * (b.sameSector - a.sameSector) || needScore(b.met) - needScore(a.met) || b.sameSector - a.sameSector || b.onTopic - a.onTopic || b.readHere - a.readHere || b.inPart - a.inPart || a.order - b.order);
+    const ranked = pool.sort((a, b) => b.said - a.said || b.ours - a.ours || b.found - a.found || b.theirs - a.theirs || sectorFirst * (b.sameSector - a.sameSector) || needScore(b.met) - needScore(a.met) || b.sameSector - a.sameSector || b.onTopic - a.onTopic || b.readHere - a.readHere || b.inPart - a.inPart || a.order - b.order);
     candidates.push({ section, perPart, story, ranked });
   }
   const partFit = (r: { inPart: number; readHere: number; said: number }) => r.said * 100 + r.readHere * 10 + r.inPart;
@@ -314,7 +336,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
     const items: StoryboardSlide[] = [];
     const packsHere = new Set<string>();
     for (const r of ranked) {
-      const { row, l, readHere, sameSector, met, theirs } = r;
+      const { row, l, readHere, sameSector, met, theirs, s, tag } = r;
       const { summary } = row;
       const facts = read(row.facts, summary.id);
       if (used.has(summary.id) || usedCopies.has(sameSlideKey(row.facts)) || partFit(r) < (bestFit.get(summary.id) ?? -Infinity)) continue;
@@ -337,6 +359,8 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
         sameSector ? `Same sector as your client: ${sectors.join(', ')}.` : null,
         from.length ? `Deck: ${from.join(' · ')}.` : null,
         l?.useful ? `Colleagues marked it useful for this part on ${l.useful === 1 ? 'a similar brief' : `${l.useful} similar briefs`}.` : null,
+        s?.useful && s.useful > s.notRelevant ? `Colleagues marked it useful when searching for ${s.useful === 1 ? 'these words' : `these words (${s.useful} times)`}.` : null,
+        tag ? `Tagged “${tag}” by someone on the team.` : null,
       ].filter(Boolean).join(' ');
       used.add(summary.id);
       usedCopies.add(sameSlideKey(row.facts));
@@ -390,7 +414,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       const offered = fills.get(sec.role) ?? [];
       return { role: sec.role, label, title: sec.title, need: sec.need, items: own.length ? own : offered, gap: own.length + offered.length === 0 };
     });
-    const story = await weaveDeck(text, items, partOf, fills, known, { ...compose, order: plan.sections.map((x) => x.role), client: deck.title.split(' · ')[0], themes: themesOf(rows.map((r) => r.summary.id)) });
+    const story = await weaveDeck(text, items, partOf, fills, known, { ...compose, order: plan.sections.map((x) => x.role), client: deck.title.split(' · ')[0], themes: themesOf(rows.map((r) => r.summary.id)), isDivider: deps.isDivider });
     return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections: fromDeck, topics: topics.keywords, role, ...story, considered: rows.length, mode: 'reimagine', deck };
   }
   // A family that clearly answers the request is told whole, in its own order (FD-42): when most of the
@@ -400,7 +424,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   if (family && deps.families) {
     const rows = (await deps.families.rows(family)).filter(tellable);
     const items = rows.map((r) => asItem(r, `One of the ${rows.length} slides that belong together: ${family.title}.`));
-    const story = await weaveDeck(text, items, partOf, new Map(), known, { ...compose, order: plan.sections.map((x) => x.role), client: family.title.split(' · ')[0], themes: themesOf(rows.map((r) => r.summary.id)) });
+    const story = await weaveDeck(text, items, partOf, new Map(), known, { ...compose, order: plan.sections.map((x) => x.role), client: family.title.split(' · ')[0], themes: themesOf(rows.map((r) => r.summary.id)), isDivider: deps.isDivider });
     return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords, role, ...story, considered: rows.length, mode: 'build', family: { title: family.title, slides: items.length } };
   }
   // The story told slide by slide (FD-30): the AI chooses and narrates from this shortlist when it is on.

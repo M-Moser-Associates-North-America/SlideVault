@@ -124,6 +124,51 @@ check(JSON.stringify(situationTopics('Hospital campuses need studies and process
   check(r2.sections.find((x) => x.role === 'client-challenge')!.items.some((i) => i.slide.id === 'm-case'), 'metadata: colleagues marking a slide useful for a part still overrides its reviewed role', r2.sections.map((x) => [x.role, x.items.map((i) => i.slide.id)]));
   check(!leftoverAfterVotes.sections.some((x) => x.items.some((i) => i.slide.id === 'm-leftover')), 'metadata: no number of votes brings back a slide that names another client');
 }
+// ---- The storyboard learns from search (FD-59, FD-58): Useful / Not relevant and people's own tags
+{
+  const LIB7 = [
+    { id: 'l-case', title: 'Case study: clinic network', text: 'Hospital campus project completed with results.' },
+    { id: 'l-case2', title: 'Case study: teaching hospital', text: 'Hospital campus project completed with results.' },
+    { id: 'l-challenge', title: 'Three campuses, one hospital', text: 'Hospital merging campuses: what is at stake for staff.' },
+    { id: 'l-tagged', title: 'Wayfinding concept', text: 'Signage and arrival sequence.' },
+  ];
+  const readings = new Map<string, { role: string; topics: string[]; about: string; reviewed?: boolean }>([
+    ['l-case', { role: 'experience', topics: ['healthcare'], about: '', reviewed: true }],
+    ['l-case2', { role: 'experience', topics: ['healthcare'], about: '', reviewed: true }],
+    ['l-challenge', { role: 'client-challenge', topics: [], about: '', reviewed: true }],
+    ['l-tagged', { role: 'experience', topics: [], about: '', reviewed: true }],
+  ]);
+  const rowOf = (s: (typeof LIB7)[number]) => ({ summary: slide(s.id, s.title), facts: { title: s.title, text: s.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const search7 = async (plan: SearchPlan) => LIB7.filter((s) => plan.keywords.some((k) => `${s.title} ${s.text}`.toLowerCase().includes(k))).map(rowOf);
+  const knowledge = { of: (id: string) => readings.get(id), forPart: async (role: string) => LIB7.filter((s) => s.id !== 'l-tagged' && readings.get(s.id)?.role === role).map(rowOf) };
+  const brief = 'A hospital group is merging three campuses.';
+  const part = (r: Awaited<ReturnType<typeof buildStoryboard>>, role: string) => r.sections.find((x) => x.role === role)!.items.map((i) => i.slide.id);
+  const base = await buildStoryboard(brief, { search: search7, knowledge });
+  check(part(base, 'experience')[0] === 'l-case', 'learns from search: without feedback, library order decides the proof', part(base, 'experience'));
+
+  let asked: string[] = [];
+  const useful = await buildStoryboard(brief, { search: search7, knowledge, searchLearned: async (topics) => ((asked = topics), new Map([['l-case2', { useful: 2, notRelevant: 0 }]])) });
+  check(part(useful, 'experience')[0] === 'l-case2', 'learns from search: a slide marked Useful in search for these words leads its part', part(useful, 'experience'));
+  check(asked.includes('hospital'), "learns from search: it's asked about the brief's own topics", asked);
+  check(useful.sections.flatMap((x) => x.items).find((i) => i.slide.id === 'l-case2')!.why.includes('useful when searching'), 'learns from search: the reason says colleagues found it useful in search');
+  check(!part(useful, 'client-challenge').includes('l-case2'), "learns from search: Useful in search never moves a slide into a part it doesn't do", part(useful, 'client-challenge'));
+
+  const notRelevant = await buildStoryboard(brief, { search: search7, knowledge, searchLearned: async () => new Map([['l-case', { useful: 0, notRelevant: 1 }]]) });
+  check(!part(notRelevant, 'experience').includes('l-case'), 'learns from search: a slide marked Not relevant for these words stays out of the story', part(notRelevant, 'experience'));
+  const overruled = await buildStoryboard(brief, { search: search7, knowledge, searchLearned: async () => new Map([['l-case', { useful: 0, notRelevant: 1 }]]), learned: async () => new Map([['experience:l-case', { useful: 1, notRight: 0 }]]) });
+  check(part(overruled, 'experience').includes('l-case'), "learns from search: the storyboard's own Useful for that part outweighs search's Not relevant", part(overruled, 'experience'));
+  const broken = await buildStoryboard(brief, { search: search7, knowledge, searchLearned: async () => { throw new Error('down'); }, log: () => {} });
+  check(JSON.stringify(part(broken, 'experience')) === JSON.stringify(part(base, 'experience')), 'learns from search: if search feedback is unavailable, the story is built as before');
+
+  const tagBrief = "Priya's pitch: a hospital group is merging three campuses.";
+  let typed = '';
+  const tagged = await buildStoryboard(tagBrief, { search: search7, knowledge, tagged: async (text) => ((typed = text), { of: (id) => (id === 'l-tagged' ? 'Priya' : undefined), rows: [rowOf(LIB7[3])] }) });
+  const tagItem = tagged.sections.flatMap((x) => x.items).find((i) => i.slide.id === 'l-tagged');
+  check(typed.includes('Priya') && part(tagged, 'experience')[0] === 'l-tagged', 'learns from tags: a slide someone tagged with a word of the brief is found and leads its part, even when no search found it', part(tagged, 'experience'));
+  check(!!tagItem?.why.includes('Tagged “Priya”'), 'learns from tags: the reason names the tag', tagItem?.why);
+  const deckTag = await buildStoryboard(tagBrief, { search: search7, knowledge, tagged: async () => ({ of: (_id, deck) => (deck === 'd' ? 'Priya' : undefined), rows: [] }) });
+  check(deckTag.sections.flatMap((x) => x.items).some((i) => i.why.includes('Tagged “Priya”')), "learns from tags: a tag on a slide's deck counts too");
+}
 {
   // Proof from the client's own sector leads, even when another case study matches more words.
   const LIB4 = [
@@ -235,6 +280,13 @@ check(wholeSentences('We start with you. Then we plan every site together with y
     const themed = { ...knowledge, of: (id: string) => { const k = knowledge.of(id); return k && { ...k, themes: id === 'd3' || id === 'd7' ? ['health & wellbeing'] : id === 'd4' ? ['cost certainty & risk'] : [] }; } };
     const t = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge: themed, source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } });
     check(t.thesis === 'Show Kestrel we understand what matters to them (health & wellbeing and cost certainty & risk), have a clear plan, and have done it before.', "retell: with no needs in the request, the thesis comes from the deck's own themes", t.thesis);
+  }
+
+  {
+    // Page breakers the section reader found (FD-57) split a retold deck where the deck itself does.
+    const split = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge, isDivider: (id) => id === 'd6', source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } });
+    const splitKinds = split.beats.map((b) => `${b.kind ?? b.role}:${[b.lead, ...b.more].map((i) => i.slide.id).join('+')}`);
+    check(splitKinds.includes('required:d5') && !splitKinds.includes('required:d5+d6') && split.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)).filter((id) => id.startsWith('d')).join() === DECK.map((d) => d.id).join(), "retell: a divider found by the section reader opens a new section, and every slide stays in the deck's order", splitKinds);
   }
 
   // The AI writes the lines; it can never drop or move a section.
