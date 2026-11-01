@@ -34,6 +34,15 @@ function check(ok: boolean, label: string, detail: unknown = '') {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${!ok && detail !== '' ? ` — ${JSON.stringify(detail)}` : ''}`);
 }
 
+// One database pool however often the code reloads (31 Oct: every dev reload opened a new pool until
+// the login hit "too many connections"). Two copies of the module, as a reload makes, share one pool.
+{
+  type Db = typeof import('../features/slide-vault/server/db');
+  const copy = (n: number) => import(`../features/slide-vault/server/db.ts?reload=${n}`) as Promise<Db>;
+  const [one, two] = [await copy(1), await copy(2)];
+  check(one !== two && one.db() === two.db(), 'db: a reloaded copy of the code reuses the same connection pool');
+}
+
 // Fresh tables, then the schema twice to prove it's safe to rerun.
 await sql('drop table if exists activity_events, user_settings, drafts, saved_slides, slide_downloads, slides, decks cascade');
 const schema = readFileSync(path.resolve(import.meta.dirname, '../features/slide-vault/server/sql/schema.sql'), 'utf8');

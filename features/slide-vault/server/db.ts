@@ -10,7 +10,14 @@ import { readMmoserConfig } from './config';
  * shared slidevault_developer role, and works only inside our schema. There is no master key:
  * the database itself limits what this connection can do.
  */
-let pool: pg.Pool | null = null;
+/*
+ * One pool for the whole server process, kept on globalThis. In development Next.js loads this module
+ * again on every reload (and once per route), and each copy used to open its own pool, so connections
+ * piled up until the login hit its limit ("too many connections for role", blank thumbnails, 31 Oct).
+ * Reusing the one pool keeps it at `max` connections however often the code reloads.
+ */
+type Shared = { pool?: pg.Pool; prepared?: WeakSet<pg.PoolClient> };
+const shared = ((globalThis as typeof globalThis & { __slidevaultDb?: Shared }).__slidevaultDb ??= {});
 
 /**
  * TLS is required. With SV_DB_CA_FILE pointing at the project's CA certificate, the server's
@@ -26,9 +33,9 @@ function sslOptions(): pg.ClientConfig['ssl'] {
 }
 
 export function db(): pg.Pool {
-  if (pool) return pool;
+  if (shared.pool) return shared.pool;
   const c = readMmoserConfig().db;
-  pool = new pg.Pool({
+  const pool = new pg.Pool({
     host: c.host,
     port: c.port,
     database: c.database,
@@ -40,6 +47,9 @@ export function db(): pg.Pool {
     max: 3,
     idleTimeoutMillis: 30_000,
   });
+  // A dropped idle connection (the database restarting, a laptop waking up) must not crash the server.
+  pool.on('error', (e) => console.error('Database connection dropped; a new one opens on the next request:', e.message));
+  shared.pool = pool;
   return pool;
 }
 
@@ -47,7 +57,7 @@ export function db(): pg.Pool {
  * Connections that have already switched role and schema. The search path also names "extensions",
  * where Supabase keeps pgvector (FD-55); Postgres skips it where that schema doesn't exist.
  */
-const prepared = new WeakSet<pg.PoolClient>();
+const prepared = (shared.prepared ??= new WeakSet<pg.PoolClient>());
 
 /** Run one statement and return its rows. Values always go in as parameters ($1, $2...), never pasted into SQL. */
 export async function sql<T = Record<string, unknown>>(text: string, values: unknown[] = []): Promise<T[]> {
