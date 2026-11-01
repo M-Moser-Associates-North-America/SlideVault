@@ -16,10 +16,12 @@ for (const k of ['SV_SUPABASE_URL', 'SV_SUPABASE_PUBLISHABLE_KEY', 'SV_STORAGE_E
 
 const { sql } = await import('../features/slide-vault/server/db');
 const { searchSlidesPg, isInternalOnly } = await import('../features/slide-vault/server/pg-repository');
-const { withTags } = await import('../features/slide-vault/server/tags');
+const { tagsInQuery, withTags } = await import('../features/slide-vault/server/tags');
 const { resetRateLimits } = await import('../features/slide-vault/server/rate-limit');
 const tagsRoute = await import('../app/api/slide-vault/v1/tags/route');
 const tagRoute = await import('../app/api/slide-vault/v1/tags/[tagId]/route');
+const restoreRoute = await import('../app/api/slide-vault/v1/tags/[tagId]/restore/route');
+const removedRoute = await import('../app/api/slide-vault/v1/tags/removed/route');
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -88,6 +90,28 @@ const del = await call(tagRoute.DELETE, 'DELETE', undefined, { tagId: String(t1.
 check(del.status === 200 && (await withTags(await searchSlidesPg('', 100))).find((s) => s.id === ids[0])!.tags?.length === 1, 'DELETE /tags/:id removes it');
 check((await call(tagRoute.DELETE, 'DELETE', undefined, { tagId: String(t1.json.data?.id) })).status === 404, 'removing it again is a 404');
 check((await call(tagRoute.DELETE, 'DELETE', undefined, { tagId: "1; drop table slides" })).status === 404, 'a malformed tag id is a 404, nothing run');
+
+// ---- Removed tags are kept, listed and can come back (FD-72, 1 Nov)
+const hospitalId = String(t1.json.data?.id);
+const removed = async (on: string, id: string, user: string | null = 'Sam Lee') => {
+  resetRateLimits();
+  const res = await removedRoute.GET(new Request(`http://localhost/x?${new URLSearchParams({ on, id })}`, { headers: user ? { 'x-slidevault-user': encodeURIComponent(user) } : {} }));
+  return { status: res.status, json: (await res.json()) as { data?: { id: string; tag: string; on: string; addedBy: string; removedBy: string; removedAt: string }[]; error?: { code: string } } };
+};
+const log1 = await removed('slide', ids[0]);
+check(log1.status === 200 && log1.json.data?.length === 1 && log1.json.data[0].tag === 'Hospital wing' && log1.json.data[0].addedBy === 'Pat Doe' && log1.json.data[0].removedBy === 'Pat Doe' && !!log1.json.data[0].removedAt, 'GET /tags/removed lists a removed tag with who added and who removed it', log1);
+check(!(await call(tagsRoute.GET, 'GET')).json.data?.some((r) => (r as { tag: string }).tag === 'Hospital wing'), 'a removed tag drops out of the tag list');
+check((await searchSlidesPg('', 100, 'exclude', 'Hospital Wing')).length === 0, 'and out of search by tag');
+check(!(await tagsInQuery('hospital wing slides')).length, "and doesn't lead searches");
+const back = await call(restoreRoute.POST, 'POST', undefined, { tagId: hospitalId }, 'Sam Lee');
+check(back.status === 200 && back.json.data?.tag === 'Hospital wing' && back.json.data?.addedBy === 'Pat Doe', 'POST /tags/:id/restore brings it back with its original adder', back);
+check((await withTags(await searchSlidesPg('', 100))).find((s) => s.id === ids[0])!.tags?.length === 2 && (await removed('slide', ids[0])).json.data?.length === 0, 'restored: on the slide again and off the removed list');
+check((await call(restoreRoute.POST, 'POST', undefined, { tagId: hospitalId })).status === 404, 'restoring a tag that is not removed is a 404');
+await call(tagRoute.DELETE, 'DELETE', undefined, { tagId: hospitalId }, 'Sam Lee');
+const readd = await call(tagsRoute.POST, 'POST', { on: 'slide', id: ids[0], tag: 'hospital WING' }, {}, 'Kim Ray');
+check(readd.status === 200 && readd.json.data?.id === hospitalId && readd.json.data?.addedBy === 'Pat Doe' && (await removed('slide', ids[0])).json.data?.length === 0, 'adding a removed tag again brings the same one back, not a copy');
+check((await removed('page', ids[0])).status === 400 && (await removed('slide', 'not-an-id')).status === 400, 'the removed list needs a slide or deck id');
+check((await call(restoreRoute.POST, 'POST', undefined, { tagId: hospitalId }, null)).json.error?.code === 'SIGNED_OUT' && (await removed('slide', ids[0], null)).json.error?.code === 'SIGNED_OUT', 'signed out cannot restore or see the log');
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll tag checks passed');
 await sql('drop table if exists free_tags, slide_pack_members, slide_packs, story_feedback, activity_events, user_settings, drafts, saved_slides, slide_downloads, slides, decks cascade');
