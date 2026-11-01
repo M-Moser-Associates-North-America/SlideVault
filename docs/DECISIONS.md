@@ -738,7 +738,7 @@ Revisit trigger: M Moser's login supplies roles; Alina sets the minimum group si
 ```
 
 ```text
-Decision ID and title: FD-72 The storyboard learns from search: Useful / Not relevant, people's own tags, and the section reader's dividers
+Decision ID and title: FD-75 The storyboard learns from search: Useful / Not relevant, people's own tags, and the section reader's dividers
 Status: proposed
 Decision date: 2026-10-31
 Decision owner/reviewer: Schiffon (storyboard and search logic); Vincent (search_feedback and free_tags tables)
