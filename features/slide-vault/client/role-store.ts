@@ -1,16 +1,28 @@
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import type { StoryUserRole } from '../contracts/dto';
-import type { Transport } from './api';
-import { userApi } from './user-api';
 
 /**
  * How this person builds proposals (FD-25), set once in their profile and used to tune the
- * storyboard. The server keeps it (user_settings, FD-71) and wins; this browser holds a copy per
- * signed-in name so the screen and requests can read it at once, and so it still works when the
- * server has no database.
+ * storyboard. Kept in this browser per signed-in name so the screen and requests can read it at
+ * once; the workspace also saves it on the server (user_settings, FD-71) through onRoleChange.
  */
 const key = (profile: string) => `slidevault:${profile}:role`;
 const listeners = new Set<() => void>();
+/** Where a change of role is also saved (the server's user_settings, FD-71); set by the workspace. */
+let saveRole: ((role: StoryUserRole | null) => void) | null = null;
+export function onRoleChange(save: ((role: StoryUserRole | null) => void) | null) {
+  saveRole = save;
+}
+/** The role the server has for this person, when this browser has none yet (a new browser, a cleared one). */
+export function adoptServerRole(profile: string, role: StoryUserRole | null) {
+  if (!role || !ROLES.includes(role) || read(profile)) return;
+  try {
+    localStorage.setItem(key(profile), role);
+  } catch {
+    return;
+  }
+  listeners.forEach((l) => l());
+}
 const ROLES: readonly StoryUserRole[] = ['business-developer', 'director', 'bd-support'];
 
 function read(profile: string | null): StoryUserRole | null {
@@ -32,23 +44,7 @@ export function currentStoryRole(): StoryUserRole | null {
   }
 }
 
-/** Put the browser's copy right, and tell every screen reading it. */
-function remember(profile: string, next: StoryUserRole | null) {
-  try {
-    if (next) localStorage.setItem(key(profile), next);
-    else localStorage.removeItem(key(profile));
-  } catch {
-    // Private browsing: the choice lasts until the page is closed.
-  }
-  listeners.forEach((l) => l());
-}
-
-/**
- * The signed-in person's role. Give it the transport once (the workspace does) and it loads the saved
- * role from the server; setRole saves there too and puts the old role back, returning false, if the
- * server says no.
- */
-export function useStoryRole(profile: string | null, transport?: Transport) {
+export function useStoryRole(profile: string | null) {
   const role = useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
@@ -59,32 +55,19 @@ export function useStoryRole(profile: string | null, transport?: Transport) {
     () => read(profile),
     () => null,
   );
-  useEffect(() => {
-    if (!profile || !transport) return;
-    let live = true;
-    userApi
-      .getRole(transport, profile)
-      .then((saved) => live && remember(profile, saved))
-      .catch(() => {}); // no server or database: keep this browser's copy
-    return () => {
-      live = false;
-    };
-  }, [profile, transport]);
   const setRole = useCallback(
-    async (next: StoryUserRole | null): Promise<boolean> => {
-      if (!profile) return false;
-      const before = read(profile);
-      remember(profile, next);
-      if (!transport) return true;
+    (next: StoryUserRole | null) => {
+      if (!profile) return;
       try {
-        await userApi.setRole(transport, profile, next);
-        return true;
+        if (next) localStorage.setItem(key(profile), next);
+        else localStorage.removeItem(key(profile));
       } catch {
-        remember(profile, before);
-        return false;
+        // Private browsing: the choice lasts until the page is closed.
       }
+      listeners.forEach((l) => l());
+      saveRole?.(next);
     },
-    [profile, transport],
+    [profile],
   );
   return { role, setRole };
 }

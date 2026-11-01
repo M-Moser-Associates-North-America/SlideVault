@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SlideSummary, StoryBeat, StoryboardResult, StoryFeedbackVerdict, StoryRole } from '../contracts/dto';
 import { buildStory, refineStory, sendStoryFeedback } from '../client/api';
-import { useStoryRole } from '../client/role-store';
+import { ROLE_CHOICES, useStoryRole } from '../client/role-store';
 import { takeHandedOffBrief } from '../client/story-handoff';
 import { useSavedStories } from '../client/story-store';
 import { Icon } from './icons';
@@ -26,7 +26,7 @@ const two = (n: number) => String(n).padStart(2, '0');
 
 export function StoryboardView() {
   const { runtime, updateSelection, toast, announce, profile } = useWorkspace();
-  const { role } = useStoryRole(profile);
+  const { role, setRole } = useStoryRole(profile);
   // A brief typed in search arrives here when the person chose "Build a story instead".
   const [situation, setSituation] = useState(() => takeHandedOffBrief() ?? '');
   // Pull the story always looks ready (like the Storyboard button on Home); too short a brief says so instead.
@@ -171,7 +171,19 @@ export function StoryboardView() {
             }} rows={5} placeholder="Who is the client, what's happening, what worries them, and what would a win look like?" />
           <div className="sb-compose-row">
             <MicButton onText={(t) => setSituation((s) => [s.trim(), t].filter(Boolean).join(' '))} />
-            {/* Lights up orange as Start planning story on hover, focus and tap. */}
+            {/* The same setting as in My decks (FD-25), picked right here. */}
+            <p className="sb-role-line">
+              <label htmlFor="sb-role-pick">Tuned for</label>{' '}
+              <select id="sb-role-pick" className="sb-role-pick" value={role ?? ''} onChange={(e) => setRole((e.target.value || null) as typeof role)}>
+                <option value="">Everyone</option>
+                {ROLE_CHOICES.map((c) => (
+                  <option key={c.role} value={c.role}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </p>
+            {/* Clear like Tuned for beside it; lights up orange as Start planning story on hover, focus and tap. */}
             <button type="button" className="sb-pull" aria-label="Pull the story" onClick={() => {
                 if (situation.trim().length < 20) {
                   setTooShort(true);

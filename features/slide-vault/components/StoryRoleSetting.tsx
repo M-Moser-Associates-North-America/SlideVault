@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+
 import type { StoryUserRole } from '../contracts/dto';
 import { ROLE_CHOICES, useStoryRole } from '../client/role-store';
 import { useWorkspace } from './state';
@@ -12,16 +12,12 @@ import './storyboard.css';
  * tunes search and every storyboard.
  */
 export function StoryRoleSetting() {
-  const { profile, announce, toast, runtime } = useWorkspace();
-  const { role, setRole } = useStoryRole(profile, runtime);
-  const [saving, setSaving] = useState(false);
+  const { profile, announce } = useWorkspace();
+  const { role, setRole } = useStoryRole(profile);
 
-  async function pick(next: StoryUserRole | null, label: string) {
-    setSaving(true);
-    const saved = await setRole(next);
-    setSaving(false);
-    if (saved) announce(next ? `Your role: ${label}` : 'Your role is not set');
-    else toast("Couldn't save your role. Please try again.");
+  function pick(next: StoryUserRole | null, label: string) {
+    setRole(next);
+    announce(next ? `Your role: ${label}` : 'Your role is not set');
   }
 
   return (
@@ -34,16 +30,16 @@ export function StoryRoleSetting() {
       <p className="meta" style={{ marginBottom: 6 }}>
         Tunes your search results and storyboards to how you build proposals. It shows next to your name in the account menu.
       </p>
-      <div className="sb-role-list" role="radiogroup" aria-labelledby="sb-roles-h" aria-busy={saving}>
+      <div className="sb-role-list" role="radiogroup" aria-labelledby="sb-roles-h">
         {ROLE_CHOICES.map((c) => (
           <label key={c.role} className={`sb-role${role === c.role ? ' is-on' : ''}`}>
-            <input type="radio" name="sb-role" value={c.role} checked={role === c.role} disabled={saving} onChange={() => pick(c.role, c.label)} />
+            <input type="radio" name="sb-role" value={c.role} checked={role === c.role} onChange={() => pick(c.role, c.label)} />
             <span className="sb-role-name">{c.label}</span>
             <span className="sb-role-day">{c.day}</span>
           </label>
         ))}
         <label className={`sb-role${role === null ? ' is-on' : ''}`}>
-          <input type="radio" name="sb-role" value="" checked={role === null} disabled={saving} onChange={() => pick(null, '')} />
+          <input type="radio" name="sb-role" value="" checked={role === null} onChange={() => pick(null, '')} />
           <span className="sb-role-name">Not set</span>
           <span className="sb-role-day">Results and storyboards are not tuned to a role.</span>
         </label>

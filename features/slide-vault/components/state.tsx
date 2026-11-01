@@ -1,12 +1,12 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { archiveDeck as archiveDeckApi, createPack as createPackApi, deletePack as deletePackApi, listLibrary, renamePack as renamePackApi, renameSlide as renameSlideApi, setPackStatus as setPackStatusApi, smartSearch } from '../client/api';
+import { archiveDeck as archiveDeckApi, createPack as createPackApi, deletePack as deletePackApi, getMySettings, listLibrary, renamePack as renamePackApi, renameSlide as renameSlideApi, setMyRole, setPackStatus as setPackStatusApi, smartSearch } from '../client/api';
 import { withDemoDetails } from '../client/demo-details';
 import { useLocalPacks } from '../client/pack-store';
 import { buildPacks, NO_PACKS, type Pack, type PacksIndex } from '../client/packs';
 import { useActivity, useDrafts, useProfile, useSaved, type ActivityEntry, type Draft } from '../client/profile-store';
-import { currentStoryRole, useStoryRole } from '../client/role-store';
+import { adoptServerRole, currentStoryRole, onRoleChange } from '../client/role-store';
 import { demoTagsOn } from '../client/tag-store';
 import { useSelection } from '../client/selection-store';
 import { tourIsOpen } from '../client/tour-store';
@@ -328,6 +328,23 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     signedInRef.current = profile;
   }, [profile]);
 
+  /* The role is kept on the server too (FD-71), so Suggested for you can count by role. A change here saves
+     it there; signing in brings the server's role into a browser that has none. Quiet when there's no database. */
+  useEffect(() => {
+    onRoleChange((role) => void setMyRole(transport, role).catch(() => undefined));
+    return () => onRoleChange(null);
+  }, [transport]);
+  useEffect(() => {
+    if (!profile) return;
+    let live = true;
+    getMySettings(transport)
+      .then((s) => live && s && adoptServerRole(profile, s.role))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [profile, transport]);
+
   /* Packs (FD-38): slides that go together. They come from the server on each slide, plus any made in this
      browser while the server cannot store them. ?demopacks=1 in the address shows pretend ones. */
   const [localPacks, updateLocalPacks] = useLocalPacks(runtime.sessionScopeKey);
@@ -469,7 +486,6 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   /* Saved slides and recent activity, scoped per demo profile so switching profiles actually
      shows a different person's stuff. */
   /* Kept on the server for the signed-in person when the database is set up (FD-18). */
-  useStoryRole(profile, transport); // loads the role kept on the server (FD-71)
   const { ids: savedIds, toggle: toggleSaved } = useSaved(profile, transport);
   const { entries: activity, log: logActivity, optedIn: activityOptedIn, setOptedIn: setActivityOptIn, retentionDays: activityRetentionDays } = useActivity(profile, transport);
   const { drafts, save: saveDraftStore, replace: replaceDraftStore, remove: deleteDraft } = useDrafts(profile, transport);
