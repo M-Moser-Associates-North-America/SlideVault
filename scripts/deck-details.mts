@@ -1,6 +1,7 @@
 /**
  * Fills in deck details for decks already uploaded (docs/DECISIONS.md FD-52): who created each deck
- * and when, as PowerPoint recorded it inside the file, and who uploaded it. New uploads record these
+ * and when, as PowerPoint recorded it inside the file, who uploaded it, and where the deck was made
+ * when its file name says ("M Moser_Client_TO_2026" is Toronto). New uploads record these
  * themselves; this is for the ones that went in before.
  *
  *   npm run deck:details -- ~/Desktop/MMoser-RealDecks                               # dry run: shows what it would set
@@ -17,6 +18,7 @@ import os from 'node:os';
 import path from 'node:path';
 import pg from 'pg';
 import { readFileFacts } from '../features/slide-vault/server/file-facts';
+import { folderInfo } from '../features/slide-vault/server/folder-path';
 
 const args = process.argv.slice(2);
 const at = args.indexOf('--uploaded-by');
@@ -26,7 +28,8 @@ if (at >= 0 && !uploadedBy) {
   process.exit(1);
 }
 const yes = args.includes('--yes');
-const folder = args.find((a, i) => !a.startsWith('--') && i !== at + 1)?.replace(/^~(?=$|\/)/, os.homedir());
+// The folder is the first plain argument that isn't the name after --uploaded-by (when that is given).
+const folder = args.find((a, i) => !a.startsWith('--') && (at < 0 || i !== at + 1))?.replace(/^~(?=$|\/)/, os.homedir());
 if (!folder || !existsSync(folder)) {
   console.error('Give the folder with the deck files, e.g. npm run deck:details -- ~/Desktop/MMoser-RealDecks');
   process.exit(1);
@@ -62,13 +65,13 @@ const client = new pg.Client({ host: env.SV_DB_HOST, port: Number(env.SV_DB_PORT
 await client.connect();
 await client.query(`set role slidevault_developer; set search_path to ${pg.escapeIdentifier(env.SV_DB_SCHEMA)}, public`);
 
-type Deck = { id: string; title: string; file_hash: string; created_by: string | null; file_created_at: Date | null; uploaded_by: string | null };
-const decks = (await client.query<Deck>('select id, title, file_hash, created_by, file_created_at, uploaded_by from decks order by title')).rows;
+type Deck = { id: string; title: string; file_hash: string; created_by: string | null; file_created_at: Date | null; uploaded_by: string | null; project_location: string | null; source_filename: string | null };
+const decks = (await client.query<Deck>('select id, title, file_hash, created_by, file_created_at, uploaded_by, project_location, source_filename from decks order by title')).rows;
 const byHash = new Map(decks.map((d) => [d.file_hash, d]));
 
 console.log(`${yes ? 'SETTING DETAILS' : 'DRY RUN: nothing is changed.'} Reading ${files.length} .pptx file(s) under ${folder}...\n`);
 const seen = new Set<string>();
-const plan: { deck: Deck; createdBy: string | null; createdAt: string | null; uploadedBy: string | null }[] = [];
+const plan: { deck: Deck; createdBy: string | null; createdAt: string | null; uploadedBy: string | null; location: string | null }[] = [];
 for (const file of files) {
   const hash = await hashFile(file);
   const deck = byHash.get(hash);
@@ -80,8 +83,10 @@ for (const file of files) {
     createdBy: deck.created_by ? null : facts.createdBy,
     createdAt: deck.file_created_at ? null : facts.createdAt,
     uploadedBy: deck.uploaded_by || !uploadedBy ? null : uploadedBy,
+    // Where the deck was made, from its file name ("_TO_" is Toronto), when nobody recorded one (31 Oct)
+    location: deck.project_location ? null : folderInfo(deck.source_filename ?? path.basename(file)).location,
   };
-  const parts = [change.createdBy && `created by ${change.createdBy}`, change.createdAt && `created ${change.createdAt.slice(0, 10)}`, change.uploadedBy && `uploaded by ${change.uploadedBy}`].filter(Boolean);
+  const parts = [change.createdBy && `created by ${change.createdBy}`, change.createdAt && `created ${change.createdAt.slice(0, 10)}`, change.uploadedBy && `uploaded by ${change.uploadedBy}`, change.location && `location ${change.location}`].filter(Boolean);
   console.log(`  ${deck.title}: ${parts.length ? parts.join(', ') : 'nothing new (already set, or not recorded in the file)'}`);
   if (parts.length) plan.push(change);
 }
@@ -93,8 +98,9 @@ if (!yes) {
 } else {
   for (const c of plan) {
     await client.query(
-      `update decks set created_by = coalesce(created_by, $2), file_created_at = coalesce(file_created_at, $3), uploaded_by = coalesce(uploaded_by, $4) where id = $1`,
-      [c.deck.id, c.createdBy, c.createdAt, c.uploadedBy],
+      `update decks set created_by = coalesce(created_by, $2), file_created_at = coalesce(file_created_at, $3), uploaded_by = coalesce(uploaded_by, $4),
+         project_location = coalesce(project_location, $5) where id = $1`,
+      [c.deck.id, c.createdBy, c.createdAt, c.uploadedBy, c.location],
     );
   }
   console.log(`\nDone: details set on ${plan.length} deck(s).`);

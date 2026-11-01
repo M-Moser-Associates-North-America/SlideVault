@@ -208,6 +208,18 @@ export type Parsed = {
 };
 
 /** How the rules read a search: topics, a client, a year, and leftover words. */
+/**
+ * Industries whose names contain a topic word: "financial services" is the client's sector, not the
+ * Cost and fees and Services slide types (31 Oct, "Financial Services clients in Toronto"). Read whole
+ * before any single word, then left out of the topic and keyword reading; the sector itself is read
+ * from the search by slide-intent.ts and ranks the slides from that kind of client first (FD-70).
+ */
+const SECTOR_PHRASES = [
+  'financial services', 'financial service', 'financial institution', 'financial institutions', 'financial sector',
+  'financial firm', 'financial firms', 'financial client', 'financial clients', 'financial company', 'financial companies',
+  'professional services', 'professional service', 'professional services firm', 'professional services firms',
+];
+
 export function parseQuery(q: string, clients: string[]): Parsed {
   const nq = ` ${norm(q)
     .replace(/[^a-z0-9\- ]/g, ' ')
@@ -225,8 +237,15 @@ export function parseQuery(q: string, clients: string[]): Parsed {
     year: null,
     recent: false,
   };
+  // Sector names first, longest first, so their words don't read as topics or named words.
+  let topicText = nq;
+  for (const phrase of [...SECTOR_PHRASES].sort((a, b) => b.length - a.length)) {
+    if (!topicText.includes(` ${phrase} `)) continue;
+    topicText = topicText.split(` ${phrase} `).join('  ');
+    strip(phrase);
+  }
   for (const c of CONCEPTS) {
-    const hit = c.words.filter((w) => nq.includes(` ${norm(w)} `));
+    const hit = c.words.filter((w) => topicText.includes(` ${norm(w)} `));
     if (!hit.length) continue;
     hit.sort((a, b) => b.length - a.length).forEach(strip);
     P.concepts.push(c);

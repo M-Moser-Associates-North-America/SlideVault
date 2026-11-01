@@ -5,6 +5,7 @@ import type { DetailChanges } from './deck-details';
 import type { SlideText } from './duplicates';
 import { anyOfQuery, type SearchPlan, type SlideFacts } from './ai/search-plan';
 import { tidyPersonName } from './file-facts';
+import { folderInfo } from './folder-path';
 
 /**
  * Postgres-backed deck/slide storage in M Moser's Supabase project (docs/DECISIONS.md FD-12;
@@ -116,11 +117,14 @@ export async function updateDeckDetails(deckId: string, changes: DetailChanges):
 export async function createDeck(input: NewDeckInput): Promise<string> {
   const [row] = await sql<{ id: string }>(
     `insert into decks (id, client, year, category, source_path, title, source_filename, file_path, file_hash, source, best_of_the_best, slide_size, status,
-       uploaded_by, created_by, file_created_at)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'upload', $10, $11, 'processing', $12, $13, $14)
+       uploaded_by, created_by, file_created_at, project_location)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'upload', $10, $11, 'processing', $12, $13, $14, $15)
      returning id`,
+    // Where the deck was made, when its file name says ("M Moser_Client_TO_2026" is Toronto), so a
+    // search for the place finds it (31 Oct). Null when the name doesn't say.
     [input.id, input.client, input.year, input.category, input.sourcePath, input.title, input.sourceFilename,
-      input.filePath, input.fileHash, input.bestOfTheBest, input.slideSize, input.uploadedBy ?? null, input.createdBy ?? null, input.fileCreatedAt ?? null],
+      input.filePath, input.fileHash, input.bestOfTheBest, input.slideSize, input.uploadedBy ?? null, input.createdBy ?? null, input.fileCreatedAt ?? null,
+      folderInfo(input.sourceFilename).location],
   );
   return row.id;
 }
@@ -220,7 +224,8 @@ function toSlideSummary(row: SlideWithDeck): SlideSummary {
       deckYear: row.decks.year,
       category: row.decks.category,
       bestOfTheBest: row.decks.best_of_the_best,
-      location: d.project_location ?? null,
+      // The reviewed location, else the city the file name gives ("_TO_" is Toronto), as for library folders.
+      location: d.project_location ?? folderInfo(d.source_filename ?? '').location,
       // Deck details (FD-52): real values only, null when nobody recorded them.
       // Shown tidied ("JordanEllis - M Moser Associates" -> "Jordan Ellis"); stored as recorded.
       createdBy: tidyPersonName(d.created_by),
@@ -310,7 +315,7 @@ export async function setDeckArchived(deckId: string, archived: boolean, by: str
  * finds slides about hospitality, not only slides that happen to say the word.
  */
 const STORY_TEXT = `concat_ws(' ', s.story_role, replace(coalesce(s.slide_type, ''), '_', ' '), array_to_string(s.themes, ' '),
-  array_to_string(s.proof_sectors, ' '), array_to_string(s.projects, ' '), s.shows, s.convinces, d.client, d.client_sector, d.deck_kind,
+  array_to_string(s.proof_sectors, ' '), array_to_string(s.projects, ' '), s.shows, s.convinces, d.client, d.client_sector, d.deck_kind, d.project_location,
   (select string_agg(f.tag, ' ') from free_tags f where (f.target_kind = 'slide' and f.target_id = s.id) or (f.target_kind = 'deck' and f.target_id = d.id)))`;
 
 /** What a search asks for beyond its words (slide-intent.ts): kinds of slide, client sectors, themes. */
@@ -430,17 +435,18 @@ export async function listSlideTextsPg(): Promise<SlideText[]> {
   return rows.map((r) => ({ id: r.id, sourceId: r.deck_id, title: r.title ?? '', text: r.text ?? '' }));
 }
 
-export type DeckSlidesPg = { id: string; client: string; slides: { id: string; title: string; text: string; type: string | null }[] };
+/** `location`: where the deck was made, reviewed or from its file name ("_TO_" is Toronto), so a place counts as named (31 Oct). */
+export type DeckSlidesPg = { id: string; client: string; location: string | null; slides: { id: string; title: string; text: string; type: string | null }[] };
 
 /** Every ready uploaded deck's slides in slide order, for deck sections and named words (FD-57, FD-56). */
 export async function listDeckSlidesPg(): Promise<DeckSlidesPg[]> {
-  const rows = await sql<{ id: string; deck_id: string; client: string; title: string | null; text: string | null; slide_type: string | null }>(
-    `select s.id, s.deck_id, d.client, s.title, s.text, s.slide_type from slides s join decks d on d.id = s.deck_id where d.status = 'ready' and d.archived_at is null order by s.deck_id, s.slide_number`,
+  const rows = await sql<{ id: string; deck_id: string; client: string; project_location: string | null; source_filename: string | null; title: string | null; text: string | null; slide_type: string | null }>(
+    `select s.id, s.deck_id, d.client, d.project_location, d.source_filename, s.title, s.text, s.slide_type from slides s join decks d on d.id = s.deck_id where d.status = 'ready' and d.archived_at is null order by s.deck_id, s.slide_number`,
   );
   const decks = new Map<string, DeckSlidesPg>();
   for (const r of rows) {
     let deck = decks.get(r.deck_id);
-    if (!deck) decks.set(r.deck_id, (deck = { id: r.deck_id, client: r.client, slides: [] }));
+    if (!deck) decks.set(r.deck_id, (deck = { id: r.deck_id, client: r.client, location: r.project_location ?? folderInfo(r.source_filename ?? '').location, slides: [] }));
     deck.slides.push({ id: r.id, title: r.title ?? '', text: r.text ?? '', type: r.slide_type });
   }
   return [...decks.values()];

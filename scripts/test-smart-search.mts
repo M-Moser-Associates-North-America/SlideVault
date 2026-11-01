@@ -45,6 +45,12 @@ const ctx: PlanContext = { clients: ['Kestrel Law', 'Northgate Bank', 'Halcyon H
   check(upd.yearFrom === 2026 && upd.yearTo === 2026 && upd.keywords.length === 0, 'stand-in: "2026, most updated slides" (Alina, 28 Oct) is the year, not the word "updated"', upd);
   const cur = standInPlan('most current slides', ctx);
   check(cur.yearFrom === 2024 && cur.keywords.length === 0, 'stand-in: "current" means recent work too', cur);
+  // "Financial Services clients in Toronto" (31 Oct): an industry, then a place, not two slide types.
+  const fin = standInPlan('Financial Services clients in Toronto', ctx);
+  check(!fin.topics.includes('Services') && !fin.topics.includes('Cost and fees'), 'stand-in: "financial services" is the client\'s sector, not the Services or Cost and fees slide types', fin.topics);
+  check(!(fin.named ?? []).some((w) => /financial|services/i.test(w)) && (fin.named ?? []).includes('Toronto'), 'stand-in: Toronto is the named thing; the sector words are not', fin.named);
+  check(standInPlan('fees and the financial model', ctx).topics.includes('Cost and fees'), 'stand-in: "financial" on its own still asks for cost and fees slides');
+  check(standInPlan('our professional services', ctx).topics.length === 0, 'stand-in: "professional services" is a sector too');
 }
 check(standInPlan('best of the best hybrid work', ctx).bestOfTheBest === true, 'stand-in: "best of the best" sets the collection filter');
 

@@ -721,6 +721,7 @@ Consequences for scope, cost, security and integration: No AI calls. "Not releva
 Acceptance evidence / affected PR criteria: npm run test:search-context (9 checks on a local Postgres: hospitality, team for a healthcare client, banner, ending slide, 2026, a "Priya" tag, why it fits, internal-only left out); test:smart-search, test:storyboard, test:story-learning, test:deck-finder, test:reasoning-map and the earlier database tests still pass; typecheck and lint.
 Documents/contracts changed: server/pg-repository.ts (smartSearchPg), server/services/slide-intent.ts (new kinds, knownFromStory), server/services/library-smart-search.ts, scripts/test-search-context.mts (new), package.json.
 Revisit trigger: Gaby's annotated queries arrive (score search against them); meaning search goes live; Schiffon's sections and named words move to Supabase.
+Update 2026-10-31 (Vincent): "Financial Services clients in Toronto" read "financial" as Cost and fees and "services" as Services, and found Toronto only where a slide printed it. Now industry names ("financial services", "professional services") are read whole before single words (search-rules.ts) and only rank by sector; where a deck was made is kept in decks.project_location, from the reviewed sheet or the file name ("M Moser_Client_TO_2026" is Toronto) at upload, and `npm run deck:details` fills it for decks already uploaded; search matches it, and a place counts as a named thing when the library has decks made there. Checks: test:smart-search (4 new) and test:search-context (3 new).
 ```
 
 ```text
