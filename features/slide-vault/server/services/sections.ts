@@ -31,10 +31,10 @@ export type SlideSection = {
 export const SECTION_WORDS: [SectionKind, RegExp][] = [
   // "How we will run the portfolio" is the approach, not the portfolio. "How we think" is the firm (Alina, 28 Oct).
   ['approach', /^how we\b(?!['’]?ve|\s+think)/],
-  ['case-studies', /\b(case stud(y|ies)|relevant experience|similar experience|project experience|where (we|our team)( ha)?'?v?e? done|done (this|it) before|portfolio|references|past projects|our work)\b/],
+  ['case-studies', /\b(case stud(y|ies)|relevant experience|similar experience|project experience|where (we|our team)( ha)?'?v?e? done|done (this|it) before|portfolio|references|past projects|our work)\b|^(our |relevant )?experience$/],
   ['team', /\b(team|resumes?|cvs?|bios?|personnel|staffing|experts?|people|who you'?ll work with|who will (do|deliver|lead) it|organi[sz]ation(al)? chart)\b/],
   ['fees', /\b(fees?|pricing|commercials?|cost proposal|budget|schedule and fees|fees and schedule)\b/],
-  ['approach', /\b(approach|methodology|how we (do it|work|will|deliver)|process|delivery model|work ?plan|(project )?phases|our thinking|implementation)\b/],
+  ['approach', /\b(approach|methodology|how we (do it|work|will|deliver)|process|delivery model|work ?plan|(project )?phases|our thinking|implementation|execution plan)\b/],
   ['firm', /\b(firm|company) (profile|overview|qualifications?|background|information)\b|\b(about (us|m ?moser)|who we are|who is m ?moser|how we think|our firm|firm overview|overview of m ?moser)\b/],
   ['understanding', /\b(understanding|executive summary|vision|your (needs|goals|brief)|project summary|the opportunity|initial thoughts|solving for)\b/],
   ['appendix', /\bappendix\b/],

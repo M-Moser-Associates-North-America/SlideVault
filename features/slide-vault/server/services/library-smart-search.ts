@@ -343,8 +343,9 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   await uploadedDecks();
   const sections = sectionsOf(index, readings);
   const isDivider = (id: string) => sections.get(id)?.dividerId === id;
+  const sectionOf = (id: string) => { const x = sections.get(id); return x && { key: x.dividerId, name: x.name, kind: /\bappendix\b/i.test(x.name) ? 'appendix' : x.kind }; };
   const brief = source ? `${situation}\n${source.deck.title.replace(/ · /g, ', ')}` : situation;
-  const result = await buildStoryboard(brief, { reader: opts.reader, search, learned: learnedForTopics, searchLearned: storySearchLearning, tagged: (text) => storyTags(index, text), isDivider, knowledge, source, context, families, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
+  const result = await buildStoryboard(brief, { reader: opts.reader, search, learned: learnedForTopics, searchLearned: storySearchLearning, tagged: (text) => storyTags(index, text), isDivider, sectionOf, knowledge, source, context, families, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
   const all = [...result.sections.flatMap((s) => s.items.map((i) => i.slide)), ...result.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide))];
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
   const withCounts = <T extends { slide: SlideSummary }>(i: T): T => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide });

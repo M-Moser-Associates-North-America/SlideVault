@@ -289,6 +289,35 @@ check(wholeSentences('We start with you. Then we plan every site together with y
     check(splitKinds.includes('required:d5') && !splitKinds.includes('required:d5+d6') && split.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)).filter((id) => id.startsWith('d')).join() === DECK.map((d) => d.id).join(), "retell: a divider found by the section reader opens a new section, and every slide stays in the deck's order", splitKinds);
   }
 
+  {
+    // Grouped by the deck's own sections (Gabby, 28 Oct: "if it follows the page breaker… it would pull those slides").
+    const chapters: Record<string, { key: string; name: string; kind?: string }> = {
+      d2: { key: 'c1', name: 'who we are', kind: 'other' }, d3: { key: 'c1', name: 'who we are', kind: 'other' }, d4: { key: 'c1', name: 'who we are', kind: 'other' },
+      d5: { key: 'c2', name: 'Appendix: team', kind: 'appendix' }, d6: { key: 'c2', name: 'Appendix: team', kind: 'appendix' },
+      d7: { key: 'c3', name: 'Where we have done this', kind: 'case-studies' },
+    };
+    const g = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge, sectionOf: (id) => chapters[id], source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } });
+    const gKinds = g.beats.map((b) => `${b.kind ?? b.role}:${b.title}:${[b.lead, ...b.more].map((i) => i.slide.id).join('+')}`);
+    check(gKinds.some((k) => k.endsWith(':Who we are:d2+d3+d4')), "retell by sections: a chapter's slides stay together under the deck's own name, capitalised", gKinds);
+    check(gKinds.some((k) => k.startsWith('required:Appendix: team:')), 'retell by sections: an appendix chapter is kept as required pages', gKinds);
+    check(gKinds.some((k) => k.startsWith('experience:Where we have done this:d7')), 'retell by sections: a case-studies chapter is the proof, whatever the slides were read as', gKinds);
+    check(g.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)).filter((id) => id.startsWith('d')).join() === DECK.map((d) => d.id).join(), "retell by sections: every slide stays in the deck's order");
+
+    // A long deck with no page breakers is read in about a dozen parts, not one per turn.
+    const LONG = Array.from({ length: 48 }, (_, i) => ({ id: `L${i}`, title: `Long slide ${i}`, text: 'Words.', role: i % 2 ? 'why-us' : 'admin', type: i % 2 ? 'differentiator' : 'fees_commercial' }));
+    const longKnow = { of: (id: string) => { const x = [...LONG, OTHER].find((d) => d.id === id); return x && { role: x.role, topics: [], about: '', reviewed: true, reuse: 'reusable', type: x.type }; }, forPart: async (role: string) => [OTHER].filter((x) => x.role === role).map(rowOf) };
+    const long = await buildStoryboard('Tell me the story of this deck', { search: async () => [], knowledge: longKnow, source: { deck: { id: 'long', title: 'Longco · RFP · 2025', slideCount: LONG.length }, rows: LONG.map(rowOf) } });
+    const longShown = long.beats.filter((b) => b.kind !== 'suggested');
+    check(longShown.length <= 12 && longShown.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)).join() === LONG.map((d) => d.id).join(), 'retell: a long deck with no page breakers reads in at most 12 parts, every slide in order', longShown.length);
+
+    // A deck of only required pages: suggestions come after the cover, in story order.
+    const PAPER = [DECK[0], DECK[4], DECK[5]];
+    const paper = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge, source: { deck: { id: 'paper', title: 'Paperco · RFP · 2025', slideCount: PAPER.length }, rows: PAPER.map(rowOf) } });
+    const order = paper.beats.map((b) => b.kind ?? b.role);
+    const sugg = paper.beats.filter((b) => b.kind === 'suggested').map((b) => b.role);
+    check(order[0] === 'required' && [paper.beats[0].lead, ...paper.beats[0].more].some((i) => i.slide.id === 'd1') && sugg.join() === [...sugg].sort((a, b) => STORY_ROLES.indexOf(a) - STORY_ROLES.indexOf(b)).join(), 'retell: with no story pages, suggestions follow the cover in story order', order);
+  }
+
   // The AI writes the lines; it can never drop or move a section.
   const weaver: StoryReader = {
     name: 'fake',

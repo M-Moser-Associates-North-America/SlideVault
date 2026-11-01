@@ -277,7 +277,16 @@ export function weaveLine(role: StoryRole, needs: string[]): string {
   }[role];
 }
 
-type Section = { code: string; role: StoryRole; kind?: 'required' | 'suggested'; items: StoryboardSlide[] };
+type Section = { code: string; role: StoryRole; kind?: 'required' | 'suggested'; items: StoryboardSlide[]; sec?: string; name?: string; secKind?: string };
+
+/** About how many sections a long retold deck is read in, before suggested additions. */
+const MAX_SECTIONS = 12;
+/** Longest run of slides kept together as one chapter of a retold deck. */
+const MAX_CHAPTER = 30;
+/** What a standard deck section does in the story (FD-57 kinds); fees and the appendix are required pages. */
+const CHAPTER_ROLE: Record<string, StoryRole | 'required'> = { firm: 'why-us', team: 'why-us', 'case-studies': 'experience', approach: 'strategy', understanding: 'client-challenge', fees: 'required', appendix: 'required' };
+/** The deck's own name for a chapter, with a capital first letter ("team" → "Team"). */
+const chapterName = (name: string) => name.trim().replace(/^./, (c) => c.toUpperCase());
 
 /**
  * An existing deck, retold without breaking it (FD-32): every slide stays where it was, in the
@@ -291,7 +300,7 @@ export async function weaveDeck(
   partOf: (id: string) => StoryRole | null,
   fills: Map<StoryRole, StoryboardSlide[]>,
   known: (id: string) => KnownSlide,
-  opts: { reader?: StoryReader | null; read?: boolean; log?: (m: string) => void; needs: string[]; order: StoryRole[]; client?: string; themes?: string[]; isDivider?: (id: string) => boolean },
+  opts: { reader?: StoryReader | null; read?: boolean; log?: (m: string) => void; needs: string[]; order: StoryRole[]; client?: string; themes?: string[]; isDivider?: (id: string) => boolean; sectionOf?: (id: string) => { key: string; name: string; kind?: string } | undefined },
 ): Promise<{ title: string; thesis: string; close: string; beats: StoryBeat[]; composer: 'model' | 'rules' }> {
   // A divider is what the scan read as one, or a page breaker the section reader found (FD-57: zero-padded
   // numbers, "Section: AA", name-only and creative divider titles the scan can miss).
@@ -299,33 +308,81 @@ export async function weaveDeck(
   // The deck's sections: a new one at each divider, and wherever it turns from story to required pages or from one part to the next.
   const sections: Section[] = [];
   let last: StoryRole = opts.order[0];
+  // A chapter too long to read as one (the section reader found few breaks, as in a 100-slide deck
+  // with two) is split where the deck turns, as before.
+  const chapterSize = new Map<string, number>();
+  for (const item of deck) { const k = opts.sectionOf?.(item.slide.id)?.key; if (k) chapterSize.set(k, (chapterSize.get(k) ?? 0) + 1); }
+  const chapterOf = (id: string) => { const sec = opts.sectionOf?.(id); return sec && (chapterSize.get(sec.key) ?? 0) <= MAX_CHAPTER ? sec : undefined; };
   for (const item of deck) {
     const part = partOf(item.slide.id);
     const kind = part ? undefined : ('required' as const);
     const role = part ?? last;
     const prev = sections[sections.length - 1];
-    const divider = isDivider(item.slide.id);
-    if (!prev || divider || prev.kind !== kind || (!kind && prev.role !== role)) sections.push({ code: '', role, kind, items: [item] });
-    else prev.items.push(item);
+    // Inside a section the deck marked with a page breaker (Gabby, 28 Oct: "if it follows the page
+    // breaker… it would pull those slides"), the slides stay together as the deck's own chapter,
+    // whatever each one does; outside one, a new section starts wherever the deck turns.
+    const sec = chapterOf(item.slide.id);
+    if (sec) {
+      if (prev?.sec === sec.key) prev.items.push(item);
+      else sections.push({ code: '', role, kind, items: [item], sec: sec.key, name: chapterName(sec.name), secKind: sec.kind });
+    } else {
+      const divider = isDivider(item.slide.id);
+      if (!prev || prev.sec || divider || prev.kind !== kind || (!kind && prev.role !== role)) sections.push({ code: '', role, kind, items: [item] });
+      else prev.items.push(item);
+    }
     if (part) last = part;
+  }
+  // A chapter is a story section if any slide in it tells the story, about what most of them do.
+  for (const s of sections) {
+    if (!s.sec) continue;
+    // A standard section says what it does: case studies are the proof, fees and the appendix are required pages.
+    const known = CHAPTER_ROLE[s.secKind ?? ''];
+    if (known === 'required') { s.kind = 'required'; continue; }
+    if (known) { s.role = known; s.kind = undefined; continue; }
+    const parts = s.items.map((i) => partOf(i.slide.id)).filter((x): x is StoryRole => !!x);
+    if (!parts.length) continue;
+    const count = new Map<StoryRole, number>();
+    for (const p of parts) count.set(p, (count.get(p) ?? 0) + 1);
+    s.role = [...count].sort((a, b) => b[1] - a[1])[0][0];
+    s.kind = undefined;
   }
   // A divider opens the section after it: keep it with that section, not on its own.
   for (let i = sections.length - 2; i >= 0; i--) {
     const s = sections[i];
-    if (s.items.length === 1 && isDivider(s.items[0].slide.id) && sections[i + 1]) {
+    if (!s.sec && !sections[i + 1].sec && s.items.length === 1 && isDivider(s.items[0].slide.id) && sections[i + 1]) {
       sections[i + 1].items.unshift(...s.items);
       sections.splice(i, 1);
     }
   }
+  // A long deck with few page breakers turns from story to required pages every slide or two; read
+  // that way it's dozens of one-slide sections. Merge the smallest run outside a chapter into its
+  // smaller neighbour (never across a chapter) until the deck reads in about MAX_SECTIONS parts.
+  const loose = (i: number) => i >= 0 && i < sections.length && !sections[i].sec;
+  while (sections.length > MAX_SECTIONS) {
+    let at = -1;
+    for (let i = 0; i < sections.length; i++) if (loose(i) && (loose(i - 1) || loose(i + 1)) && (at < 0 || sections[i].items.length < sections[at].items.length)) at = i;
+    if (at < 0) break;
+    const into = !loose(at - 1) ? at + 1 : !loose(at + 1) ? at - 1 : sections[at - 1].items.length <= sections[at + 1].items.length ? at - 1 : at + 1;
+    const [a, b] = at < into ? [sections[at], sections[into]] : [sections[into], sections[at]];
+    const items = [...a.items, ...b.items];
+    const parts = items.map((i) => partOf(i.slide.id)).filter((x): x is StoryRole => !!x);
+    const count = new Map<StoryRole, number>();
+    for (const p of parts) count.set(p, (count.get(p) ?? 0) + 1);
+    const merged: Section = { code: '', role: parts.length ? [...count].sort((x, y) => y[1] - x[1])[0][0] : a.role, kind: parts.length ? undefined : 'required', items };
+    sections.splice(Math.min(at, into), 2, merged);
+  }
   // Parts the deck never had, offered where they belong in the story.
-  const told = new Set(sections.filter((s) => !s.kind).map((s) => s.role));
+  const told = new Set(deck.map((i) => partOf(i.slide.id)).filter((x): x is StoryRole => !!x));
   for (const role of opts.order) {
     const offer = fills.get(role);
     if (told.has(role) || !offer?.length) continue;
     const at = opts.order.indexOf(role);
     const before = sections.findIndex((s) => !s.kind && opts.order.indexOf(s.role) > at);
-    const lastStory = sections.map((s) => !s.kind).lastIndexOf(true);
-    sections.splice(before >= 0 ? before : lastStory + 1, 0, { code: '', role, kind: 'suggested', items: offer });
+    // After the last story (or suggested) section, so suggestions keep story order; a deck with no story
+    // pages at all gets them after its cover.
+    const lastTold = sections.map((s) => s.kind !== 'required').lastIndexOf(true);
+    const at2 = before >= 0 ? before : lastTold >= 0 ? lastTold + 1 : sections.length > 1 ? 1 : sections.length;
+    sections.splice(at2, 0, { code: '', role, kind: 'suggested', items: offer });
   }
   sections.forEach((s, i) => (s.code = `w${i + 1}`));
 
@@ -338,13 +395,15 @@ export async function weaveDeck(
     const first = !firstOfRole.has(s.role) && !s.kind;
     if (!s.kind) firstOfRole.add(s.role);
     if (s.kind === 'required')
-      return { role: s.role, kind: 'required', title: pages.length ? pages.slice(0, 3).join(', ').replace(/^./, (c) => c.toUpperCase()) : 'Required pages', bridge: `Pages the proposal needs${pages.length ? ` (${pages.join(', ')})` : ''}: kept where they were, as they are.`, narration: '', why: 'Required pages stay as the original had them.', matches: [], lead, more };
+      return { role: s.role, kind: 'required', title: s.name ? s.name : pages.length ? pages.slice(0, 3).join(', ').replace(/^./, (c) => c.toUpperCase()) : 'Required pages', bridge: `Pages the proposal needs${pages.length ? ` (${pages.join(', ')})` : ''}: kept where they were, as they are.`, narration: '', why: 'Required pages stay as the original had them.', matches: [], lead, more };
     if (s.kind === 'suggested') {
       const from = [...new Set(s.items.map((i) => i.slide.provenance.sourceTitle))].join(', ');
       return { role: s.role, kind: 'suggested', title: `Suggested: ${ROLE_TITLE[s.role].toLowerCase()}`, bridge: `Suggested addition: the original never ${NEVER[s.role]}. These slides from ${from} could fill it here.`, narration: '', why: PART_WHY[s.role], matches: needs.slice(0, 2), lead, more };
     }
     const k = known(lead.slide.id);
-    const title = first ? ROLE_TITLE[s.role] : s.role === 'experience' && k?.projects?.[0] ? k.projects[0] : (TYPE_TITLE[k?.type ?? ''] ?? ROLE_TITLE[s.role]);
+    // A run merged from a long deck with no chapter name goes by its lead slide's own title, so parts of one kind don't all read the same.
+    const own = !first && !s.sec && s.items.length > 2 && lead.slide.title.length <= 70 && !/^slide \d+$/i.test(lead.slide.title.trim()) && (lead.slide.title.match(/\p{L}/gu)?.length ?? 0) >= 3 ? lead.slide.title.trim() : null;
+    const title = s.name ? s.name : own ? own : first ? ROLE_TITLE[s.role] : s.role === 'experience' && k?.projects?.[0] ? k.projects[0] : (TYPE_TITLE[k?.type ?? ''] ?? ROLE_TITLE[s.role]);
     return { role: s.role, title, bridge: weaveLine(s.role, needs.length ? needs : opts.needs), narration: k?.about ? firstSentence(k.about) : '', why: s.role === 'experience' ? proofWhy(lead) : PART_WHY[s.role], matches: needs.slice(0, 2), lead, more };
   });
   // No needs named ("the story of Barlow's"): the thesis comes from what the deck itself is about.
@@ -357,7 +416,7 @@ export async function weaveDeck(
     const woven = await weave.call(
       opts.reader,
       brief,
-      sections.map((s, i) => ({ code: s.code, role: s.role, required: s.kind === 'required', suggested: s.kind === 'suggested', slides: s.items.length, title: beats[i].lead.slide.title, reading: known(beats[i].lead.slide.id)?.about ?? '' })),
+      sections.map((s, i) => ({ code: s.code, role: s.role, required: s.kind === 'required', suggested: s.kind === 'suggested', slides: s.items.length, title: s.name ?? beats[i].lead.slide.title, reading: known(beats[i].lead.slide.id)?.about ?? '' })),
     );
     // The AI's words where it wrote them; the slides and their order are never its to change.
     const out = beats.map((b, i) => {

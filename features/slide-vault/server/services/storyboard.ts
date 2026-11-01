@@ -80,6 +80,8 @@ export type StoryboardDeps = {
   /** Families of slides that belong together (FD-42): a slide's family, and a family's slides in its own order */
   /** Page breakers found by the section reader (FD-57), so a retold deck splits where the deck itself does. */
   isDivider?: (slideId: string) => boolean;
+  /** The deck's own sections (FD-57): a retold deck keeps each chapter together, under the deck's name for it. */
+  sectionOf?: (slideId: string) => { key: string; name: string; kind?: string } | undefined;
   families?: { of: (slideId: string) => { id: string; title: string; slideIds: string[] } | undefined; rows: (family: { id: string; title: string; slideIds: string[] }) => Promise<{ summary: SlideSummary; facts: SlideFacts }[]> };
 };
 
@@ -414,7 +416,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       const offered = fills.get(sec.role) ?? [];
       return { role: sec.role, label, title: sec.title, need: sec.need, items: own.length ? own : offered, gap: own.length + offered.length === 0 };
     });
-    const story = await weaveDeck(text, items, partOf, fills, known, { ...compose, order: plan.sections.map((x) => x.role), client: deck.title.split(' · ')[0], themes: themesOf(rows.map((r) => r.summary.id)), isDivider: deps.isDivider });
+    const story = await weaveDeck(text, items, partOf, fills, known, { ...compose, order: plan.sections.map((x) => x.role), client: deck.title.split(' · ')[0], themes: themesOf(rows.map((r) => r.summary.id)), isDivider: deps.isDivider, sectionOf: deps.sectionOf });
     return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections: fromDeck, topics: topics.keywords, role, ...story, considered: rows.length, mode: 'reimagine', deck };
   }
   // A family that clearly answers the request is told whole, in its own order (FD-42): when most of the
@@ -424,7 +426,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
   if (family && deps.families) {
     const rows = (await deps.families.rows(family)).filter(tellable);
     const items = rows.map((r) => asItem(r, `One of the ${rows.length} slides that belong together: ${family.title}.`));
-    const story = await weaveDeck(text, items, partOf, new Map(), known, { ...compose, order: plan.sections.map((x) => x.role), client: family.title.split(' · ')[0], themes: themesOf(rows.map((r) => r.summary.id)), isDivider: deps.isDivider });
+    const story = await weaveDeck(text, items, partOf, new Map(), known, { ...compose, order: plan.sections.map((x) => x.role), client: family.title.split(' · ')[0], themes: themesOf(rows.map((r) => r.summary.id)), isDivider: deps.isDivider, sectionOf: deps.sectionOf });
     return { reader, readerNote, summary: plan.summary, questions: plan.questions, sections, topics: topics.keywords, role, ...story, considered: rows.length, mode: 'build', family: { title: family.title, slides: items.length } };
   }
   // The story told slide by slide (FD-30): the AI chooses and narrates from this shortlist when it is on.
