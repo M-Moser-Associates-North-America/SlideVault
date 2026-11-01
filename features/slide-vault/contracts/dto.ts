@@ -138,6 +138,9 @@ export type FreeTag = {
   addedAt: string;
 };
 
+/** Who last set a slide's title (FD-73): a person, the AI, or the system (read automatically from the slide's text). Absent = the system. */
+export type TitleEdit = { kind: 'person' | 'ai' | 'system'; by?: string; at?: string };
+
 export type SlideSummary = {
   id: string;
   title: string;
@@ -155,6 +158,8 @@ export type SlideSummary = {
   story?: SlideStory | null;
   /** Free-form tags on this slide or its deck, when any (FD-53) */
   tags?: FreeTag[];
+  /** Who last set the title, and when (FD-73); absent until the server keeps that */
+  titleEdit?: TitleEdit;
   /** The deck section the slide sits in (FD-57, "page breakers"), set by search when known; divider is its cover */
   section?: { name: string; kind: string; divider: boolean; dividerId: string } | null;
 };

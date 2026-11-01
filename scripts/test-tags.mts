@@ -15,13 +15,14 @@ if (!['localhost', '127.0.0.1'].includes(env.SV_DB_HOST ?? '') || env.SV_DB_SSL 
 for (const k of ['SV_SUPABASE_URL', 'SV_SUPABASE_PUBLISHABLE_KEY', 'SV_STORAGE_EMAIL', 'SV_STORAGE_PASSWORD', 'SV_STORAGE_BUCKET', 'SV_STORAGE_PREFIX']) env[k] ??= 'unused-in-this-test';
 
 const { sql } = await import('../features/slide-vault/server/db');
-const { searchSlidesPg, isInternalOnly } = await import('../features/slide-vault/server/pg-repository');
+const { getSlidePg, searchSlidesPg, isInternalOnly } = await import('../features/slide-vault/server/pg-repository');
 const { tagsInQuery, withTags } = await import('../features/slide-vault/server/tags');
 const { resetRateLimits } = await import('../features/slide-vault/server/rate-limit');
 const tagsRoute = await import('../app/api/slide-vault/v1/tags/route');
 const tagRoute = await import('../app/api/slide-vault/v1/tags/[tagId]/route');
 const restoreRoute = await import('../app/api/slide-vault/v1/tags/[tagId]/restore/route');
 const removedRoute = await import('../app/api/slide-vault/v1/tags/removed/route');
+const slideRoute = await import('../app/api/slide-vault/v1/slides/[slideId]/route');
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -112,6 +113,22 @@ const readd = await call(tagsRoute.POST, 'POST', { on: 'slide', id: ids[0], tag:
 check(readd.status === 200 && readd.json.data?.id === hospitalId && readd.json.data?.addedBy === 'Pat Doe' && (await removed('slide', ids[0])).json.data?.length === 0, 'adding a removed tag again brings the same one back, not a copy');
 check((await removed('page', ids[0])).status === 400 && (await removed('slide', 'not-an-id')).status === 400, 'the removed list needs a slide or deck id');
 check((await call(restoreRoute.POST, 'POST', undefined, { tagId: hospitalId }, null)).json.error?.code === 'SIGNED_OUT' && (await removed('slide', ids[0], null)).json.error?.code === 'SIGNED_OUT', 'signed out cannot restore or see the log');
+
+// ---- Renaming a slide for everyone (FD-73, 1 Nov)
+const before = (await getSlidePg(ids[0]))!.summary.title;
+const ren = await call(slideRoute.PATCH, 'PATCH', { title: '  Our   hospital work ' }, { slideId: ids[0] });
+const renamed = (await getSlidePg(ids[0]))!.summary;
+check(ren.status === 200 && ren.json.data?.title === 'Our hospital work' && renamed.title === 'Our hospital work', 'PATCH /slides/:id renames the slide (spaces tidied)', ren);
+check(renamed.titleEdit?.kind === 'person' && renamed.titleEdit.by === 'Pat Doe' && !!renamed.titleEdit.at, 'the slide says who renamed it and when', renamed.titleEdit);
+check((await searchSlidesPg('hospital work', 10)).some((x) => x.id === ids[0]), 'search finds the new name');
+await call(slideRoute.PATCH, 'PATCH', { title: 'Hospital projects' }, { slideId: ids[0] }, 'Kim Ray');
+check((await getSlidePg(ids[0]))!.summary.titleEdit?.by === 'Kim Ray', 'a second rename records the new person');
+const reset = await call(slideRoute.PATCH, 'PATCH', { title: null }, { slideId: ids[0] });
+const original = (await getSlidePg(ids[0]))!.summary;
+check(reset.status === 200 && original.title === before && original.titleEdit === undefined, '{ title: null } puts back the title read from the slide, not the first rename', { before, after: original.title });
+check((await call(slideRoute.PATCH, 'PATCH', { title: '   ' }, { slideId: ids[0] })).status === 400 && (await call(slideRoute.PATCH, 'PATCH', { title: 'x'.repeat(201) }, { slideId: ids[0] })).status === 400 && (await call(slideRoute.PATCH, 'PATCH', { name: 'x' }, { slideId: ids[0] })).status === 400, 'an empty, too long or missing name is refused');
+check((await call(slideRoute.PATCH, 'PATCH', { title: 'x' }, { slideId: crypto.randomUUID() })).status === 404 && (await call(slideRoute.PATCH, 'PATCH', { title: 'x' }, { slideId: 'sld_fixture' })).status === 404, 'only slides in the database can be renamed');
+check((await call(slideRoute.PATCH, 'PATCH', { title: 'x' }, { slideId: ids[0] }, null)).json.error?.code === 'SIGNED_OUT', 'signed out cannot rename');
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll tag checks passed');
 await sql('drop table if exists free_tags, slide_pack_members, slide_packs, story_feedback, activity_events, user_settings, drafts, saved_slides, slide_downloads, slides, decks cascade');

@@ -162,6 +162,9 @@ type SlideWithDeck = {
   text: string | null;
   thumbnail_path: string | null;
   is_hidden_in_source: boolean;
+  /** Set when a person renamed the slide (FD-73) */
+  title_edited_by?: string | null;
+  title_edited_at?: Date | string | null;
   decks: DeckRow;
   // Story data (FD-51, FD-53)
   story_role?: string | null;
@@ -230,16 +233,34 @@ function toSlideSummary(row: SlideWithDeck): SlideSummary {
       ...(d.archived_at ? { archived: true, archivedBy: d.archived_by ?? null, archivedAt: iso(d.archived_at) } : {}),
     },
     ...(toStory(row) ? { story: toStory(row) } : {}),
+    ...(row.title_edited_by ? { titleEdit: { kind: 'person' as const, by: row.title_edited_by, ...(row.title_edited_at ? { at: iso(row.title_edited_at)! } : {}) } } : {}),
   };
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Slide columns plus its deck as one object, the shape toSlideSummary expects. */
-const SLIDE_WITH_DECK = `select s.id, s.slide_number, s.title, s.text, s.thumbnail_path, s.is_hidden_in_source,
+const SLIDE_WITH_DECK = `select s.id, s.slide_number, s.title, s.text, s.thumbnail_path, s.is_hidden_in_source, s.title_edited_by, s.title_edited_at,
     s.story_role, s.slide_type, s.reuse_status, s.themes, s.proof_sectors, s.projects, s.flags, s.shows, s.convinces, s.story_status, s.ai_uncertain,
     to_jsonb(d.*) as decks
   from slides s join decks d on d.id = s.deck_id`;
+
+/**
+ * Rename a slide for everyone (FD-73). The title read from the slide is kept the first time, with who
+ * renamed it and when; `null` puts that title back. Null when there's no such uploaded slide.
+ */
+export async function renameSlidePg(slideId: string, title: string | null, by: string): Promise<{ title: string } | null> {
+  if (!UUID.test(slideId)) return null;
+  const [row] = await sql<{ title: string | null; slide_number: number }>(
+    title === null
+      ? `update slides set title = case when title_edited_by is null then title else original_title end, original_title = null, title_edited_by = null, title_edited_at = null
+         where id = $1 returning title, slide_number`
+      : `update slides set original_title = case when title_edited_by is null then title else original_title end, title = $2, title_edited_by = $3, title_edited_at = now()
+         where id = $1 returning title, slide_number`,
+    title === null ? [slideId] : [slideId, title, by],
+  );
+  return row ? { title: row.title || `Slide ${row.slide_number}` } : null;
+}
 
 export async function getSlidePg(slideId: string): Promise<{ summary: SlideSummary; text: string; thumbnailStorageKey: string | null } | null> {
   if (!UUID.test(slideId)) return null;
