@@ -36,6 +36,12 @@ export type SmartSearchDeps = {
   isKnownName?: (word: string) => boolean;
   /** What else a named word is met by: "hospital" by the healthcare sector */
   alsoMeans?: (word: string) => string[];
+  /**
+   * Where the slide's deck was made ("Toronto"). A place the search names counts as said by the slide
+   * itself when its deck was made there, so the Toronto deck's own slides rank with slides that print
+   * "Toronto", not after them (Schiffon, FD-56, 1 Nov). Places only: other named things still need the word.
+   */
+  madeIn?: (slide: SlideSummary) => string | null;
   /** Slides that only mention things in passing for this search (a bio, when people weren't asked for) go last */
   rankLast?: (slide: SlideSummary) => boolean;
   thisYear?: number;
@@ -112,7 +118,7 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
     const some = all.length ? all : rows.filter((r) => named.some((w) => has(r, w)));
     // Slides that say it themselves first, then ones where the reading, the sector or the deck does,
     // then passing mentions (a bio); best match first within each.
-    const ownWords = (r: Row) => named.some((w) => mentionsWord(`${r.facts.title} ${r.facts.text}`, w));
+    const ownWords = (r: Row) => named.some((w) => mentionsWord(`${r.facts.title} ${r.facts.text}`, w) || mentionsWord(deps.madeIn?.(r.summary) ?? '', w));
     const tier = (r: Row) => (deps.rankLast?.(r.summary) ? 2 : ownWords(r) ? 0 : 1);
     if (some.length) rows = some.map((r, i) => ({ r, i, t: tier(r) })).sort((a, b) => a.t - b.t || a.i - b.i).map((x) => x.r);
     else {
