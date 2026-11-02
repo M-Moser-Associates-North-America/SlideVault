@@ -344,14 +344,17 @@ for (const [env, label] of [
   check(JSON.stringify(sector.items.map((i) => i.slide.id)) === '["a"]', 'named: "hospital" is also met by a healthcare slide', sector.items.map((i) => i.slide.id));
   const bios = await smartSearch('QNBC', 10, { context, thisYear: 2026, search: async () => [row('bio', 'Led the QNBC fit-out'), row('case', 'QNBC case study')], howCommon: () => 0.03, rankLast: (s) => s.id === 'bio' });
   check(JSON.stringify(bios.items.map((i) => i.slide.id)) === '["case","bio"]', 'named: a passing mention in a bio comes last', bios.items.map((i) => i.slide.id));
-  // Places (FD-56, 1 Nov): a deck made in Toronto counts as strongly as a slide that prints "Toronto".
+  // Places (FD-56, 2 Nov): where the deck was made adds to the word, it doesn't replace it.
+  // Search order: a generic slide from the Toronto deck, a case study elsewhere that prints Toronto,
+  // then a case study from the Toronto deck that prints it (Schiffon's "recent IDD deck ... in Toronto").
   const place = (d: Partial<Parameters<typeof smartSearch>[2]> = {}) =>
-    smartSearch('workplace in Toronto', 10, { context, thisYear: 2026, search: async () => [row('fid', 'An open plan for an investment firm'), row('bio', 'Résumé: led projects in Toronto and Calgary')], howCommon: () => 0.03, alsoSays: (s) => (s.id === 'fid' ? 'Toronto' : ''), ...d });
+    smartSearch('workplace in Toronto', 10, { context, thisYear: 2026, search: async () => [row('refs', 'Client references'), row('elsewhere', 'Case study: a bank in Toronto'), row('fidcase', 'Case study: our Toronto office')], howCommon: () => 0.03, alsoSays: (s) => (s.id === 'elsewhere' ? '' : 'Toronto'), ...d });
+  const madeIn = (s: { id: string }) => (s.id === 'elsewhere' ? 'Vancouver' : 'Toronto');
   const before = (await place()).items.map((i) => i.slide.id);
-  const after = (await place({ madeIn: (s) => (s.id === 'fid' ? 'Toronto' : null) })).items.map((i) => i.slide.id);
-  check(JSON.stringify(before) === '["bio","fid"]' && JSON.stringify(after) === '["fid","bio"]', 'named: a slide from a deck made in Toronto ranks with slides that print "Toronto", by its search rank', { before, after });
-  const notPlace = (await place({ madeIn: () => 'Vancouver' })).items.map((i) => i.slide.id);
-  check(JSON.stringify(notPlace) === '["bio","fid"]', 'named: only the place the deck was made counts, not any place', notPlace);
+  const after = (await place({ madeIn })).items.map((i) => i.slide.id);
+  check(JSON.stringify(before) === '["elsewhere","fidcase","refs"]' && JSON.stringify(after) === '["fidcase","elsewhere","refs"]', 'named: printing the place and being from a deck made there comes first; a slide that says the place never drops below one that does not', { before, after });
+  const bio = (await place({ madeIn, rankLast: (s) => s.id === 'elsewhere' })).items.map((i) => i.slide.id);
+  check(JSON.stringify(bio) === '["fidcase","refs","elsewhere"]', 'named: a passing mention in a bio still goes last, after the rest of the Toronto deck', bio);
   const missing = await named('Zephyr case study', { alsoSays: () => '' });
   check(missing.relaxed && missing.items.length === 3 && !missing.chips.some((c) => c.kind === 'Mentions'), 'named: when nothing mentions it, the rest is shown and marked relaxed');
 }
