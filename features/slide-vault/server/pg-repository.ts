@@ -166,6 +166,9 @@ type SlideWithDeck = {
   text: string | null;
   thumbnail_path: string | null;
   is_hidden_in_source: boolean;
+  /** Set when a person renamed the slide (FD-73) */
+  title_edited_by?: string | null;
+  title_edited_at?: Date | string | null;
   decks: DeckRow;
   // Story data (FD-51, FD-53)
   story_role?: string | null;
@@ -235,16 +238,34 @@ function toSlideSummary(row: SlideWithDeck): SlideSummary {
       ...(d.archived_at ? { archived: true, archivedBy: d.archived_by ?? null, archivedAt: iso(d.archived_at) } : {}),
     },
     ...(toStory(row) ? { story: toStory(row) } : {}),
+    ...(row.title_edited_by ? { titleEdit: { kind: 'person' as const, by: row.title_edited_by, ...(row.title_edited_at ? { at: iso(row.title_edited_at)! } : {}) } } : {}),
   };
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Slide columns plus its deck as one object, the shape toSlideSummary expects. */
-const SLIDE_WITH_DECK = `select s.id, s.slide_number, s.title, s.text, s.thumbnail_path, s.is_hidden_in_source,
+const SLIDE_WITH_DECK = `select s.id, s.slide_number, s.title, s.text, s.thumbnail_path, s.is_hidden_in_source, s.title_edited_by, s.title_edited_at,
     s.story_role, s.slide_type, s.reuse_status, s.themes, s.proof_sectors, s.projects, s.flags, s.shows, s.convinces, s.story_status, s.ai_uncertain,
     to_jsonb(d.*) as decks
   from slides s join decks d on d.id = s.deck_id`;
+
+/**
+ * Rename a slide for everyone (FD-73). The title read from the slide is kept the first time, with who
+ * renamed it and when; `null` puts that title back. Null when there's no such uploaded slide.
+ */
+export async function renameSlidePg(slideId: string, title: string | null, by: string): Promise<{ title: string } | null> {
+  if (!UUID.test(slideId)) return null;
+  const [row] = await sql<{ title: string | null; slide_number: number }>(
+    title === null
+      ? `update slides set title = case when title_edited_by is null then title else original_title end, original_title = null, title_edited_by = null, title_edited_at = null
+         where id = $1 returning title, slide_number`
+      : `update slides set original_title = case when title_edited_by is null then title else original_title end, title = $2, title_edited_by = $3, title_edited_at = now()
+         where id = $1 returning title, slide_number`,
+    title === null ? [slideId] : [slideId, title, by],
+  );
+  return row ? { title: row.title || `Slide ${row.slide_number}` } : null;
+}
 
 export async function getSlidePg(slideId: string): Promise<{ summary: SlideSummary; text: string; thumbnailStorageKey: string | null } | null> {
   if (!UUID.test(slideId)) return null;
@@ -282,7 +303,7 @@ export async function searchSlidesPg(query: string, limit: number, archived: Arc
   // A free tag on the slide itself or on its whole deck (FD-53).
   if (tag?.trim()) {
     const t = add(tag.trim());
-    where.push(`exists (select 1 from free_tags f where lower(f.tag) = lower(${t}) and ((f.target_kind = 'slide' and f.target_id = s.id) or (f.target_kind = 'deck' and f.target_id = d.id)))`);
+    where.push(`exists (select 1 from free_tags f where f.removed_at is null and lower(f.tag) = lower(${t}) and ((f.target_kind = 'slide' and f.target_id = s.id) or (f.target_kind = 'deck' and f.target_id = d.id)))`);
   }
   let order = 'd.uploaded_at desc, s.slide_number';
   let cap = LIBRARY_CEILING;
@@ -316,7 +337,7 @@ export async function setDeckArchived(deckId: string, archived: boolean, by: str
  */
 const STORY_TEXT = `concat_ws(' ', s.story_role, replace(coalesce(s.slide_type, ''), '_', ' '), array_to_string(s.themes, ' '),
   array_to_string(s.proof_sectors, ' '), array_to_string(s.projects, ' '), s.shows, s.convinces, d.client, d.client_sector, d.deck_kind, d.project_location,
-  (select string_agg(f.tag, ' ') from free_tags f where (f.target_kind = 'slide' and f.target_id = s.id) or (f.target_kind = 'deck' and f.target_id = d.id)))`;
+  (select string_agg(f.tag, ' ') from free_tags f where f.removed_at is null and ((f.target_kind = 'slide' and f.target_id = s.id) or (f.target_kind = 'deck' and f.target_id = d.id))))`;
 
 /** What a search asks for beyond its words (slide-intent.ts): kinds of slide, client sectors, themes. */
 export type PgSearchIntent = { types: string[]; sectors: string[]; themes: string[] };

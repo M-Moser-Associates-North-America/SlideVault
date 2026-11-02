@@ -189,6 +189,16 @@ create table if not exists free_tags (
 );
 create unique index if not exists free_tags_one_per_target on free_tags (target_kind, target_id, lower(tag));
 create index if not exists free_tags_tag_idx on free_tags (lower(tag));
+-- Removing a tag keeps it, with who removed it and when (FD-72, 1 Nov): the slide page can say so,
+-- and Undo or Restore brings it back with its original adder. Live tags are the ones not removed.
+alter table free_tags add column if not exists removed_by text;
+alter table free_tags add column if not exists removed_at timestamptz;
+
+-- Renaming a slide for everyone (FD-73, 1 Nov): the title read from the slide is kept, with who renamed
+-- it and when, so the slide page can say so and the rename can be undone.
+alter table slides add column if not exists original_title text;
+alter table slides add column if not exists title_edited_by text;
+alter table slides add column if not exists title_edited_at timestamptz;
 create index if not exists slides_story_role_idx on slides (story_role);
 
 -- ---------------------------------------------------------------------------------------------
