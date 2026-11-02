@@ -275,7 +275,10 @@ test('combining slides from several decks asks the server for one file, and show
   await page.getByLabel('Add to draft deck: Our approach', { exact: true }).first().check({ force: true });
   const option = page.getByLabel('Combine into one deck').first();
   await expect(option).toBeVisible();
-  await expect(option).not.toBeChecked();
+  // Combining starts ticked (FD-74); unticking it gives the zip, ticking it again gives one file.
+  await expect(option).toBeChecked();
+  await expect(page.locator('.cart-foot')).toContainText('one editable .pptx');
+  await option.uncheck();
   await expect(page.locator('.cart-foot')).toContainText('a zip, one .pptx per deck');
   await option.check();
   await expect(page.locator('.cart-foot')).toContainText('one editable .pptx');
@@ -321,6 +324,9 @@ test('upload: see the slides, tag the deck and a slide, confirm, and everything 
   // The slides appear below the deck details, one card each, before anything is sent.
   await expect(page.locator('.upcard')).toHaveCount(4);
   expect(uploads).toBe(0);
+  // The fixture names no client or year the page can read, so they are typed in (the page asks for both).
+  await page.getByRole('textbox', { name: 'Client' }).fill('Harbor Bank');
+  await page.getByRole('spinbutton', { name: 'Year' }).fill('2025');
   const idd = page.getByRole('button', { name: 'IDD', exact: true });
   await idd.click();
   await expect(idd).toHaveAttribute('aria-pressed', 'true');
@@ -335,10 +341,12 @@ test('upload: see the slides, tag the deck and a slide, confirm, and everything 
   await deckBox.press('Enter'); // already added, ignoring capital letters
   await expect(page.locator('.tagfield-chips').first().locator('.tagchip')).toHaveText(['Healthcare']);
   // One slide on its own, and two slides together.
+  await page.locator('.upcard').nth(0).getByRole('button', { name: 'Tags for slide 1' }).click(); // "+ Add tag" opens the box
   const first = page.locator('.upcard').nth(0).getByRole('combobox');
   await first.pressSequentially('Pilot,'); // a comma ends a tag, like Enter
   await page.getByLabel(/Select slide 3/).click({ force: true });
   await page.getByLabel(/Select slide 4/).click({ force: true });
+  await page.locator('.upgrid-bulk').getByRole('button', { name: /Add a tag to 2 selected slides/ }).click();
   await page.locator('.upgrid-bulk').getByRole('combobox').pressSequentially('Wellbeing,');
   await page.getByRole('button', { name: 'Done' }).click();
   expect(await axe(page)).toEqual([]);
