@@ -151,11 +151,11 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
   /* The Storyboard's Useful / Not useful row (same classes): ticks and crosses, small capitals, one on each side of a card. */
   return (
     <div className={`sb-verdict fb-verdict${small ? ' is-small' : ''}`} role="group" aria-label="Is this slide useful for your search?">
-      <button type="button" className="sb-icon-btn" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Useful: ranks this slide higher in similar searches. Anonymous." data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(1)}>
+      <button type="button" className="sb-icon-btn" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Useful: ranks this slide higher in similar searches." data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(1)}>
         <Icon name="check" className="ic-sm" />
         Useful
       </button>
-      <button type="button" className="sb-icon-btn" aria-pressed={shown === -1} aria-label="Not useful for this search" data-tip="Not useful: ranks this slide lower in similar searches. Anonymous." data-tip-pos={small ? 'up end' : undefined} onClick={() => cast(-1)}>
+      <button type="button" className="sb-icon-btn" aria-pressed={shown === -1} aria-label="Not useful for this search" data-tip="Not useful: ranks this slide lower in similar searches." data-tip-pos={small ? 'up end' : undefined} onClick={() => cast(-1)}>
         <Icon name="x" className="ic-sm" />
         Not useful
       </button>
