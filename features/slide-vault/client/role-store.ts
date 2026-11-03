@@ -3,8 +3,8 @@ import type { StoryUserRole } from '../contracts/dto';
 
 /**
  * How this person builds proposals (FD-25), set once in their profile and used to tune the
- * storyboard. Kept in this browser per signed-in name for now; it moves to user_settings on the
- * server with the rest of the profile once M Moser's login plugs in.
+ * storyboard. Kept in this browser per signed-in name so the screen and requests can read it at
+ * once; the workspace also saves it on the server (user_settings, FD-71) through onRoleChange.
  */
 const key = (profile: string) => `slidevault:${profile}:role`;
 const listeners = new Set<() => void>();
@@ -70,6 +70,12 @@ export function useStoryRole(profile: string | null) {
     [profile],
   );
   return { role, setRole };
+}
+
+/** The role as the account menu shows it. */
+export function useRoleLabel(profile: string | null): string {
+  const { role } = useStoryRole(profile);
+  return ROLE_CHOICES.find((c) => c.role === role)?.label ?? 'No role set';
 }
 
 /** What each role is, in Grant's words from the 21 Oct meeting. */

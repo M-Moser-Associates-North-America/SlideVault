@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ActivityOptInDialog, RETENTION_FALLBACK_DAYS, type OptInMode } from './ActivityOptIn';
 import { Icon } from './icons';
 import { timeAgo } from './library';
+import { StoryRoleSetting } from './StoryRoleSetting';
 import { useWorkspace } from './state';
 
 /** Settings from the account menu: personalization and the activity it records. */
@@ -22,6 +23,8 @@ export function SettingsView() {
           <p className="lede">Signed in as {profile}.</p>
         </div>
       </div>
+
+      <StoryRoleSetting />
 
       <section className="row" id="personalize">
         <div className="row-head">

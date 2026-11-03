@@ -4,6 +4,7 @@
  */
 .slidevault {
   --svp-danger-text: #b3261e;
+  --svp-success-text: #146c3a;
   --svp-warning-tint: #fff4d6;
   --svp-danger-tint: #fde8e6;
   --svp-success-tint: #e3f5ec;
@@ -11,6 +12,7 @@
 }
 .slidevault[data-theme="dark"], .dark .slidevault:not([data-theme="light"]) {
   --svp-danger-text: #ff9a8f;
+  --svp-success-text: #6fdc9f;
   --svp-warning-tint: rgba(224, 163, 60, 0.16);
   --svp-danger-tint: rgba(240, 104, 90, 0.16);
   --svp-success-tint: rgba(52, 199, 125, 0.14);
@@ -733,7 +735,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
    scannable at a glance. Wider sizes keep the larger cards. */
 .slidevault .sv-app[data-size="compact"] .row-scroller { grid-auto-columns: clamp(140px, calc(var(--sv-w, 390px) * 0.42), 200px); gap: 10px; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; }
 .slidevault .sv-app[data-size="compact"] .row-scroller .card-body { padding: 8px 10px 10px; gap: 3px; }
-.slidevault .sv-app[data-size="compact"] .row-scroller .card-title { font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.slidevault .sv-app[data-size="compact"] .row-scroller .card-title { font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.6em; }
 .slidevault .sv-app[data-size="compact"] .row-scroller .meta { font-size: 12px; }
 .slidevault .sv-app[data-size="compact"] .row-scroller .matched { display: none; }
 
@@ -860,7 +862,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 
 /* Card titles stop at two lines. One very long title used to stretch every card in its row (all cards in a
    row share the tallest height), leaving the rest mostly empty. The full title is in the tooltip. */
-.slidevault .card-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.slidevault .card-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.7em; } /* two lines of room (line-height 1.35), so one-line and two-line titles line up */
 
 /* Archive (FD-32): the Archived badge, and the small archive button on a deck card. */
 .slidevault .badge-archived { background: var(--sv-surface); border: 1px dashed var(--sv-border-strong); color: var(--sv-text); }
@@ -955,13 +957,17 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .field > .field-label { font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .field-opt { font-weight: 400; color: var(--sv-text-secondary); margin-left: 4px; }
 .slidevault .field-hint { margin: 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .field-hint.is-auto, .slidevault .up-ok { color: var(--svp-success-text); font-style: italic; }
+.slidevault .field-hint.is-missing, .slidevault .up-todo { color: var(--svp-danger-text); font-style: italic; }
+.slidevault .req { color: var(--svp-danger-text); font-weight: 700; margin-left: 2px; }
 .slidevault .catpills { display: flex; flex-wrap: wrap; gap: 8px; }
 .slidevault .catpill { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); font-weight: 500; cursor: pointer; }
 .slidevault .catpill:hover:not(:disabled) { background: var(--sv-surface-sunken); }
 .slidevault .catpill[aria-pressed="true"] { background: var(--sv-brand-tint); border-color: var(--sv-brand); font-weight: 600; }
 .slidevault .catpill:disabled { opacity: .6; cursor: default; }
 .slidevault .catpill .ic { color: var(--sv-brand-strong); }
-.slidevault .catother { max-width: 320px; margin-top: 4px; }
+.slidevault .catother-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; max-width: 460px; }
+.slidevault .catother { flex: 1; min-width: 0; max-width: 320px; margin-top: 0; }
 .slidevault .tagfield-wrap { position: relative; }
 .slidevault .tagfield { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 46px; padding: 6px 10px; border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius, 12px); background: var(--sv-surface); cursor: text; }
 .slidevault .tagfield:focus-within { border-color: var(--sv-brand); }
@@ -1004,8 +1010,9 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .upcard-thumb { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 9; border-radius: 13px 13px 0 0; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); border-bottom: 1px solid var(--sv-border); }
 .slidevault .upcard.is-hidden .upcard-thumb { background-image: repeating-linear-gradient(135deg, transparent 0 10px, var(--sv-border) 10px 11px); }
 .slidevault .upcard-thumb .ic { width: 28px; height: 28px; }
-.slidevault .upcard-num { position: absolute; left: 10px; bottom: 8px; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--sv-surface); border: 1px solid var(--sv-border); color: var(--sv-text); }
-.slidevault .upcard-pick { position: absolute; top: 8px; left: 8px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); cursor: pointer; }
+.slidevault .upcard-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 13px 13px 0 0; background: #fff; }
+.slidevault .upcard-num { z-index: 1; position: absolute; left: 10px; bottom: 8px; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--sv-surface); border: 1px solid var(--sv-border); color: var(--sv-text); }
+.slidevault .upcard-pick { position: absolute; z-index: 1; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); cursor: pointer; }
 .slidevault .upcard-pick input { width: 18px; height: 18px; margin: 0; cursor: pointer; accent-color: var(--sv-brand); }
 .slidevault .upcard-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; min-width: 0; }
 .slidevault .upcard-title { margin: 0; font-size: 14.5px; line-height: 1.3; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
@@ -1018,3 +1025,179 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .upsubmit { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--sv-border); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .slidevault .upsubmit .upbar-wrap { margin-top: 0; width: 100%; max-width: 520px; }
 .slidevault .upsubmit .meta { margin: 0; }
+
+/* Slide preview: results bar, deck filmstrip. The side arrows walk the deck; the bar walks the search results. */
+.slidevault .lb-results { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
+.slidevault .lb-nav:disabled { opacity: .35; cursor: default; }
+.slidevault .lb-strip { display: flex; gap: 8px; margin-top: 10px; padding: 4px 2px 6px; overflow-x: auto; scrollbar-width: thin; }
+.slidevault .lb-thumb { flex: none; width: 96px; aspect-ratio: 16/9; padding: 0; border: 2px solid transparent; border-radius: 8px; overflow: hidden; background: var(--sv-surface-sunken); cursor: pointer; opacity: .75; }
+.slidevault .lb-thumb:hover { opacity: 1; }
+.slidevault .lb-thumb[aria-current="true"] { border-color: var(--sv-brand); opacity: 1; }
+.slidevault .lb-thumb:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .lb-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+/* Phones: swipe the deck instead of a cramped filmstrip */
+@media (max-width: 640px) { .slidevault .lb-deck { display: none; } }
+.slidevault .lb-deck { margin-top: 10px; }
+.slidevault .lb-deck-label { margin: 0; font-size: var(--sv-text-small); font-weight: 600; color: var(--sv-text-secondary); }
+.slidevault .lb-deck .lb-strip { margin-top: 4px; }
+/* The action buttons stay in view even when the results bar and filmstrip make the preview taller than the window. */
+.slidevault .lb-caption { position: sticky; bottom: -16px; z-index: 3; margin-top: 8px; padding: 10px 0 16px; background: var(--sv-surface); border-top: 1px solid var(--sv-border); }
+.slidevault .lb-stage { max-height: calc(var(--sv-h, 700px) * 0.5); }
+/* Instant tooltip for the deck arrows (the browser's own title tooltip waits about a second). Opens sideways so the picture's edge doesn't clip it. */
+.slidevault .lb-nav[data-tip]::after { content: attr(data-tip); position: absolute; top: 50%; transform: translateY(-50%); padding: 4px 8px; border-radius: 6px; background: var(--sv-text); color: var(--sv-surface); font-size: 12px; font-weight: 600; line-height: 1.2; white-space: nowrap; pointer-events: none; opacity: 0; }
+.slidevault .lb-prev[data-tip]::after { left: calc(100% + 6px); }
+.slidevault .lb-next[data-tip]::after { right: calc(100% + 6px); }
+.slidevault .lb-nav[data-tip]:hover::after, .slidevault .lb-nav[data-tip]:focus-visible::after { opacity: 1; }
+/* Deck arrows sit on the left and right edges of the picture, not over it. */
+.slidevault .lb-row { position: relative; display: flex; align-items: center; gap: 10px; }
+.slidevault .lb-row > .lb-stage { flex: 1 1 0; min-width: 0; margin: 0; }
+.slidevault .lb-row > .lb-nav { position: relative; inset: auto; transform: none; flex: none; }
+.slidevault .lb-nav[data-tip]::after { top: auto; bottom: calc(100% + 6px); transform: none; }
+.slidevault .lb-prev[data-tip]::after { left: 0; right: auto; }
+.slidevault .lb-next[data-tip]::after { right: 0; left: auto; }
+/* Phones: no room beside the picture, so the arrows overlay it (swiping also works) */
+@media (max-width: 640px) {
+  .slidevault .lb-row > .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; }
+  .slidevault .lb-row > .lb-prev { left: 8px; } .slidevault .lb-row > .lb-next { right: 8px; }
+  .slidevault .lb-nav[data-tip]::after { display: none; }
+}
+/* Preview action buttons turn Moser orange with white text on hover */
+.slidevault .lb-caption .btn:hover:not(:disabled) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; opacity: 1; }
+
+/* Tags (FD-72): quiet grey pills; orange only on hover and focus */
+.slidevault .tag { --tag-rgb: 100, 116, 139; display: inline-flex; align-items: center; max-width: 100%; min-height: 24px; padding: 0 9px; border: 1px solid rgba(var(--tag-rgb), .75); border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: 12.5px; line-height: 1; cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .tag-t { display: block; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .tag[data-h="0"] { --tag-rgb: 59, 130, 246; }
+.slidevault .tag[data-h="1"] { --tag-rgb: 20, 184, 166; }
+.slidevault .tag[data-h="2"] { --tag-rgb: 34, 160, 90; }
+.slidevault .tag[data-h="3"] { --tag-rgb: 139, 92, 246; }
+.slidevault .tag[data-h="4"] { --tag-rgb: 219, 80, 140; }
+.slidevault .tag[data-h="5"] { --tag-rgb: 100, 116, 139; }
+.slidevault .tag:hover, .slidevault .tag:focus-visible { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
+.slidevault .tags-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.slidevault .tag[data-tip]::after, .slidevault .tag-more[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; transform: none; max-width: 220px; }
+.slidevault .tag-more { display: inline-flex; align-items: center; min-height: 24px; padding: 0 6px; border-radius: 999px; color: var(--sv-text-secondary); font-size: 12.5px; cursor: default; }
+.slidevault .tag-more:hover, .slidevault .tag-more:focus-visible { color: var(--sv-brand-strong); }
+.slidevault .taglist { display: grid; gap: 10px; }
+.slidevault .tagrows { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.slidevault .tagrow { display: inline-flex; align-items: center; gap: 0; }
+.slidevault .tagrow.is-hidden .tag { opacity: .7; }
+.slidevault .tagvote { display: inline-flex; margin-left: 2px; }
+.slidevault .tv, .slidevault .tagx { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 26px; min-height: 26px; padding: 0 4px; border: 0; border-radius: 999px; background: transparent; color: var(--sv-text-secondary); font: inherit; font-size: 12px; cursor: pointer; }
+.slidevault .tv .ic, .slidevault .tagx .ic { width: 14px; height: 14px; }
+.slidevault .tv:hover, .slidevault .tv:focus-visible, .slidevault .tagx:hover, .slidevault .tagx:focus-visible { background: var(--sv-brand-tint); color: var(--sv-brand-strong); }
+.slidevault .tv[aria-pressed="true"] { color: var(--sv-text); font-weight: 700; box-shadow: inset 0 0 0 1px var(--sv-border-strong); }
+.slidevault .tagadd { max-width: 360px; }
+.slidevault .tagfold summary { cursor: pointer; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .tagfold summary:hover { color: var(--sv-brand-strong); }
+.slidevault .tagfold[open] summary { margin-bottom: 6px; }
+.slidevault .tagremoved { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; font-size: var(--sv-text-small); }
+.slidevault .tagremoved li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.slidevault .tags-fromdeck { margin-top: 12px; }
+.slidevault .deck-tags { margin-top: 14px; max-width: 640px; }
+.slidevault .deck-tags .h3 { margin: 0 0 8px; font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .lb-tags { margin-top: 10px; display: grid; gap: 8px; }
+.slidevault .labels-source { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; }
+
+/* Back and Forward, top right of the tabs row. Quiet until hovered, then Moser orange. Hidden on phones (the phone's back gesture does it). */
+.slidevault .sv-brandrow-end { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.slidevault .hist-btns { display: inline-flex; gap: 6px; }
+.slidevault .hist-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--sv-border); border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
+.slidevault .hist-btn .ic { width: 18px; height: 18px; }
+.slidevault .hist-btn:hover:not(:disabled) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .hist-btn:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .hist-btn:disabled { opacity: .35; cursor: default; }
+@media (max-width: 600px) { .slidevault .hist-btns { display: none; } }
+@media (prefers-reduced-motion: reduce) { .slidevault .hist-btn { transition: none; } }
+
+/* Slide votes, comments and Share (FD-72): grey pills, orange on hover */
+.slidevault .slide-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.slidevault .slide-actions.is-card { margin-top: 8px; }
+.slidevault .votepill { display: inline-flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 4px; border: 1px solid color-mix(in srgb, var(--sv-brand) 30%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--sv-brand) 8%, var(--sv-surface)); }
+.slidevault .votepill.is-small { min-height: 28px; }
+.slidevault .vp { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--sv-text-secondary); cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .votepill.is-small .vp { width: 26px; height: 26px; }
+.slidevault .vp .ic { width: 18px; height: 18px; }
+.slidevault .votepill.is-small .vp .ic { width: 15px; height: 15px; }
+.slidevault .vp.is-up { color: var(--sv-brand-strong); }
+.slidevault .vp:hover, .slidevault .vp:focus-visible { background: color-mix(in srgb, var(--sv-brand) 18%, transparent); color: var(--sv-brand-strong); }
+.slidevault .vp[aria-pressed="true"].is-up { background: color-mix(in srgb, var(--sv-brand) 26%, transparent); color: var(--sv-brand-strong); box-shadow: inset 0 0 0 1px var(--sv-brand); }
+.slidevault .vp[aria-pressed="true"].is-up .ic { stroke-width: 2.6; }
+.slidevault .vp[aria-pressed="true"].is-down { background: var(--sv-action-bg); color: var(--sv-action-fg); }
+.slidevault .vp-n { min-width: 2ch; padding: 0 2px; text-align: center; font-size: 14px; font-weight: 600; color: var(--sv-text); }
+.slidevault .votepill.is-small .vp-n { font-size: 13px; }
+.slidevault .actpill { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--sv-surface-sunken); color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .actpill .ic { width: 17px; height: 17px; }
+.slidevault .actpill:hover, .slidevault .actpill:focus-visible { background: var(--sv-brand-tint); color: var(--sv-brand-strong); }
+.slidevault .actpill[aria-expanded="true"] { box-shadow: inset 0 0 0 1px var(--sv-border-strong); }
+.slidevault .comments { margin-top: 14px; display: grid; gap: 12px; }
+.slidevault .comments .h3 { margin: 0; font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .comment-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.slidevault .comment { display: grid; grid-template-columns: 32px 1fr; gap: 10px; }
+.slidevault .comment .avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); font-size: 12px; font-weight: 700; color: var(--sv-text-secondary); }
+.slidevault .comment-head { margin: 0 0 2px; font-size: var(--sv-text-small); display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; }
+.slidevault .comment-del { margin-left: 8px; font-size: var(--sv-text-small); }
+.slidevault .comment-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.slidevault .composer { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; }
+.slidevault .composer .avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); font-size: 12px; font-weight: 700; color: var(--sv-text-secondary); }
+.slidevault .composer-box { display: flex; align-items: flex-end; gap: 6px; min-height: 36px; padding: 3px 6px 3px 14px; border: 1px solid var(--sv-border-strong); border-radius: 20px; background: var(--sv-surface); transition: border-color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .composer-box:hover, .slidevault .composer-box:focus-within { border-color: var(--sv-brand); }
+.slidevault .composer-box textarea { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--sv-text); font: inherit; font-size: 14px; line-height: 1.4; resize: none; padding: 6px 0; max-height: 110px; }
+.slidevault .composer-post { border: 0; border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 700; padding: 5px 12px; margin-bottom: 1px; cursor: pointer; }
+.slidevault .composer-post:hover:not(:disabled), .slidevault .composer-post:focus-visible { background: var(--sv-brand-tint); color: var(--sv-brand-strong); }
+
+/* Toasts live in the browser's top layer (popover), so they show in front of the preview and other dialogs */
+.slidevault .toasts[popover] { position: fixed; inset: auto 16px 16px auto; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; width: auto; max-width: min(420px, calc(100vw - 32px)); color: inherit; }
+.slidevault .toasts[popover].lift { bottom: 100px; }
+.slidevault .toasts[popover]:not(:popover-open) { display: none; }
+
+/* Card: same zones in the same places. Title (two lines), meta, one line of tags, then a footer pinned to the bottom */
+.slidevault .vcard .card-body { container-type: inline-size; }
+.slidevault .vcard .tags-compact { flex-wrap: nowrap; margin-top: 0; min-width: 0; }
+.slidevault .vcard .tags-compact .tag { min-width: 0; flex: 0 1 auto; }
+.slidevault .vcard .tags-compact .tag-t { max-width: none; }
+.slidevault .vcard .tag-more { flex: none; }
+.slidevault .card-foot { margin-top: auto; padding-top: 4px; display: flex; align-items: center; gap: 8px; min-height: 36px; min-width: 0; }
+.slidevault .card-foot:empty { display: none; }
+.slidevault .card-foot .also { align-self: center; margin-left: auto; }
+.slidevault .also-full { display: none; }
+@container (min-width: 250px) {
+  .slidevault .also-full { display: inline; }
+  .slidevault .also-short { display: none; }
+}
+.slidevault .tags-spacer { display: none; height: 24px; }
+.slidevault .sv-main:has(.vcard .tags-compact) .tags-spacer { display: block; }
+.slidevault .card-foot .also[data-tip]::after { top: auto; bottom: calc(100% + 6px); }
+/* In the preview, open comments get room before the tags start: a gap and a hairline */
+.slidevault .comments + .lb-tags { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--sv-border); }
+
+/* Add tag: a small dashed pill in the row with the tags; it becomes a small box in place */
+.slidevault .tag-add { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; padding: 0 10px 0 7px; border: 1px dashed var(--sv-border-strong); border-radius: 999px; background: transparent; color: color-mix(in srgb, var(--sv-text-secondary) 65%, var(--sv-text)); font: inherit; font-size: 12.5px; line-height: 1; cursor: pointer; transition: border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .tag-add .ic { width: 13px; height: 13px; }
+.slidevault .tag-add:hover:not(:disabled), .slidevault .tag-add:focus-visible { border-style: solid; border-color: var(--sv-brand); color: var(--sv-brand-strong); }
+.slidevault .tag-input-wrap { position: relative; display: inline-block; }
+.slidevault .tag-input { width: 150px; min-height: 26px; padding: 0 12px; border: 1px solid var(--sv-brand); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: 12.5px; outline: none; }
+.slidevault .tag-sugg { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 80; min-width: 190px; max-width: 280px; margin: 0; padding: 4px; list-style: none; background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 12px; box-shadow: var(--sv-shadow-popover); }
+.slidevault .tag-sugg li { padding: 6px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; overflow-wrap: anywhere; }
+.slidevault .tag-sugg li:hover, .slidevault .tag-sugg li[aria-selected="true"] { background: var(--sv-brand-tint); }
+
+/* Slide title with a pencil */
+.slidevault .slide-title-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+.slidevault .slide-title-row .h1 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.slidevault .title-edit { flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin-top: 4px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: color-mix(in srgb, var(--sv-text-secondary) 55%, transparent); cursor: pointer; transition: color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .title-edit .ic { width: 18px; height: 18px; }
+.slidevault .title-edit:hover, .slidevault .title-edit:focus-visible { color: var(--sv-brand-strong); }
+.slidevault .title-edit-note { margin: 6px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+/* Upload cards: thumbnails wait with a spinner, then fade the picture in; static tags (not saved yet) */
+.slidevault .upcard-thumb .spin { color: var(--sv-text-secondary); }
+.slidevault .upcard-thumb img { opacity: 0; transition: opacity var(--sv-duration) var(--sv-ease-out); background: transparent; }
+.slidevault .upcard-thumb img.is-loaded { opacity: 1; background: #fff; }
+.slidevault .tag.is-static { cursor: default; }
+.slidevault .tag.is-static:hover { border-color: rgba(var(--tag-rgb), .75); background: transparent; }
+.slidevault .tag.is-deck { opacity: .8; border-style: dashed; }
+
+/* Tabs turn orange (words and icon) on hover and keyboard focus; a locked tab stays quiet */
+.slidevault .sv-nav a:not(.is-locked):hover, .slidevault .sv-nav a:not(.is-locked):focus-visible { color: var(--sv-brand-strong); background: transparent; }
+.slidevault .sv-bottombar a:hover, .slidevault .sv-bottombar a:focus-visible { color: var(--sv-brand-strong); }
+.slidevault .sv-bottombar a:hover .ic, .slidevault .sv-bottombar a:focus-visible .ic { color: var(--sv-brand-strong); }
+.slidevault .sv-nav a:not(.is-locked):hover .ic, .slidevault .sv-nav a:not(.is-locked):focus-visible .ic { color: var(--sv-brand-strong); }

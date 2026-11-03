@@ -256,7 +256,7 @@ export function Cart() {
               <span className="ce-ic" aria-hidden="true">
                 <Icon name="layers" />
               </span>
-              <p className="meta">Tick slides you like. They collect here, and you can download them as one deck.</p>
+              <p className="meta">Tick slides to collect them here.</p>
             </div>
           </div>
         </div>
@@ -361,7 +361,6 @@ export function Cart() {
                 <input type="checkbox" checked={combine} onChange={(e) => setCombine(e.target.checked)} />
                 <span>Combine into one deck</span>
               </label>
-              <p className="meta">Slides from different decks go into one .pptx. Each slide keeps its own deck’s design, so it can look a little mixed.</p>
             </div>
           )}
         </div>

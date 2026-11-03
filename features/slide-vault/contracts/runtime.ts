@@ -52,6 +52,8 @@ export interface SlideVaultRuntime {
   request(input: RuntimeRequest): Promise<Response>;
   /** Resolve an API-relative media path (e.g. "/slides/sld_1/preview") to a URL for <img src>. */
   assetUrl(path: string): string;
+  /** Optional: the host's own Back and Forward, for the two buttons beside the tabs. Without it the buttons are not shown. */
+  history?: { canGoBack: boolean; canGoForward: boolean; back(): void; forward(): void };
   /** Optional: the host's URL for a location, so links can open in a new tab. Falls back to "#". */
   hrefFor?(location: Location): string;
   onSessionExpired(): void;

@@ -1,5 +1,8 @@
 'use client';
 
+import { SlideTitle } from './RenameSlide';
+import { SlideEngagement } from './SlideActions';
+import { DeckTags, SlideLabelsPanel, SlideTagsPanel } from './TagBits';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { getSlide } from '../client/api';
 import type { SlideDetail, SlideSummary } from '../contracts/dto';
@@ -251,10 +254,19 @@ function HomeHeader() {
   useEffect(() => {
     const el = formRef.current;
     if (!el) return;
-    const io = new IntersectionObserver(([entry]) => setHeroOut(!entry.isIntersecting), { root: scroll.current, rootMargin: '-110px 0px 0px 0px' });
-    io.observe(el);
+    /* Out only once the whole bar is under the pinned tabs row, so the two search bars are never on screen together. */
+    let io: IntersectionObserver | undefined;
+    const watch = () => {
+      io?.disconnect();
+      const tabs = document.querySelector<HTMLElement>('.slidevault .sv-top')?.offsetHeight ?? 47;
+      io = new IntersectionObserver(([entry]) => setHeroOut(!entry.isIntersecting), { root: scroll.current, rootMargin: `-${tabs}px 0px 0px 0px` });
+      io.observe(el);
+    };
+    watch();
+    window.addEventListener('resize', watch);
     return () => {
-      io.disconnect();
+      window.removeEventListener('resize', watch);
+      io?.disconnect();
       setHeroOut(false);
     };
   }, [scroll]);
@@ -717,8 +729,10 @@ export function ResultsView() {
           ) : (
             <>
               <p className="summary" aria-live="polite">
-                <strong>{plural(shown.length, 'slide')}</strong> from {plural(deckCount, 'deck')}. Best matches first.
-                {grouped > 0 ? ` Near-identical copies are grouped under “Also in…”.` : ''}
+                <strong>{plural(shown.length, 'slide')}</strong> from {plural(deckCount, 'deck')}
+                <span className="helpdot" tabIndex={0} role="img" aria-label={`Best matches first.${grouped > 0 ? ' Near-identical copies are grouped under “Also in…”.' : ''}`} data-tip={`Best matches first.${grouped > 0 ? ' Near-identical copies are grouped under “Also in…”.' : ''}`}>
+                  <Icon name="info" />
+                </span>
               </p>
               <div className="grid">
                 {shown.map((i) => (
@@ -814,6 +828,7 @@ export function DeckView({ id }: { id: string }) {
           </button>
         </div>
       </div>
+      <DeckTags deck={deck} />
       {grouping ? (
         <GroupTool deckSlides={deck.slides} onDone={() => setGrouping(false)} />
       ) : (
@@ -902,9 +917,7 @@ export function SlideView({ id }: { id: string }) {
     <div className="sv-wrap">
       <div className="slide-detail">
         <div>
-          <h1 className="h1" tabIndex={-1} style={{ marginBottom: 12 }}>
-            {slide.title}
-          </h1>
+          <SlideTitle slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />
           <button
             type="button"
             className="big-preview"
@@ -957,6 +970,7 @@ export function SlideView({ id }: { id: string }) {
               <span className="btn-icon" style={{ width: 36 }} />
             )}
           </div>
+          <SlideEngagement key={slide.id} slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />
           <section className="panel" style={{ marginTop: 16 }}>
             <h2>Text found on the slide</h2>
             {text === undefined && !textError && <div className="skel" style={{ height: 64 }} aria-hidden="true" />}
@@ -995,6 +1009,8 @@ export function SlideView({ id }: { id: string }) {
             </div>
           </section>
           {slidePack && <PackPanel slide={slide} pack={slidePack} />}
+          <SlideTagsPanel slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />
+          <SlideLabelsPanel story={(detail && detail.id === id && 'slide' in detail ? detail.slide.story : undefined) ?? slide.story} />
           <section className="panel">
             <h2>Details</h2>
             <dl className="trust">
@@ -1026,11 +1042,6 @@ export function SlideView({ id }: { id: string }) {
                   </dd>
                 </>
               )}
-              <dt>Folder</dt>
-              <dd>
-                {folderLabel(deck)}
-                <FromFolder />
-              </dd>
               <dt>Client</dt>
               <dd>
                 {p.clientName ?? <Unknown />}

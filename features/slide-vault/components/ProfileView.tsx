@@ -5,7 +5,6 @@ import { Icon } from './icons';
 import { timeAgo } from './library';
 import { SlideCard } from './parts';
 import { useWorkspace } from './state';
-import { StoryRoleSetting } from './StoryRoleSetting';
 
 /**
  * Profile page: the person's saved slides and their own recent activity (kept on the server when
@@ -33,8 +32,6 @@ export function ProfileView() {
           <p className="lede">Your saved slides and working drafts. Signed in as {profile}.</p>
         </div>
       </div>
-
-      <StoryRoleSetting />
 
       <section className="row" id="saved">
         <div className="row-head">

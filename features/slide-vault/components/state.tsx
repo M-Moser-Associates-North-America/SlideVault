@@ -1,18 +1,37 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { archiveDeck as archiveDeckApi, createPack as createPackApi, deletePack as deletePackApi, getMySettings, listLibrary, renamePack as renamePackApi, setMyRole, setPackStatus as setPackStatusApi, smartSearch } from '../client/api';
+import { archiveDeck as archiveDeckApi, createPack as createPackApi, deletePack as deletePackApi, getMySettings, listLibrary, renamePack as renamePackApi, renameSlide as renameSlideApi, setMyRole, setPackStatus as setPackStatusApi, smartSearch } from '../client/api';
 import { withDemoDetails } from '../client/demo-details';
 import { useLocalPacks } from '../client/pack-store';
 import { buildPacks, NO_PACKS, type Pack, type PacksIndex } from '../client/packs';
 import { useActivity, useDrafts, useProfile, useSaved, type ActivityEntry, type Draft } from '../client/profile-store';
 import { adoptServerRole, currentStoryRole, onRoleChange } from '../client/role-store';
+import { demoTagsOn } from '../client/tag-store';
 import { useSelection } from '../client/selection-store';
 import { tourIsOpen } from '../client/tour-store';
-import type { SlideSummary, SmartSearchResult } from '../contracts/dto';
+import type { SlideSummary, SmartSearchResult, TitleEdit } from '../contracts/dto';
 import type { RuntimeRequest, SlideVaultRuntime } from '../contracts/runtime';
 import { USER_HEADER } from '../client/user-api';
 import { groupDecks, NO_FILTERS, plural, type Deck, type Filters } from './library';
+
+/* Pretend renames (?demotags=1) survive the library reloading, so the demo behaves like a server that kept the name. */
+const demoTitles = new Map<string, string>();
+const titleEdits = new Map<string, TitleEdit>();
+const DEMO_NAMES = ['Priya Shah', 'Sam Lee', 'Maya Chen'];
+/** Who last set this slide's title: this session's rename, else what the server says, else (demo) a pretend one, else the system. */
+export function titleEditOf(slideId: string, fromServer?: TitleEdit): TitleEdit {
+  const mine = titleEdits.get(slideId);
+  if (mine) return mine;
+  if (fromServer) return fromServer;
+  if (demoTagsOn()) {
+    const h = [...slideId].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 3);
+    if (h % 5 === 0) return { kind: 'ai', at: new Date(Date.UTC(2026, 9, 27)).toISOString() };
+    if (h % 3 === 0) return { kind: 'person', by: DEMO_NAMES[h % DEMO_NAMES.length], at: new Date(Date.UTC(2026, 9, 22 + (h % 7))).toISOString() };
+  }
+  return { kind: 'system' };
+}
+const withDemoTitle = (s: SlideSummary): SlideSummary => (demoTitles.has(s.id) ? { ...s, title: demoTitles.get(s.id)! } : s);
 
 export type LibraryState = { status: 'loading' } | { status: 'ready'; slides: SlideSummary[]; decks: Deck[] } | { status: 'error'; message: string };
 
@@ -50,6 +69,8 @@ type Workspace = {
   closeArchiveDialog: () => void;
   /** Archive or restore a deck. false = the server could not (a message has been shown). */
   archiveDeck: (deck: { id: string; title: string }, archived: boolean) => Promise<boolean>;
+  /** Rename a slide for everyone (FD-73). Throws with a message to show when the server can't. */
+  renameSlide: (slideId: string, title: string) => Promise<void>;
   /** Slides that go together (FD-38): every pack, and which one a slide is in */
   packs: PacksIndex;
   /** The question asked before adding or removing one slide of a pack, or before ungrouping */
@@ -188,7 +209,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     const controller = new AbortController();
     listLibrary(transport, controller.signal, { includeHidden, includeArchived })
       .then((raw) => {
-        const slides = demoDetails ? raw.map(withDemoDetails) : raw;
+        const slides = (demoDetails ? raw.map(withDemoDetails) : raw).map(withDemoTitle);
         setLibrary({ status: 'ready', slides, decks: groupDecks(slides) });
       })
       .catch((e: Error) => e.name !== 'AbortError' && setLibrary({ status: 'error', message: e.message }));
@@ -224,7 +245,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     const controller = new AbortController();
     const timer = setTimeout(() => {
       smartSearch(transport, q, q === submitted, controller.signal, { includeHidden, role: currentStoryRole() })
-        .then((result) => setSearch({ status: 'ready', result }))
+        .then((result) => setSearch({ status: 'ready', result: demoTitles.size ? { ...result, items: result.items.map((i) => ({ ...i, slide: withDemoTitle(i.slide) })) } : result }))
         .catch((e: Error) => e.name !== 'AbortError' && setSearch({ status: 'error', message: e.message }));
     }, SEARCH_DELAY_MS);
     return () => {
@@ -261,7 +282,8 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
 
   /* The draft deck's name, edited at the top of the panel; it also fills the Save as draft box. */
   const [draftTitle, setDraftTitle] = useState('');
-  const [combine, setCombine] = useState(false);
+  /* On by default, every time: it turns back on when the download pop-up closes and when the draft deck is emptied. */
+  const [combine, setCombine] = useState(true);
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextToast = useRef(1);
@@ -291,7 +313,10 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
 
   const [downloadSlides, setDownloadSlides] = useState<SlideSummary[] | null>(null);
   const openDownload = useCallback((slides: SlideSummary[]) => setDownloadSlides(slides), []);
-  const closeDownload = useCallback(() => setDownloadSlides(null), []);
+  const closeDownload = useCallback(() => {
+    setDownloadSlides(null);
+    setCombine(true);
+  }, []);
 
   const [alsoFor, setAlsoFor] = useState<SlideSummary | null>(null);
   const openAlso = useCallback((slide: SlideSummary) => setAlsoFor(slide), []);
@@ -354,6 +379,28 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const [archiveDialog, setArchiveDialog] = useState<ArchiveDialogState | null>(null);
   const openArchiveDialog = useCallback((d: ArchiveDialogState) => setArchiveDialog(d), []);
   const closeArchiveDialog = useCallback(() => setArchiveDialog(null), []);
+  const renameSlide = useCallback(
+    async (slideId: string, title: string) => {
+      let name = title;
+      if (demoTagsOn()) demoTitles.set(slideId, title);
+      else {
+        const saved = await renameSlideApi(transport, slideId, title);
+        if (saved === null) throw new Error("Renaming isn't available yet: this server can't change slide names.");
+        name = saved;
+      }
+      titleEdits.set(slideId, { kind: 'person', by: profile ?? 'Someone', at: new Date().toISOString() });
+      /* Every list on screen shows the new name at once, without waiting for a reload. */
+      const rename = (s: SlideSummary) => (s.id === slideId ? { ...s, title: name } : s);
+      setLibrary((l) => {
+        if (l.status !== 'ready') return l;
+        const slides = l.slides.map(rename);
+        return { status: 'ready', slides, decks: groupDecks(slides) };
+      });
+      setSearch((s) => (s.status === 'ready' ? { status: 'ready', result: { ...s.result, items: s.result.items.map((i) => ({ ...i, slide: rename(i.slide) })) } } : s));
+      announce(`Slide renamed to ${name}`);
+    },
+    [transport, announce, profile],
+  );
   const archiveDeck = useCallback(
     async function run(deck: { id: string; title: string }, archived: boolean): Promise<boolean> {
       try {
@@ -448,6 +495,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   if (selection.length !== lastCount) {
     setLastCount(selection.length);
     if (selection.length === 0 && originId !== null) setOriginId(null);
+  if (selection.length === 0 && !combine) setCombine(true);
   }
   const draftOrigin = selection.length > 0 && originId ? (drafts.find((d) => d.id === originId) ?? null) : null;
   const saveDraft = useCallback(
@@ -488,6 +536,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     openArchiveDialog,
     closeArchiveDialog,
     archiveDeck,
+    renameSlide,
     packs,
     packDialog,
     openPackDialog,

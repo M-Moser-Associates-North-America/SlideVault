@@ -1,5 +1,7 @@
 'use client';
 
+import { CardVotes } from './SlideActions';
+import { CompactTags } from './TagBits';
 import type { MouseEvent, ReactNode } from 'react';
 import type { SlideSummary } from '../contracts/dto';
 import type { Location } from '../contracts/runtime';
@@ -239,17 +241,7 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
         <div className="meta clip" title={`Slide ${p.slideNumber} of ${p.sourceTitle}`}>
           {meta || p.sourceTitle}
         </div>
-        {slide.alsoIn && (
-          <button
-            type="button"
-            className="also"
-            title={slide.alsoIn.match === 'near' ? 'A nearly identical slide is in other decks' : 'The same slide is in other decks'}
-            onClick={() => openAlso(slide)}
-          >
-            <Icon name="copy" className="ic-sm" />
-            Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}
-          </button>
-        )}
+        <CompactTags slide={slide} />
         {note && (
           <div className="card-note">
             <Icon name="download" className="ic-sm" />
@@ -265,6 +257,23 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
             {why}
           </div>
         )}
+        <div className="card-foot">
+          <CardVotes slide={slide} />
+          {slide.alsoIn && (
+          <button
+            type="button"
+            className="also"
+            aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`}
+            data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'deck')}`}
+            data-tip-pos="end"
+            onClick={() => openAlso(slide)}
+          >
+            <Icon name="folders" className="ic-sm" />
+            <span className="also-full">Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</span>
+            <span className="also-short" aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
+          </button>
+        )}
+        </div>
       </div>
     </article>
   );

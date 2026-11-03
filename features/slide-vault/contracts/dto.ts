@@ -141,6 +141,15 @@ export type FreeTag = {
 /** Who last set a slide's title (FD-73): a person, the AI, or the system (read automatically from the slide's text). Absent = the system. */
 export type TitleEdit = { kind: 'person' | 'ai' | 'system'; by?: string; at?: string };
 
+/** Reddit-style vote on a whole slide (FD-72): people who said up and down, and what the signed-in person said. Absent until the server counts votes. */
+export type SlideVotes = { up: number; down: number; myVote: 1 | -1 | 0 };
+
+/** A comment on a slide (FD-72). Plain text, never markup. */
+export type SlideComment = { id: string; text: string; author: string; at: string };
+
+/** A tag someone removed (FD-72), kept so the slide page can say who removed it and let anyone restore it. */
+export type TagRemoval = { id: string; tag: string; on: 'slide' | 'deck'; addedBy: string; removedBy: string; removedAt: string };
+
 export type SlideSummary = {
   id: string;
   title: string;
@@ -158,6 +167,9 @@ export type SlideSummary = {
   story?: SlideStory | null;
   /** Free-form tags on this slide or its deck, when any (FD-53) */
   tags?: FreeTag[];
+  /** Up and down votes on the slide and how many comments it has (FD-72); absent until the server has them */
+  votes?: SlideVotes;
+  commentCount?: number;
   /** Who last set the title, and when (FD-73); absent until the server keeps that */
   titleEdit?: TitleEdit;
   /** The deck section the slide sits in (FD-57, "page breakers"), set by search when known; divider is its cover */

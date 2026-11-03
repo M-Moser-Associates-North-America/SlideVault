@@ -1,5 +1,7 @@
 'use client';
 
+import { PreviewActions } from './SlideActions';
+import { PreviewTags } from './TagBits';
 import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react';
 import { exportPptx } from '../client/api';
 import type { SlideSummary } from '../contracts/dto';
@@ -23,30 +25,76 @@ export const backdropClose = (onClose: () => void) => (e: MouseEvent<HTMLDialogE
   if (e.target === e.currentTarget) onClose();
 };
 
-/** Large preview of a slide, stepping through the list it was opened from. */
+/** Large preview of a slide. The side arrows, the filmstrip and swipes walk the slide's own deck; a separate bar steps through the search results it was opened from. */
 export function Lightbox() {
-  const { runtime, preview, closePreview, movePreview, openDownload, packs, selection, addPackToDraft } = useWorkspace();
+  const { runtime, library, preview, closePreview, movePreview, openDownload, packs, selection, addPackToDraft } = useWorkspace();
   const { isSelected, setOne } = useCartToggle();
   const ref = useRef<HTMLDialogElement>(null);
+  const strip = useRef<HTMLDivElement>(null);
+  const touch = useRef<{ x: number; y: number } | null>(null);
   useDialogOpen(ref, !!preview);
-  const slide = preview ? preview.list[preview.index] : null;
-  const many = !!preview && preview.list.length > 1;
+
+  /* A slide picked inside the deck replaces the result's slide until the person steps to another result. */
+  const [pick, setPick] = useState<{
+    list: SlideSummary[];
+    index: number;
+    slide: SlideSummary;
+  } | null>(null);
+  const picked = preview && pick && pick.list === preview.list && pick.index === preview.index ? pick.slide : null;
+  const slide = preview ? (picked ?? preview.list[preview.index]) : null;
+
+  const deck = slide && library.status === 'ready' ? library.decks.find((d) => d.id === slide.provenance.sourceId) : undefined;
+  const sibs = deck?.slides ?? [];
+  const di = slide ? sibs.findIndex((s) => s.id === slide.id) : -1;
+  /* Results bar only when the list is a real search, not just this deck's own slides. */
+  const fromDeck = !!preview && sibs.length === preview.list.length && preview.list.every((s, k) => s.id === sibs[k].id);
+  const results = !!preview && preview.list.length > 1 && !fromDeck;
+
+  const moveDeck = (delta: -1 | 1) => {
+    const target = sibs[di + delta];
+    if (preview && target) setPick({ list: preview.list, index: preview.index, slide: target });
+  };
+  const moveResult = (delta: -1 | 1) => {
+    if (preview && preview.index + delta >= 0 && preview.index + delta < preview.list.length) movePreview(delta);
+  };
+  const atFirstResult = !preview || preview.index === 0;
+  const atLastResult = !preview || preview.index === preview.list.length - 1;
 
   /* Remember the slide we came from so it slides out while the next slides in (same motion as the slide page). */
-  const [seen, setSeen] = useState<{ list: SlideSummary[] | null; index: number; from: SlideSummary | null; dir: 'next' | 'prev' | null }>({ list: null, index: 0, from: null, dir: null });
-  if (preview && (seen.list !== preview.list || seen.index !== preview.index)) {
-    const sameList = seen.list === preview.list;
-    const diff = preview.index - seen.index;
-    const wrapped = Math.abs(diff) > 1 && preview.list.length > 2;
-    const dir = !sameList || diff === 0 ? null : (diff > 0) !== wrapped ? 'next' : 'prev';
-    setSeen({ list: preview.list, index: preview.index, from: dir && seen.list ? seen.list[seen.index] : null, dir });
-  } else if (!preview && seen.list) {
-    setSeen({ list: null, index: 0, from: null, dir: null });
+  const [seen, setSeen] = useState<{
+    slide: SlideSummary | null;
+    index: number;
+    from: SlideSummary | null;
+    dir: 'next' | 'prev' | null;
+  }>({ slide: null, index: 0, from: null, dir: null });
+  if (slide && preview && seen.slide?.id !== slide.id) {
+    const prev = seen.slide;
+    const prevAt = prev ? sibs.findIndex((s) => s.id === prev.id) : -1;
+    const dir = !prev ? null : prevAt >= 0 && di >= 0 ? (di > prevAt ? 'next' : 'prev') : preview.index === seen.index ? null : preview.index > seen.index ? 'next' : 'prev';
+    setSeen({ slide, index: preview.index, from: dir ? prev : null, dir });
+  } else if (!preview && seen.slide) {
+    setSeen({ slide: null, index: 0, from: null, dir: null });
   }
   const preview_img = (sl: SlideSummary) => (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={runtime.assetUrl(sl.previewPath)} alt={sl === slide ? sl.title : ''} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+    <img
+      src={runtime.assetUrl(sl.previewPath)}
+      alt={sl === slide ? sl.title : ''}
+      style={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain',
+        display: 'block',
+      }}
+    />
   );
+
+  /* Keep the current slide in view in the filmstrip. */
+  useEffect(() => {
+    strip.current?.querySelector<HTMLElement>('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [slide?.id]);
+
+  const where = di >= 0 ? `Slide ${di + 1} of ${sibs.length} in this deck` : `Slide ${slide?.provenance.slideNumber ?? ''}`;
 
   return (
     <dialog
@@ -57,8 +105,14 @@ export function Lightbox() {
       onClose={closePreview}
       onClick={backdropClose(closePreview)}
       onKeyDown={(e) => {
-        if (e.key === 'ArrowLeft') movePreview(-1);
-        if (e.key === 'ArrowRight') movePreview(1);
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const back = e.key === 'ArrowLeft' || e.key === '[';
+        const fwd = e.key === 'ArrowRight' || e.key === ']';
+        if (!back && !fwd) return;
+        e.preventDefault();
+        const delta = back ? -1 : 1;
+        if (e.shiftKey || e.key === '[' || e.key === ']') moveResult(delta);
+        else moveDeck(delta);
       }}
     >
       {slide && preview && (
@@ -76,29 +130,103 @@ export function Lightbox() {
             </button>
           </div>
           <div className="dlg-body">
-            <div className="lb-stage">
-              {seen.from && seen.dir && (
-                <div key={`out-${seen.from.id}`} className={`slide-layer slide-out-${seen.dir}`} aria-hidden="true">
-                  {preview_img(seen.from)}
-                </div>
-              )}
-              <div key={slide.id} className={`slide-layer${seen.dir ? ` slide-in-${seen.dir}` : ''}`}>
-                {preview_img(slide)}
+            {results && (
+              <div className="lb-results" role="group" aria-label="Search results">
+                <button type="button" className="btn btn-sm" disabled={atFirstResult} onClick={() => moveResult(-1)} title="Previous result ( [ or Shift+←)">
+                  <Icon name="left" />
+                  <span>Previous result</span>
+                </button>
+                <span className="counter">
+                  Result {preview.index + 1} of {preview.list.length}
+                </span>
+                {picked && preview && picked.id !== preview.list[preview.index].id && (
+                  <button type="button" className="btn btn-sm btn-ghost" onClick={() => setPick(null)}>
+                    Back to the result
+                  </button>
+                )}
+                <button type="button" className="btn btn-sm" disabled={atLastResult} onClick={() => moveResult(1)} title="Next result ( ] or Shift+→)">
+                  <span>Next result</span>
+                  <Icon name="right" />
+                </button>
               </div>
-              {many && (
-                <>
-                  <button type="button" className="btn btn-icon lb-nav lb-prev" aria-label="Previous slide" onClick={() => movePreview(-1)}>
-                    <Icon name="left" />
-                  </button>
-                  <button type="button" className="btn btn-icon lb-nav lb-next" aria-label="Next slide" onClick={() => movePreview(1)}>
-                    <Icon name="right" />
-                  </button>
-                </>
+            )}
+            <div className="lb-row">
+              {sibs.length > 1 && (
+                <button type="button" className="btn btn-icon lb-nav lb-prev" aria-label="Previous slide in this deck" data-tip="Previous in deck" disabled={di <= 0} onClick={() => moveDeck(-1)}>
+                  <Icon name="left" />
+                </button>
+              )}
+              <div
+                className="lb-stage"
+                onTouchStart={(e) =>
+                  (touch.current = {
+                    x: e.touches[0].clientX,
+                    y: e.touches[0].clientY,
+                  })
+                }
+                onTouchEnd={(e) => {
+                  const t = touch.current;
+                  touch.current = null;
+                  if (!t) return;
+                  const dx = e.changedTouches[0].clientX - t.x;
+                  if (Math.abs(dx) > 50 && Math.abs(e.changedTouches[0].clientY - t.y) < 40) moveDeck(dx < 0 ? 1 : -1);
+                }}
+              >
+                {seen.from && seen.dir && (
+                  <div key={`out-${seen.from.id}`} className={`slide-layer slide-out-${seen.dir}`} aria-hidden="true">
+                    {preview_img(seen.from)}
+                  </div>
+                )}
+                <div key={slide.id} className={`slide-layer${seen.dir ? ` slide-in-${seen.dir}` : ''}`}>
+                  {preview_img(slide)}
+                </div>
+              </div>
+              {sibs.length > 1 && (
+                <button
+                  type="button"
+                  className="btn btn-icon lb-nav lb-next"
+                  aria-label="Next slide in this deck"
+                  data-tip="Next in deck"
+                  disabled={di < 0 || di >= sibs.length - 1}
+                  onClick={() => moveDeck(1)}
+                >
+                  <Icon name="right" />
+                </button>
               )}
             </div>
+            {sibs.length > 1 && (
+              <div className="lb-deck">
+                <p className="lb-deck-label" id="sv-lb-deck">
+                  Scroll the deck
+                </p>
+                <div className="lb-strip" ref={strip} role="group" aria-labelledby="sv-lb-deck">
+                  {sibs.map((s, k) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className="lb-thumb"
+                      aria-current={s.id === slide.id ? 'true' : undefined}
+                      aria-label={`Slide ${k + 1}: ${s.title}`}
+                      onClick={() =>
+                        setPick({
+                          list: preview.list,
+                          index: preview.index,
+                          slide: s,
+                        })
+                      }
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={runtime.assetUrl(s.previewPath)} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <PreviewActions key={slide.id} slide={slide} />
+            <PreviewTags slide={slide} onNavigate={closePreview} />
             <div className="lb-caption">
               <span className="counter" aria-live="polite">
-                {preview.index + 1} of {preview.list.length}
+                {where}
               </span>
               <span className="row-flex">
                 <button type="button" className="btn btn-sm" aria-pressed={isSelected(slide.id)} onClick={() => setOne(slide, !isSelected(slide.id))}>
@@ -106,7 +234,12 @@ export function Lightbox() {
                   <span>{isSelected(slide.id) ? 'In draft deck' : 'Add to draft deck'}</span>
                 </button>
                 {packs.of(slide.id) && (
-                  <button type="button" className="btn btn-sm" disabled={packs.of(slide.id)!.slideIds.every((id) => selection.some((x) => x.id === id))} onClick={() => addPackToDraft(packs.of(slide.id)!)}>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    disabled={packs.of(slide.id)!.slideIds.every((id) => selection.some((x) => x.id === id))}
+                    onClick={() => addPackToDraft(packs.of(slide.id)!)}
+                  >
                     <Icon name="plus" />
                     <span>Add whole pack ({packs.of(slide.id)!.slideIds.length})</span>
                   </button>
@@ -125,6 +258,11 @@ export function Lightbox() {
                 <Link className="btn btn-sm" to={{ view: 'slide', id: slide.id }} onNavigate={closePreview}>
                   Open slide page
                 </Link>
+                {deck && (
+                  <Link className="btn btn-sm" to={{ view: 'deck', id: deck.id }} onNavigate={closePreview}>
+                    Open deck
+                  </Link>
+                )}
               </span>
             </div>
           </div>
