@@ -2,6 +2,7 @@
 
 import { SlideTitle } from './RenameSlide';
 import { SlideEngagement } from './SlideActions';
+import { SectionCards } from './SectionCards';
 import { DeckTags, SlideLabelsPanel, SlideTagsPanel } from './TagBits';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { getSlide } from '../client/api';
@@ -760,6 +761,7 @@ export function ResultsView() {
                   ))}
                 </div>
               )}
+              {pickedSection && <SectionCards results={slides} />}
               <div className="grid">
                 {visible.map((i) => (
                   <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} note={sort === 'popular' ? downloadedNote(i.slide) : undefined} />
