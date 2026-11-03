@@ -6,7 +6,9 @@ import { openAiCompatibleStoryReader, type StoryReader } from '../ai/storyboard'
 import { groupDuplicates, type SlideText } from '../duplicates';
 import { hasMmoserConfig } from '../config';
 import { loadLibraryIndex } from '../library-repository';
-import { listFilterValuesPg, listSlideTextsPg, smartSearchPg } from '../pg-repository';
+import { getSlideSummariesPg, listFilterValuesPg, listSlideTextsPg, smartSearchPg } from '../pg-repository';
+import { tagsInQuery } from '../tags';
+import { typedTags } from './tagged-first';
 import { withDownloadCounts } from '../user-data';
 import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
 import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures, type SearchKnowledge } from './fixture-smart-search';
@@ -272,6 +274,31 @@ export function configuredStoryReader(env: Record<string, string | undefined> = 
   return openAiCompatibleStoryReader({ ...config, timeoutMs: Math.max(config.timeoutMs, storyMs) });
 }
 
+/** What search learned (FD-59) for the brief's topics, counted as for a search of those words. */
+const storySearchLearning = (topics: string[], role: StoryUserRole | null) => searchLearning(topics.join(' '), role);
+
+const NO_TAGS = { of: () => undefined, rows: [] };
+
+/**
+ * People's own tags (FD-58) named in a brief, as search uses them: "a story for Priya's hospital
+ * pitch" finds the slides someone tagged Priya. Off without a database, like search.
+ */
+async function storyTags(index: Awaited<ReturnType<typeof loadLibraryIndex>>, brief: string) {
+  const hits = typedTags(brief, await orWithoutDb('tags', () => tagsInQuery(brief), []));
+  if (!hits.length) return NO_TAGS;
+  const onSlide = new Map(hits.filter((h) => h.on === 'slide').map((h) => [h.id, h.tag]));
+  const onDeck = new Map(hits.filter((h) => h.on === 'deck').map((h) => [h.id, h.tag]));
+  const local = fixtureRowsWhere(index, (id) => onSlide.has(id), onSlide.size);
+  const missing = [...onSlide.keys()].filter((id) => !local.some((r) => r.summary.id === id));
+  const fromDb = missing.length ? await orWithoutDb('tagged slides', () => getSlideSummariesPg(missing), []) : [];
+  const rows = [
+    ...local,
+    // Uploaded slides: their title is what's known here; what the scan read on them comes through knowledge.
+    ...fromDb.map((summary) => ({ summary, facts: { title: summary.title, text: '', client: null, year: null, category: null, bestOfTheBest: false } })),
+  ].filter((r) => !keptOutOfStories(r.summary));
+  return { of: (slideId: string, deckId: string) => onSlide.get(slideId) ?? onDeck.get(deckId), rows };
+}
+
 /** A client situation turned into a story of slides from the whole library (FD-22). */
 export async function storyboardLibrary(situation: string, opts: { reader: StoryReader | null; read: boolean; answers?: string; role?: StoryUserRole | null; mode?: 'retrieve' | 'reimagine' | 'build' }): Promise<StoryboardResponse> {
   const index = await loadLibraryIndex();
@@ -321,8 +348,13 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
     : undefined;
   // Retelling a deck: what the deck is ("RFP, HQ relocation/renovation") tells the rest of the
   // library what a missing part should be about, when the request is only "the story of Barlow's".
+  // The page breakers search found (FD-57) split a retold deck where the deck itself does.
+  await uploadedDecks();
+  const sections = sectionsOf(index, readings);
+  const isDivider = (id: string) => sections.get(id)?.dividerId === id;
+  const sectionOf = (id: string) => { const x = sections.get(id); return x && { key: x.dividerId, name: x.name, kind: /\bappendix\b/i.test(x.name) ? 'appendix' : x.kind }; };
   const brief = source ? `${situation}\n${source.deck.title.replace(/ · /g, ', ')}` : situation;
-  const result = await buildStoryboard(brief, { reader: opts.reader, search, learned: learnedForTopics, knowledge, source, context, families, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
+  const result = await buildStoryboard(brief, { reader: opts.reader, search, learned: learnedForTopics, searchLearned: storySearchLearning, tagged: (text) => storyTags(index, text), isDivider, sectionOf, knowledge, source, context, families, log: (m) => console.warn(m) }, { read: opts.read, answers: opts.answers, role: opts.role ?? null });
   const all = [...result.sections.flatMap((s) => s.items.map((i) => i.slide)), ...result.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide))];
   const counted = new Map((await withDownloadCounts(all, (e) => console.error('Download counts unavailable', e))).map((s) => [s.id, s]));
   const withCounts = <T extends { slide: SlideSummary }>(i: T): T => ({ ...i, slide: counted.get(i.slide.id) ?? i.slide });

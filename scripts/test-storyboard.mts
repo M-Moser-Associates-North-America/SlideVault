@@ -124,6 +124,51 @@ check(JSON.stringify(situationTopics('Hospital campuses need studies and process
   check(r2.sections.find((x) => x.role === 'client-challenge')!.items.some((i) => i.slide.id === 'm-case'), 'metadata: colleagues marking a slide useful for a part still overrides its reviewed role', r2.sections.map((x) => [x.role, x.items.map((i) => i.slide.id)]));
   check(!leftoverAfterVotes.sections.some((x) => x.items.some((i) => i.slide.id === 'm-leftover')), 'metadata: no number of votes brings back a slide that names another client');
 }
+// ---- The storyboard learns from search (FD-59, FD-58): Useful / Not relevant and people's own tags
+{
+  const LIB7 = [
+    { id: 'l-case', title: 'Case study: clinic network', text: 'Hospital campus project completed with results.' },
+    { id: 'l-case2', title: 'Case study: teaching hospital', text: 'Hospital campus project completed with results.' },
+    { id: 'l-challenge', title: 'Three campuses, one hospital', text: 'Hospital merging campuses: what is at stake for staff.' },
+    { id: 'l-tagged', title: 'Wayfinding concept', text: 'Signage and arrival sequence.' },
+  ];
+  const readings = new Map<string, { role: string; topics: string[]; about: string; reviewed?: boolean }>([
+    ['l-case', { role: 'experience', topics: ['healthcare'], about: '', reviewed: true }],
+    ['l-case2', { role: 'experience', topics: ['healthcare'], about: '', reviewed: true }],
+    ['l-challenge', { role: 'client-challenge', topics: [], about: '', reviewed: true }],
+    ['l-tagged', { role: 'experience', topics: [], about: '', reviewed: true }],
+  ]);
+  const rowOf = (s: (typeof LIB7)[number]) => ({ summary: slide(s.id, s.title), facts: { title: s.title, text: s.text, client: null, year: null, category: null, bestOfTheBest: false } as SlideFacts });
+  const search7 = async (plan: SearchPlan) => LIB7.filter((s) => plan.keywords.some((k) => `${s.title} ${s.text}`.toLowerCase().includes(k))).map(rowOf);
+  const knowledge = { of: (id: string) => readings.get(id), forPart: async (role: string) => LIB7.filter((s) => s.id !== 'l-tagged' && readings.get(s.id)?.role === role).map(rowOf) };
+  const brief = 'A hospital group is merging three campuses.';
+  const part = (r: Awaited<ReturnType<typeof buildStoryboard>>, role: string) => r.sections.find((x) => x.role === role)!.items.map((i) => i.slide.id);
+  const base = await buildStoryboard(brief, { search: search7, knowledge });
+  check(part(base, 'experience')[0] === 'l-case', 'learns from search: without feedback, library order decides the proof', part(base, 'experience'));
+
+  let asked: string[] = [];
+  const useful = await buildStoryboard(brief, { search: search7, knowledge, searchLearned: async (topics) => ((asked = topics), new Map([['l-case2', { useful: 2, notRelevant: 0 }]])) });
+  check(part(useful, 'experience')[0] === 'l-case2', 'learns from search: a slide marked Useful in search for these words leads its part', part(useful, 'experience'));
+  check(asked.includes('hospital'), "learns from search: it's asked about the brief's own topics", asked);
+  check(useful.sections.flatMap((x) => x.items).find((i) => i.slide.id === 'l-case2')!.why.includes('useful when searching'), 'learns from search: the reason says colleagues found it useful in search');
+  check(!part(useful, 'client-challenge').includes('l-case2'), "learns from search: Useful in search never moves a slide into a part it doesn't do", part(useful, 'client-challenge'));
+
+  const notRelevant = await buildStoryboard(brief, { search: search7, knowledge, searchLearned: async () => new Map([['l-case', { useful: 0, notRelevant: 1 }]]) });
+  check(!part(notRelevant, 'experience').includes('l-case'), 'learns from search: a slide marked Not relevant for these words stays out of the story', part(notRelevant, 'experience'));
+  const overruled = await buildStoryboard(brief, { search: search7, knowledge, searchLearned: async () => new Map([['l-case', { useful: 0, notRelevant: 1 }]]), learned: async () => new Map([['experience:l-case', { useful: 1, notRight: 0 }]]) });
+  check(part(overruled, 'experience').includes('l-case'), "learns from search: the storyboard's own Useful for that part outweighs search's Not relevant", part(overruled, 'experience'));
+  const broken = await buildStoryboard(brief, { search: search7, knowledge, searchLearned: async () => { throw new Error('down'); }, log: () => {} });
+  check(JSON.stringify(part(broken, 'experience')) === JSON.stringify(part(base, 'experience')), 'learns from search: if search feedback is unavailable, the story is built as before');
+
+  const tagBrief = "Priya's pitch: a hospital group is merging three campuses.";
+  let typed = '';
+  const tagged = await buildStoryboard(tagBrief, { search: search7, knowledge, tagged: async (text) => ((typed = text), { of: (id) => (id === 'l-tagged' ? 'Priya' : undefined), rows: [rowOf(LIB7[3])] }) });
+  const tagItem = tagged.sections.flatMap((x) => x.items).find((i) => i.slide.id === 'l-tagged');
+  check(typed.includes('Priya') && part(tagged, 'experience')[0] === 'l-tagged', 'learns from tags: a slide someone tagged with a word of the brief is found and leads its part, even when no search found it', part(tagged, 'experience'));
+  check(!!tagItem?.why.includes('Tagged “Priya”'), 'learns from tags: the reason names the tag', tagItem?.why);
+  const deckTag = await buildStoryboard(tagBrief, { search: search7, knowledge, tagged: async () => ({ of: (_id, deck) => (deck === 'd' ? 'Priya' : undefined), rows: [] }) });
+  check(deckTag.sections.flatMap((x) => x.items).some((i) => i.why.includes('Tagged “Priya”')), "learns from tags: a tag on a slide's deck counts too");
+}
 {
   // Proof from the client's own sector leads, even when another case study matches more words.
   const LIB4 = [
@@ -235,6 +280,42 @@ check(wholeSentences('We start with you. Then we plan every site together with y
     const themed = { ...knowledge, of: (id: string) => { const k = knowledge.of(id); return k && { ...k, themes: id === 'd3' || id === 'd7' ? ['health & wellbeing'] : id === 'd4' ? ['cost certainty & risk'] : [] }; } };
     const t = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge: themed, source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } });
     check(t.thesis === 'Show Kestrel we understand what matters to them (health & wellbeing and cost certainty & risk), have a clear plan, and have done it before.', "retell: with no needs in the request, the thesis comes from the deck's own themes", t.thesis);
+  }
+
+  {
+    // Page breakers the section reader found (FD-57) split a retold deck where the deck itself does.
+    const split = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge, isDivider: (id) => id === 'd6', source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } });
+    const splitKinds = split.beats.map((b) => `${b.kind ?? b.role}:${[b.lead, ...b.more].map((i) => i.slide.id).join('+')}`);
+    check(splitKinds.includes('required:d5') && !splitKinds.includes('required:d5+d6') && split.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)).filter((id) => id.startsWith('d')).join() === DECK.map((d) => d.id).join(), "retell: a divider found by the section reader opens a new section, and every slide stays in the deck's order", splitKinds);
+  }
+
+  {
+    // Grouped by the deck's own sections (Gabby, 28 Oct: "if it follows the page breaker… it would pull those slides").
+    const chapters: Record<string, { key: string; name: string; kind?: string }> = {
+      d2: { key: 'c1', name: 'who we are', kind: 'other' }, d3: { key: 'c1', name: 'who we are', kind: 'other' }, d4: { key: 'c1', name: 'who we are', kind: 'other' },
+      d5: { key: 'c2', name: 'Appendix: team', kind: 'appendix' }, d6: { key: 'c2', name: 'Appendix: team', kind: 'appendix' },
+      d7: { key: 'c3', name: 'Where we have done this', kind: 'case-studies' },
+    };
+    const g = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge, sectionOf: (id) => chapters[id], source: { deck: { id: 'src', title: 'Kestrel · RFP · 2025', slideCount: DECK.length }, rows: DECK.map(rowOf) } });
+    const gKinds = g.beats.map((b) => `${b.kind ?? b.role}:${b.title}:${[b.lead, ...b.more].map((i) => i.slide.id).join('+')}`);
+    check(gKinds.some((k) => k.endsWith(':Who we are:d2+d3+d4')), "retell by sections: a chapter's slides stay together under the deck's own name, capitalised", gKinds);
+    check(gKinds.some((k) => k.startsWith('required:Appendix: team:')), 'retell by sections: an appendix chapter is kept as required pages', gKinds);
+    check(gKinds.some((k) => k.startsWith('experience:Where we have done this:d7')), 'retell by sections: a case-studies chapter is the proof, whatever the slides were read as', gKinds);
+    check(g.beats.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)).filter((id) => id.startsWith('d')).join() === DECK.map((d) => d.id).join(), "retell by sections: every slide stays in the deck's order");
+
+    // A long deck with no page breakers is read in about a dozen parts, not one per turn.
+    const LONG = Array.from({ length: 48 }, (_, i) => ({ id: `L${i}`, title: `Long slide ${i}`, text: 'Words.', role: i % 2 ? 'why-us' : 'admin', type: i % 2 ? 'differentiator' : 'fees_commercial' }));
+    const longKnow = { of: (id: string) => { const x = [...LONG, OTHER].find((d) => d.id === id); return x && { role: x.role, topics: [], about: '', reviewed: true, reuse: 'reusable', type: x.type }; }, forPart: async (role: string) => [OTHER].filter((x) => x.role === role).map(rowOf) };
+    const long = await buildStoryboard('Tell me the story of this deck', { search: async () => [], knowledge: longKnow, source: { deck: { id: 'long', title: 'Longco · RFP · 2025', slideCount: LONG.length }, rows: LONG.map(rowOf) } });
+    const longShown = long.beats.filter((b) => b.kind !== 'suggested');
+    check(longShown.length <= 12 && longShown.flatMap((b) => [b.lead, ...b.more].map((i) => i.slide.id)).join() === LONG.map((d) => d.id).join(), 'retell: a long deck with no page breakers reads in at most 12 parts, every slide in order', longShown.length);
+
+    // A deck of only required pages: suggestions come after the cover, in story order.
+    const PAPER = [DECK[0], DECK[4], DECK[5]];
+    const paper = await buildStoryboard('Tell me the story of this deck', { search: search6, knowledge, source: { deck: { id: 'paper', title: 'Paperco · RFP · 2025', slideCount: PAPER.length }, rows: PAPER.map(rowOf) } });
+    const order = paper.beats.map((b) => b.kind ?? b.role);
+    const sugg = paper.beats.filter((b) => b.kind === 'suggested').map((b) => b.role);
+    check(order[0] === 'required' && [paper.beats[0].lead, ...paper.beats[0].more].some((i) => i.slide.id === 'd1') && sugg.join() === [...sugg].sort((a, b) => STORY_ROLES.indexOf(a) - STORY_ROLES.indexOf(b)).join(), 'retell: with no story pages, suggestions follow the cover in story order', order);
   }
 
   // The AI writes the lines; it can never drop or move a section.
