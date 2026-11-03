@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
 import { sendSearchFeedback } from '../client/api';
 import { EngageUnavailable, useEngagement, type EngageApi } from '../client/engage-store';
 import { currentStoryRole } from '../client/role-store';
@@ -22,8 +22,9 @@ const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day:
 function VotePill({ slide, engage, small }: { slide: SlideSummary; engage: EngageApi; small?: boolean }) {
   const { runtime, toast, query, search } = useWorkspace();
   const v = engage.votes;
-  if (!v) return null;
   const searched = search.status === 'ready' ? query.trim() : '';
+  /* No vote counts from the server yet: the same arrows still teach the search you came from. */
+  if (!v) return searched && !demoTagsOn() ? <FeedbackPill slide={slide} searched={searched} small={small} /> : null;
   const cast = async (value: 1 | -1) => {
     const next = v.myVote === value ? 0 : value;
     try {
@@ -53,12 +54,58 @@ function VotePill({ slide, engage, small }: { slide: SlideSummary; engage: Engag
   );
 }
 
-/** Just the vote pill, small, for a result card. Nothing when the slide has no votes to show. */
+/** Just the vote pill, small, for a result card: vote counts when the server has them, else Useful / Not relevant on a search result. */
 export function CardVotes({ slide }: { slide: SlideSummary }) {
-  const { runtime } = useWorkspace();
+  const { runtime, query, search } = useWorkspace();
   const engage = useEngagement(runtime, slide);
-  if (!engage.votes) return null;
+  if (!engage.votes && !(search.status === 'ready' && query.trim())) return null;
   return <VotePill slide={slide} engage={engage} small />;
+}
+
+/* Useful / Not relevant on a search result (FD-59, FD-77): the answer per search and slide, shared by
+   the card, the preview and the slide page, and what was last sent, so changing your mind sends the
+   new answer once and clicking the same arrow again only un-highlights it. Kept for this tab. */
+const answers = new Map<string, { shown: 0 | 1 | -1; sent: 0 | 1 | -1 }>();
+const answerListeners = new Set<() => void>();
+const onAnswers = (cb: () => void) => (answerListeners.add(cb), () => void answerListeners.delete(cb));
+let toldOptedOut = false;
+
+/**
+ * The same arrows, without counts or names: ▲ Useful, ▼ Not relevant for the search you came from.
+ * The server keeps it only for people who turned on "learn from my activity", with the search's
+ * words and no name; it teaches the search and, through it, the storyboard (FD-75).
+ */
+function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searched: string; small?: boolean }) {
+  const { runtime, toast } = useWorkspace();
+  const key = `${searched.toLowerCase()}|${slide.id}`;
+  const shown = useSyncExternalStore(onAnswers, () => answers.get(key)?.shown ?? 0, () => 0);
+  const cast = (value: 1 | -1) => {
+    const now = answers.get(key) ?? { shown: 0, sent: 0 };
+    const next = now.shown === value ? 0 : value;
+    const send = next !== 0 && next !== now.sent;
+    answers.set(key, { shown: next, sent: send ? next : now.sent });
+    answerListeners.forEach((l) => l());
+    if (!send) return;
+    sendSearchFeedback(runtime, { query: searched, slideId: slide.id, verdict: next === 1 ? 'useful' : 'not-relevant', by: currentStoryRole() }).then(
+      (r) => {
+        if (r && !r.saved && !toldOptedOut) {
+          toldOptedOut = true;
+          toast('Not saved: learning from your activity is off. You can turn it on in Settings.');
+        }
+      },
+      () => undefined,
+    );
+  };
+  return (
+    <div className={`votepill${small ? ' is-small' : ''}`} role="group" aria-label="Is this slide useful for your search?">
+      <button type="button" className="vp is-up" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Useful" onClick={() => cast(1)}>
+        <Icon name="up" />
+      </button>
+      <button type="button" className="vp is-down" aria-pressed={shown === -1} aria-label="Not relevant to this search" data-tip="Not relevant" onClick={() => cast(-1)}>
+        <Icon name="dn" />
+      </button>
+    </div>
+  );
 }
 
 /** The full bar: vote pill, comments, Share. */
