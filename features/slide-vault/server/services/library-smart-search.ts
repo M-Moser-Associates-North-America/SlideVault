@@ -351,7 +351,8 @@ export function configuredStoryReader(env: Record<string, string | undefined> = 
  */
 export function byLearning<T extends { summary: { id: string } }>(rows: T[], learned: Map<string, SearchLearned>): T[] {
   if (!learned.size) return rows;
-  const place = (l: SearchLearned | undefined) => (sinks(l) ? -1 : l && l.useful > l.notRelevant ? 1 : 0);
+  /* Last if sunk; ahead of the rest if more useful than not, the more the further ahead; one stray Not relevant keeps its place (the database's order is already a good guess). */
+  const place = (l: SearchLearned | undefined) => (sinks(l) ? -1 : learnedScore(l) > 0 ? learnedScore(l) : 0);
   return rows.map((r, i) => ({ r, i, s: place(learned.get(r.summary.id)) })).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.r);
 }
 

@@ -433,9 +433,10 @@ for (const [env, label] of [
   check(l.get('bio')?.notRelevant === 2 && l.get('case')?.useful === 1 && !l.has('other'), 'feedback: counts only searches that share a word', Object.fromEntries(l));
   check(learnedForSearch(rows, ['hospitality'], 'director').get('bio')?.notRelevant === 3, 'feedback: someone in the same role counts double');
   check(learnedScore(l.get('case')) > 0 && learnedScore(l.get('bio')) < 0 && learnedScore(undefined) === 0, 'feedback: useful moves a slide up, not relevant moves it down');
-  // Khushali, 2 Nov: Not relevant on "hospitality decks" must not follow the slide into "hospitality case studies".
+  // Khushali, 2 Nov: Not relevant on "hospitality decks" must not follow the slide into "hospitality case studies"
+  // (FD-81: it now leans a little, in proportion to the words shared, and can never send the slide last).
   const other = learnedForSearch(rows, searchWords('hospitality case studies'));
-  check(!other.has('bio') && !other.has('case'), 'feedback: a click only counts for a mostly-same search, not any search sharing one word', Object.fromEntries(other));
+  check(!sinks(other.get('bio')) && (other.get('bio')?.notRelevant ?? 0) < 1 && (other.get('case')?.useful ?? 0) < 1, 'feedback: a click from a partly-similar search counts only in part, and never sends a slide last', Object.fromEntries(other));
   check(learnedForSearch(rows, searchWords('hospitality case studies'), null, 'any').has('bio'), 'feedback: the storyboard still learns from any shared word (its briefs are long)');
   const oneClick = learnedForSearch([rows[0]], ['hospitality'], 'director');
   check(sinks(l.get('bio')) && !sinks(learnedForSearch([rows[0]], ['hospitality']).get('bio')) && !sinks(learnedForSearch([{ ...rows[0], by: 'director' as const }], ['hospitality'], 'director').get('bio')) && !!oneClick, 'feedback: going last takes two Not relevant clicks; one click (even same role) only nudges');

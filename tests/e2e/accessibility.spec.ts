@@ -462,3 +462,43 @@ test('sections: type a section, open it, see it framed in the deck strip, add it
   await expect(page.locator('.seccard')).toHaveCount(1);
   expect(await axe(page)).toEqual([]);
 });
+
+test('Useful / Not relevant: remembered after a reload, changing your mind takes the old click back, nothing is sent twice', async ({ page }) => {
+  const sent: { verdict: string; undo?: boolean; slideId: string }[] = [];
+  await page.route('**/api/slide-vault/v1/smart-search/feedback', async (route) => {
+    sent.push(route.request().postDataJSON());
+    await route.fulfill({ json: { data: { saved: true } } });
+  });
+  await openResults(page);
+  const first = page.locator('article.card').first();
+  const useful = first.getByRole('button', { name: 'Useful for this search' });
+  const notRelevant = first.getByRole('button', { name: 'Not relevant to this search' });
+
+  await useful.click();
+  await expect(useful).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('Thanks. Search will use this for similar searches.')).toBeVisible();
+  expect(sent.map((s) => `${s.verdict}${s.undo ? ' undo' : ''}`)).toEqual(['useful']);
+
+  // A reload forgets the page but not the answer: the arrow is still lit, and answering the same again sends nothing new.
+  await openResults(page);
+  const again = page.locator('article.card').first();
+  await expect(again.getByRole('button', { name: 'Useful for this search' })).toHaveAttribute('aria-pressed', 'true');
+  expect(sent).toHaveLength(1);
+
+  // Changing your mind takes the Useful back, then sends Not relevant.
+  await again.getByRole('button', { name: 'Not relevant to this search' }).click();
+  await expect(again.getByRole('button', { name: 'Not relevant to this search' })).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => sent.length).toBe(3);
+  expect(sent.slice(1).map((s) => `${s.verdict}${s.undo ? ' undo' : ''}`).sort()).toEqual(['not-relevant', 'useful undo']);
+
+  // Clicking the lit arrow again just takes it back.
+  await again.getByRole('button', { name: 'Not relevant to this search' }).click();
+  await expect(again.getByRole('button', { name: 'Not relevant to this search' })).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(() => sent.length).toBe(4);
+  expect(`${sent[3].verdict}${sent[3].undo ? ' undo' : ''}`).toBe('not-relevant undo');
+
+  // Not a second time on the same arrow, and a different search starts clean.
+  await searchFor(page, 'team');
+  await expect(page.locator('article.card').first().getByRole('button', { name: 'Not relevant to this search' })).toHaveAttribute('aria-pressed', 'false');
+  expect(sent).toHaveLength(4);
+});

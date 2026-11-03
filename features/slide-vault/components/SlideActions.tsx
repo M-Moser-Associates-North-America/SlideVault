@@ -62,13 +62,50 @@ export function CardVotes({ slide }: { slide: SlideSummary }) {
   return <VotePill slide={slide} engage={engage} small />;
 }
 
-/* Useful / Not relevant on a search result (FD-59, FD-77): the answer per search and slide, shared by
-   the card, the preview and the slide page, and what was last sent, so changing your mind sends the
-   new answer once and clicking the same arrow again only un-highlights it. Kept for this tab. */
-const answers = new Map<string, { shown: 0 | 1 | -1; sent: 0 | 1 | -1 }>();
+/* Useful / Not relevant on a search result (FD-59, FD-77, FD-81): the answer per search and slide,
+   shared by the card, the preview and the slide page. The browser remembers what it sent (also after a
+   reload), so the same answer is never sent twice; changing your mind takes the old click back first,
+   and clicking the lit arrow again takes it back. Nobody is named, so this is also what stops one
+   person counting twice. */
+type Answer = 0 | 1 | -1;
+const answers = new Map<string, { shown: Answer; sent: Answer }>();
 const answerListeners = new Set<() => void>();
 const onAnswers = (cb: () => void) => (answerListeners.add(cb), () => void answerListeners.delete(cb));
 let toldOptedOut = false;
+let toldThanks = false;
+const MEMORY = 'slidevault:search-answers';
+const MEMORY_MAX = 400;
+const answerKey = (searched: string, slideId: string) => `${searched.trim().toLowerCase().replace(/\s+/g, ' ')}|${slideId}`;
+
+/** What this browser already sent, kept between visits (a private window or blocked storage just forgets). */
+function remembered(): Record<string, Answer> {
+  try {
+    return JSON.parse(localStorage.getItem(MEMORY) ?? '{}') as Record<string, Answer>;
+  } catch {
+    return {};
+  }
+}
+function remember(key: string, sent: Answer) {
+  try {
+    const all = remembered();
+    delete all[key];
+    if (sent !== 0) all[key] = sent;
+    const keys = Object.keys(all);
+    for (const k of keys.slice(0, Math.max(0, keys.length - MEMORY_MAX))) delete all[k];
+    localStorage.setItem(MEMORY, JSON.stringify(all));
+  } catch {
+    /* storage unavailable: the tab still remembers */
+  }
+}
+function answerFor(key: string) {
+  let a = answers.get(key);
+  if (!a) {
+    const sent = remembered()[key] ?? 0;
+    a = { shown: sent, sent };
+    answers.set(key, a);
+  }
+  return a;
+}
 
 /**
  * The same arrows, without counts or names: ▲ Useful, ▼ Not relevant for the search you came from.
@@ -77,20 +114,35 @@ let toldOptedOut = false;
  */
 function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searched: string; small?: boolean }) {
   const { runtime, toast } = useWorkspace();
-  const key = `${searched.toLowerCase()}|${slide.id}`;
-  const shown = useSyncExternalStore(onAnswers, () => answers.get(key)?.shown ?? 0, () => 0);
+  const key = answerKey(searched, slide.id);
+  const shown = useSyncExternalStore(onAnswers, () => answerFor(key).shown, () => 0);
   const cast = (value: 1 | -1) => {
-    const now = answers.get(key) ?? { shown: 0, sent: 0 };
-    const next = now.shown === value ? 0 : value;
-    const send = next !== 0 && next !== now.sent;
-    answers.set(key, { shown: next, sent: send ? next : now.sent });
+    const now = answerFor(key);
+    const next: Answer = now.shown === value ? 0 : value;
+    const by = currentStoryRole();
+    const verdict = (a: 1 | -1) => (a === 1 ? 'useful' : 'not-relevant') as 'useful' | 'not-relevant';
+    const take = now.sent !== 0 && now.sent !== next ? sendSearchFeedback(runtime, { query: searched, slideId: slide.id, verdict: verdict(now.sent), by, undo: true }) : null;
+    const give = next !== 0 && next !== now.sent;
+    const sentAfter: Answer = give ? next : next === 0 ? 0 : now.sent;
+    answers.set(key, { shown: next, sent: sentAfter });
     answerListeners.forEach((l) => l());
-    if (!send) return;
-    sendSearchFeedback(runtime, { query: searched, slideId: slide.id, verdict: next === 1 ? 'useful' : 'not-relevant', by: currentStoryRole() }).then(
+    if (!take && !give) return;
+    take?.catch(() => undefined);
+    if (!give) return remember(key, sentAfter);
+    sendSearchFeedback(runtime, { query: searched, slideId: slide.id, verdict: verdict(next as 1 | -1), by }).then(
       (r) => {
-        if (r && !r.saved && !toldOptedOut) {
-          toldOptedOut = true;
-          toast('Not saved: learning from your activity is off. You can turn it on in Settings.');
+        if (r && r.saved) {
+          remember(key, next);
+          if (!toldThanks) {
+            toldThanks = true;
+            toast('Thanks. Search will use this for similar searches.');
+          }
+        } else if (r && !r.saved) {
+          answers.set(key, { shown: next, sent: 0 }); /* nothing was saved, so nothing to take back later */
+          if (!toldOptedOut) {
+            toldOptedOut = true;
+            toast('Not saved: learning from your activity is off. You can turn it on in Settings.');
+          }
         }
       },
       () => undefined,
