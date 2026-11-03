@@ -396,3 +396,69 @@ test('phones: tabs along the bottom, the draft deck opens from the last tab, not
   await page.keyboard.press('Escape');
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
 });
+
+// Deck sections (FD-57, FD-80). The sample decks have no section dividers, so the server's answers are stood in
+// with real slides from the library: three slides of one deck are "the Case studies section".
+test('sections: type a section, open it, see it framed in the deck strip, add it all; and browse it with the Section filter', async ({ page }) => {
+  await openHome(page);
+  // A deck the app really lists (near-identical copies of a deck are listed once): the deck of the first result for "services".
+  const deck = await page.evaluate(async () => {
+    const api = '/api/slide-vault/v1';
+    const sourceId = (await (await fetch(`${api}/smart-search?q=services&limit=5`)).json()).data.items[0].slide.provenance.sourceId as string;
+    const mine: { id: string; provenance: { sourceId: string; slideNumber: number } }[] = [];
+    let cursor: string | null = null;
+    do {
+      const page: { data: typeof mine; page: { nextCursor: string | null } } = await (await fetch(`${api}/search?kind=slide&limit=1000&duplicates=all${cursor ? `&cursor=${cursor}` : ''}`)).json();
+      mine.push(...page.data.filter((s) => s.provenance.sourceId === sourceId));
+      cursor = page.page.nextCursor;
+    } while (cursor);
+    return mine.sort((a, b) => a.provenance.slideNumber - b.provenance.slideNumber);
+  });
+  expect(deck.length).toBeGreaterThanOrEqual(5);
+  const inSection = deck.slice(1, 4).map((s, i) => ({ ...s, section: { name: 'Case studies', kind: 'case-studies', divider: i === 0, dividerId: 'div-1' } }));
+  await page.route('**/api/slide-vault/v1/smart-search?*', (route) =>
+    route.fulfill({ json: { data: { query: 'case studies', reader: 'stand-in', readerNote: null, plan: {}, chips: [], relaxed: false, sections: ['case-studies'], items: inSection.map((slide) => ({ slide, why: '', matched: [] })) } } }),
+  );
+  await page.route('**/api/slide-vault/v1/sections/div-1', (route) => route.fulfill({ json: { data: { name: 'Case studies', kind: 'case-studies', slides: inSection } } }));
+  await page.route('**/api/slide-vault/v1/sections?kind=case-studies', (route) =>
+    route.fulfill({ json: { data: [{ dividerId: 'div-1', name: 'Case studies', kind: 'case-studies', slideCount: 3, cover: inSection[0] }] } }),
+  );
+
+  // Typing a section name shows its card by itself, no pill needed.
+  await page.getByLabel('Search slides').fill('case studies');
+  const sectionCard = page.locator('.seccard');
+  await expect(sectionCard).toHaveCount(1);
+  await expect(sectionCard).toContainText('3 slides in this section');
+  expect(await axe(page)).toEqual([]);
+
+  // Open the section: counted "1 of 3 in section", the whole deck in the strip with the section in one frame.
+  await sectionCard.getByRole('button', { name: 'Open section' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.locator('.lb-results .counter')).toContainText('1 of 3 in section');
+  await expect(dialog.locator('.lb-frame')).toHaveCount(1);
+  await expect(dialog.locator('.lb-frame .lb-thumb')).toHaveCount(3);
+  expect(await dialog.locator('.lb-thumb').count()).toBe(deck.length);
+  // The arrows walk the whole deck, past the section, and the counter says so.
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await expect(dialog.locator('.lb-results .counter')).toContainText('Not in the Case studies section');
+  await dialog.getByRole('button', { name: 'Back to the section' }).click();
+  await expect(dialog.locator('.lb-results .counter')).toContainText('1 of 3 in section');
+  expect(await axe(page)).toEqual([]);
+  await page.keyboard.press('Escape');
+
+  // Add all three slides to the draft deck in one go; the card says so and can take them out again.
+  await sectionCard.getByRole('button', { name: 'Add all 3 to draft deck' }).click();
+  await expect(sectionCard.getByRole('button', { name: /In draft deck/ })).toBeVisible();
+  await sectionCard.getByRole('button', { name: /In draft deck/ }).click();
+  await expect(sectionCard.getByRole('button', { name: 'Add all 3 to draft deck' })).toBeVisible();
+
+  // Without a search: the Section filter lists that kind of section from every deck.
+  await page.getByLabel('Search slides').fill('');
+  await page.locator('[data-key="section"]').click();
+  await page.getByRole('checkbox', { name: /Case studies/ }).click();
+  await expect(page.getByRole('heading', { name: 'Case studies', level: 2 })).toBeVisible();
+  await expect(page.locator('.seccard')).toHaveCount(1);
+  expect(await axe(page)).toEqual([]);
+});
