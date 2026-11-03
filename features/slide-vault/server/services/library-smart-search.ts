@@ -86,13 +86,18 @@ function onceFor<T>(cache: WeakMap<object, { uploads: object; value: T }>, key: 
 /** Share of the library's slides whose title or text mentions a word, counted once per library load. */
 const shares = new WeakMap<object, { uploads: object; value: Map<string, number> }>();
 function wordShare(index: Awaited<ReturnType<typeof loadLibraryIndex>>, word: string): number {
-  const all: { slides: { title: string; text: string }[] }[] = [...(index?.sources ?? []), ...currentUploads().sources];
+  // Where each deck was made counts too: "Toronto" is named when the library has a Toronto deck,
+  // even if no slide prints the word (31 Oct).
+  const all: { slides: { title: string; text: string }[]; where: string | null }[] = [
+    ...(index?.sources ?? []).map((s) => ({ slides: s.slides, where: deckFacts(s).location })),
+    ...currentUploads().sources.map((d) => ({ slides: d.slides, where: d.location })),
+  ];
   if (!all.length) return 1;
   const seen = onceFor(shares, index ?? NO_UPLOADS, () => new Map<string, number>());
   const cached = seen.get(word);
   if (cached !== undefined) return cached;
-  const slides = all.flatMap((s) => s.slides);
-  const share = slides.length ? slides.filter((s) => mentionsWord(`${s.title} ${s.text}`, word)).length / slides.length : 1;
+  const slides = all.flatMap((d) => d.slides.map((s) => `${s.title} ${s.text} ${d.where ?? ''}`));
+  const share = slides.length ? slides.filter((s) => mentionsWord(s, word)).length / slides.length : 1;
   seen.set(word, share);
   return share;
 }
@@ -121,7 +126,10 @@ function knownNames(index: Awaited<ReturnType<typeof loadLibraryIndex>>, reading
     const add = (s?: string | null) => s?.toLowerCase().split(/[^a-z0-9]+/).forEach((w) => w.length >= 3 && out.add(w));
     for (const src of index?.sources ?? []) { const f = deckFacts(src); add(f.clientName); add(f.location); }
     // Uploaded decks name their client ("Unknown client" adds nothing new: both words are common).
-    for (const deck of currentUploads().sources) if (deck.client !== 'Unknown client') add(deck.client);
+    for (const deck of currentUploads().sources) {
+      if (deck.client !== 'Unknown client') add(deck.client);
+      add(deck.location);
+    }
     for (const r of readings.values()) { r.sectors?.forEach(add); r.themes?.forEach(add); r.projects?.forEach(add); add(r.clientSector); }
     return out;
   });
@@ -197,6 +205,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
       howCommon: (word) => wordShare(index, word),
       isKnownName: (word) => knownNames(index, readings).has(word),
       alsoMeans: (word) => clientSectors(word),
+      madeIn: (s) => s.provenance.location ?? null,
       rankLast: (s) => (readings.get(s.id)?.type === 'team_resume' && !intent.types.includes('team_resume')) || notRelevant(s.id),
       // A slide "mentions" Toronto when its deck was made there, and QNBC when the model read it on the slide.
       alsoSays: (s) => { const k = readings.get(s.id); return [k?.about, k?.topics.join(' '), k?.sectors?.join(' '), k?.clientSector, k?.themes?.join(' '), k?.projects?.join(' '), s.provenance.sourceTitle, s.provenance.sourceFileName, s.provenance.location, s.provenance.clientName].filter(Boolean).join(' '); },

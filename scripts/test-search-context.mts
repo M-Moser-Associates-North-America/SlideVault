@@ -7,6 +7,7 @@
  *   SV_DB_HOST=localhost SV_DB_SSL=disable SV_DB_PORT=... SV_DB_USER=... SV_DB_PASSWORD=... SV_DB_SCHEMA=... npm run test:search-context
  */
 import { readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
 const env = process.env;
@@ -20,7 +21,7 @@ env.SV_AI_PROVIDER = 'none';
 env.SLIDEVAULT_DATA_DIR = path.resolve(import.meta.dirname, '../.nonexistent-test-data');
 
 const { sql } = await import('../features/slide-vault/server/db');
-const { smartSearchPg } = await import('../features/slide-vault/server/pg-repository');
+const { createDeck, getSlideSummariesPg, smartSearchPg } = await import('../features/slide-vault/server/pg-repository');
 const { standInPlan, groundFilters } = await import('../features/slide-vault/server/ai/search-plan');
 const { searchIntent } = await import('../features/slide-vault/server/services/slide-intent');
 const { resetRateLimits } = await import('../features/slide-vault/server/rate-limit');
@@ -60,6 +61,13 @@ const B = await deck('Beta Health', 2026, 'healthcare / medtech', [
   { title: 'Thank you', text: 'Contact us', type: 'closing' },
 ]);
 await deck('Gamma Bank', 2024, 'financial services', [{ title: 'Team', text: 'Our people for this bank', type: 'team_structure' }]);
+// Made the way an upload makes a deck: no slide prints "Toronto"; only the file name says where (M Moser's "_TO_", 31 Oct).
+const lakeId = randomUUID();
+await createDeck({ id: lakeId, client: 'Lakeview Capital', year: 2025, category: null, sourcePath: 'M Moser_Lakeview Capital_TO_2025.pptx', title: 'M Moser_Lakeview Capital_TO_2025',
+  sourceFilename: 'M Moser_Lakeview Capital_TO_2025.pptx', filePath: 'lake', fileHash: 'lake', bestOfTheBest: false, slideSize: '16:9' });
+await sql(`update decks set status = 'ready', slide_count = 1 where id = $1`, [lakeId]);
+await sql(`insert into slides (deck_id, slide_number, title, text) values ($1, 1, 'Workplace for an investment firm', 'Open plan floors and a client suite')`, [lakeId]);
+const lake = { id: lakeId };
 
 const search = async (q: string) => {
   const ctx = { clients: ['Acme Hotels', 'Beta Health', 'Gamma Bank'], categories: [], thisYear: 2026 };
@@ -86,6 +94,13 @@ const get = async (q: string) => (await (await smartRoute.GET(new Request(`http:
 const r1 = await get('hospitality');
 check(r1.data.items[0]?.slide.title === 'Guest lounge and amenities' && /hospitality/i.test(r1.data.items[0].why), 'GET /smart-search puts it first and says why', r1.data.items[0]);
 check(!r1.data.items.some((i) => i.slide.title === 'Internal checklist'), 'internal-only slides are left out of the app\'s results unless hidden=include');
+const [lakeSlide] = await getSlideSummariesPg((await sql<{ id: string }>(`select id::text as id from slides where deck_id = $1`, [lake.id])).map((r) => r.id));
+check(lakeSlide?.provenance.location === 'Toronto', 'a deck with no reviewed location takes the city from its file name ("_TO_" is Toronto)', lakeSlide?.provenance.location);
+const [{ project_location: lakeWhere }] = await sql<{ project_location: string | null }>(`select project_location from decks where id = $1`, [lakeId]);
+check(lakeWhere === 'Toronto', 'an upload keeps where the deck was made from its file name', lakeWhere);
+check((await search('slides from Toronto'))[0] === 'Workplace for an investment firm', '"slides from Toronto" finds the Toronto deck, though no slide prints the word');
+const fin = (await get('Financial Services clients in Toronto')).data.items.map((i) => i.slide.title);
+check(fin.includes('Workplace for an investment firm') && fin.includes('Team'), '"Financial Services clients in Toronto": the Toronto deck and the financial services client both come back', fin);
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll search-in-context checks passed');
 await sql('drop table if exists search_feedback, free_tags, slide_pack_members, slide_packs, story_feedback, activity_events, user_settings, drafts, saved_slides, slide_downloads, slides, decks cascade');
 process.exit(failures ? 1 : 0);
