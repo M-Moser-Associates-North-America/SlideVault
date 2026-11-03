@@ -525,8 +525,8 @@ function TagAll({ slides }: { slides: SlideSummary[] }) {
   if (!slides.length) return null;
   if (!open)
     return (
-      <button type="button" className="btn-link cart-tagall-open" onClick={() => setOpen(true)}>
-        <Icon name="plus" className="ic-sm" /> Tag {slides.length === 1 ? 'this slide' : `all ${slides.length} slides`}
+      <button type="button" className="btn-link cart-tagall-open" title="Adds one tag to every slide in this draft deck. Everyone can see it." onClick={() => setOpen(true)}>
+        <Icon name="tag" className="ic-sm" /> Tag {slides.length === 1 ? 'this slide' : `all ${slides.length} slides`}
       </button>
     );
   const submit = async (e: FormEvent) => {
@@ -546,17 +546,20 @@ function TagAll({ slides }: { slides: SlideSummary[] }) {
     }
   };
   return (
-    <form className="cart-tagall" onSubmit={(e) => void submit(e)}>
-      <label htmlFor={`${id}-t`} className="sr-only">
-        Tag for all {slides.length} slides
-      </label>
-      <input id={`${id}-t`} className="input" type="text" value={text} maxLength={TAG_MAX_LENGTH} placeholder="Tag, e.g. Priya" disabled={busy} onChange={(e) => setText(e.target.value)} autoFocus />
-      <button type="submit" className="btn btn-sm" disabled={busy || !cleanTag(text)}>
-        {busy ? 'Tagging…' : 'Add'}
-      </button>
-      <button type="button" className="btn btn-sm btn-icon" aria-label="Cancel tagging" onClick={() => setOpen(false)} disabled={busy}>
-        <Icon name="x" />
-      </button>
-    </form>
+    <div className="cart-tagall-wrap">
+      <form className="cart-tagall" onSubmit={(e) => void submit(e)}>
+        <label htmlFor={`${id}-t`} className="sr-only">
+          Tag for all {slides.length} slides
+        </label>
+        <input id={`${id}-t`} className="input" type="text" value={text} maxLength={TAG_MAX_LENGTH} placeholder="Tag, e.g. Priya" disabled={busy} onChange={(e) => setText(e.target.value)} autoFocus />
+        <button type="submit" className="btn btn-sm" disabled={busy || !cleanTag(text)}>
+          {busy ? 'Tagging…' : 'Add'}
+        </button>
+        <button type="button" className="btn btn-sm btn-icon" aria-label="Cancel tagging" onClick={() => setOpen(false)} disabled={busy}>
+          <Icon name="x" />
+        </button>
+      </form>
+      <p className="meta cart-tagall-note">Tags are shared with everyone, and show up in search.</p>
+    </div>
   );
 }

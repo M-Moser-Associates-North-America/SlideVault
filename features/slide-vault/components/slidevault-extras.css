@@ -1242,3 +1242,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .lb-frame .lb-thumb[aria-current="true"] { border-color: var(--sv-text); }
 
 .slidevault .sec-hidden-note { margin: 0 0 10px; }
+
+.slidevault .cart-tagall-wrap { margin: 4px 0 8px; }
+.slidevault .cart-tagall-wrap .cart-tagall { margin: 0; }
+.slidevault .cart-tagall-note { margin: 4px 0 0; font-size: 12.5px; }
