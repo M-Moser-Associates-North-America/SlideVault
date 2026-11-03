@@ -192,6 +192,31 @@ export function FilterBar() {
     };
   }, [open, close]);
 
+  /* A filter card open under the row (wide and medium widths): the card gets the room left on screen and
+     scrolls inside itself, down to its last line, while the page behind stays where it is. */
+  useEffect(() => {
+    if (!open || compact) return;
+    const page = scroll.current;
+    const pop = wrap.current?.querySelector<HTMLElement>('.fb-pop');
+    if (!pop) return;
+    const fit = () => {
+      const room = window.innerHeight - pop.getBoundingClientRect().top - 16;
+      pop.style.maxHeight = `${Math.max(220, room)}px`;
+    };
+    fit();
+    const stop = (e: Event) => {
+      if (!pop.contains(e.target as Node)) e.preventDefault();
+    };
+    page?.addEventListener('wheel', stop, { passive: false });
+    page?.addEventListener('touchmove', stop, { passive: false });
+    window.addEventListener('resize', fit);
+    return () => {
+      page?.removeEventListener('wheel', stop);
+      page?.removeEventListener('touchmove', stop);
+      window.removeEventListener('resize', fit);
+    };
+  }, [open, compact, scroll]);
+
   /* Wide and medium widths: tell when the row has stuck to the top, to give it more room above. */
   useEffect(() => {
     const el = sentinel.current;
