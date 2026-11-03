@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
-import { categoryOf, clientOf, countBy, createdByOf, filterCount, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
+import { categoryOf, clientOf, countBy, createdByOf, filterCount, SECTION_LABEL, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Link } from './parts';
 import type { SlideSummary, SmartSearchChip } from '../contracts/dto';
@@ -23,7 +23,7 @@ import { useWorkspace } from './state';
  * a small pinned "Filters" button once the row has scrolled out of view.
  */
 
-type Key = 'year' | 'client' | 'category' | 'slideType' | 'more';
+type Key = 'year' | 'client' | 'category' | 'slideType' | 'section' | 'more';
 
 const YEAR_PRESETS: [number, string][] = [
   [2, 'Last 2 years'],
@@ -245,6 +245,7 @@ export function FilterBar() {
     { key: 'client', label: 'Client', icon: 'building', active: filters.client.length + (fromClient ? 1 : 0) },
     { key: 'category', label: 'Project type', icon: 'folder', active: filters.category.length },
     { key: 'slideType', label: 'Slide type', icon: 'layers', active: filters.slideType.length + fromTypes.length },
+    { key: 'section', label: 'Section', icon: 'folder', active: filters.section.length },
     { key: 'more', label: 'More', icon: 'sliders', active: moreCount },
   ];
 
@@ -260,6 +261,7 @@ export function FilterBar() {
     ...filters.slideType.map((v) => ({ id: `t-${v}`, kind: 'Slide type', text: v, remove: () => patchFilters({ slideType: filters.slideType.filter((x) => x !== v) }) })),
     ...filters.createdBy.map((v) => ({ id: `cb-${v}`, kind: 'File created by', text: v, remove: () => patchFilters({ createdBy: filters.createdBy.filter((x) => x !== v) }) })),
     ...filters.uploadedBy.map((v) => ({ id: `ub-${v}`, kind: 'Uploaded by', text: v, remove: () => patchFilters({ uploadedBy: filters.uploadedBy.filter((x) => x !== v) }) })),
+    ...filters.section.map((v) => ({ id: `sc-${v}`, kind: 'Section', text: SECTION_LABEL[v] ?? v, remove: () => patchFilters({ section: [] }) })),
     ...filters.tag.map((v) => ({ id: `tg-${v}`, kind: 'Tag', text: v, remove: () => patchFilters({ tag: filters.tag.filter((x) => x !== v) }) })),
     ...(filters.bestOnly ? [{ id: 'best', kind: 'Collection', text: 'Best of the Best', remove: () => patchFilters({ bestOnly: false }) }] : []),
     ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
@@ -332,6 +334,17 @@ export function FilterBar() {
       );
     if (key === 'category')
       return <Picker label="Project type" options={categories} picked={filters.category} counts={categoryCounts} onToggle={(v) => patchFilters({ category: toggle(filters.category, v) })} />;
+    if (key === 'section') {
+      const kindOf = (label: string) => Object.keys(SECTION_LABEL).find((k) => SECTION_LABEL[k] === label) ?? label;
+      return (
+        <Picker
+          label="Section"
+          options={Object.values(SECTION_LABEL)}
+          picked={filters.section.map((k) => SECTION_LABEL[k] ?? k)}
+          onToggle={(label) => patchFilters({ section: filters.section.includes(kindOf(label)) ? [] : [kindOf(label)] })}
+        />
+      );
+    }
     if (key === 'slideType')
       return (
         <Picker

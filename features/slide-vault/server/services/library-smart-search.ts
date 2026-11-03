@@ -269,8 +269,20 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     return [where, kind, why].filter(Boolean).join(' ').trim();
   };
   const sectionOf = (id: string) => { const sec = sections.get(id); return sec ? { name: sec.name, kind: sec.kind, divider: sec.divider, dividerId: sec.dividerId } : null; };
-  return { ...result, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
+  return { ...result, sections: isSectionSearch(query) ? asked : undefined, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
 }
+
+/** Slide summaries by id for sample-deck and uploaded-deck slides alike (the database's are read in one go). */
+async function summariesFor(index: Awaited<ReturnType<typeof loadLibraryIndex>>, ids: string[]): Promise<Map<string, SlideSummary>> {
+  const out = new Map<string, SlideSummary>();
+  if (index) for (const id of ids) { const found = findSlide(index, id); if (found) out.set(id, toSummary(found.source, found.slide)); }
+  const rest = ids.filter((id) => !out.has(id));
+  for (const s of rest.length ? await orWithoutDb('section slides', () => getSlideSummariesPg(rest), []) : []) out.set(s.id, s);
+  return out;
+}
+
+const sectionTag = (sec: SlideSection) => ({ name: sec.name, kind: sec.kind, divider: sec.divider, dividerId: sec.dividerId });
+const visibleSlide = (s: SlideSummary, includeHidden: boolean) => includeHidden || (!s.hiddenInSource && !isInternalOnly(s));
 
 /**
  * One deck section in full, in deck order (FD-57, FD-80): every slide from its divider to the next, not
@@ -283,17 +295,40 @@ export async function sectionSlides(dividerId: string, includeHidden = false): P
   const sections = sectionsOf(index, await loadSlideReadings());
   const members = sectionMembers(sections, dividerId);
   if (!members.length) return null;
-  const fromFiles = new Map<string, SlideSummary>();
-  if (index) for (const [id] of members) { const found = findSlide(index, id); if (found) fromFiles.set(id, toSummary(found.source, found.slide)); }
-  const rest = members.map(([id]) => id).filter((id) => !fromFiles.has(id));
-  const fromDb = new Map((rest.length ? await orWithoutDb('section slides', () => getSlideSummariesPg(rest), []) : []).map((s) => [s.id, s]));
+  const found = await summariesFor(index, members.map(([id]) => id));
   const slides: SlideSummary[] = [];
   for (const [id, sec] of members) {
-    const slide = fromFiles.get(id) ?? fromDb.get(id);
-    if (!slide || (!includeHidden && (slide.hiddenInSource || isInternalOnly(slide)))) continue;
-    slides.push({ ...slide, section: { name: sec.name, kind: sec.kind, divider: sec.divider, dividerId: sec.dividerId } });
+    const slide = found.get(id);
+    if (slide && visibleSlide(slide, includeHidden)) slides.push({ ...slide, section: sectionTag(sec) });
   }
   return slides.length ? { name: members[0][1].name, kind: members[0][1].kind, slides } : null;
+}
+
+/**
+ * Every deck's section of one standard kind, for browsing sections without a search (FD-80): the cover
+ * (the divider, else the section's first slide), the name and how many slides it has. A section of two
+ * kinds ("Firm background / relevant experience") is listed under both. At most MAX_SECTIONS.
+ */
+const MAX_SECTIONS = 120;
+export async function sectionList(kind: string, includeHidden = false): Promise<{ dividerId: string; name: string; kind: string; slideCount: number; cover: SlideSummary }[]> {
+  const index = await loadLibraryIndex();
+  await uploadedDecks();
+  const sections = sectionsOf(index, await loadSlideReadings());
+  const byDivider = new Map<string, { sec: SlideSection; coverId: string; at: number; n: number }>();
+  for (const [id, sec] of sections) {
+    if (!(sec.kinds as string[]).includes(kind)) continue;
+    const have = byDivider.get(sec.dividerId);
+    if (!have) byDivider.set(sec.dividerId, { sec, coverId: id, at: sec.position, n: 1 });
+    else { have.n += 1; if (sec.position < have.at) { have.at = sec.position; have.coverId = id; have.sec = sec; } }
+  }
+  const picked = [...byDivider.values()].slice(0, MAX_SECTIONS);
+  const found = await summariesFor(index, picked.map((p) => p.coverId));
+  const out: { dividerId: string; name: string; kind: string; slideCount: number; cover: SlideSummary }[] = [];
+  for (const p of picked) {
+    const cover = found.get(p.coverId);
+    if (cover && visibleSlide(cover, includeHidden)) out.push({ dividerId: p.sec.dividerId, name: p.sec.name, kind: p.sec.kind, slideCount: p.n, cover: { ...cover, section: sectionTag(p.sec) } });
+  }
+  return out;
 }
 
 /** The configured storyboard reader, or null for the standard story order. Throws when misconfigured. */

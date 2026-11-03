@@ -1,25 +1,40 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { getSection } from '../client/api';
+import { getSection, listSections } from '../client/api';
 import type { SlideSummary } from '../contracts/dto';
 import { Icon } from './icons';
-import { clientOf, plural, yearOf } from './library';
+import { clientOf, plural, SECTION_LABEL, slideMatches, yearOf } from './library';
 import { Thumb } from './parts';
 import { useWorkspace } from './state';
 
 /**
- * A deck's section as one card (docs/DECISIONS.md FD-57; Alina, 28 Oct: "scroll through these five
- * slides in that section"): the section's cover, its name, how many slides it has, and two actions:
- * open just that section in the preview, or add all of it to the draft deck. The cards are made from
- * the slides in the results, grouped by the section they sit in; each card then asks the server for
- * its whole section (FD-80), so the count, Open and "Add all" cover slides the search words did not
- * match. If the server can't answer, the card falls back to the slides the search found.
+ * A deck's section as one card (docs/DECISIONS.md FD-57, FD-80; Alina, 28 Oct: "scroll through these five
+ * slides in that section"): the section's cover, its name, how many slides it has, and two actions: open
+ * just that section in the preview, or add all of it to the draft deck.
+ *
+ * The cards come from two places: the slides a search found, grouped by the section they sit in
+ * (SectionCards), or the server's list of one kind of section across every deck, for browsing without a
+ * search (SectionBrowse). Either way a card asks the server for its whole section, so the count, Open and
+ * "Add all" cover slides the search words did not match; if the server can't answer, a card uses the
+ * slides it has.
  */
 
-export type SectionGroup = { key: string; name: string; deck: string; client: string; year: number | null; cover: SlideSummary; slides: SlideSummary[] };
+export type SectionGroup = { key: string; dividerId: string; name: string; deck: string; client: string; year: number | null; cover: SlideSummary; slides: SlideSummary[]; total: number };
 
-/** Group results by (deck, section). Needs at least two slides: one slide is just a card. */
+const groupOf = (cover: SlideSummary, slides: SlideSummary[], total: number, name?: string): SectionGroup => ({
+  key: `${cover.provenance.sourceId}:${cover.section?.dividerId}`,
+  dividerId: cover.section?.dividerId ?? '',
+  name: name ?? cover.section?.name ?? 'Section',
+  deck: cover.provenance.sourceTitle,
+  client: clientOf(cover),
+  year: yearOf(cover),
+  cover,
+  slides,
+  total,
+});
+
+/** Group search results by (deck, section), in the order the search ranked them. Needs at least two slides: one slide is just a card. */
 export function groupBySection(slides: SlideSummary[]): SectionGroup[] {
   const groups = new Map<string, SlideSummary[]>();
   for (const s of slides) {
@@ -27,63 +42,69 @@ export function groupBySection(slides: SlideSummary[]): SectionGroup[] {
     const key = `${s.provenance.sourceId}:${s.section.dividerId}`;
     groups.set(key, [...(groups.get(key) ?? []), s]);
   }
-  return [...groups]
-    .map(([key, list]) => {
-      const slides = [...list].sort((a, b) => a.provenance.slideNumber - b.provenance.slideNumber);
-      const cover = slides.find((s) => s.section?.divider) ?? slides[0];
-      return { key, name: cover.section?.name ?? 'Section', deck: cover.provenance.sourceTitle, client: clientOf(cover), year: yearOf(cover), cover, slides };
+  return [...groups.values()]
+    .map((list) => {
+      const sorted = [...list].sort((a, b) => a.provenance.slideNumber - b.provenance.slideNumber);
+      return groupOf(sorted.find((s) => s.section?.divider) ?? sorted[0], sorted, sorted.length);
     })
     .filter((g) => g.slides.length > 1);
 }
 
 const FIRST = 6;
 
-export function SectionCards({ results }: { results: SlideSummary[] }) {
+/** The cards, and what they do. `groups` are the sections to show; each asks for its whole section once. */
+function Cards({ groups }: { groups: SectionGroup[] }) {
   const { runtime, openPreview, selection, updateSelection, announce, toast } = useWorkspace();
-  const found = useMemo(() => groupBySection(results), [results]);
   const [all, setAll] = useState(false);
   const [whole, setWhole] = useState<Record<string, SlideSummary[]>>({});
-  const shownFound = all ? found : found.slice(0, FIRST);
-  /* The whole section of each card on screen, asked for once each. */
+  const firstShown = all ? groups : groups.slice(0, FIRST);
+  const wanted = firstShown.map((g) => g.dividerId).join('|');
+
   useEffect(() => {
     const ctl = new AbortController();
-    for (const g of shownFound) {
-      const dividerId = g.cover.section?.dividerId;
-      if (!dividerId || whole[g.key]) continue;
-      getSection(runtime, dividerId, ctl.signal)
-        .then((sec) => { if (sec && sec.slides.length > 0) setWhole((cur) => ({ ...cur, [g.key]: sec.slides })); })
+    for (const g of firstShown) {
+      if (!g.dividerId || whole[g.dividerId]) continue;
+      getSection(runtime, g.dividerId, ctl.signal)
+        .then((sec) => { if (sec && sec.slides.length > 0) setWhole((cur) => ({ ...cur, [g.dividerId]: sec.slides })); })
         .catch(() => undefined);
     }
     return () => ctl.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `whole` only skips what is already here
-  }, [shownFound.map((g) => g.key).join('|'), runtime]);
-  const groups = found.map((g) => (whole[g.key] ? { ...g, slides: whole[g.key] } : g));
-  if (groups.length === 0) return null;
-  const shown = all ? groups : groups.slice(0, FIRST);
+  }, [wanted, runtime]);
 
-  const inDraft = (g: SectionGroup) => g.slides.every((s) => selection.some((x) => x.id === s.id));
-  const toggle = (g: SectionGroup) => {
-    const ids = new Set(g.slides.map((s) => s.id));
-    if (inDraft(g)) {
+  if (groups.length === 0) return null;
+  const slidesOf = async (g: SectionGroup): Promise<SlideSummary[]> => {
+    if (whole[g.dividerId]) return whole[g.dividerId];
+    const sec = await getSection(runtime, g.dividerId).catch(() => null);
+    return sec && sec.slides.length > 0 ? sec.slides : g.slides;
+  };
+  const countOf = (g: SectionGroup) => whole[g.dividerId]?.length ?? g.total;
+  const inDraft = (g: SectionGroup) => !!whole[g.dividerId] && whole[g.dividerId].every((s) => selection.some((x) => x.id === s.id));
+
+  const toggle = async (g: SectionGroup) => {
+    const slides = await slidesOf(g);
+    const ids = new Set(slides.map((s) => s.id));
+    if (slides.every((s) => selection.some((x) => x.id === s.id))) {
       updateSelection((cur) => cur.filter((s) => !ids.has(s.id)));
-      announce(`Removed ${plural(g.slides.length, 'slide')} of ${g.name} from the draft deck`);
+      announce(`Removed ${plural(slides.length, 'slide')} of ${g.name} from the draft deck`);
       return;
     }
-    const have = new Set(selection.map((s) => s.id));
-    const add = g.slides.filter((s) => !have.has(s.id));
-    updateSelection((cur) => [...cur, ...g.slides.filter((s) => !cur.some((c) => c.id === s.id))]);
+    const add = slides.filter((s) => !selection.some((x) => x.id === s.id));
+    updateSelection((cur) => [...cur, ...slides.filter((s) => !cur.some((c) => c.id === s.id))]);
     toast(`Added ${plural(add.length, 'slide')} from ${g.name}`);
     announce(`Added ${plural(add.length, 'slide')} of ${g.name} to the draft deck`);
   };
+  const open = async (g: SectionGroup) => openPreview(await slidesOf(g), 0);
 
   return (
     <section className="seccards" aria-label="Sections found">
       <ul className="seccards-list">
-        {shown.map((g) => {
+        {firstShown.map((g) => {
           const on = inDraft(g);
+          const n = countOf(g);
           return (
             <li key={g.key} className={`seccard${on ? ' is-in' : ''}`}>
-              <button type="button" className="seccard-cover" aria-label={`Open the ${g.name} section of ${g.deck}`} onClick={() => openPreview(g.slides, 0)}>
+              <button type="button" className="seccard-cover" aria-label={`Open the ${g.name} section of ${g.deck}`} onClick={() => void open(g)}>
                 <Thumb slide={g.cover} />
               </button>
               <div className="seccard-body">
@@ -92,18 +113,18 @@ export function SectionCards({ results }: { results: SlideSummary[] }) {
                   {g.client}
                   {g.year ? ` · ${g.year}` : ''}
                 </p>
-                <p className="seccard-n">{plural(g.slides.length, 'slide')} in this section</p>
+                <p className="seccard-n">{plural(n, 'slide')} in this section</p>
                 <div className="seccard-acts">
-                  <button type="button" className="btn btn-sm" onClick={() => openPreview(g.slides, 0)}>
+                  <button type="button" className="btn btn-sm" onClick={() => void open(g)}>
                     Open section
                   </button>
-                  <button type="button" className={`btn btn-sm${on ? '' : ' btn-primary'}`} aria-pressed={on} onClick={() => toggle(g)}>
+                  <button type="button" className={`btn btn-sm${on ? '' : ' btn-primary'}`} aria-pressed={on} onClick={() => void toggle(g)}>
                     {on ? (
                       <>
                         <Icon name="check" className="ic-sm" /> In draft deck · Remove
                       </>
                     ) : (
-                      <>Add all {g.slides.length} to draft deck</>
+                      <>Add all {n} to draft deck</>
                     )}
                   </button>
                 </div>
@@ -118,5 +139,37 @@ export function SectionCards({ results }: { results: SlideSummary[] }) {
         </button>
       )}
     </section>
+  );
+}
+
+/** Section cards for the slides a search found. Nothing when no section has two or more of them. */
+export function SectionCards({ results, only }: { results: SlideSummary[]; only?: string[] }) {
+  const groups = useMemo(() => groupBySection(results).filter((g) => !only?.length || only.includes(g.cover.section?.kind ?? '')), [results, only]);
+  return <Cards groups={groups} />;
+}
+
+/** Browse one kind of section across every deck, with no search (the Section filter on Home, FD-80). The other filters still apply. */
+export function SectionBrowse({ kind }: { kind: string }) {
+  const { runtime, filters } = useWorkspace();
+  const [list, setList] = useState<{ kind: string; groups: SectionGroup[] } | 'error' | null>(null);
+  useEffect(() => {
+    const ctl = new AbortController();
+    listSections(runtime, kind, ctl.signal)
+      .then((rows) => setList(rows ? { kind, groups: rows.map((r) => groupOf(r.cover, [r.cover], r.slideCount, r.name)) } : 'error'))
+      .catch(() => undefined);
+    return () => ctl.abort();
+  }, [runtime, kind]);
+  const label = SECTION_LABEL[kind] ?? kind;
+  const groups = useMemo(() => (list && list !== 'error' && list.kind === kind ? list.groups.filter((g) => slideMatches(g.cover, filters)) : []), [list, kind, filters]);
+  const loaded = list !== null && list !== 'error' && list.kind === kind;
+  return (
+    <div className="sv-wrap seccards-browse">
+      <h1 className="h1">{label}</h1>
+      <p className="meta">The {label.toLowerCase()} section of each deck. Open one to scroll through it, or add all of it to your draft deck.</p>
+      {list === 'error' && <p role="alert">Sections could not be loaded right now. Please try again.</p>}
+      {list === null || (list !== 'error' && list.kind !== kind) ? <p role="status">Loading sections…</p> : null}
+      {loaded && groups.length === 0 && <p role="status">No {label.toLowerCase()} sections found{filters.client.length || filters.category.length || filters.yfrom !== null || filters.yto !== null ? ' with these filters' : ''}.</p>}
+      <Cards groups={groups} />
+    </div>
   );
 }

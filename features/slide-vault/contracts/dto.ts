@@ -284,6 +284,8 @@ export type SmartSearchResult = {
   chips: SmartSearchChip[];
   /** true when the request's filters left nothing, so results are shown without them */
   relaxed: boolean;
+  /** Set when the search is only a deck section ("case studies", "resumes"): the standard sections it asks for (FD-80) */
+  sections?: string[];
   items: SmartSearchItem[];
 };
 
@@ -422,3 +424,6 @@ export type StoryboardResult = {
 
 /** One deck section in full, in deck order: GET /sections/:dividerId (FD-80). */
 export type SectionSlides = { name: string; kind: string; slides: SlideSummary[] };
+
+/** One deck's section in a listing: GET /sections?kind= (FD-80). slideCount can include slides the section route leaves out (hidden or internal). */
+export type SectionListing = { dividerId: string; name: string; kind: string; slideCount: number; cover: SlideSummary };

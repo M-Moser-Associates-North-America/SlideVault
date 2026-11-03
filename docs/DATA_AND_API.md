@@ -57,6 +57,7 @@ Every route below exists under `/api/slide-vault/v1` (one `route.ts` per path in
 | `GET /search` | Keyword search and listing: `q`, `kind=slide`, `cursor`, `limit`, `tag`; slides carry packs and tags | |
 | `GET /smart-search` | Plain-language search: `q`, `limit`, `read=1` (AI reads it), `ai=off` (skip the AI reader for this search; response says `aiAvailable`), `role`, `hidden=include`; returns how it was read (chips), results and why each fits | FD-16, FD-17, FD-56 to FD-59, FD-70, FD-79 |
 | `POST /smart-search/feedback` | Useful / Not relevant on a result: `{ query, slideId, verdict, by? }`; kept only for people who opted in, with the search's words and no name | FD-59, FD-77 |
+| `GET /sections?kind=` | Every deck's section of one standard kind (`firm`, `case-studies`, `approach`, `team`, `fees`, `understanding`, `appendix`): `[{ dividerId, name, kind, slideCount, cover }]`, to browse sections without a search; read-only | FD-80 |
 | `GET /sections/:dividerId` | One deck section in full, in deck order: `{ name, kind, slides }`; `dividerId` is `slide.section.dividerId` on a result; `hidden=include`; read-only | FD-57, FD-80 |
 | `GET /meaning-search` | Slides close in meaning (pgvector) | FD-55 |
 | `GET /slides/:id`, `PATCH /slides/:id` | Slide details; rename a slide `{ title }` (`null` restores the original) | FD-73 |

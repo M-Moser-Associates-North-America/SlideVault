@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideComment, SlideVotes, TagRemoval, SectionSlides, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta, UploadPreview } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideComment, SlideVotes, TagRemoval, SectionListing, SectionSlides, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta, UploadPreview } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -155,6 +155,13 @@ export async function getSection(runtime: Transport, dividerId: string, signal?:
   const res = await runtime.request({ path: `/sections/${encodeURIComponent(dividerId)}`, method: 'GET', signal });
   if (!res.ok) return null;
   return ((await res.json()) as ApiOk<SectionSlides>).data;
+}
+
+/** Every deck's section of one standard kind, to browse sections without a search (FD-80). Null when the server can't say. */
+export async function listSections(runtime: Transport, kind: string, signal?: AbortSignal): Promise<SectionListing[] | null> {
+  const res = await runtime.request({ path: `/sections?kind=${encodeURIComponent(kind)}`, method: 'GET', signal });
+  if (!res.ok) return null;
+  return ((await res.json()) as ApiOk<SectionListing[]>).data;
 }
 
 /** Useful / Not relevant on a search result (FD-59); { saved: false } when the person hasn't turned on learning. */
