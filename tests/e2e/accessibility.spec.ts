@@ -556,3 +556,29 @@ test('Home search: the clear cross is there as soon as there is text, without ho
   await expect(slim).toBeVisible();
   await expect(slim.getByRole('button', { name: 'Clear search' })).toBeVisible();
 });
+
+test("the team's labels: a card shows the two most relevant and +N for the rest; the preview shows them all", async ({ page }) => {
+  await page.route('**/api/slide-vault/v1/smart-search?*', async (route) => {
+    const res = await route.fetch();
+    const body = await res.json();
+    body.data.items[0].slide.story = { role: 'proof', type: 'case_study_detail', reuse: 'reusable', themes: ['workplace strategy & data', 'cost certainty & risk'], sectors: ['hospitality'], projects: [], flags: [], shows: null, convinces: null, status: 'confirmed' };
+    await route.fulfill({ response: res, json: body });
+  });
+  await openResults(page);
+  const first = page.locator('article.card').first();
+  // Two labels, the slide's type first, then the rest behind +3.
+  await expect(first.locator('.tags-compact .tag-team')).toHaveText(['Case study detail', 'Hospitality']);
+  const more = first.getByRole('button', { name: /3 more tags/ });
+  await expect(more).toHaveText('+3');
+  await more.click();
+  await expect(more).toHaveAttribute('aria-expanded', 'true');
+  await expect(more).toHaveAttribute('data-tip', 'Workplace strategy & data, Cost certainty & risk, Proof');
+  expect(await axe(page)).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(more).toHaveAttribute('aria-expanded', 'false');
+  // The preview lists all five.
+  await first.locator('.thumb').first().click();
+  const labels = page.getByRole('dialog').getByRole('group', { name: 'Labels from the team' });
+  await expect(labels.locator('.tag-team')).toHaveCount(5);
+  expect(await axe(page)).toEqual([]);
+});

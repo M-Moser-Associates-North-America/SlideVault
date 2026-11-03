@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type MouseEvent, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState, type MouseEvent, type ReactElement, type RefObject } from 'react';
 import { getSlide, listTags } from '../client/api';
 import { demoTagsOn, ranked, TagsUnavailable, useTags, type TagsApi } from '../client/tag-store';
 import type { FreeTag, SlideDetail, SlideStory, SlideSummary, TagRemoval } from '../contracts/dto';
@@ -105,27 +105,91 @@ export function TagChip({ tag, onNavigate }: { tag: FreeTag; onNavigate?: () => 
   );
 }
 
+/* ---------------------------------------------------------------- The team's labels */
+
+/** One of the team's reviewed labels for a slide (Schiffon's story tags, FD-53), shown like a tag. */
+export type TeamLabel = { text: string; what: string };
+
+/** A slide's reviewed labels, most telling first: its type, the sectors and themes it proves, its projects, its role. */
+export function teamLabels(story: SlideStory | null | undefined): TeamLabel[] {
+  if (!story) return [];
+  const all: TeamLabel[] = [
+    ...(story.type ? [{ text: words(story.type), what: 'Slide type' }] : []),
+    ...story.sectors.map((x) => ({ text: words(x), what: 'Sector' })),
+    ...story.themes.map((x) => ({ text: words(x), what: 'Theme' })),
+    ...story.projects.map((x) => ({ text: x, what: 'Project' })),
+    ...(story.role ? [{ text: words(story.role), what: 'Role' }] : []),
+  ];
+  const seen = new Set<string>();
+  return all.filter((l) => !seen.has(l.text.toLowerCase()) && !!seen.add(l.text.toLowerCase()));
+}
+
+/** Does this label say something the person typed? Those go first on a card. */
+const matchesQuery = (text: string, query: string) => {
+  const t = text.toLowerCase();
+  return query
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .some((w) => w.length >= 3 && t.includes(w.replace(/(es|s)$/, '')));
+};
+
+/** A team label as a small pill: plain grey with no colour, so it never looks like something a colleague typed. Click to search for it. */
+export function TeamChip({ label, onNavigate }: { label: TeamLabel; onNavigate?: () => void }) {
+  const search = useTagSearch(onNavigate);
+  const tip = `${label.what}, reviewed by the team`;
+  return (
+    <button type="button" className="tag tag-team" data-tip={tip} aria-label={`${label.text}. ${tip}. Search for it.`} onClick={() => search(label.text)}>
+      <span className="tag-t">{label.text}</span>
+    </button>
+  );
+}
+
+/** "+3": the rest of a card's tags, on hover, focus or click (a tap on a phone). */
+function MoreTags({ names }: { names: string[] }) {
+  const [open, setOpen] = useState(false);
+  const text = names.join(', ');
+  return (
+    <button
+      type="button"
+      className="tag-more"
+      data-tip={text}
+      data-open={open || undefined}
+      aria-expanded={open}
+      aria-label={`${plural(names.length, 'more tag')}: ${text}`}
+      onClick={() => setOpen((o) => !o)}
+      onBlur={() => setOpen(false)}
+      onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
+    >
+      +{names.length}
+    </button>
+  );
+}
+
 /* ---------------------------------------------------------------- Cards */
 
-/** The best two tags, small, under a card's title. Nothing at all when the slide has none. */
+/**
+ * The two most relevant tags, small, under a card's title, then "+N" for the rest (hover, focus or click).
+ * Ones that match the search come first, then the people's tags (the slide's own, then its deck's), then
+ * the team's labels. Nothing at all when the slide has none.
+ */
 export function CompactTags({ slide }: { slide: SlideSummary }) {
-  const { runtime, profile } = useWorkspace();
+  const { runtime, profile, query } = useWorkspace();
   const own = useTags(runtime, profile, 'slide', slide.id, slide.tags);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, slide.tags);
-  const all = [...ranked(own.shown), ...ranked(deck.shown)]; /* the slide's own tags first, then its deck's */
+  type Item = { key: string; text: string; node: ReactElement };
+  const items: Item[] = [
+    ...[...ranked(own.shown), ...ranked(deck.shown)].map((t) => ({ key: `p${t.id}`, text: t.tag, node: <TagChip key={`p${t.id}`} tag={t} /> })),
+    ...teamLabels(slide.story).map((l) => ({ key: `t${l.what}${l.text}`, text: l.text, node: <TeamChip key={`t${l.what}${l.text}`} label={l} /> })),
+  ];
+  const q = query.trim();
+  const all = q ? [...items.filter((i) => matchesQuery(i.text, q)), ...items.filter((i) => !matchesQuery(i.text, q))] : items;
   /* A card without tags keeps an empty row when other cards on the page have tags, so everything below lines up. */
   if (all.length === 0) return <div className="tags-spacer" aria-hidden="true" />;
   const more = all.slice(2);
   return (
     <div className="tags-compact" role="group" aria-label="Tags">
-      {all.slice(0, 2).map((t) => (
-        <TagChip key={t.id} tag={t} />
-      ))}
-      {more.length > 0 && (
-        <span className="tag-more" tabIndex={0} data-tip={more.map((t) => t.tag).join(', ')} aria-label={`${plural(more.length, 'more tag')}: ${more.map((t) => t.tag).join(', ')}`}>
-          +{more.length}
-        </span>
-      )}
+      {all.slice(0, 2).map((i) => i.node)}
+      {more.length > 0 && <MoreTags names={more.map((i) => i.text)} />}
     </div>
   );
 }
@@ -451,14 +515,22 @@ export function PreviewTags({ slide, onNavigate }: { slide: SlideSummary; onNavi
   const own = useTags(runtime, profile, 'slide', slide.id, seed);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, seed);
   const canEdit = useCanEdit();
-  if (seed === undefined && !demoTagsOn()) return null;
+  const team = teamLabels(slide.story);
+  if (seed === undefined && !demoTagsOn() && team.length === 0) return null;
   return (
     <div className="lb-tags">
-      <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} />
+      {(seed !== undefined || demoTagsOn()) && <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} />}
       {deck.shown.length > 0 && (
         <div className="tags-compact" aria-label="Tags from the deck">
           {deck.shown.map((t) => (
             <TagChip key={t.id} tag={t} onNavigate={onNavigate} />
+          ))}
+        </div>
+      )}
+      {team.length > 0 && (
+        <div className="tags-compact" role="group" aria-label="Labels from the team">
+          {team.map((l) => (
+            <TeamChip key={l.what + l.text} label={l} onNavigate={onNavigate} />
           ))}
         </div>
       )}

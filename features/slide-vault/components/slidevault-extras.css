@@ -1087,7 +1087,13 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .tag:hover, .slidevault .tag:focus-visible { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
 .slidevault .tags-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
 .slidevault .tag[data-tip]::after, .slidevault .tag-more[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; transform: none; max-width: 220px; }
-.slidevault .tag-more { display: inline-flex; align-items: center; min-height: 24px; padding: 0 6px; border-radius: 999px; color: var(--sv-text-secondary); font-size: 12.5px; cursor: default; }
+.slidevault .tag-team { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text-secondary); } /* the team's own labels: no colour, so they never look like a colleague's tag */
+.slidevault .tags-compact { position: relative; }
+.slidevault .tags-compact .tag-more[data-tip] { position: static; } /* so its list opens across the whole row and stays inside the card */
+.slidevault .tags-compact .tag-more[data-tip]::after { left: 0; max-width: 100%; }
+.slidevault .tag-more[data-open]::after { display: block; }
+.slidevault .tag-more { background: none; border: 0; font: inherit; font-size: 12.5px; cursor: pointer; }
+.slidevault .tag-more { display: inline-flex; align-items: center; min-height: 24px; padding: 0 6px; border-radius: 999px; color: var(--sv-text-secondary); font-size: 12.5px; cursor: pointer; }
 .slidevault .tag-more:hover, .slidevault .tag-more:focus-visible { color: var(--sv-brand-strong); }
 .slidevault .taglist { display: grid; gap: 10px; }
 .slidevault .tagrows { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
