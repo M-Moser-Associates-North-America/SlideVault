@@ -163,12 +163,11 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
   );
 }
 
-/** The full bar: vote pill, comments, Share. */
-export function SlideActions({ slide, commentsOpen, onComments }: { slide: SlideSummary; commentsOpen?: boolean; onComments: () => void }) {
+/** Copies a link to the slide's page. Only people signed in at M Moser can open it, so it is safe to paste in a chat or an email. */
+export function useShareSlide(slideId: string) {
   const { runtime, toast } = useWorkspace();
-  const engage = useEngagement(runtime, slide);
-  const share = async () => {
-    const path = runtime.hrefFor?.({ view: 'slide', id: slide.id });
+  return async () => {
+    const path = runtime.hrefFor?.({ view: 'slide', id: slideId });
     if (!path) return toast("This page can't make a link here.");
     const url = new URL(path, window.location.origin).toString();
     try {
@@ -178,6 +177,13 @@ export function SlideActions({ slide, commentsOpen, onComments }: { slide: Slide
       toast(`Copy this link: ${url}`); /* clipboard blocked: show it instead */
     }
   };
+}
+
+/** The full bar: vote pill, comments, Share (the slide page has Share in its Use this slide card instead: noShare). */
+export function SlideActions({ slide, commentsOpen, onComments, noShare }: { slide: SlideSummary; commentsOpen?: boolean; onComments: () => void; noShare?: boolean }) {
+  const { runtime } = useWorkspace();
+  const engage = useEngagement(runtime, slide);
+  const share = useShareSlide(slide.id);
   return (
     <div className="slide-actions" role="group" aria-label="Slide actions">
       <VotePill slide={slide} engage={engage} />
@@ -188,10 +194,12 @@ export function SlideActions({ slide, commentsOpen, onComments }: { slide: Slide
           <span className="sr-only"> comments</span>
         </button>
       )}
-      <button type="button" className="actpill" onClick={() => void share()} data-tip="Copy a link to this slide">
-        <Icon name="share" />
-        <span>Share</span>
-      </button>
+      {!noShare && (
+        <button type="button" className="actpill" onClick={() => void share()} data-tip="Copy a link to this slide">
+          <Icon name="share" />
+          <span>Share</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -202,7 +210,7 @@ export function SlideEngagement({ slide, loaded }: { slide: SlideSummary; loaded
   const merged = loaded ? { ...slide, votes: loaded.votes ?? slide.votes, commentCount: loaded.commentCount ?? slide.commentCount } : slide;
   return (
     <>
-      <SlideActions slide={merged} commentsOpen={open} onComments={() => setOpen((o) => !o)} />
+      <SlideActions slide={merged} commentsOpen={open} onComments={() => setOpen((o) => !o)} noShare />
       {open && <CommentsSection slide={merged} />}
     </>
   );

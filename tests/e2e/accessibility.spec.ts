@@ -588,3 +588,16 @@ test("the team's labels: a card shows the two most relevant and +N for the rest;
   await expect(labels.locator('.tag-team')).toHaveCount(5);
   expect(await axe(page)).toEqual([]);
 });
+
+test('slide page: Share sits with the other buttons in Use this slide, once, and copies the slide link', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await openResults(page);
+  await page.locator('article.card').first().getByRole('link').first().click();
+  const panel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Use this slide' }) });
+  await expect(panel.getByRole('button')).toContainText(['Add to draft deck', 'Download only this slide', 'Share']);
+  await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(1);
+  await panel.getByRole('button', { name: 'Share' }).click();
+  await expect(page.getByText('Link copied.')).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/slide-vault\/slide\//);
+  expect(await axe(page)).toEqual([]);
+});

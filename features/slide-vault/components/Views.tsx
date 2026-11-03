@@ -1,7 +1,7 @@
 'use client';
 
 import { SlideTitle } from './RenameSlide';
-import { SlideEngagement } from './SlideActions';
+import { SlideEngagement, useShareSlide } from './SlideActions';
 import { SectionBrowse, SectionCards } from './SectionCards';
 import { DeckTags, SlideLabelsPanel, SlideTagsPanel } from './TagBits';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
@@ -915,6 +915,7 @@ function FromFolder() {
 
 export function SlideView({ id }: { id: string }) {
   const { runtime, library, openPreview, openDownload, logActivity, packs, selection, addPackToDraft, openArchiveDialog, setIncludeHidden } = useWorkspace();
+  const shareSlide = useShareSlide(id);
   const { isSelected, setOne } = useCartToggle();
   const lib = useReadyLibrary();
   const slide = library.status === 'ready' ? library.slides.find((s) => s.id === id) : undefined;
@@ -1062,6 +1063,10 @@ export function SlideView({ id }: { id: string }) {
               <Link className="btn btn-sm" to={{ view: 'deck', id: deck.id }}>
                 Open deck
               </Link>
+              <button type="button" className="btn btn-sm" onClick={() => void shareSlide()} data-tip="Copy link">
+                <Icon name="share" />
+                <span>Share</span>
+              </button>
             </div>
           </section>
           {slidePack && <PackPanel slide={slide} pack={slidePack} />}
