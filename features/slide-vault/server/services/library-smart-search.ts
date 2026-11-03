@@ -24,7 +24,7 @@ import { refineStory } from './story-refine';
 import type { StoryBeat, StoryRefineRequest, StoryRefineResult, StoryboardSlide } from '../../contracts/dto';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
-import { learnedScore, searchLearning } from '../search-feedback';
+import { learnedScore, searchLearning, type SearchLearned } from '../search-feedback';
 import { isInternalOnly, listDeckSlidesPg, type DeckSlidesPg } from '../pg-repository';
 import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
 
@@ -203,7 +203,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
       },
       reader: opts.reader,
       // The real decks are searched with what's known about each slide too: kind, sector, theme (FD-70).
-      search: async (plan, max) => [...(await orWithoutDb('search', () => smartSearchPg(plan, max, intent), [])), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
+      search: async (plan, max) => [...byLearning(await orWithoutDb('search', () => smartSearchPg(plan, max, intent), []), learned), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
       howCommon: (word) => wordShare(index, word),
       isKnownName: (word) => knownNames(index, readings).has(word),
       alsoMeans: (word) => clientSectors(word),
@@ -272,6 +272,17 @@ export function configuredStoryReader(env: Record<string, string | undefined> = 
   const storyMs = Number(env.SV_AI_STORY_TIMEOUT_MS || 90000);
   if (!Number.isInteger(storyMs) || storyMs < 1000 || storyMs > 300000) throw new Error('SV_AI_STORY_TIMEOUT_MS must be a whole number from 1000 to 300000.');
   return openAiCompatibleStoryReader({ ...config, timeoutMs: Math.max(config.timeoutMs, storyMs) });
+}
+
+/**
+ * The real decks in the database, re-ranked by what colleagues marked for searches like this one
+ * (FD-59, FD-78): marked useful first, marked not relevant last, the database's order kept otherwise.
+ * The sample decks get the same through their boost; without this, the database's results never
+ * learned, which is where M Moser's library lives.
+ */
+export function byLearning<T extends { summary: { id: string } }>(rows: T[], learned: Map<string, SearchLearned>): T[] {
+  if (!learned.size) return rows;
+  return rows.map((r, i) => ({ r, i, s: learnedScore(learned.get(r.summary.id)) })).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.r);
 }
 
 /** What search learned (FD-59) for the brief's topics, counted as for a search of those words. */
