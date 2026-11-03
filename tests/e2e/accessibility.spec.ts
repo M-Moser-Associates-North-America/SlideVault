@@ -109,7 +109,7 @@ test('no violations in the preview and download dialogs, empty results and the d
   await page.keyboard.press('Escape');
 
   await page.getByLabel('Search slides').fill('zzqq');
-  await expect(page.getByText(/No slides match/)).toBeVisible();
+  await expect(page.getByText(/No slides found matching/)).toBeVisible();
   expect(await axe(page)).toEqual([]);
   await page.getByRole('button', { name: 'Clear search' }).first().click();
 

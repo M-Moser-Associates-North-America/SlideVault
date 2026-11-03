@@ -1266,3 +1266,8 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .cart-tagall-wrap { margin: 4px 0 8px; }
 .slidevault .cart-tagall-wrap .cart-tagall { margin: 0; }
 .slidevault .cart-tagall-note { margin: 4px 0 0; font-size: 12.5px; }
+
+/* Search results in groups (Decks, Sections, Slides): a heading each, with room above and below */
+.slidevault .res-block { margin-top: 8px; }
+.slidevault .res-h { margin: 34px 0 14px; }
+.slidevault .res-block .res-h { margin-top: 28px; }
