@@ -267,6 +267,19 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
         <div className="meta clip" title={`Slide ${p.slideNumber} of ${p.sourceTitle}`}>
           {meta || p.sourceTitle}
         </div>
+        {slide.alsoIn && (
+          <button
+            type="button"
+            className="also"
+            aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`}
+            data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'deck')}`}
+            data-tip-pos="start"
+            onClick={() => openAlso(slide)}
+          >
+            <Icon name="folders" className="ic-sm" />
+            <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
+          </button>
+        )}
         <CompactTags slide={slide} />
         {note && (
           <div className="card-note">
@@ -285,20 +298,6 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
         )}
         <div className="card-foot">
           <CardVotes slide={slide} />
-          {slide.alsoIn && (
-          <button
-            type="button"
-            className="also"
-            aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`}
-            data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'deck')}`}
-            data-tip-pos="end"
-            onClick={() => openAlso(slide)}
-          >
-            <Icon name="folders" className="ic-sm" />
-            <span className="also-full">Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</span>
-            <span className="also-short" aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
-          </button>
-        )}
         </div>
       </div>
     </article>

@@ -1176,7 +1176,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .card-foot { margin-top: auto; padding-top: 2px; display: flex; align-items: center; gap: 8px; min-height: 28px; min-width: 0; } /* just tall enough for the small arrows or the Also-in chip (was 36px, from when votes with counts lived here) */
 .slidevault .card .card-body { padding-bottom: 10px; }
 .slidevault .card-foot:empty { display: none; }
-.slidevault .card-foot .also { align-self: center; margin-left: auto; }
 /* Useful on the left, Not useful on the right of the card, as in the Storyboard (FD-81) */
 .slidevault .card-foot { flex-wrap: wrap; }
 .slidevault .fb-verdict { margin-top: 0; flex: 1 1 170px; flex-wrap: nowrap; }
@@ -1184,14 +1183,8 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .fb-verdict.is-small .sb-icon-btn { padding: 4px 2px; }
 .slidevault .fb-verdict .sb-icon-btn:disabled { opacity: 1; }
 .slidevault .fb-verdict .sb-icon-btn[data-tip]::after { text-transform: none; letter-spacing: normal; font-size: 12.5px; font-weight: 500; } /* the tooltip is a sentence, not small capitals */
-.slidevault .also-full { display: none; }
-@container (min-width: 250px) {
-  .slidevault .also-full { display: inline; }
-  .slidevault .also-short { display: none; }
-}
 .slidevault .tags-spacer { display: none; height: 24px; }
 .slidevault .sv-main:has(.vcard .tags-compact) .tags-spacer { display: block; }
-.slidevault .card-foot .also[data-tip]::after { top: auto; bottom: calc(100% + 6px); }
 /* In the preview, open comments get room before the tags start: a gap and a hairline */
 .slidevault .comments + .lb-tags { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--sv-border); }
 
