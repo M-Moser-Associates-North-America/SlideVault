@@ -547,8 +547,11 @@ test('Home search: the clear cross is there as soon as there is text, without ho
   await expect(clear).toBeHidden();
 
   // The slim search that stays after scrolling has its own cross too.
+  await page.setViewportSize({ width: 1280, height: 520 });
   await box.fill('services');
-  await page.mouse.wheel(0, 600);
+  await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
+  await page.mouse.move(400, 400); // over the results, so the wheel scrolls them
+  await page.mouse.wheel(0, 900);
   const slim = page.locator('.fb-search');
   await expect(slim).toBeVisible();
   await expect(slim.getByRole('button', { name: 'Clear search' })).toBeVisible();
