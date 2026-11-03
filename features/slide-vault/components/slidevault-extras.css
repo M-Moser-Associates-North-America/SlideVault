@@ -1129,11 +1129,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .vp { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--sv-text-secondary); cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
 .slidevault .votepill.is-small .vp { width: 26px; height: 26px; }
 .slidevault .vp .ic { width: 18px; height: 18px; }
-/* Useful / Not useful as words (FD-81): the arrows said nothing about what they do */
-.slidevault .vp.vp-text { width: auto; padding: 0 11px; font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; }
-.slidevault .votepill.is-small .vp.vp-text { width: auto; height: 24px; padding: 0 9px; font-size: 12.5px; }
-.slidevault .votepill .vp.vp-text, .slidevault .votepill .vp.vp-text:hover, .slidevault .votepill .vp.vp-text:focus-visible, .slidevault .votepill .vp.vp-text[aria-pressed="true"].is-up { color: var(--sv-text); } /* dark words: orange on the orange tint was 4.05:1 */
-.slidevault .votepill .vp.vp-text[aria-pressed="true"].is-down { color: var(--sv-action-fg); }
 .slidevault .votepill.is-small .vp .ic { width: 15px; height: 15px; }
 .slidevault .vp.is-up { color: var(--sv-brand-strong); }
 .slidevault .vp:hover, .slidevault .vp:focus-visible { background: color-mix(in srgb, var(--sv-brand) 18%, transparent); color: var(--sv-brand-strong); }
@@ -1177,6 +1172,12 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .card .card-body { padding-bottom: 10px; }
 .slidevault .card-foot:empty { display: none; }
 .slidevault .card-foot .also { align-self: center; margin-left: auto; }
+/* Useful on the left, Not useful on the right of the card, as in the Storyboard (FD-81) */
+.slidevault .card-foot { flex-wrap: wrap; }
+.slidevault .fb-verdict { margin-top: 0; flex: 1 1 170px; flex-wrap: nowrap; }
+.slidevault .fb-verdict.is-small { justify-content: space-between; }
+.slidevault .fb-verdict.is-small .sb-icon-btn { padding: 4px 2px; }
+.slidevault .fb-verdict .sb-icon-btn:disabled { opacity: 1; }
 .slidevault .also-full { display: none; }
 @container (min-width: 250px) {
   .slidevault .also-full { display: inline; }
