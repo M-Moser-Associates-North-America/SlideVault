@@ -502,3 +502,33 @@ test('Useful / Not relevant: remembered after a reload, changing your mind takes
   await expect(page.locator('article.card').first().getByRole('button', { name: 'Not relevant to this search' })).toHaveAttribute('aria-pressed', 'false');
   expect(sent).toHaveLength(4);
 });
+
+test('Personalize: turning it on or off is confirmed on a card, not only a toast', async ({ page }) => {
+  let on = false;
+  await page.route('**/api/slide-vault/v1/me/activity', async (route) => {
+    if (route.request().method() === 'PATCH') on = route.request().postDataJSON().optedIn;
+    await route.fulfill({ json: { data: { optedIn: on, retentionDays: 90, entries: [] } } });
+  });
+  // The one-time question after sign-in would be in the way: mark it answered.
+  await page.evaluate(() => localStorage.setItem('slidevault:tip:activity-ask', '1'));
+  await page.goto('/slide-vault/settings');
+  const box = page.getByLabel(/Use my activity to personalize/);
+  await box.click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Personalize my Vault?' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Turn on' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Personalization is on' })).toBeVisible();
+  await expect(dialog).toContainText('Kept 90 days');
+  expect(await axe(page)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Done' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(box).toBeChecked();
+
+  await box.click();
+  await dialog.getByRole('button', { name: 'Turn off and delete my history' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Personalization is off' })).toBeVisible();
+  await expect(dialog).toContainText('Your history was deleted');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(box).not.toBeChecked();
+});
