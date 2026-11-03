@@ -1033,6 +1033,10 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .lb-thumb { flex: none; width: 96px; aspect-ratio: 16/9; padding: 0; border: 2px solid transparent; border-radius: 8px; overflow: hidden; background: var(--sv-surface-sunken); cursor: pointer; opacity: .75; }
 .slidevault .lb-thumb:hover { opacity: 1; }
 .slidevault .lb-thumb[aria-current="true"] { border-color: var(--sv-brand); opacity: 1; }
+.slidevault .lb-thumb.is-in-section { border-color: color-mix(in srgb, var(--sv-brand) 65%, transparent); background: var(--sv-brand-tint); opacity: 1; }
+.slidevault .lb-thumb.is-in-section[aria-current="true"] { border-color: var(--sv-brand); box-shadow: 0 0 0 2px var(--sv-brand); }
+.slidevault .lb-legend { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; font-weight: 400; }
+.slidevault .lb-swatch { width: 14px; height: 10px; border: 2px solid color-mix(in srgb, var(--sv-brand) 65%, transparent); border-radius: 3px; background: var(--sv-brand-tint); }
 .slidevault .lb-thumb:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
 .slidevault .lb-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
 /* Phones: swipe the deck instead of a cramped filmstrip */
@@ -1226,3 +1230,10 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .seccard-meta, .slidevault .seccard-n { margin: 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
 .slidevault .seccard-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 8px; }
 @media (max-width: 520px) { .slidevault .seccard { gap: 10px; } .slidevault .seccard-cover { flex-basis: 104px; } }
+
+/* Loading: a turning ring, with the words beside it (it holds still when motion is reduced) */
+.slidevault .sv-loading { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--sv-text-secondary); }
+.slidevault .sv-ring { flex: none; width: 22px; height: 22px; border: 3px solid var(--sv-border); border-top-color: var(--sv-brand); border-radius: 50%; }
+.slidevault .sv-ring.is-small { width: 14px; height: 14px; border-width: 2px; }
+@media (prefers-reduced-motion: no-preference) { .slidevault .sv-ring { animation: sv-spin .9s linear infinite; } }
+.slidevault .seccard-acts .btn[aria-busy="true"] { cursor: progress; }

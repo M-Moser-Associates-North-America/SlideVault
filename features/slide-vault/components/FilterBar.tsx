@@ -341,7 +341,10 @@ export function FilterBar() {
           label="Section"
           options={Object.values(SECTION_LABEL)}
           picked={filters.section.map((k) => SECTION_LABEL[k] ?? k)}
-          onToggle={(label) => patchFilters({ section: filters.section.includes(kindOf(label)) ? [] : [kindOf(label)] })}
+          onToggle={(label) => {
+            patchFilters({ section: filters.section.includes(kindOf(label)) ? [] : [kindOf(label)] });
+            if (!compact) close(true); /* one choice, so the card closes and the page shows it at once */
+          }}
         />
       );
     }

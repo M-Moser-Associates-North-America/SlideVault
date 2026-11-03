@@ -113,10 +113,13 @@ type Workspace = {
   announcement: string;
   announce: (message: string) => void;
   /** Large preview over the page; `list` is what the arrows step through */
-  preview: { list: SlideSummary[]; index: number } | null;
-  openPreview: (list: SlideSummary[], index: number) => void;
+  preview: { list: SlideSummary[]; index: number; section?: string } | null;
+  /** `section` names the deck section when the list is one whole section: the preview then counts "1 of 8 in section" and outlines those slides in the film strip (FD-80) */
+  openPreview: (list: SlideSummary[], index: number, opts?: { section?: string }) => void;
   closePreview: () => void;
   movePreview: (delta: -1 | 1) => void;
+  /** Jump to one place in the preview's list */
+  goToPreview: (index: number) => void;
   /** Slides waiting in the download dialog, or null when it is closed */
   downloadSlides: SlideSummary[] | null;
   openDownload: (slides: SlideSummary[]) => void;
@@ -306,8 +309,10 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const [preview, setPreview] = useState<{
     list: SlideSummary[];
     index: number;
+    section?: string;
   } | null>(null);
-  const openPreview = useCallback((list: SlideSummary[], index: number) => setPreview({ list, index }), []);
+  const openPreview = useCallback((list: SlideSummary[], index: number, opts?: { section?: string }) => setPreview({ list, index, section: opts?.section }), []);
+  const goToPreview = useCallback((index: number) => setPreview((p) => (p && index >= 0 && index < p.list.length ? { ...p, index } : p)), []);
   const closePreview = useCallback(() => setPreview(null), []);
   const movePreview = useCallback((delta: -1 | 1) => setPreview((p) => (p && p.list.length > 1 ? { ...p, index: (p.index + delta + p.list.length) % p.list.length } : p)), []);
 
@@ -576,6 +581,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     openPreview,
     closePreview,
     movePreview,
+    goToPreview,
     downloadSlides,
     openDownload,
     closeDownload,

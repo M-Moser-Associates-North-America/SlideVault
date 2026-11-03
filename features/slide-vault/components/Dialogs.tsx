@@ -27,7 +27,7 @@ export const backdropClose = (onClose: () => void) => (e: MouseEvent<HTMLDialogE
 
 /** Large preview of a slide. The side arrows, the filmstrip and swipes walk the slide's own deck; a separate bar steps through the search results it was opened from. */
 export function Lightbox() {
-  const { runtime, library, preview, closePreview, movePreview, openDownload, packs, selection, addPackToDraft } = useWorkspace();
+  const { runtime, library, preview, closePreview, movePreview, goToPreview, openDownload, packs, selection, updateSelection, toast, addPackToDraft } = useWorkspace();
   const { isSelected, setOne } = useCartToggle();
   const ref = useRef<HTMLDialogElement>(null);
   const strip = useRef<HTMLDivElement>(null);
@@ -48,9 +48,19 @@ export function Lightbox() {
   const di = slide ? sibs.findIndex((s) => s.id === slide.id) : -1;
   /* Results bar only when the list is a real search, not just this deck's own slides. */
   const fromDeck = !!preview && sibs.length === preview.list.length && preview.list.every((s, k) => s.id === sibs[k].id);
-  const results = !!preview && preview.list.length > 1 && !fromDeck;
+  /* One whole deck section (FD-80): counted "1 of 8 in section", its slides outlined in the film strip,
+     and the arrows step through the section instead of the whole deck. */
+  const section = preview?.section ?? null;
+  const results = !!preview && preview.list.length > 1 && (!fromDeck || !!section);
+  const inSection = (id: string) => !!preview && preview.list.some((x) => x.id === id);
+  const sectionAt = section && slide && preview ? preview.list.findIndex((x) => x.id === slide.id) : -1;
 
   const moveDeck = (delta: -1 | 1) => {
+    if (section && preview) {
+      const at = sectionAt >= 0 ? sectionAt : preview.index;
+      if (at + delta >= 0 && at + delta < preview.list.length) goToPreview(at + delta);
+      return;
+    }
     const target = sibs[di + delta];
     if (preview && target) setPick({ list: preview.list, index: preview.index, slide: target });
   };
@@ -59,6 +69,8 @@ export function Lightbox() {
   };
   const atFirstResult = !preview || preview.index === 0;
   const atLastResult = !preview || preview.index === preview.list.length - 1;
+  const sectionFirst = sectionAt <= 0;
+  const sectionLast = !preview || sectionAt >= preview.list.length - 1;
 
   /* Remember the slide we came from so it slides out while the next slides in (same motion as the slide page). */
   const [seen, setSeen] = useState<{
@@ -131,28 +143,43 @@ export function Lightbox() {
           </div>
           <div className="dlg-body">
             {results && (
-              <div className="lb-results" role="group" aria-label="Search results">
-                <button type="button" className="btn btn-sm" disabled={atFirstResult} onClick={() => moveResult(-1)} title="Previous result ( [ or Shift+←)">
+              <div className="lb-results" role="group" aria-label={section ? `${section} section` : 'Search results'}>
+                <button type="button" className="btn btn-sm" disabled={section ? sectionFirst : atFirstResult} onClick={() => (section ? moveDeck(-1) : moveResult(-1))} title={section ? 'Previous in section ( ← )' : 'Previous result ( [ or Shift+←)'}>
                   <Icon name="left" />
-                  <span>Previous result</span>
+                  <span>{section ? 'Previous in section' : 'Previous result'}</span>
                 </button>
-                <span className="counter">
-                  Result {preview.index + 1} of {preview.list.length}
+                <span className="counter" aria-live="polite">
+                  {section ? (
+                    sectionAt >= 0 ? (
+                      <>
+                        <strong>
+                          {sectionAt + 1} of {preview.list.length} in section
+                        </strong>
+                        {` · ${section}`}
+                      </>
+                    ) : (
+                      `Not in the ${section} section`
+                    )
+                  ) : (
+                    <>
+                      Result {preview.index + 1} of {preview.list.length}
+                    </>
+                  )}
                 </span>
                 {picked && preview && picked.id !== preview.list[preview.index].id && (
                   <button type="button" className="btn btn-sm btn-ghost" onClick={() => setPick(null)}>
-                    Back to the result
+                    {section ? 'Back to the section' : 'Back to the result'}
                   </button>
                 )}
-                <button type="button" className="btn btn-sm" disabled={atLastResult} onClick={() => moveResult(1)} title="Next result ( ] or Shift+→)">
-                  <span>Next result</span>
+                <button type="button" className="btn btn-sm" disabled={section ? sectionLast : atLastResult} onClick={() => (section ? moveDeck(1) : moveResult(1))} title={section ? 'Next in section ( → )' : 'Next result ( ] or Shift+→)'}>
+                  <span>{section ? 'Next in section' : 'Next result'}</span>
                   <Icon name="right" />
                 </button>
               </div>
             )}
             <div className="lb-row">
               {sibs.length > 1 && (
-                <button type="button" className="btn btn-icon lb-nav lb-prev" aria-label="Previous slide in this deck" data-tip="Previous in deck" disabled={di <= 0} onClick={() => moveDeck(-1)}>
+                <button type="button" className="btn btn-icon lb-nav lb-prev" aria-label={section ? 'Previous slide in this section' : 'Previous slide in this deck'} data-tip={section ? 'Previous in section' : 'Previous in deck'} disabled={section ? sectionFirst : di <= 0} onClick={() => moveDeck(-1)}>
                   <Icon name="left" />
                 </button>
               )}
@@ -185,9 +212,9 @@ export function Lightbox() {
                 <button
                   type="button"
                   className="btn btn-icon lb-nav lb-next"
-                  aria-label="Next slide in this deck"
-                  data-tip="Next in deck"
-                  disabled={di < 0 || di >= sibs.length - 1}
+                  aria-label={section ? 'Next slide in this section' : 'Next slide in this deck'}
+                  data-tip={section ? 'Next in section' : 'Next in deck'}
+                  disabled={section ? sectionLast : di < 0 || di >= sibs.length - 1}
                   onClick={() => moveDeck(1)}
                 >
                   <Icon name="right" />
@@ -198,22 +225,26 @@ export function Lightbox() {
               <div className="lb-deck">
                 <p className="lb-deck-label" id="sv-lb-deck">
                   Scroll the deck
+                  {section && (
+                    <span className="lb-legend">
+                      <span className="lb-swatch" aria-hidden="true" />
+                      {preview.list.length} slides of {section}
+                    </span>
+                  )}
                 </p>
                 <div className="lb-strip" ref={strip} role="group" aria-labelledby="sv-lb-deck">
                   {sibs.map((s, k) => (
                     <button
                       key={s.id}
                       type="button"
-                      className="lb-thumb"
+                      className={`lb-thumb${section && inSection(s.id) ? ' is-in-section' : ''}`}
                       aria-current={s.id === slide.id ? 'true' : undefined}
-                      aria-label={`Slide ${k + 1}: ${s.title}`}
-                      onClick={() =>
-                        setPick({
-                          list: preview.list,
-                          index: preview.index,
-                          slide: s,
-                        })
-                      }
+                      aria-label={`Slide ${k + 1}: ${s.title}${section && inSection(s.id) ? ` (in the ${section} section)` : ''}`}
+                      onClick={() => {
+                        const at = section ? preview.list.findIndex((x) => x.id === s.id) : -1;
+                        if (at >= 0) goToPreview(at);
+                        else setPick({ list: preview.list, index: preview.index, slide: s });
+                      }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={runtime.assetUrl(s.previewPath)} alt="" loading="lazy" />
@@ -233,6 +264,21 @@ export function Lightbox() {
                   <Icon name="check" />
                   <span>{isSelected(slide.id) ? 'In draft deck' : 'Add to draft deck'}</span>
                 </button>
+                {section && preview && preview.list.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    disabled={preview.list.every((x) => selection.some((y) => y.id === x.id))}
+                    onClick={() => {
+                      const add = preview.list.filter((x) => !selection.some((y) => y.id === x.id));
+                      updateSelection((cur) => [...cur, ...preview.list.filter((x) => !cur.some((c) => c.id === x.id))]);
+                      toast(`Added ${plural(add.length, 'slide')} from ${section}`);
+                    }}
+                  >
+                    <Icon name="plus" />
+                    <span>{preview.list.every((x) => selection.some((y) => y.id === x.id)) ? 'Whole section in draft deck' : `Add whole section (${preview.list.length})`}</span>
+                  </button>
+                )}
                 {packs.of(slide.id) && (
                   <button
                     type="button"

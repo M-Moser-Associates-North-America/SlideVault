@@ -57,6 +57,7 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
   const { runtime, openPreview, selection, updateSelection, announce, toast } = useWorkspace();
   const [all, setAll] = useState(false);
   const [whole, setWhole] = useState<Record<string, SlideSummary[]>>({});
+  const [busy, setBusy] = useState<string | null>(null);
   const firstShown = all ? groups : groups.slice(0, FIRST);
   const wanted = firstShown.map((g) => g.dividerId).join('|');
 
@@ -81,6 +82,16 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
   const countOf = (g: SectionGroup) => whole[g.dividerId]?.length ?? g.total;
   const inDraft = (g: SectionGroup) => !!whole[g.dividerId] && whole[g.dividerId].every((s) => selection.some((x) => x.id === s.id));
 
+  /* The first press of Open or Add all can wait for the section to arrive: say so on the button, and don't take a second press meanwhile. */
+  const working = async (g: SectionGroup, run: () => Promise<void>) => {
+    if (busy) return;
+    setBusy(g.key);
+    try {
+      await run();
+    } finally {
+      setBusy(null);
+    }
+  };
   const toggle = async (g: SectionGroup) => {
     const slides = await slidesOf(g);
     const ids = new Set(slides.map((s) => s.id));
@@ -94,7 +105,7 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
     toast(`Added ${plural(add.length, 'slide')} from ${g.name}`);
     announce(`Added ${plural(add.length, 'slide')} of ${g.name} to the draft deck`);
   };
-  const open = async (g: SectionGroup) => openPreview(await slidesOf(g), 0);
+  const open = async (g: SectionGroup) => openPreview(await slidesOf(g), 0, { section: g.name });
 
   return (
     <section className="seccards" aria-label="Sections found">
@@ -104,7 +115,7 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
           const n = countOf(g);
           return (
             <li key={g.key} className={`seccard${on ? ' is-in' : ''}`}>
-              <button type="button" className="seccard-cover" aria-label={`Open the ${g.name} section of ${g.deck}`} onClick={() => void open(g)}>
+              <button type="button" className="seccard-cover" aria-label={`Open the ${g.name} section of ${g.deck}`} onClick={() => void working(g, () => open(g))}>
                 <Thumb slide={g.cover} />
               </button>
               <div className="seccard-body">
@@ -115,11 +126,15 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
                 </p>
                 <p className="seccard-n">{plural(n, 'slide')} in this section</p>
                 <div className="seccard-acts">
-                  <button type="button" className="btn btn-sm" onClick={() => void open(g)}>
+                  <button type="button" className="btn btn-sm" aria-busy={busy === g.key} disabled={!!busy && busy !== g.key} onClick={() => void working(g, () => open(g))}>
                     Open section
                   </button>
-                  <button type="button" className={`btn btn-sm${on ? '' : ' btn-primary'}`} aria-pressed={on} onClick={() => void toggle(g)}>
-                    {on ? (
+                  <button type="button" className={`btn btn-sm${on ? '' : ' btn-primary'}`} aria-pressed={on} aria-busy={busy === g.key} disabled={!!busy && busy !== g.key} onClick={() => void working(g, () => toggle(g))}>
+                    {busy === g.key && !whole[g.dividerId] ? (
+                      <>
+                        <span className="sv-ring is-small" aria-hidden="true" /> Getting the section…
+                      </>
+                    ) : on ? (
                       <>
                         <Icon name="check" className="ic-sm" /> In draft deck · Remove
                       </>
@@ -164,10 +179,15 @@ export function SectionBrowse({ kind }: { kind: string }) {
   const loaded = list !== null && list !== 'error' && list.kind === kind;
   return (
     <div className="sv-wrap seccards-browse">
-      <h1 className="h1">{label}</h1>
+      <h2 className="h1">{label}</h2>
       <p className="meta">The {label.toLowerCase()} section of each deck. Open one to scroll through it, or add all of it to your draft deck.</p>
       {list === 'error' && <p role="alert">Sections could not be loaded right now. Please try again.</p>}
-      {list === null || (list !== 'error' && list.kind !== kind) ? <p role="status">Loading sections…</p> : null}
+      {list === null || (list !== 'error' && list.kind !== kind) ? (
+        <div className="sv-loading" role="status">
+          <span className="sv-ring" aria-hidden="true" />
+          <span>Finding the {label.toLowerCase()} sections…</span>
+        </div>
+      ) : null}
       {loaded && groups.length === 0 && <p role="status">No {label.toLowerCase()} sections found{filters.client.length || filters.category.length || filters.yfrom !== null || filters.yto !== null ? ' with these filters' : ''}.</p>}
       <Cards groups={groups} />
     </div>
