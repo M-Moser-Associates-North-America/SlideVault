@@ -309,6 +309,19 @@ function HomeHeader() {
               heroTouched = true;
               setTouched(true);
             }} />
+          <button
+            type="button"
+            className="home-hero-clear"
+            aria-label="Clear search"
+            hidden={!query}
+            onClick={() => {
+              setQuery('');
+              /* Home swaps its layout once the search is empty, so the box is a new element a moment later. */
+              setTimeout(() => document.getElementById('sv-hero-q')?.focus(), 0);
+            }}
+          >
+            <Icon name="x" />
+          </button>
           <MicButton className="home-hero-mic" showWhenOff onText={(t) => {
             spoken.current = true;
             setQuery(t);

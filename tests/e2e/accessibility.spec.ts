@@ -471,8 +471,8 @@ test('Useful / Not relevant: remembered after a reload, changing your mind takes
   });
   await openResults(page);
   const first = page.locator('article.card').first();
-  const useful = first.getByRole('button', { name: 'Useful for this search' });
-  const notRelevant = first.getByRole('button', { name: 'Not relevant to this search' });
+  const useful = first.getByRole('button', { name: 'Useful for this search', exact: true });
+  const notRelevant = first.getByRole('button', { name: 'Not useful for this search' });
 
   await useful.click();
   await expect(useful).toHaveAttribute('aria-pressed', 'true');
@@ -482,24 +482,24 @@ test('Useful / Not relevant: remembered after a reload, changing your mind takes
   // A reload forgets the page but not the answer: the arrow is still lit, and answering the same again sends nothing new.
   await openResults(page);
   const again = page.locator('article.card').first();
-  await expect(again.getByRole('button', { name: 'Useful for this search' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(again.getByRole('button', { name: 'Useful for this search', exact: true })).toHaveAttribute('aria-pressed', 'true');
   expect(sent).toHaveLength(1);
 
   // Changing your mind takes the Useful back, then sends Not relevant.
-  await again.getByRole('button', { name: 'Not relevant to this search' }).click();
-  await expect(again.getByRole('button', { name: 'Not relevant to this search' })).toHaveAttribute('aria-pressed', 'true');
+  await again.getByRole('button', { name: 'Not useful for this search' }).click();
+  await expect(again.getByRole('button', { name: 'Not useful for this search' })).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(() => sent.length).toBe(3);
   expect(sent.slice(1).map((s) => `${s.verdict}${s.undo ? ' undo' : ''}`).sort()).toEqual(['not-relevant', 'useful undo']);
 
   // Clicking the lit arrow again just takes it back.
-  await again.getByRole('button', { name: 'Not relevant to this search' }).click();
-  await expect(again.getByRole('button', { name: 'Not relevant to this search' })).toHaveAttribute('aria-pressed', 'false');
+  await again.getByRole('button', { name: 'Not useful for this search' }).click();
+  await expect(again.getByRole('button', { name: 'Not useful for this search' })).toHaveAttribute('aria-pressed', 'false');
   await expect.poll(() => sent.length).toBe(4);
   expect(`${sent[3].verdict}${sent[3].undo ? ' undo' : ''}`).toBe('not-relevant undo');
 
   // Not a second time on the same arrow, and a different search starts clean.
   await searchFor(page, 'team');
-  await expect(page.locator('article.card').first().getByRole('button', { name: 'Not relevant to this search' })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('article.card').first().getByRole('button', { name: 'Not useful for this search' })).toHaveAttribute('aria-pressed', 'false');
   expect(sent).toHaveLength(4);
 });
 
@@ -531,4 +531,18 @@ test('Personalize: turning it on or off is confirmed on a card, not only a toast
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(box).not.toBeChecked();
+});
+
+test('Home search: the clear cross is there as soon as there is text, without hovering, and clears it', async ({ page }) => {
+  await openHome(page);
+  const box = page.getByLabel('Search slides');
+  const clear = page.getByRole('button', { name: 'Clear search' });
+  await expect(clear).toBeHidden();
+  await box.fill('services');
+  await page.mouse.move(5, 5); // nowhere near the search box
+  await expect(clear).toBeVisible();
+  await clear.click();
+  await expect(box).toHaveValue('');
+  await expect(box).toBeFocused();
+  await expect(clear).toBeHidden();
 });

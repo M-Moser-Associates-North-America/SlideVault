@@ -289,7 +289,11 @@
 .slidevault .home-hero-try button.try-chip { height: 30px; padding: 0 13px; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); color: var(--sv-text-secondary); font-size: 12.5px; font-weight: 500; }
 .slidevault .home-hero-try button.try-chip:hover { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text); }
 .slidevault .home-hero-try button.try-chip[aria-current="true"] { background: var(--sv-brand-tint); border-color: var(--sv-brand); color: var(--sv-text); font-weight: 600; }
-.slidevault .home-hero-field input::-webkit-search-cancel-button { filter: grayscale(1); cursor: pointer; }
+.slidevault .home-hero-field input::-webkit-search-cancel-button { display: none; } /* the browser's own cross only shows on hover; ours (.home-hero-clear) stays while there is text */
+.slidevault .home-hero-clear { flex: none; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-text); cursor: pointer; }
+.slidevault .home-hero-clear[hidden] { display: none; }
+.slidevault .home-hero-clear:hover { background: var(--sv-surface-muted); }
+.slidevault .home-hero-clear .ic { width: 15px; height: 15px; }
 
 /* ---- Tabs styled like the mockup: icon + label, thin line under the whole row, orange underline on the current tab ---- */
 .slidevault .sv-top { box-shadow: none; border-bottom: 1px solid var(--sv-border); }
@@ -1159,7 +1163,8 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .vcard .tags-compact .tag { min-width: 0; flex: 0 1 auto; }
 .slidevault .vcard .tags-compact .tag-t { max-width: none; }
 .slidevault .vcard .tag-more { flex: none; }
-.slidevault .card-foot { margin-top: auto; padding-top: 4px; display: flex; align-items: center; gap: 8px; min-height: 36px; min-width: 0; }
+.slidevault .card-foot { margin-top: auto; padding-top: 2px; display: flex; align-items: center; gap: 8px; min-height: 28px; min-width: 0; } /* just tall enough for the small arrows or the Also-in chip (was 36px, from when votes with counts lived here) */
+.slidevault .card .card-body { padding-bottom: 10px; }
 .slidevault .card-foot:empty { display: none; }
 .slidevault .card-foot .also { align-self: center; margin-left: auto; }
 .slidevault .also-full { display: none; }
