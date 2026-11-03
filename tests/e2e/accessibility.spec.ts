@@ -50,7 +50,7 @@ test.beforeEach(async ({ page }) => {
     // The placeholder sign-in gates the app (SlideVaultWorkspace.tsx). Most of this suite is
     // about the app behind it, so sign in a demo profile here; the sign-in screen itself gets
     // its own accessibility test below.
-    localStorage.setItem('slidevault:profile', 'Anna Wintour');
+    localStorage.setItem('slidevault:profile', 'Avery Walsh');
     // The quick tour starts by itself on a first sign-in and dims the page; mark it seen so these
     // tests reach the app. The tour gets its own test below.
     localStorage.setItem('slidevault:tip:tour', '1');
@@ -232,7 +232,7 @@ test('reduced motion turns transitions off', async ({ browser }) => {
   const context = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await context.newPage();
   await page.goto('/slide-vault/pages');
-  await page.evaluate(() => localStorage.setItem('slidevault:profile', 'Anna Wintour'));
+  await page.evaluate(() => localStorage.setItem('slidevault:profile', 'Avery Walsh'));
   await openHome(page);
   const duration = await page.locator('.slidevault button').first().evaluate((b) => getComputedStyle(b).transitionDuration);
   expect(duration.split(',').every((d) => parseFloat(d) === 0)).toBe(true);
