@@ -545,4 +545,11 @@ test('Home search: the clear cross is there as soon as there is text, without ho
   await expect(box).toHaveValue('');
   await expect(box).toBeFocused();
   await expect(clear).toBeHidden();
+
+  // The slim search that stays after scrolling has its own cross too.
+  await box.fill('services');
+  await page.mouse.wheel(0, 600);
+  const slim = page.locator('.fb-search');
+  await expect(slim).toBeVisible();
+  await expect(slim.getByRole('button', { name: 'Clear search' })).toBeVisible();
 });

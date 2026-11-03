@@ -761,6 +761,11 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .fb-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); }
 .slidevault .fb-search:focus-within { border-color: var(--sv-brand); }
 .slidevault .fb-search .ic { width: 16px; height: 16px; flex: none; }
+.slidevault .fb-search input::-webkit-search-cancel-button { display: none; } /* ours (.fb-clear) stays while there is text; the browser's only shows on hover */
+.slidevault .fb-clear { flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-text); cursor: pointer; }
+.slidevault .fb-clear[hidden] { display: none; }
+.slidevault .fb-clear:hover { background: var(--sv-surface-muted); }
+.slidevault .fb-clear .ic { width: 13px; height: 13px; }
 .slidevault .fb-search input { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; font: inherit; font-size: 14px; color: var(--sv-text); outline: none; }
 .slidevault .fbar.has-search { margin-bottom: -50px; }
 @media (prefers-reduced-motion: reduce) { .slidevault .fb-search-wrap { animation: none; } }
@@ -1124,6 +1129,11 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .vp { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--sv-text-secondary); cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
 .slidevault .votepill.is-small .vp { width: 26px; height: 26px; }
 .slidevault .vp .ic { width: 18px; height: 18px; }
+/* Useful / Not useful as words (FD-81): the arrows said nothing about what they do */
+.slidevault .vp.vp-text { width: auto; padding: 0 11px; font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.slidevault .votepill.is-small .vp.vp-text { width: auto; height: 24px; padding: 0 9px; font-size: 12.5px; }
+.slidevault .vp.vp-text, .slidevault .vp.vp-text:hover, .slidevault .vp.vp-text:focus-visible, .slidevault .vp.vp-text[aria-pressed="true"].is-up { color: var(--sv-text); } /* dark words: orange on the orange tint was 4.05:1 */
+.slidevault .vp.vp-text[aria-pressed="true"].is-down { color: var(--sv-action-fg); }
 .slidevault .votepill.is-small .vp .ic { width: 15px; height: 15px; }
 .slidevault .vp.is-up { color: var(--sv-brand-strong); }
 .slidevault .vp:hover, .slidevault .vp:focus-visible { background: color-mix(in srgb, var(--sv-brand) 18%, transparent); color: var(--sv-brand-strong); }

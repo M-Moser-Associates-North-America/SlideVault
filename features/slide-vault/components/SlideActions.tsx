@@ -150,11 +150,11 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
   };
   return (
     <div className={`votepill${small ? ' is-small' : ''}`} role="group" aria-label="Is this slide useful for your search?">
-      <button type="button" className="vp is-up" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Useful for this search" data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(1)}>
-        <Icon name="up" />
+      <button type="button" className="vp vp-text is-up" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Useful for this search" data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(1)}>
+        Useful
       </button>
-      <button type="button" className="vp is-down" aria-pressed={shown === -1} aria-label="Not useful for this search" data-tip="Not useful for this search" data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(-1)}>
-        <Icon name="dn" />
+      <button type="button" className="vp vp-text is-down" aria-pressed={shown === -1} aria-label="Not useful for this search" data-tip="Not useful for this search" data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(-1)}>
+        Not useful
       </button>
     </div>
   );

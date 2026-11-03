@@ -23,6 +23,9 @@ export function StickySearch() {
         </label>
         <Icon name="search" />
         <input id="sv-fb-q" type="search" autoComplete="off" enterKeyHint="search" placeholder="Search slides, clients or topics" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <button type="button" className="fb-clear" aria-label="Clear search" hidden={!query} onClick={() => { setQuery(''); document.getElementById('sv-fb-q')?.focus(); }}>
+          <Icon name="x" />
+        </button>
       </form>
       <HiddenToggle />
     </div>
