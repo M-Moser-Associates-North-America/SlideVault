@@ -1062,10 +1062,11 @@ export function SlideView({ id }: { id: string }) {
               )}
               <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload([slide])}>
                 <Icon name="download" />
-                <span>Download this slide</span>
+                <span>Download slide</span>
               </button>
               <Link className="btn btn-sm" to={{ view: 'deck', id: deck.id }}>
-                Open deck
+                <Icon name="deck" />
+                <span>Open deck</span>
               </Link>
             </div>
           </section>

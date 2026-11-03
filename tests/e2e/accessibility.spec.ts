@@ -596,7 +596,7 @@ test('slide page: Share sits with the other buttons in Use this slide, once, and
   await openResults(page);
   await page.locator('article.card').first().getByRole('link').first().click();
   const panel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Use this slide' }) });
-  await expect(panel.getByRole('button')).toContainText(['Add to draft deck', 'Share', 'Download this slide']);
+  await expect(panel.getByRole('button')).toContainText(['Add to draft deck', 'Share', 'Download slide']);
   await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(1);
   await panel.getByRole('button', { name: 'Share' }).click();
   await expect(page.getByText('Link copied.')).toBeVisible();

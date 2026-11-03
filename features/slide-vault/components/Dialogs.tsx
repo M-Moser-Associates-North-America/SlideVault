@@ -347,11 +347,13 @@ export function Lightbox() {
                   <span>Download only this slide</span>
                 </button>
                 <Link className="btn btn-sm" to={{ view: 'slide', id: slide.id }} onNavigate={closePreview}>
-                  Open slide page
+                  <Icon name="open" />
+                  <span>Open slide page</span>
                 </Link>
                 {deck && (
                   <Link className="btn btn-sm" to={{ view: 'deck', id: deck.id }} onNavigate={closePreview}>
-                    Open deck
+                    <Icon name="deck" />
+                    <span>Open deck</span>
                   </Link>
                 )}
               </span>
