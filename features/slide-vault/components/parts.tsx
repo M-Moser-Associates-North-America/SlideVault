@@ -265,9 +265,18 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
           {slide.title}
         </Link>
         <div className="meta-row">
-          <div className="meta clip" title={`Slide ${p.slideNumber} of ${p.sourceTitle}`}>
-            {meta || p.sourceTitle}
-          </div>
+          {/* Hover: the whole line when it is cut off ("Next Level Games · 2025 · Design Consultancy"), else where the slide is from. */}
+          <span
+            className="meta-wrap"
+            data-tip-pos="start"
+            onMouseEnter={(e) => {
+              const w = e.currentTarget;
+              const m = w.querySelector<HTMLElement>('.meta');
+              w.setAttribute('data-tip', m && m.scrollWidth > m.clientWidth ? meta || p.sourceTitle : `Slide ${p.slideNumber} of ${p.sourceTitle}`);
+            }}
+          >
+            <div className="meta clip">{meta || p.sourceTitle}</div>
+          </span>
           {slide.alsoIn && (
             <button
               type="button"
