@@ -179,6 +179,16 @@ export function useShareSlide(slideId: string) {
   };
 }
 
+/** Share as a small icon button, for the corner of the preview next to its close button. */
+export function ShareIconButton({ slideId }: { slideId: string }) {
+  const share = useShareSlide(slideId);
+  return (
+    <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Share: copy a link to this slide" data-tip="Copy link" data-tip-pos="end" onClick={() => void share()}>
+      <Icon name="share" />
+    </button>
+  );
+}
+
 /** The full bar: vote pill, comments, Share (the slide page has Share in its Use this slide card instead: noShare). */
 export function SlideActions({ slide, commentsOpen, onComments, noShare }: { slide: SlideSummary; commentsOpen?: boolean; onComments: () => void; noShare?: boolean }) {
   const { runtime } = useWorkspace();
@@ -216,12 +226,12 @@ export function SlideEngagement({ slide, loaded }: { slide: SlideSummary; loaded
   );
 }
 
-/** The preview: the same bar, with the comments opening right below it. */
+/** The preview: the same bar without Share (that is an icon beside the close button), with the comments opening right below it. */
 export function PreviewActions({ slide }: { slide: SlideSummary }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <SlideActions slide={slide} commentsOpen={open} onComments={() => setOpen((o) => !o)} />
+      <SlideActions slide={slide} commentsOpen={open} onComments={() => setOpen((o) => !o)} noShare />
       {open && <CommentsSection slide={slide} />}
     </>
   );

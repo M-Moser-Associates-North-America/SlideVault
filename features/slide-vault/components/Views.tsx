@@ -1050,6 +1050,10 @@ export function SlideView({ id }: { id: string }) {
                 <Icon name="check" />
                 <span>{sel ? 'In draft deck' : 'Add to draft deck'}</span>
               </button>
+              <button type="button" className="btn btn-sm" onClick={() => void shareSlide()} data-tip="Copy link">
+                <Icon name="share" />
+                <span>Share</span>
+              </button>
               {slidePack && (
                 <button type="button" className="btn btn-sm" disabled={slidePack.slideIds.every((pid) => selection.some((x) => x.id === pid))} onClick={() => addPackToDraft(slidePack)}>
                   <Icon name="plus" />
@@ -1058,15 +1062,11 @@ export function SlideView({ id }: { id: string }) {
               )}
               <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload([slide])}>
                 <Icon name="download" />
-                <span>Download only this slide</span>
+                <span>Download this slide</span>
               </button>
               <Link className="btn btn-sm" to={{ view: 'deck', id: deck.id }}>
                 Open deck
               </Link>
-              <button type="button" className="btn btn-sm" onClick={() => void shareSlide()} data-tip="Copy link">
-                <Icon name="share" />
-                <span>Share</span>
-              </button>
             </div>
           </section>
           {slidePack && <PackPanel slide={slide} pack={slidePack} />}

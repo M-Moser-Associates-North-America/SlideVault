@@ -586,6 +586,8 @@ test("the team's labels: a card shows the two most relevant and +N for the rest;
   await first.locator('.thumb').first().click();
   const labels = page.getByRole('dialog').getByRole('group', { name: 'Labels from the team' });
   await expect(labels.locator('.tag-team')).toHaveCount(5);
+  // Share in the preview is a small icon beside the close button, not a row of its own.
+  await expect(page.getByRole('dialog').getByRole('button', { name: /^Share: copy a link/ })).toBeVisible();
   expect(await axe(page)).toEqual([]);
 });
 
@@ -594,7 +596,7 @@ test('slide page: Share sits with the other buttons in Use this slide, once, and
   await openResults(page);
   await page.locator('article.card').first().getByRole('link').first().click();
   const panel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Use this slide' }) });
-  await expect(panel.getByRole('button')).toContainText(['Add to draft deck', 'Download only this slide', 'Share']);
+  await expect(panel.getByRole('button')).toContainText(['Add to draft deck', 'Download this slide', 'Share']);
   await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(1);
   await panel.getByRole('button', { name: 'Share' }).click();
   await expect(page.getByText('Link copied.')).toBeVisible();

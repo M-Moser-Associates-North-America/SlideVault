@@ -1273,3 +1273,4 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .res-block .res-h { margin-top: 28px; }
 .slidevault .state .btn + .btn { margin-left: 8px; } /* two buttons in an empty state: a gap, not touching */
 .slidevault .slide-actions:empty { display: none; } /* the slide page's bar has nothing in it when there are no votes or comments */
+.slidevault .dlg-head-tools { display: flex; align-items: center; gap: 2px; flex: none; }
