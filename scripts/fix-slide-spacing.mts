@@ -1,6 +1,6 @@
 /**
  * Puts back the spaces lost at line breaks in slide titles and text for decks already uploaded
- * ("Sony MusicMumbai" -> "Sony Music Mumbai"). Older uploads read a line break inside a text box
+ * ("Harbor StudioLisbon" -> "Harbor Studio Lisbon"). Older uploads read a line break inside a text box
  * as nothing; extract-text.ts now reads it as a space, so new uploads are fine. This is for the rest.
  *
  *   npm run slides:spacing -- ~/Desktop/MMoser-RealDecks          # dry run: shows what it would change

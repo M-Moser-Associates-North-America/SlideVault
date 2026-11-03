@@ -15,7 +15,7 @@ const decode = (s: string) =>
 const runs = (xml: string) => (xml.match(/<a:t>([^<]*)<\/a:t>/g) ?? []).map((t) => decode(t.slice(5, -6)));
 /**
  * One paragraph's words. A line break inside a paragraph (<a:br>, Shift+Enter in PowerPoint) reads
- * as a space, so "Sony Music" + break + "Mumbai, India" is "Sony Music Mumbai, India", not "Sony MusicMumbai".
+ * as a space, so "Harbor Studio" + break + "Lisbon, Portugal" is "Harbor Studio Lisbon, Portugal", not "Harbor StudioLisbon".
  */
 export const paragraphText = (pXml: string) =>
   runs(pXml.replace(/<a:br\b[^>]*\/>|<a:br\b[^>]*>[\s\S]*?<\/a:br>/g, '<a:t> </a:t>')).join('').replace(/[ \t]+/g, ' ').trim();

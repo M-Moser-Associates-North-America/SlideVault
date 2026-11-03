@@ -89,7 +89,7 @@ const again = await run('embed-slides.mts', '--yes');
 check(/0 to do/.test(again), 'running it again skips unchanged slides', again);
 await sql(`update slides set text = 'Updated words' where title = 'Fees'`);
 check(/1 to do/.test(await run('embed-slides.mts')), 'a changed slide is done again');
-// A photo or blank slide: no words of its own, so its fingerprint is vague (Moody's "Slide 105", 31 Oct).
+// A photo or blank slide: no words of its own, so its fingerprint is vague (a blank "Slide 105" in a real deck, 31 Oct).
 const [{ id: deckA }] = await sql<{ id: string }>(`select id from decks where title = 'Deck A'`);
 await sql(`insert into slides (deck_id, slide_number, title, text) values ($1, 9, 'Slide 9', '')`, [deckA]);
 await run('embed-slides.mts', '--yes');
