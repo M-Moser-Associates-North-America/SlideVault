@@ -7,12 +7,13 @@ import { hasMmoserConfig } from '@/features/slide-vault/server/config';
 import { getSlideSummariesPg, isInternalOnly } from '@/features/slide-vault/server/pg-repository';
 import { tagsInQuery, withTags } from '@/features/slide-vault/server/tags';
 import { taggedFirst } from '@/features/slide-vault/server/services/tagged-first';
-import { configuredReader, searchLibrary } from '@/features/slide-vault/server/services/library-smart-search';
+import { configuredReader, readerForSearch, searchLibrary } from '@/features/slide-vault/server/services/library-smart-search';
 
-// GET /smart-search?q=&limit=&read=1&role= (docs/DECISIONS.md FD-16, FD-17, FD-59)
+// GET /smart-search?q=&limit=&read=1&ai=off&role= (docs/DECISIONS.md FD-16, FD-17, FD-59, FD-79)
 // One search over sample and uploaded decks. read=1 (sent when the person submits the search)
 // lets the configured AI reader read a sentence or question; otherwise, and for basic searches,
-// the rules do. Each result says why it fits; near-identical slides are grouped.
+// the rules do. ai=off (the "Deeper AI search" checkbox unticked) keeps the AI reader out of this one
+// search; aiAvailable tells the screen whether to offer the checkbox at all. Each result says why it fits; near-identical slides are grouped.
 // Response: { query, reader, readerNote, plan, chips, relaxed, items: [{ slide, why, matched }] }
 export async function GET(request: Request) {
   const limited = rateLimit(request, RATE_POLICIES.smartSearch);
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await searchLibrary(query, limit, { reader, read: url.searchParams.get('read') === '1', by: roleOf(url.searchParams.get('role')), includeHidden: url.searchParams.get('hidden') === 'include' });
+    const result = await searchLibrary(query, limit, { reader: readerForSearch(reader, url.searchParams.get('ai')), read: url.searchParams.get('read') === '1', by: roleOf(url.searchParams.get('role')), includeHidden: url.searchParams.get('hidden') === 'include' });
     // Hidden-in-source slides (usually internal notes) only when asked for (FD-50).
     // ...and so are slides the team marked "internal - never show" (FD-53).
     if (url.searchParams.get('hidden') !== 'include') result.items = result.items.filter((i) => !i.slide.hiddenInSource && !isInternalOnly(i.slide));
@@ -61,7 +62,7 @@ export async function GET(request: Request) {
     // Each slide in a pack carries the whole pack (FD-38, FD-52).
     const packed = await withTags(await withPacks(result.items.map((i) => i.slide)));
     result.items = result.items.map((i, n) => ({ ...i, slide: packed[n] }));
-    return ok(result);
+    return ok({ ...result, aiAvailable: reader !== null });
   } catch (e) {
     console.error('Smart search failed', e);
     return fail(503, 'LIBRARY_NOT_READY', 'Search is unavailable right now. Please try again.', true);

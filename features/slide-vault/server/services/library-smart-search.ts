@@ -48,6 +48,13 @@ export function configuredReader(): PlanReader | null {
 }
 
 /**
+ * The "Deeper AI search" checkbox (FD-79): ai=off skips the AI reader for one search, so the rules
+ * read it, as they do with no AI set up. Meaning search and everything else run as usual. Only the
+ * person can turn the AI off; ai=on can never turn on a reader the server doesn't have.
+ */
+export const readerForSearch = (reader: PlanReader | null, ai: string | null): PlanReader | null => (ai === 'off' ? null : reader);
+
+/**
  * Uploaded decks live in Postgres. A checkout without database settings searches the sample decks
  * only, quietly; a configured database that fails is logged, and search carries on without it.
  */
