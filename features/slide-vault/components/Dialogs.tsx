@@ -54,6 +54,15 @@ export function Lightbox() {
   const results = !!preview && preview.list.length > 1 && (!fromDeck || !!section);
   const inSection = (id: string) => !!preview && preview.list.some((x) => x.id === id);
   const sectionAt = section && slide && preview ? preview.list.findIndex((x) => x.id === slide.id) : -1;
+  /* The deck's slides in order, with each unbroken run of the section's slides gathered into one part (to be framed). */
+  const stripParts: { key: string; inSection: boolean; slides: { s: SlideSummary; k: number }[] }[] = [];
+  sibs.forEach((s, k) => {
+    const inS = !!section && inSection(s.id);
+    const last = stripParts[stripParts.length - 1];
+    if (last && last.inSection === inS && inS) last.slides.push({ s, k });
+    else if (!inS) stripParts.push({ key: s.id, inSection: false, slides: [{ s, k }] });
+    else stripParts.push({ key: s.id, inSection: true, slides: [{ s, k }] });
+  });
 
   const moveDeck = (delta: -1 | 1) => {
     const target = sibs[di + delta];
@@ -257,25 +266,35 @@ export function Lightbox() {
                   )}
                 </p>
                 <div className="lb-strip" ref={strip} role="group" aria-labelledby="sv-lb-deck">
-                  {sibs.map((s, k) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      className={`lb-thumb${section && inSection(s.id) ? ' is-in-section' : ''}`}
-                      aria-current={s.id === slide.id ? 'true' : undefined}
-                      aria-label={`Slide ${k + 1}: ${s.title}${section && inSection(s.id) ? ` (in the ${section} section)` : ''}`}
-                      onClick={() => {
-                        const at = section ? preview.list.findIndex((x) => x.id === s.id) : -1;
-                        if (at >= 0) {
-                          setPick(null);
-                          goToPreview(at);
-                        } else setPick({ list: preview.list, index: preview.index, slide: s });
-                      }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={runtime.assetUrl(s.previewPath)} alt="" loading="lazy" />
-                    </button>
-                  ))}
+                  {stripParts.map((part) => {
+                    const thumbs = part.slides.map(({ s, k }) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className="lb-thumb"
+                        aria-current={s.id === slide.id ? 'true' : undefined}
+                        aria-label={`Slide ${k + 1}: ${s.title}`}
+                        onClick={() => {
+                          const at = section ? preview.list.findIndex((x) => x.id === s.id) : -1;
+                          if (at >= 0) {
+                            setPick(null);
+                            goToPreview(at);
+                          } else setPick({ list: preview.list, index: preview.index, slide: s });
+                        }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={runtime.assetUrl(s.previewPath)} alt="" loading="lazy" />
+                      </button>
+                    ));
+                    /* One orange frame round the run of slides that are the section, not an outline on each. */
+                    return part.inSection ? (
+                      <div key={part.key} className="lb-frame" role="group" aria-label={`${section} section, ${part.slides.length} slides`}>
+                        {thumbs}
+                      </div>
+                    ) : (
+                      thumbs
+                    );
+                  })}
                 </div>
               </div>
             )}
