@@ -13,7 +13,7 @@ import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from '../f
 import { mentionsWord, smartSearch } from '../features/slide-vault/server/services/smart-search';
 import { asksForCover, deckSections, isSectionSearch, sectionKind, sectionKinds } from '../features/slide-vault/server/services/sections';
 import { taggedFirst, typedTags, type TagHit } from '../features/slide-vault/server/services/tagged-first';
-import { cleanSearchFeedback, learnedForSearch, learnedScore, searchWords } from '../features/slide-vault/server/search-feedback';
+import { cleanSearchFeedback, learnedForSearch, learnedScore, searchWords, sinks } from '../features/slide-vault/server/search-feedback';
 import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
 import { byLearning } from '../features/slide-vault/server/services/library-smart-search';
 
@@ -430,14 +430,20 @@ for (const [env, label] of [
   check(l.get('bio')?.notRelevant === 2 && l.get('case')?.useful === 1 && !l.has('other'), 'feedback: counts only searches that share a word', Object.fromEntries(l));
   check(learnedForSearch(rows, ['hospitality'], 'director').get('bio')?.notRelevant === 3, 'feedback: someone in the same role counts double');
   check(learnedScore(l.get('case')) > 0 && learnedScore(l.get('bio')) < 0 && learnedScore(undefined) === 0, 'feedback: useful moves a slide up, not relevant moves it down');
+  // Khushali, 2 Nov: Not relevant on "hospitality decks" must not follow the slide into "hospitality case studies".
+  const other = learnedForSearch(rows, searchWords('hospitality case studies'));
+  check(!other.has('bio') && !other.has('case'), 'feedback: a click only counts for a mostly-same search, not any search sharing one word', Object.fromEntries(other));
+  check(learnedForSearch(rows, searchWords('hospitality case studies'), null, 'any').has('bio'), 'feedback: the storyboard still learns from any shared word (its briefs are long)');
+  const oneClick = learnedForSearch([rows[0]], ['hospitality'], 'director');
+  check(sinks(l.get('bio')) && !sinks(learnedForSearch([rows[0]], ['hospitality']).get('bio')) && !sinks(learnedForSearch([{ ...rows[0], by: 'director' as const }], ['hospitality'], 'director').get('bio')) && !!oneClick, 'feedback: going last takes two Not relevant clicks; one click (even same role) only nudges');
 }
 
 {
   // The database's results learn too (FD-78): useful first, not relevant last, its own order otherwise.
   const rows = ['a', 'b', 'c', 'd'].map((id) => ({ summary: { id } }));
-  const learned = new Map([['c', { useful: 2, notRelevant: 0 }], ['a', { useful: 0, notRelevant: 1 }]]);
+  const learned = new Map([['c', { useful: 2, notRelevant: 0 }], ['a', { useful: 0, notRelevant: 1, notRelevantVotes: 1 }], ['b', { useful: 0, notRelevant: 2, notRelevantVotes: 2 }]]);
   const order = byLearning(rows, learned).map((r) => r.summary.id).join('');
-  check(order === 'cbda', 'feedback on the database: marked useful leads, not relevant goes last, the rest keep their order', order);
+  check(order === 'cadb', 'feedback on the database: marked useful leads, two Not relevant clicks go last, one click keeps its place', order);
   check(byLearning(rows, new Map()).map((r) => r.summary.id).join('') === 'abcd', 'feedback on the database: with nothing marked, the order is unchanged');
 }
 

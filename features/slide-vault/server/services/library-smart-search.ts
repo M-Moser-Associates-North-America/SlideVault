@@ -24,7 +24,7 @@ import { refineStory } from './story-refine';
 import type { StoryBeat, StoryRefineRequest, StoryRefineResult, StoryboardSlide } from '../../contracts/dto';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
-import { learnedScore, searchLearning, type SearchLearned } from '../search-feedback';
+import { learnedScore, searchLearning, sinks, type SearchLearned } from '../search-feedback';
 import { isInternalOnly, listDeckSlidesPg, type DeckSlidesPg } from '../pg-repository';
 import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
 
@@ -180,7 +180,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     // The cover leads when one is asked for; otherwise the section's first pages ("the Priya page and the four after it").
     return 5 + (sec.divider ? (cover ? 12 : 1) : cover ? 0 : Math.max(0, 3 - sec.position) * 0.5);
   };
-  const notRelevant = (id: string) => { const l = learned.get(id); return !!l && l.notRelevant > l.useful; };
+  const notRelevant = (id: string) => sinks(learned.get(id));
   const known: SearchKnowledge = {
     about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
     boost: (id) => intentScore(intent, readings.get(id)) + sectionScore(id) + learnedScore(learned.get(id)) + roleLean(opts.by ?? null, readings.get(id)),
@@ -276,17 +276,19 @@ export function configuredStoryReader(env: Record<string, string | undefined> = 
 
 /**
  * The real decks in the database, re-ranked by what colleagues marked for searches like this one
- * (FD-59, FD-78): marked useful first, marked not relevant last, the database's order kept otherwise.
+ * (FD-59, FD-78): marked useful first, sent last by at least two Not relevant clicks (sinks), the
+ * database's order kept otherwise; one Not relevant click doesn't move a database result (2 Nov).
  * The sample decks get the same through their boost; without this, the database's results never
  * learned, which is where M Moser's library lives.
  */
 export function byLearning<T extends { summary: { id: string } }>(rows: T[], learned: Map<string, SearchLearned>): T[] {
   if (!learned.size) return rows;
-  return rows.map((r, i) => ({ r, i, s: learnedScore(learned.get(r.summary.id)) })).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.r);
+  const place = (l: SearchLearned | undefined) => (sinks(l) ? -1 : l && l.useful > l.notRelevant ? 1 : 0);
+  return rows.map((r, i) => ({ r, i, s: place(learned.get(r.summary.id)) })).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.r);
 }
 
 /** What search learned (FD-59) for the brief's topics, counted as for a search of those words. */
-const storySearchLearning = (topics: string[], role: StoryUserRole | null) => searchLearning(topics.join(' '), role);
+const storySearchLearning = (topics: string[], role: StoryUserRole | null) => searchLearning(topics.join(' '), role, 'any');
 
 const NO_TAGS = { of: () => undefined, rows: [] };
 
