@@ -80,6 +80,8 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
     return sec && sec.slides.length > 0 ? sec.slides : g.slides;
   };
   const countOf = (g: SectionGroup) => whole[g.dividerId]?.length ?? g.total;
+  /* The cover is the section's own divider (its title slide): from the whole section once it has arrived, else what the search found. */
+  const coverOf = (g: SectionGroup) => { const all = whole[g.dividerId]; return all?.find((x) => x.section?.divider) ?? all?.[0] ?? g.cover; };
   const inDraft = (g: SectionGroup) => !!whole[g.dividerId] && whole[g.dividerId].every((s) => selection.some((x) => x.id === s.id));
 
   /* The first press of Open or Add all can wait for the section to arrive: say so on the button, and don't take a second press meanwhile. */
@@ -120,7 +122,7 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
           return (
             <li key={g.key} className={`seccard${on ? ' is-in' : ''}`}>
               <button type="button" className="seccard-cover" aria-label={`Open the ${g.name} section of ${g.deck}`} onClick={() => void working(g, () => open(g))}>
-                <Thumb slide={g.cover} />
+                <Thumb slide={coverOf(g)} />
               </button>
               <div className="seccard-body">
                 <h3 className="seccard-name">{g.name}</h3>
