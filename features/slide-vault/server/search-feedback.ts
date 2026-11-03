@@ -85,30 +85,50 @@ async function allRows(): Promise<Row[]> {
   }
 }
 
-export type SearchLearned = { useful: number; notRelevant: number };
+/** Weighted counts (same role counts double), plus how many Not relevant clicks there were. */
+export type SearchLearned = { useful: number; notRelevant: number; notRelevantVotes?: number };
 
 /**
- * What colleagues said about slides for searches like this one: a verdict counts when its search
- * shared a word with this one. Someone in the same role counts double (as in FD-25). Keyed by slide.
+ * Is a past search mostly this one? At least half of the words of the longer of the two are shared
+ * (2 Nov, Khushali's catch): "hospitality" and "hospitality firms" are; "hospitality decks" and
+ * "hospitality case studies" are not, so Not relevant on one doesn't follow the slide into the other.
  */
-export function learnedForSearch(rows: Row[], words: string[], by: StoryUserRole | null = null): Map<string, SearchLearned> {
+export function sameSearch(past: string[], mine: Set<string>): boolean {
+  const shared = past.filter((w) => mine.has(w)).length;
+  return shared > 0 && shared * 2 >= Math.max(past.length, mine.size);
+}
+
+/**
+ * What colleagues said about slides for searches like this one. For search ('similar'), a verdict
+ * counts when its search was mostly the same (sameSearch); the storyboard asks with a whole brief's
+ * topics, so it counts any shared word ('any'). Someone in the same role counts double (as in FD-25).
+ */
+export function learnedForSearch(rows: Row[], words: string[], by: StoryUserRole | null = null, match: 'similar' | 'any' = 'similar'): Map<string, SearchLearned> {
   const mine = new Set(words);
   const out = new Map<string, SearchLearned>();
   if (!mine.size) return out;
   for (const r of rows) {
-    if (!r.words.some((w) => mine.has(w))) continue;
-    const l = out.get(r.slideId) ?? { useful: 0, notRelevant: 0 };
+    if (match === 'similar' ? !sameSearch(r.words, mine) : !r.words.some((w) => mine.has(w))) continue;
+    const l = out.get(r.slideId) ?? { useful: 0, notRelevant: 0, notRelevantVotes: 0 };
     const n = by && r.by === by ? 2 : 1;
     if (r.verdict === 'useful') l.useful += n;
-    else l.notRelevant += n;
+    else {
+      l.notRelevant += n;
+      l.notRelevantVotes = (l.notRelevantVotes ?? 0) + 1;
+    }
     out.set(r.slideId, l);
   }
   return out;
 }
 
-export async function searchLearning(query: string, by: StoryUserRole | null = null): Promise<Map<string, SearchLearned>> {
-  return learnedForSearch(await allRows(), searchWords(query), by);
+export async function searchLearning(query: string, by: StoryUserRole | null = null, match: 'similar' | 'any' = 'similar'): Promise<Map<string, SearchLearned>> {
+  return learnedForSearch(await allRows(), searchWords(query), by, match);
 }
+
+/** Clicks it takes to send a slide to the end of the results: one person's Not relevant only nudges it. */
+export const SINK_VOTES = 2;
+/** Goes last for this search: at least SINK_VOTES Not relevant clicks, and more not relevant than useful. */
+export const sinks = (l: SearchLearned | undefined) => !!l && (l.notRelevantVotes ?? 0) >= SINK_VOTES && l.notRelevant > l.useful;
 
 /** How much a slide moves for a search: up for useful, further down for not relevant. */
 export const learnedScore = (l: SearchLearned | undefined) => (l ? 2 * Math.min(l.useful, 3) - 4 * Math.min(l.notRelevant, 3) : 0);
