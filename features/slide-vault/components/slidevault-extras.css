@@ -1201,3 +1201,16 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .sv-bottombar a:hover, .slidevault .sv-bottombar a:focus-visible { color: var(--sv-brand-strong); }
 .slidevault .sv-bottombar a:hover .ic, .slidevault .sv-bottombar a:focus-visible .ic { color: var(--sv-brand-strong); }
 .slidevault .sv-nav a:not(.is-locked):hover .ic, .slidevault .sv-nav a:not(.is-locked):focus-visible .ic { color: var(--sv-brand-strong); }
+
+/* Draft deck: one tag on every ticked slide (FD-58) */
+.slidevault .cart-tagall-open { display: inline-flex; align-items: center; gap: 4px; margin: 4px 0 8px; font-size: 13px; }
+.slidevault .cart-tagall { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; }
+.slidevault .cart-tagall .input { flex: 1 1 auto; min-width: 0; height: 32px; }
+
+/* Search results narrowed by deck section (FD-57) */
+.slidevault .sec-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
+.slidevault .sec-pills .meta { margin: 0; }
+.slidevault .sec-pills .chip-x { cursor: pointer; }
+.slidevault .sec-pills .chip-x .n { color: var(--sv-text-secondary); font-variant-numeric: tabular-nums; }
+.slidevault .sec-pills .chip-x[aria-pressed="true"] { border-color: var(--sv-brand-strong); color: var(--sv-brand-strong); font-weight: 600; }
+.slidevault .sec-pills .chip-x[aria-pressed="true"] .n { color: inherit; }

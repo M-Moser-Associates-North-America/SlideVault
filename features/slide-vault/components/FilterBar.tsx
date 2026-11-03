@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
-import { categoryOf, clientOf, countBy, createdByOf, filterCount, slideMatches, uploadedByOf, yearOf, type Filters } from './library';
+import { categoryOf, clientOf, countBy, createdByOf, filterCount, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Link } from './parts';
-import type { SmartSearchChip } from '../contracts/dto';
+import type { SlideSummary, SmartSearchChip } from '../contracts/dto';
 import { rowReading, withoutChip } from './search-reading';
 import { SLIDE_TYPES, hasSlideType } from './search-rules';
 import { useHeroOut } from '../client/hero-visibility';
@@ -140,6 +140,14 @@ export function FilterBar() {
   const uploaders = useMemo(() => [...countBy(slides, uploadedByOf).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
   const creatorCounts = useMemo(() => countBy(without({ createdBy: [] }), createdByOf), [without]);
   const uploaderCounts = useMemo(() => countBy(without({ uploadedBy: [] }), uploadedByOf), [without]);
+  /* People's own tags (FD-58): a slide can carry several, so each one is counted. */
+  const tagCount = (list: SlideSummary[]) => {
+    const m = new Map<string, number>();
+    for (const s of list) for (const t of tagsOf(s)) m.set(t, (m.get(t) ?? 0) + 1);
+    return m;
+  };
+  const tagNames = useMemo(() => [...tagCount(slides).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
+  const tagCounts = useMemo(() => tagCount(without({ tag: [] })), [without]);
   const typeCounts = useMemo(() => {
     const base = without({ slideType: [] });
     return new Map(SLIDE_TYPES.map((t) => [t.label, base.filter((s) => hasSlideType(s, t.label)).length]));
@@ -206,7 +214,7 @@ export function FilterBar() {
   }, [compact, scroll]);
 
   const yearOn = filters.yfrom !== null || filters.yto !== null;
-  const moreCount = (filters.bestOnly ? 1 : 0) + filters.createdBy.length + filters.uploadedBy.length;
+  const moreCount = (filters.bestOnly ? 1 : 0) + filters.createdBy.length + filters.uploadedBy.length + filters.tag.length;
   const items: { key: Key; label: string; icon: IconName; active: number }[] = [
     { key: 'year', label: 'Year', icon: 'calendar', active: yearOn || fromYear ? 1 : 0 },
     { key: 'client', label: 'Client', icon: 'building', active: filters.client.length + (fromClient ? 1 : 0) },
@@ -227,6 +235,7 @@ export function FilterBar() {
     ...filters.slideType.map((v) => ({ id: `t-${v}`, kind: 'Slide type', text: v, remove: () => patchFilters({ slideType: filters.slideType.filter((x) => x !== v) }) })),
     ...filters.createdBy.map((v) => ({ id: `cb-${v}`, kind: 'File created by', text: v, remove: () => patchFilters({ createdBy: filters.createdBy.filter((x) => x !== v) }) })),
     ...filters.uploadedBy.map((v) => ({ id: `ub-${v}`, kind: 'Uploaded by', text: v, remove: () => patchFilters({ uploadedBy: filters.uploadedBy.filter((x) => x !== v) }) })),
+    ...filters.tag.map((v) => ({ id: `tg-${v}`, kind: 'Tag', text: v, remove: () => patchFilters({ tag: filters.tag.filter((x) => x !== v) }) })),
     ...(filters.bestOnly ? [{ id: 'best', kind: 'Collection', text: 'Best of the Best', remove: () => patchFilters({ bestOnly: false }) }] : []),
     ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
     ...(fromClient ? [{ id: 'sc', kind: 'Client', text: fromClient.label, remove: () => removeFromSearch(fromClient), fromSearch: true }] : []),
@@ -314,6 +323,11 @@ export function FilterBar() {
       );
     return (
       <div className="fb-more">
+        {tagNames.length > 0 ? (
+          <Picker label="Tags" options={tagNames} picked={filters.tag} counts={tagCounts} onToggle={(v) => patchFilters({ tag: toggle(filters.tag, v) })} />
+        ) : (
+          <NotYet label="Tags" />
+        )}
         {creators.length > 0 ? (
           <Picker label="File created by" options={creators} picked={filters.createdBy} counts={creatorCounts} onToggle={(v) => patchFilters({ createdBy: toggle(filters.createdBy, v) })} />
         ) : (

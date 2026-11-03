@@ -787,3 +787,17 @@ Acceptance evidence / affected PR criteria: test:storyboard (12 new checks: Usef
 Documents/contracts changed: server/services/storyboard.ts (StoryboardDeps.searchLearned, tagged, isDivider), server/services/story-beats.ts (weaveDeck isDivider), server/services/library-smart-search.ts (storySearchLearning, storyTags, dividers from sectionsOf), scripts/test-storyboard.mts.
 Revisit trigger: enough verdicts to tune how search and storyboard votes weigh against each other; real sign-in for per-person learning.
 ```
+
+```text
+Decision ID and title: FD-76 Find by section and by tag on screen: By section pills on results, a Tags filter, and Tag all in the draft deck
+Status: proposed
+Decision date: 2026-11-02
+Decision owner/reviewer: Schiffon (built); Khushali (screens, review)
+Context and evidence: The backend already gave every result its deck section (FD-57) and every slide its people's tags (FD-58), but no screen used them. Alina, 28 Oct: searching "company overview" means "the slides in that particular section… between different decks". Gabby: tag a page (a person's name) and find it again. Vince's freeze list asked for a section row, a tag filter in More filters and a bulk Add tag.
+Options considered: (a) small view controls over data the screens already receive; (b) new server routes for section browsing and bulk tagging; (c) leave it for after the freeze.
+Chosen outcome: (a). Search results show "By section" pills (All, Case studies, Firm overview, Team…) with counts, only when the results span two or more standard sections; picking one narrows the results, as Sort does, and resets for a new search. More filters gains a Tags picker (counts like the other lists, matched whatever the case), shown as "not yet" when no slide has a tag. The draft deck gains "Tag all N slides": one tag added to every ticked slide through the existing tag route, slides that already have it skipped, and each card shows it at once. No new routes, no database change.
+Consequences for scope, cost, security and integration: Tagging needs a signed-in person, as before. Bulk tagging is one request per slide (fine for a draft deck's size). Section pills use the standard kinds only; a deck's own section names still show on each slide.
+Acceptance evidence / affected PR criteria: typecheck and lint (0 errors), all database-free suites pass. Not run here: a browser click-through (this laptop has no shared-database password, so sign-in can't complete) and the axe pass; needs Khushali's review in the browser.
+Documents/contracts changed: components/library.ts (Filters.tag, tagsOf), components/FilterBar.tsx, components/Views.tsx (By section), components/Cart.tsx (Tag all), client/tag-store.ts (addTagToSlides), components/slidevault-extras.css, docs/foundry/EVALS.md (new).
+Revisit trigger: real use shows people want to browse a section across decks without searching first.
+```
