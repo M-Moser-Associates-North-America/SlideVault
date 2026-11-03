@@ -800,4 +800,15 @@ Consequences for scope, cost, security and integration: Tagging needs a signed-i
 Acceptance evidence / affected PR criteria: typecheck and lint (0 errors), all database-free suites pass. Not run here: a browser click-through (this laptop has no shared-database password, so sign-in can't complete) and the axe pass; needs Khushali's review in the browser.
 Documents/contracts changed: components/library.ts (Filters.tag, tagsOf), components/FilterBar.tsx, components/Views.tsx (By section), components/Cart.tsx (Tag all), client/tag-store.ts (addTagToSlides), components/slidevault-extras.css, docs/foundry/EVALS.md (new).
 Revisit trigger: real use shows people want to browse a section across decks without searching first.
+Decision ID and title: FD-77 The up / down arrows teach the search in the real app: Useful / Not relevant without counts until votes are built
+Status: proposed
+Decision date: 2026-11-02
+Decision owner/reviewer: Schiffon (built); Khushali (the arrows, review)
+Context and evidence: FD-72's up / down pill also sent Useful / Not relevant (FD-59), but it only appeared when the server sent vote counts, and no vote route exists, so in the real app the arrows never showed and nothing was sent: search and, through FD-75, the storyboard had nothing to learn from. Alina, 28 Oct: "how do I train the search?… I could click on not relevant".
+Options considered: (a) the same arrows on search results without counts, sending Useful / Not relevant only; (b) build per-person vote routes and a table tonight (needs a database change before the freeze); (c) separate Useful / Not relevant buttons beside the arrows.
+Chosen outcome: (a). When there are no vote counts, the pill still shows on a result card, the preview and the slide page whenever the person came from a search: ▲ Useful, ▼ Not relevant, no number, no name. The answer is shared by those places for that search and slide; changing your mind sends the new answer once, and clicking the same arrow again only un-highlights it. The server keeps it only for people who turned learning on (FD-37); otherwise the person is told once: "Not saved: learning from your activity is off. You can turn it on in Settings." Once vote counts exist, the same pill shows them and keeps teaching the search, as FD-72 already does.
+Consequences for scope, cost, security and integration: No new route or table. Anonymous and opt-in as FD-59. With ?demotags=1 the demo votes show instead, as before.
+Acceptance evidence / affected PR criteria: typecheck and lint (0 errors), database-free suites pass. Not run here: a browser click-through (no shared-database password on this laptop, so sign-in can't complete); needs Khushali's review in the browser.
+Documents/contracts changed: components/SlideActions.tsx (FeedbackPill; VotePill and CardVotes show it without counts).
+Revisit trigger: per-person vote routes are built (Alina has agreed to votes).
 ```
