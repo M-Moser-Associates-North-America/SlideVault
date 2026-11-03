@@ -570,11 +570,17 @@ test("the team's labels: a card shows the two most relevant and +N for the rest;
   await expect(first.locator('.tags-compact .tag-team')).toHaveText(['Case study detail', 'Hospitality']);
   const more = first.getByRole('button', { name: /3 more tags/ });
   await expect(more).toHaveText('+3');
+  // No tooltips on the tags themselves; the rest open as a list, one below the other.
+  await expect(first.locator('.tag-team').first()).not.toHaveAttribute('data-tip', /.*/);
   await more.click();
   await expect(more).toHaveAttribute('aria-expanded', 'true');
-  await expect(more).toHaveAttribute('data-tip', 'Workplace strategy & data, Cost certainty & risk, Proof');
+  const list = page.getByRole('group', { name: 'More tags' });
+  await expect(list.getByRole('button')).toHaveText(['Workplace strategy & data', 'Cost certainty & risk', 'Proof']);
+  const [a, b] = await Promise.all([list.getByRole('button').nth(0).boundingBox(), list.getByRole('button').nth(1).boundingBox()]);
+  expect(b!.y).toBeGreaterThan(a!.y); // one below the other
   expect(await axe(page)).toEqual([]);
   await page.keyboard.press('Escape');
+  await expect(list).toBeHidden();
   await expect(more).toHaveAttribute('aria-expanded', 'false');
   // The preview lists all five.
   await first.locator('.thumb').first().click();

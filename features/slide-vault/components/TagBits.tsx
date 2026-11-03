@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type MouseEvent, type ReactElement, type RefObject } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactElement, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { getSlide, listTags } from '../client/api';
 import { demoTagsOn, ranked, TagsUnavailable, useTags, type TagsApi } from '../client/tag-store';
 import type { FreeTag, SlideDetail, SlideStory, SlideSummary, TagRemoval } from '../contracts/dto';
@@ -95,7 +96,7 @@ export function TagChip({ tag, onNavigate }: { tag: FreeTag; onNavigate?: () => 
   const tipId = useId();
   return (
     <>
-      <button type="button" className="tag" data-h={hueOf(tag.tag)} data-tip={tipFor(tag)} aria-describedby={tipId} onClick={() => search(tag.tag)}>
+      <button type="button" className="tag" data-h={hueOf(tag.tag)} aria-describedby={tipId} onClick={() => search(tag.tag)}>
         <span className="tag-t">{tag.tag}</span>
       </button>
       <span id={tipId} className="sr-only">
@@ -136,32 +137,132 @@ const matchesQuery = (text: string, query: string) => {
 /** A team label as a small pill: plain grey with no colour, so it never looks like something a colleague typed. Click to search for it. */
 export function TeamChip({ label, onNavigate }: { label: TeamLabel; onNavigate?: () => void }) {
   const search = useTagSearch(onNavigate);
-  const tip = `${label.what}, reviewed by the team`;
   return (
-    <button type="button" className="tag tag-team" data-tip={tip} aria-label={`${label.text}. ${tip}. Search for it.`} onClick={() => search(label.text)}>
+    <button type="button" className="tag tag-team" aria-label={`${label.text}. ${label.what}, reviewed by the team. Search for it.`} onClick={() => search(label.text)}>
       <span className="tag-t">{label.text}</span>
     </button>
   );
 }
 
-/** "+3": the rest of a card's tags, on hover, focus or click (a tap on a phone). */
+/**
+ * "+3": the rest of a card's tags, one below the other in a small card at the bottom right of the "+3",
+ * on hover (with a mouse) or click (a tap, or Enter). The card is drawn at the top of the feature, not inside
+ * the slide card, so it can reach past the slide card's edge; it flips to the left or above when there is no room.
+ */
 function MoreTags({ names }: { names: string[] }) {
-  const [open, setOpen] = useState(false);
-  const text = names.join(', ');
+  const search = useTagSearch();
+  const [pinned, setPinned] = useState(false);
+  const [hover, setHover] = useState(false);
+  const [at, setAt] = useState<{ top: number; left: number } | null>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  const timer = useRef<number | undefined>(undefined);
+  const id = useId();
+  const [root, setRoot] = useState<HTMLElement | null>(null);
+  const open = pinned || hover;
+  const placed = at !== null;
+  const close = () => {
+    setPinned(false);
+    setHover(false);
+  };
+
+  useLayoutEffect(() => {
+    if (!open || !button.current || !menu.current) return setAt(null);
+    const r = button.current.getBoundingClientRect();
+    const w = menu.current.offsetWidth;
+    const h = menu.current.offsetHeight;
+    const left = r.left + w > window.innerWidth - 8 ? Math.max(8, r.right - w) : r.left;
+    const top = r.bottom + 6 + h > window.innerHeight - 8 ? Math.max(8, r.top - h - 6) : r.bottom + 6;
+    setAt({ top, left });
+  }, [open, names.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: Event) => {
+      const t = e.target as Node;
+      if (!menu.current?.contains(t) && !button.current?.contains(t)) close();
+    };
+    document.addEventListener('pointerdown', away);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
+
+  useEffect(() => setRoot(button.current?.closest<HTMLElement>('.slidevault') ?? null), []);
+
+  /* Opened with a click or Enter: move into the list, so the keyboard can reach it; Escape comes back. */
+  useEffect(() => {
+    if (pinned) menu.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [pinned, placed]);
+
+  const enter = (e: ReactPointerEvent) => {
+    if (e.pointerType !== 'mouse') return;
+    window.clearTimeout(timer.current);
+    setHover(true);
+  };
+  const leave = (e: ReactPointerEvent) => {
+    if (e.pointerType !== 'mouse') return;
+    timer.current = window.setTimeout(() => setHover(false), 150);
+  };
+
   return (
-    <button
-      type="button"
-      className="tag-more"
-      data-tip={text}
-      data-open={open || undefined}
-      aria-expanded={open}
-      aria-label={`${plural(names.length, 'more tag')}: ${text}`}
-      onClick={() => setOpen((o) => !o)}
-      onBlur={() => setOpen(false)}
-      onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
-    >
-      +{names.length}
-    </button>
+    <>
+      <button
+        ref={button}
+        type="button"
+        className="tag-more"
+        aria-expanded={open}
+        aria-controls={open ? id : undefined}
+        aria-label={`${plural(names.length, 'more tag')}`}
+        onClick={() => setPinned((p) => !p)}
+        onPointerEnter={enter}
+        onPointerLeave={leave}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') close();
+        }}
+      >
+        +{names.length}
+      </button>
+      {open &&
+        root &&
+        createPortal(
+          <div
+            ref={menu}
+            id={id}
+            role="group"
+            aria-label="More tags"
+            className="tagmenu"
+            style={{ top: at?.top ?? 0, left: at?.left ?? 0, visibility: at ? 'visible' : 'hidden' }}
+            onPointerEnter={enter}
+            onPointerLeave={leave}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                close();
+                button.current?.focus();
+              }
+            }}
+          >
+            {names.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className="tagmenu-item"
+                onClick={() => {
+                  close();
+                  search(n);
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>,
+          root,
+        )}
+    </>
   );
 }
 
