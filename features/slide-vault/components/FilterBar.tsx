@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, countBy, createdByOf, filterCount, SECTION_LABEL, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
 import { backdropClose, useDialogOpen } from './Dialogs';
@@ -55,14 +55,26 @@ function Picker({
   picked,
   counts,
   onToggle,
+  single,
 }: {
   label: string;
   options: string[];
   picked: string[];
   counts?: Map<string, number>;
   onToggle: (v: string) => void;
+  /** Only one can be picked: choosing another moves the tick */
+  single?: boolean;
 }) {
   const [text, setText] = useState('');
+  /* The tick shows the moment it is pressed; the page (which has a lot to redraw) follows a beat later, and
+     the pending tick gives way to the real choice as soon as that arrives. */
+  const sig = picked.join('|');
+  const [mine, setMine] = useState<{ sig: string; list: string[] } | null>(null);
+  const showing = mine && mine.sig === sig ? mine.list : picked;
+  const choose = (o: string) => {
+    setMine({ sig, list: showing.includes(o) ? showing.filter((x) => x !== o) : single ? [o] : [...showing, o] });
+    setTimeout(() => startTransition(() => onToggle(o)), 30);
+  };
   const shown = options.filter((o) => o.toLowerCase().includes(text.trim().toLowerCase()));
   const id = useId();
   return (
@@ -83,7 +95,7 @@ function Picker({
         {shown.map((o, i) => (
           <li key={o}>
             <label htmlFor={`${id}-${i}`} className={counts && (counts.get(o) ?? 0) === 0 && !picked.includes(o) ? 'is-zero' : undefined}>
-              <input id={`${id}-${i}`} type="checkbox" checked={picked.includes(o)} onChange={() => onToggle(o)} />
+              <input id={`${id}-${i}`} type="checkbox" checked={showing.includes(o)} onChange={() => choose(o)} />
               <span className="fb-opt">{o}</span>
               {counts && <span className="fb-n">{counts.get(o) ?? 0}</span>}
             </label>
@@ -339,11 +351,12 @@ export function FilterBar() {
       return (
         <Picker
           label="Section"
+          single
           options={Object.values(SECTION_LABEL)}
           picked={filters.section.map((k) => SECTION_LABEL[k] ?? k)}
           onToggle={(label) => {
             patchFilters({ section: filters.section.includes(kindOf(label)) ? [] : [kindOf(label)] });
-            if (!compact) close(true); /* one choice, so the card closes and the page shows it at once */
+            if (!compact) setTimeout(() => close(true), 160); /* one choice: the tick shows first, then the card closes */
           }}
         />
       );

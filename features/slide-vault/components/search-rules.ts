@@ -161,7 +161,14 @@ export const isStopWord = (w: string) => STOP.has(w);
 
 const norm = (s: string) => s.toLowerCase().replace(/[’']/g, '');
 const esc = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/-/g, '[- ]');
-const hasWord = (text: string, w: string) => new RegExp(`(^|[^a-z0-9])${esc(w)}([^a-z0-9]|$)`).test(text);
+/* Each word's pattern is built once: the filter row asks about every slide for every slide type, and building a new
+   pattern per question made each change to the filters take seconds (2 Nov). */
+const wordPatterns = new Map<string, RegExp>();
+const hasWord = (text: string, w: string) => {
+  let re = wordPatterns.get(w);
+  if (!re) wordPatterns.set(w, (re = new RegExp(`(^|[^a-z0-9])${esc(w)}([^a-z0-9]|$)`)));
+  return re.test(text);
+};
 
 type Fields = {
   title: string;
@@ -179,8 +186,16 @@ const fieldsOf = (s: SlideSummary): Fields => ({
 });
 const hayOf = (f: Fields) => norm([f.title, f.deck, f.client ?? '', f.category ?? ''].join(' '));
 
-/** Topic words found on the slide's title, deck name and category (rules only). */
+/** Topic words found on the slide's title, deck name and category (rules only), worked out once per slide. */
+const topicCache = new WeakMap<SlideSummary, string[]>();
 function topicTags(s: SlideSummary): string[] {
+  const have = topicCache.get(s);
+  if (have) return have;
+  const tags = topicTagsOf(s);
+  topicCache.set(s, tags);
+  return tags;
+}
+function topicTagsOf(s: SlideSummary): string[] {
   const hay = hayOf(fieldsOf(s));
   const category = s.provenance.category;
   const out: string[] = [];

@@ -49,28 +49,35 @@ export function Lightbox() {
   /* Results bar only when the list is a real search, not just this deck's own slides. */
   const fromDeck = !!preview && sibs.length === preview.list.length && preview.list.every((s, k) => s.id === sibs[k].id);
   /* One whole deck section (FD-80): counted "1 of 8 in section", its slides outlined in the film strip,
-     and the arrows step through the section instead of the whole deck. */
+     while the arrows, the keys and the strip still walk the whole deck. */
   const section = preview?.section ?? null;
   const results = !!preview && preview.list.length > 1 && (!fromDeck || !!section);
   const inSection = (id: string) => !!preview && preview.list.some((x) => x.id === id);
   const sectionAt = section && slide && preview ? preview.list.findIndex((x) => x.id === slide.id) : -1;
 
   const moveDeck = (delta: -1 | 1) => {
-    if (section && preview) {
-      const at = sectionAt >= 0 ? sectionAt : preview.index;
-      if (at + delta >= 0 && at + delta < preview.list.length) goToPreview(at + delta);
-      return;
-    }
     const target = sibs[di + delta];
     if (preview && target) setPick({ list: preview.list, index: preview.index, slide: target });
   };
+  /* In a section the Previous / Next buttons (and [ ] keys) step through the section from wherever the person is, even after
+     the arrows have walked off it into the rest of the deck; the arrows and the strip keep walking the whole deck. */
+  const moveSection = (delta: -1 | 1) => {
+    if (!preview) return;
+    const target = (sectionAt >= 0 ? sectionAt : preview.index) + delta;
+    if (target < 0 || target >= preview.list.length) return;
+    setPick(null);
+    goToPreview(target);
+  };
   const moveResult = (delta: -1 | 1) => {
+    if (section) return moveSection(delta);
     if (preview && preview.index + delta >= 0 && preview.index + delta < preview.list.length) movePreview(delta);
   };
   const atFirstResult = !preview || preview.index === 0;
   const atLastResult = !preview || preview.index === preview.list.length - 1;
-  const sectionFirst = sectionAt <= 0;
-  const sectionLast = !preview || sectionAt >= preview.list.length - 1;
+  const sectionFirst = !preview || (sectionAt >= 0 ? sectionAt : preview.index) <= 0;
+  const sectionLast = !preview || (sectionAt >= 0 ? sectionAt : preview.index) >= preview.list.length - 1;
+  /* The rest of the deck comes with the library; until it has arrived, say so instead of showing nothing. */
+  const deckLoading = !!section && library.status === 'loading';
 
   /* Remember the slide we came from so it slides out while the next slides in (same motion as the slide page). */
   const [seen, setSeen] = useState<{
@@ -144,7 +151,7 @@ export function Lightbox() {
           <div className="dlg-body">
             {results && (
               <div className="lb-results" role="group" aria-label={section ? `${section} section` : 'Search results'}>
-                <button type="button" className="btn btn-sm" disabled={section ? sectionFirst : atFirstResult} onClick={() => (section ? moveDeck(-1) : moveResult(-1))} title={section ? 'Previous in section ( ← )' : 'Previous result ( [ or Shift+←)'}>
+                <button type="button" className="btn btn-sm" disabled={section ? sectionFirst : atFirstResult} onClick={() => moveResult(-1)} title={section ? 'Previous in section ( [ or Shift+←)' : 'Previous result ( [ or Shift+←)'}>
                   <Icon name="left" />
                   <span>{section ? 'Previous in section' : 'Previous result'}</span>
                 </button>
@@ -171,7 +178,7 @@ export function Lightbox() {
                     {section ? 'Back to the section' : 'Back to the result'}
                   </button>
                 )}
-                <button type="button" className="btn btn-sm" disabled={section ? sectionLast : atLastResult} onClick={() => (section ? moveDeck(1) : moveResult(1))} title={section ? 'Next in section ( → )' : 'Next result ( ] or Shift+→)'}>
+                <button type="button" className="btn btn-sm" disabled={section ? sectionLast : atLastResult} onClick={() => moveResult(1)} title={section ? 'Next in section ( ] or Shift+→)' : 'Next result ( ] or Shift+→)'}>
                   <span>{section ? 'Next in section' : 'Next result'}</span>
                   <Icon name="right" />
                 </button>
@@ -179,7 +186,7 @@ export function Lightbox() {
             )}
             <div className="lb-row">
               {sibs.length > 1 && (
-                <button type="button" className="btn btn-icon lb-nav lb-prev" aria-label={section ? 'Previous slide in this section' : 'Previous slide in this deck'} data-tip={section ? 'Previous in section' : 'Previous in deck'} disabled={section ? sectionFirst : di <= 0} onClick={() => moveDeck(-1)}>
+                <button type="button" className="btn btn-icon lb-nav lb-prev" aria-label="Previous slide in this deck" data-tip="Previous in deck" disabled={di <= 0} onClick={() => moveDeck(-1)}>
                   <Icon name="left" />
                 </button>
               )}
@@ -212,15 +219,21 @@ export function Lightbox() {
                 <button
                   type="button"
                   className="btn btn-icon lb-nav lb-next"
-                  aria-label={section ? 'Next slide in this section' : 'Next slide in this deck'}
-                  data-tip={section ? 'Next in section' : 'Next in deck'}
-                  disabled={section ? sectionLast : di < 0 || di >= sibs.length - 1}
+                  aria-label="Next slide in this deck"
+                  data-tip="Next in deck"
+                  disabled={di < 0 || di >= sibs.length - 1}
                   onClick={() => moveDeck(1)}
                 >
                   <Icon name="right" />
                 </button>
               )}
             </div>
+            {deckLoading && sibs.length <= 1 && (
+              <div className="sv-loading" role="status">
+                <span className="sv-ring is-small" aria-hidden="true" />
+                <span>Loading the whole deck…</span>
+              </div>
+            )}
             {sibs.length > 1 && (
               <div className="lb-deck">
                 <p className="lb-deck-label" id="sv-lb-deck">
@@ -242,8 +255,10 @@ export function Lightbox() {
                       aria-label={`Slide ${k + 1}: ${s.title}${section && inSection(s.id) ? ` (in the ${section} section)` : ''}`}
                       onClick={() => {
                         const at = section ? preview.list.findIndex((x) => x.id === s.id) : -1;
-                        if (at >= 0) goToPreview(at);
-                        else setPick({ list: preview.list, index: preview.index, slide: s });
+                        if (at >= 0) {
+                          setPick(null);
+                          goToPreview(at);
+                        } else setPick({ list: preview.list, index: preview.index, slide: s });
                       }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
