@@ -1237,3 +1237,4 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .sv-ring.is-small { width: 14px; height: 14px; border-width: 2px; }
 @media (prefers-reduced-motion: no-preference) { .slidevault .sv-ring { animation: sv-spin .9s linear infinite; } }
 .slidevault .seccard-acts .btn[aria-busy="true"] { cursor: progress; }
+.slidevault .lb-results .lb-of { color: var(--sv-text-secondary); font-weight: 400; }

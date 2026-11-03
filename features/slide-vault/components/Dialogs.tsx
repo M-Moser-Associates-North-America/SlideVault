@@ -3,7 +3,7 @@
 import { PreviewActions } from './SlideActions';
 import { PreviewTags } from './TagBits';
 import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react';
-import { exportPptx } from '../client/api';
+import { exportPptx, getSection } from '../client/api';
 import type { SlideSummary } from '../contracts/dto';
 import { Icon } from './icons';
 import { categoryOf, clientOf, downloadPlan, plural, planSummary, yearOf } from './library';
@@ -27,7 +27,7 @@ export const backdropClose = (onClose: () => void) => (e: MouseEvent<HTMLDialogE
 
 /** Large preview of a slide. The side arrows, the filmstrip and swipes walk the slide's own deck; a separate bar steps through the search results it was opened from. */
 export function Lightbox() {
-  const { runtime, library, preview, closePreview, movePreview, goToPreview, openDownload, packs, selection, updateSelection, toast, addPackToDraft } = useWorkspace();
+  const { runtime, library, preview, closePreview, movePreview, goToPreview, openPreview, openDownload, packs, selection, updateSelection, toast, addPackToDraft } = useWorkspace();
   const { isSelected, setOne } = useCartToggle();
   const ref = useRef<HTMLDialogElement>(null);
   const strip = useRef<HTMLDivElement>(null);
@@ -59,23 +59,33 @@ export function Lightbox() {
     const target = sibs[di + delta];
     if (preview && target) setPick({ list: preview.list, index: preview.index, slide: target });
   };
-  /* In a section the Previous / Next buttons (and [ ] keys) step through the section from wherever the person is, even after
-     the arrows have walked off it into the rest of the deck; the arrows and the strip keep walking the whole deck. */
-  const moveSection = (delta: -1 | 1) => {
-    if (!preview) return;
-    const target = (sectionAt >= 0 ? sectionAt : preview.index) + delta;
-    if (target < 0 || target >= preview.list.length) return;
-    setPick(null);
-    goToPreview(target);
+  /* Section results: Previous / Next result (and the [ ] keys) go to the neighbouring section of the search or the Section page, as
+     they go to the neighbouring slide of a search; the arrows and the strip walk the whole deck. */
+  const [moving, setMoving] = useState(false);
+  const sectionTo = async (delta: -1 | 1) => {
+    if (!preview?.sections || moving) return;
+    const to = (preview.sectionAt ?? 0) + delta;
+    const next = preview.sections[to];
+    if (!next) return;
+    setMoving(true);
+    try {
+      const slides = next.slides ?? (await getSection(runtime, next.dividerId).catch(() => null))?.slides ?? null;
+      if (!slides || slides.length === 0) return;
+      const sections = preview.sections.map((x, k) => (k === to ? { ...x, slides } : x));
+      setPick(null);
+      openPreview(slides, 0, { section: next.name, sections, sectionAt: to });
+    } finally {
+      setMoving(false);
+    }
   };
   const moveResult = (delta: -1 | 1) => {
-    if (section) return moveSection(delta);
+    if (section) return void sectionTo(delta);
     if (preview && preview.index + delta >= 0 && preview.index + delta < preview.list.length) movePreview(delta);
   };
   const atFirstResult = !preview || preview.index === 0;
   const atLastResult = !preview || preview.index === preview.list.length - 1;
-  const sectionFirst = !preview || (sectionAt >= 0 ? sectionAt : preview.index) <= 0;
-  const sectionLast = !preview || (sectionAt >= 0 ? sectionAt : preview.index) >= preview.list.length - 1;
+  const sectionFirst = !preview?.sections || (preview.sectionAt ?? 0) <= 0 || moving;
+  const sectionLast = !preview?.sections || (preview.sectionAt ?? 0) >= preview.sections.length - 1 || moving;
   /* The rest of the deck comes with the library; until it has arrived, say so instead of showing nothing. */
   const deckLoading = !!section && library.status === 'loading';
 
@@ -151,9 +161,9 @@ export function Lightbox() {
           <div className="dlg-body">
             {results && (
               <div className="lb-results" role="group" aria-label={section ? `${section} section` : 'Search results'}>
-                <button type="button" className="btn btn-sm" disabled={section ? sectionFirst : atFirstResult} onClick={() => moveResult(-1)} title={section ? 'Previous in section ( [ or Shift+←)' : 'Previous result ( [ or Shift+←)'}>
+                <button type="button" className="btn btn-sm" disabled={section ? sectionFirst : atFirstResult} onClick={() => moveResult(-1)} title="Previous result ( [ or Shift+←)">
                   <Icon name="left" />
-                  <span>{section ? 'Previous in section' : 'Previous result'}</span>
+                  <span>Previous result</span>
                 </button>
                 <span className="counter" aria-live="polite">
                   {section ? (
@@ -163,6 +173,7 @@ export function Lightbox() {
                           {sectionAt + 1} of {preview.list.length} in section
                         </strong>
                         {` · ${section}`}
+                        {preview.sections && preview.sections.length > 1 && <span className="lb-of"> · result {(preview.sectionAt ?? 0) + 1} of {preview.sections.length}</span>}
                       </>
                     ) : (
                       `Not in the ${section} section`
@@ -178,8 +189,8 @@ export function Lightbox() {
                     {section ? 'Back to the section' : 'Back to the result'}
                   </button>
                 )}
-                <button type="button" className="btn btn-sm" disabled={section ? sectionLast : atLastResult} onClick={() => moveResult(1)} title={section ? 'Next in section ( ] or Shift+→)' : 'Next result ( ] or Shift+→)'}>
-                  <span>{section ? 'Next in section' : 'Next result'}</span>
+                <button type="button" className="btn btn-sm" disabled={section ? sectionLast : atLastResult} onClick={() => moveResult(1)} title="Next result ( ] or Shift+→)">
+                  <span>Next result</span>
                   <Icon name="right" />
                 </button>
               </div>
@@ -277,7 +288,7 @@ export function Lightbox() {
               <span className="row-flex">
                 <button type="button" className="btn btn-sm" aria-pressed={isSelected(slide.id)} onClick={() => setOne(slide, !isSelected(slide.id))}>
                   <Icon name="check" />
-                  <span>{isSelected(slide.id) ? 'In draft deck' : 'Add to draft deck'}</span>
+                  <span>{section ? (isSelected(slide.id) ? 'Slide in deck' : 'Add slide to deck') : isSelected(slide.id) ? 'In draft deck' : 'Add to draft deck'}</span>
                 </button>
                 {section && preview && preview.list.length > 1 && (
                   <button
@@ -290,8 +301,8 @@ export function Lightbox() {
                       toast(`Added ${plural(add.length, 'slide')} from ${section}`);
                     }}
                   >
-                    <Icon name="plus" />
-                    <span>{preview.list.every((x) => selection.some((y) => y.id === x.id)) ? 'Whole section in draft deck' : `Add whole section (${preview.list.length})`}</span>
+                    <Icon name="check" />
+                    <span>{preview.list.every((x) => selection.some((y) => y.id === x.id)) ? 'Section in deck' : `Add section to deck (${preview.list.length})`}</span>
                   </button>
                 )}
                 {packs.of(slide.id) && (

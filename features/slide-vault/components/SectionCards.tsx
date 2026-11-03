@@ -105,7 +105,11 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
     toast(`Added ${plural(add.length, 'slide')} from ${g.name}`);
     announce(`Added ${plural(add.length, 'slide')} of ${g.name} to the draft deck`);
   };
-  const open = async (g: SectionGroup) => openPreview(await slidesOf(g), 0, { section: g.name });
+  const open = async (g: SectionGroup) => {
+    const slides = await slidesOf(g);
+    const sections = groups.map((x) => ({ key: x.key, name: x.name, dividerId: x.dividerId, slides: x.key === g.key ? slides : (whole[x.dividerId] ?? null) }));
+    openPreview(slides, 0, { section: g.name, sections, sectionAt: groups.findIndex((x) => x.key === g.key) });
+  };
 
   return (
     <section className="seccards" aria-label="Sections found">
