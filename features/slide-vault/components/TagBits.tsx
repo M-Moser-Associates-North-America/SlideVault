@@ -90,13 +90,21 @@ function useTagSearch(onNavigate?: () => void) {
 /** One of six soft hues per tag, the same everywhere, so tags look different from the grey action buttons. */
 export const hueOf = (tag: string) => [...tag.toLowerCase()].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 5) % 6;
 
+/** When a chip's text is cut off ("Workplace str…"), hover or focus names it in full. Nothing when it fits. */
+function nameWhenCut(e: { currentTarget: HTMLElement }, text: string) {
+  const b = e.currentTarget;
+  const t = b.querySelector<HTMLElement>('.tag-t');
+  if (t && t.scrollWidth > t.clientWidth) b.setAttribute('data-tip', text);
+  else b.removeAttribute('data-tip');
+}
+
 /** A small pill. Click to search for it; hover or focus says who added it. */
 export function TagChip({ tag, onNavigate }: { tag: FreeTag; onNavigate?: () => void }) {
   const search = useTagSearch(onNavigate);
   const tipId = useId();
   return (
     <>
-      <button type="button" className="tag" data-h={hueOf(tag.tag)} aria-describedby={tipId} onClick={() => search(tag.tag)}>
+      <button type="button" className="tag" data-h={hueOf(tag.tag)} aria-describedby={tipId} onClick={() => search(tag.tag)} onMouseEnter={(e) => nameWhenCut(e, tag.tag)} onFocus={(e) => nameWhenCut(e, tag.tag)}>
         <span className="tag-t">{tag.tag}</span>
       </button>
       <span id={tipId} className="sr-only">
@@ -138,7 +146,7 @@ const matchesQuery = (text: string, query: string) => {
 export function TeamChip({ label, onNavigate }: { label: TeamLabel; onNavigate?: () => void }) {
   const search = useTagSearch(onNavigate);
   return (
-    <button type="button" className="tag tag-team" aria-label={`${label.text}. ${label.what}, reviewed by the team. Search for it.`} onClick={() => search(label.text)}>
+    <button type="button" className="tag tag-team" aria-label={`${label.text}. ${label.what}, reviewed by the team. Search for it.`} onClick={() => search(label.text)} onMouseEnter={(e) => nameWhenCut(e, label.text)} onFocus={(e) => nameWhenCut(e, label.text)}>
       <span className="tag-t">{label.text}</span>
     </button>
   );

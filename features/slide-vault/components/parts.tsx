@@ -264,22 +264,24 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
         <Link className="card-title" to={{ view: 'slide', id: slide.id }} title={slide.title}>
           {slide.title}
         </Link>
-        <div className="meta clip" title={`Slide ${p.slideNumber} of ${p.sourceTitle}`}>
-          {meta || p.sourceTitle}
+        <div className="meta-row">
+          <div className="meta clip" title={`Slide ${p.slideNumber} of ${p.sourceTitle}`}>
+            {meta || p.sourceTitle}
+          </div>
+          {slide.alsoIn && (
+            <button
+              type="button"
+              className="also"
+              aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`}
+              data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'deck')}`}
+              data-tip-pos="end"
+              onClick={() => openAlso(slide)}
+            >
+              <Icon name="folders" className="ic-sm" />
+              <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
+            </button>
+          )}
         </div>
-        {slide.alsoIn && (
-          <button
-            type="button"
-            className="also"
-            aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`}
-            data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'deck')}`}
-            data-tip-pos="start"
-            onClick={() => openAlso(slide)}
-          >
-            <Icon name="folders" className="ic-sm" />
-            <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
-          </button>
-        )}
         <CompactTags slide={slide} />
         {note && (
           <div className="card-note">
