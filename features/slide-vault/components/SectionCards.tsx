@@ -5,7 +5,7 @@ import { getSection, listSections } from '../client/api';
 import type { SlideSummary } from '../contracts/dto';
 import { Icon } from './icons';
 import { clientOf, plural, SECTION_LABEL, slideMatches, yearOf } from './library';
-import { Thumb } from './parts';
+import { Thumb, useAddSection } from './parts';
 import { useWorkspace } from './state';
 
 /**
@@ -54,7 +54,8 @@ const FIRST = 6;
 
 /** The cards, and what they do. `groups` are the sections to show; each asks for its whole section once. */
 function Cards({ groups }: { groups: SectionGroup[] }) {
-  const { runtime, openPreview, selection, updateSelection, announce, toast } = useWorkspace();
+  const { runtime, openPreview, selection, updateSelection, announce } = useWorkspace();
+  const { addSection } = useAddSection();
   const [all, setAll] = useState(false);
   const [whole, setWhole] = useState<Record<string, SlideSummary[]>>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -102,10 +103,7 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
       announce(`Removed ${plural(slides.length, 'slide')} of ${g.name} from the draft deck`);
       return;
     }
-    const add = slides.filter((s) => !selection.some((x) => x.id === s.id));
-    updateSelection((cur) => [...cur, ...slides.filter((s) => !cur.some((c) => c.id === s.id))]);
-    toast(`Added ${plural(add.length, 'slide')} from ${g.name}`);
-    announce(`Added ${plural(add.length, 'slide')} of ${g.name} to the draft deck`);
+    addSection(g.name, slides);
   };
   const open = async (g: SectionGroup) => {
     const slides = await slidesOf(g);

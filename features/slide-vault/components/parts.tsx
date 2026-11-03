@@ -121,6 +121,32 @@ export function Thumb({ slide }: { slide: SlideSummary }) {
 }
 
 /**
+ * Add a whole deck section to the draft deck (FD-80). If some of its slides belong to a pack that also has slides outside
+ * the section, ask first (the pack pop-up); otherwise add it at once. `addNow` skips the question.
+ */
+export function useAddSection() {
+  const { selection, updateSelection, announce, toast, packs, openPackDialog } = useWorkspace();
+  const addNow = (name: string, slides: SlideSummary[]) => {
+    const add = slides.filter((s) => !selection.some((x) => x.id === s.id));
+    updateSelection((cur) => [...cur, ...slides.filter((s) => !cur.some((c) => c.id === s.id))]);
+    toast(`Added ${plural(add.length, 'slide')} from ${name}`);
+    announce(`Added ${plural(add.length, 'slide')} of ${name} to the draft deck`);
+  };
+  const addSection = (name: string, slides: SlideSummary[]) => {
+    const inside = new Set(slides.map((s) => s.id));
+    const have = new Set(selection.map((s) => s.id));
+    const straddling: Pack[] = [];
+    for (const s of slides) {
+      const p = packs.of(s.id);
+      if (p && !straddling.some((x) => x.id === p.id) && p.slideIds.some((id) => !inside.has(id) && !have.has(id))) straddling.push(p);
+    }
+    if (straddling.length) openPackDialog({ kind: 'section', pack: straddling[0], section: { name, slides, packs: straddling } });
+    else addNow(name, slides);
+  };
+  return { addSection, addNow };
+}
+
+/**
  * Add to or remove from the cart. A slide that belongs to a pack asks first (FD-38): adding offers the
  * whole pack, removing offers to take the whole pack out. `setOne` skips the question.
  */

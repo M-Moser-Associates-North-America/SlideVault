@@ -7,7 +7,7 @@ import { exportPptx, getSection } from '../client/api';
 import type { SlideSummary } from '../contracts/dto';
 import { Icon } from './icons';
 import { categoryOf, clientOf, downloadPlan, plural, planSummary, yearOf } from './library';
-import { Link, Thumb, useCartToggle } from './parts';
+import { Link, Thumb, useAddSection, useCartToggle } from './parts';
 import { useWorkspace } from './state';
 
 /** Open and close a native <dialog> from React state. Escape closes it (via the dialog's own close event). */
@@ -27,8 +27,9 @@ export const backdropClose = (onClose: () => void) => (e: MouseEvent<HTMLDialogE
 
 /** Large preview of a slide. The side arrows, the filmstrip and swipes walk the slide's own deck; a separate bar steps through the search results it was opened from. */
 export function Lightbox() {
-  const { runtime, library, preview, closePreview, movePreview, goToPreview, openPreview, openDownload, packs, selection, updateSelection, toast, addPackToDraft } = useWorkspace();
+  const { runtime, library, preview, closePreview, movePreview, goToPreview, openPreview, openDownload, packs, selection, addPackToDraft } = useWorkspace();
   const { isSelected, setOne } = useCartToggle();
+  const { addSection } = useAddSection();
   const ref = useRef<HTMLDialogElement>(null);
   const strip = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
@@ -314,11 +315,7 @@ export function Lightbox() {
                     type="button"
                     className="btn btn-sm"
                     disabled={preview.list.every((x) => selection.some((y) => y.id === x.id))}
-                    onClick={() => {
-                      const add = preview.list.filter((x) => !selection.some((y) => y.id === x.id));
-                      updateSelection((cur) => [...cur, ...preview.list.filter((x) => !cur.some((c) => c.id === x.id))]);
-                      toast(`Added ${plural(add.length, 'slide')} from ${section}`);
-                    }}
+                    onClick={() => addSection(section, preview.list)}
                   >
                     <Icon name="check" />
                     <span>{preview.list.every((x) => selection.some((y) => y.id === x.id)) ? 'Section in deck' : `Add section to deck (${preview.list.length})`}</span>

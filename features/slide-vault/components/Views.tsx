@@ -748,6 +748,14 @@ export function ResultsView() {
                   <Icon name="info" />
                 </span>
               </p>
+              {pickedSection && shown.length - visible.length > 0 && (
+                <p className="meta sec-hidden-note">
+                  {shown.length - visible.length} more matching {shown.length - visible.length === 1 ? 'slide is' : 'slides are'} outside this section.{' '}
+                  <button type="button" className="btn-link" onClick={() => patchFilters({ section: [] })}>
+                    Show {shown.length - visible.length === 1 ? 'it' : 'them'}
+                  </button>
+                </p>
+              )}
               {sectionCounts.length > 1 && (
                 <div className="sec-pills" role="group" aria-label="Narrow to one section">
                   <span className="meta">By section:</span>

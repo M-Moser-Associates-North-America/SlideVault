@@ -44,7 +44,8 @@ export type Toast = { id: number; message: string; action?: { label: string; run
 
 export type ArchiveDialogState = { deck: { id: string; title: string; slideCount: number }; restore: boolean; /** Opened from a slide's page: say so, and leave the page when the deck is gone */ fromSlide?: string };
 
-export type PackDialogState = { kind: 'add' | 'remove' | 'ungroup'; pack: Pack; slide?: SlideSummary };
+/** `section` is set for kind 'section': adding a whole deck section whose slides belong to packs that reach outside it (FD-80). `pack` is the first of those packs. */
+export type PackDialogState = { kind: 'add' | 'remove' | 'ungroup' | 'section'; pack: Pack; slide?: SlideSummary; section?: { name: string; slides: SlideSummary[]; packs: Pack[] } };
 
 /** Placeholder sign-in: one demo profile until M Moser's login plugs in (FD-01). */
 export const DEMO_PROFILE = 'Person A';
