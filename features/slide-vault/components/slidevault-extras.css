@@ -1271,3 +1271,4 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .res-block { margin-top: 8px; }
 .slidevault .res-h { margin: 34px 0 14px; }
 .slidevault .res-block .res-h { margin-top: 28px; }
+.slidevault .state .btn + .btn { margin-left: 8px; } /* two buttons in an empty state: a gap, not touching */
