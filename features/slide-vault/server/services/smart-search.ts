@@ -16,6 +16,8 @@ export type SmartSearchResponse = {
   reader: 'model' | 'stand-in';
   /** Set when the model was tried and failed, so the screen can say results are simpler than usual */
   readerNote: string | null;
+  /** true when the server has an AI reader set up, so the screen can offer "Deeper AI search" (FD-79) */
+  aiAvailable?: boolean;
   plan: SearchPlan;
   chips: Chip[];
   /** true when the filters left nothing, so results are shown without them */

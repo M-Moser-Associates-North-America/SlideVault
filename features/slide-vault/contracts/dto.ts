@@ -278,6 +278,8 @@ export type SmartSearchResult = {
   reader: 'model' | 'stand-in';
   /** Set when the AI was tried and failed, so the screen can say results are simpler than usual */
   readerNote: string | null;
+  /** true when the server has an AI reader set up, so the screen can offer "Deeper AI search" (FD-79) */
+  aiAvailable?: boolean;
   /** How the request was read, as removable chips */
   chips: SmartSearchChip[];
   /** true when the request's filters left nothing, so results are shown without them */

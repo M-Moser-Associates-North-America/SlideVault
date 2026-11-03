@@ -55,7 +55,7 @@ Every route below exists under `/api/slide-vault/v1` (one `route.ts` per path in
 | `GET /session` | The caller's effective capabilities | |
 | `GET /library` | Every ready deck and slide (uploaded decks, then sample decks) | FD-31 |
 | `GET /search` | Keyword search and listing: `q`, `kind=slide`, `cursor`, `limit`, `tag`; slides carry packs and tags | |
-| `GET /smart-search` | Plain-language search: `q`, `limit`, `read=1` (AI reads it), `role`, `hidden=include`; returns how it was read (chips), results and why each fits | FD-16, FD-17, FD-56 to FD-59, FD-70 |
+| `GET /smart-search` | Plain-language search: `q`, `limit`, `read=1` (AI reads it), `ai=off` (skip the AI reader for this search; response says `aiAvailable`), `role`, `hidden=include`; returns how it was read (chips), results and why each fits | FD-16, FD-17, FD-56 to FD-59, FD-70, FD-79 |
 | `POST /smart-search/feedback` | Useful / Not relevant on a result: `{ query, slideId, verdict, by? }`; kept only for people who opted in, with the search's words and no name | FD-59, FD-77 |
 | `GET /meaning-search` | Slides close in meaning (pgvector) | FD-55 |
 | `GET /slides/:id`, `PATCH /slides/:id` | Slide details; rename a slide `{ title }` (`null` restores the original) | FD-73 |

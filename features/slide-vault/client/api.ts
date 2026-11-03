@@ -37,12 +37,14 @@ export async function searchSlides(runtime: Transport, query: string, signal?: A
 /**
  * Quick AI search (FD-16, FD-17). `read` is true only when the person submitted the search; while
  * they type, the server reads with rules only, so a long question never calls the AI mid-sentence.
+ * `ai: false` is the "Deeper AI search" checkbox unticked: the rules read it even on submit (FD-79).
  */
-export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean; role?: StoryUserRole | null } = {}): Promise<SmartSearchResult> {
+export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean; role?: StoryUserRole | null; ai?: boolean } = {}): Promise<SmartSearchResult> {
   const params = new URLSearchParams({ q: query.trim(), limit: '100' });
   if (opts.includeHidden) params.set('hidden', 'include'); // slides hidden in the original deck (FD-50)
   if (opts.role) params.set('role', opts.role); // how this person builds proposals tunes the results (FD-59)
   if (read) params.set('read', '1');
+  if (opts.ai === false) params.set('ai', 'off'); // "Deeper AI search" unticked (FD-79)
   const res = await runtime.request({ path: `/smart-search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<SmartSearchResult>).data;

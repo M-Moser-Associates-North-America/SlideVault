@@ -15,7 +15,7 @@ import { asksForCover, deckSections, isSectionSearch, sectionKind, sectionKinds 
 import { taggedFirst, typedTags, type TagHit } from '../features/slide-vault/server/services/tagged-first';
 import { cleanSearchFeedback, learnedForSearch, learnedScore, searchWords, sinks } from '../features/slide-vault/server/search-feedback';
 import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
-import { byLearning } from '../features/slide-vault/server/services/library-smart-search';
+import { byLearning, readerForSearch } from '../features/slide-vault/server/services/library-smart-search';
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -445,6 +445,14 @@ for (const [env, label] of [
   const order = byLearning(rows, learned).map((r) => r.summary.id).join('');
   check(order === 'cadb', 'feedback on the database: marked useful leads, two Not relevant clicks go last, one click keeps its place', order);
   check(byLearning(rows, new Map()).map((r) => r.summary.id).join('') === 'abcd', 'feedback on the database: with nothing marked, the order is unchanged');
+}
+
+{
+  // "Deeper AI search" checkbox (FD-79): unticked skips the AI reader for that search only.
+  const fake: PlanReader = { name: 'fake', read: async () => standInPlan('x', ctx) };
+  check(readerForSearch(fake, 'off') === null, 'deeper AI off: ai=off skips the AI reader');
+  check(readerForSearch(fake, null) === fake && readerForSearch(fake, 'on') === fake, 'deeper AI on: without ai=off the configured reader is used');
+  check(readerForSearch(null, 'on') === null, 'deeper AI: ai=on never turns on a reader the server does not have');
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smart search checks passed');
