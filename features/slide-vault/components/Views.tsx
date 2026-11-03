@@ -616,7 +616,20 @@ export function ResultsView() {
         ? [...kept].sort((a, b) => (yearOf(b.slide) ?? -1) - (yearOf(a.slide) ?? -1))
         : kept;
   }, [result, filters, sort]);
-  const slides = shown.map((i) => i.slide);
+  /* By section (FD-57; Alina, 28 Oct: "searching for the slides in that particular section… between
+     different decks"): each result knows its deck section, so the results can be narrowed to one kind. */
+  const [sectionPick, setSectionPick] = useState<{ q: string; kind: string } | null>(null);
+  const pickedSection = sectionPick?.q === q ? sectionPick.kind : null;
+  const sectionCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const i of shown) {
+      const k = i.slide.section?.kind;
+      if (k && SECTION_LABEL[k]) m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return [...m].sort((a, b) => b[1] - a[1]);
+  }, [shown]);
+  const visible = pickedSection ? shown.filter((i) => i.slide.section?.kind === pickedSection) : shown;
+  const slides = visible.map((i) => i.slide);
   const deckCount = new Set(slides.map((s) => s.provenance.sourceId)).size;
   const grouped = shown.filter((i) => i.slide.alsoIn).length;
   /* Client, year and slide type already light up in the filter row above. */
@@ -729,13 +742,26 @@ export function ResultsView() {
           ) : (
             <>
               <p className="summary" aria-live="polite">
-                <strong>{plural(shown.length, 'slide')}</strong> from {plural(deckCount, 'deck')}
+                <strong>{plural(visible.length, 'slide')}</strong> from {plural(deckCount, 'deck')}
                 <span className="helpdot" tabIndex={0} role="img" aria-label={`Best matches first.${grouped > 0 ? ' Near-identical copies are grouped under “Also in…”.' : ''}`} data-tip={`Best matches first.${grouped > 0 ? ' Near-identical copies are grouped under “Also in…”.' : ''}`}>
                   <Icon name="info" />
                 </span>
               </p>
+              {sectionCounts.length > 1 && (
+                <div className="sec-pills" role="group" aria-label="Narrow to one section">
+                  <span className="meta">By section:</span>
+                  <button type="button" className="chip-x" aria-pressed={!pickedSection} onClick={() => setSectionPick(null)}>
+                    All <span className="n">{shown.length}</span>
+                  </button>
+                  {sectionCounts.map(([kind, n]) => (
+                    <button key={kind} type="button" className="chip-x" aria-pressed={pickedSection === kind} onClick={() => setSectionPick(pickedSection === kind ? null : { q, kind })}>
+                      {SECTION_LABEL[kind]} <span className="n">{n}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="grid">
-                {shown.map((i) => (
+                {visible.map((i) => (
                   <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} note={sort === 'popular' ? downloadedNote(i.slide) : undefined} />
                 ))}
               </div>
@@ -754,6 +780,17 @@ export function ResultsView() {
     </div>
   );
 }
+
+/** Names for the standard deck sections (server/services/sections.ts SectionKind); "other" isn't offered. */
+const SECTION_LABEL: Record<string, string> = {
+  firm: 'Firm overview',
+  'case-studies': 'Case studies',
+  approach: 'Approach',
+  team: 'Team',
+  fees: 'Fees',
+  understanding: 'Understanding',
+  appendix: 'Appendix',
+};
 
 /* ----------------------------------------------------------------- Deck */
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
-import type { FreeTag, TagRemoval } from '../contracts/dto';
+import type { FreeTag, SlideSummary, TagRemoval } from '../contracts/dto';
 import { addTag, listRemovedTags, removeTag, restoreTag, type Transport } from './api';
 
 /**
@@ -138,4 +138,24 @@ export function useTags(runtime: Transport, who: string | null, on: 'slide' | 'd
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [base, entry, demo, runtime, who, on, id]);
+}
+
+/**
+ * One tag on many slides at once (the draft deck's "Tag all"), through the same route as one slide,
+ * so each card shows it straight away. Slides that already carry it are skipped. Returns how many
+ * slides got it; throws TagsUnavailable when the server has no tag route.
+ */
+export async function addTagToSlides(runtime: Transport, who: string | null, slides: SlideSummary[], name: string): Promise<number> {
+  const demo = typeof window !== 'undefined' && demoTagsOn();
+  let added = 0;
+  for (const slide of slides) {
+    const key = `slide:${slide.id}`;
+    const now = entries.get(key)?.tags ?? (slide.tags ?? []).filter((t) => t.on === 'slide');
+    if (now.some((t) => t.tag.toLowerCase() === name.toLowerCase())) continue;
+    const saved = demo ? { id: `demo-slide-${slide.id}-${name}`, tag: name, on: 'slide' as const, addedBy: who ?? 'You', addedAt: new Date().toISOString() } : await addTag(runtime, 'slide', slide.id, name);
+    if (!saved) throw new TagsUnavailable("Tags can't be saved yet: this server has no tag route.");
+    put(key, { tags: [...now.filter((t) => t.id !== saved.id), saved], removed: entries.get(key)?.removed ?? [], removedLoaded: entries.get(key)?.removedLoaded ?? false });
+    added++;
+  }
+  return added;
 }

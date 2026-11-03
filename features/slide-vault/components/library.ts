@@ -39,9 +39,11 @@ export type Filters = {
   /** Who made the deck file and who put it in SlideVault. Real values only; the lists show when the server sends them. */
   createdBy: string[];
   uploadedBy: string[];
+  /** People's own tags (FD-58) on the slide or its deck, matched whatever the case ("priya" is "Priya") */
+  tag: string[];
 };
 
-export const NO_FILTERS: Filters = { category: [], client: [], bestOnly: false, yfrom: null, yto: null, slideType: [], createdBy: [], uploadedBy: [] };
+export const NO_FILTERS: Filters = { category: [], client: [], bestOnly: false, yfrom: null, yto: null, slideType: [], createdBy: [], uploadedBy: [], tag: [] };
 
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -50,6 +52,8 @@ export const yearOf = (s: SlideSummary) => s.provenance.deckYear ?? null;
 export const categoryOf = (s: SlideSummary) => s.provenance.category ?? null;
 export const createdByOf = (s: SlideSummary) => s.provenance.createdBy ?? null;
 export const uploadedByOf = (s: SlideSummary) => s.provenance.uploadedBy ?? null;
+/** The tags on a slide and on its deck, each once, as people wrote them */
+export const tagsOf = (s: SlideSummary): string[] => [...new Map((s.tags ?? []).map((t) => [t.tag.toLowerCase(), t.tag])).values()];
 
 /** Group slides into decks, keeping first-seen deck order and slide-number order inside a deck. */
 export function groupDecks(slides: SlideSummary[]): Deck[] {
@@ -92,7 +96,7 @@ export function folderLabel(d: Pick<Deck, 'bestOfTheBest' | 'year' | 'clientName
 export const yearsOf = (decks: Deck[]) => [...new Set(decks.map((d) => d.year).filter((y): y is number => y !== null))].sort((a, b) => b - a);
 
 export function filterCount(f: Filters): number {
-  return f.category.length + f.client.length + f.slideType.length + f.createdBy.length + f.uploadedBy.length + (f.bestOnly ? 1 : 0) + (f.yfrom !== null || f.yto !== null ? 1 : 0);
+  return f.category.length + f.client.length + f.slideType.length + f.createdBy.length + f.uploadedBy.length + f.tag.length + (f.bestOnly ? 1 : 0) + (f.yfrom !== null || f.yto !== null ? 1 : 0);
 }
 
 /** The names of the filters that are on, in the order the filter row shows them. */
@@ -104,6 +108,7 @@ export function filterKinds(f: Filters): string[] {
     ...(f.slideType.length ? ['Slide type'] : []),
     ...(f.createdBy.length ? ['File created by'] : []),
     ...(f.uploadedBy.length ? ['Uploaded by'] : []),
+    ...(f.tag.length ? ['Tag'] : []),
     ...(f.bestOnly ? ['Best of the Best'] : []),
   ];
 }
@@ -126,6 +131,10 @@ export function slideMatches(s: SlideSummary, f: Filters): boolean {
   if (f.slideType.length && !f.slideType.some((t) => hasSlideType(s, t))) return false;
   if (f.createdBy.length && !f.createdBy.includes(createdByOf(s) ?? '')) return false;
   if (f.uploadedBy.length && !f.uploadedBy.includes(uploadedByOf(s) ?? '')) return false;
+  if (f.tag.length) {
+    const has = new Set(tagsOf(s).map((t) => t.toLowerCase()));
+    if (!f.tag.some((t) => has.has(t.toLowerCase()))) return false;
+  }
   return true;
 }
 

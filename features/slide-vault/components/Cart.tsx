@@ -10,6 +10,8 @@ import { workspaceSizeOf } from './size';
 import type { SlideSummary } from '../contracts/dto';
 import { Link, Thumb } from './parts';
 import { useWorkspace } from './state';
+import { addTagToSlides, TagsUnavailable } from '../client/tag-store';
+import { cleanTag, TAG_MAX_LENGTH } from './TagField';
 
 /**
  * The cart: slides ticked anywhere on the site, in the order they will download.
@@ -355,6 +357,7 @@ export function Cart() {
             })}
           </ul>
           {n > 1 && <p className="ci-hint">Drag the handle to reorder. Slides download in this order.</p>}
+          <TagAll slides={included} />
           {plan.zip && (
             <div className="cart-zip">
               <label className="fb-check">
@@ -506,5 +509,54 @@ export function CartPill() {
       <span>Draft deck</span>
       {n > 0 && <span className="pill-n">{n}</span>}
     </button>
+  );
+}
+
+/**
+ * Tag every ticked slide in the draft deck at once (FD-58), e.g. "Priya" or "2026 pitch", so the
+ * set can be found again by typing it. Closed until asked for, to keep the draft deck quiet.
+ */
+function TagAll({ slides }: { slides: SlideSummary[] }) {
+  const { runtime, toast, profile } = useWorkspace();
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!slides.length) return null;
+  if (!open)
+    return (
+      <button type="button" className="btn-link cart-tagall-open" onClick={() => setOpen(true)}>
+        <Icon name="plus" className="ic-sm" /> Tag {slides.length === 1 ? 'this slide' : `all ${slides.length} slides`}
+      </button>
+    );
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const name = cleanTag(text);
+    if (!name || busy) return;
+    setBusy(true);
+    try {
+      const added = await addTagToSlides(runtime, profile, slides, name);
+      toast(added ? `Tagged ${plural(added, 'slide')} “${name}”.` : `Every slide already has “${name}”.`);
+      setText('');
+      setOpen(false);
+    } catch (err) {
+      toast(err instanceof TagsUnavailable || err instanceof Error ? err.message : 'That did not work. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form className="cart-tagall" onSubmit={(e) => void submit(e)}>
+      <label htmlFor={`${id}-t`} className="sr-only">
+        Tag for all {slides.length} slides
+      </label>
+      <input id={`${id}-t`} className="input" type="text" value={text} maxLength={TAG_MAX_LENGTH} placeholder="Tag, e.g. Priya" disabled={busy} onChange={(e) => setText(e.target.value)} autoFocus />
+      <button type="submit" className="btn btn-sm" disabled={busy || !cleanTag(text)}>
+        {busy ? 'Tagging…' : 'Add'}
+      </button>
+      <button type="button" className="btn btn-sm btn-icon" aria-label="Cancel tagging" onClick={() => setOpen(false)} disabled={busy}>
+        <Icon name="x" />
+      </button>
+    </form>
   );
 }
