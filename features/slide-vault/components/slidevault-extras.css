@@ -1089,7 +1089,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .tag[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; transform: none; max-width: 220px; }
 .slidevault .meta-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .slidevault .meta-wrap { display: block; flex: 1; min-width: 0; }
-.slidevault .meta-wrap[data-tip]::after { max-width: 260px; }
+.slidevault .meta-wrap[data-tip]::after { max-width: 100%; } /* wraps inside the card, never past its edge */
 .slidevault .meta-row .also { flex: none; align-self: center; min-height: 24px; padding: 0 8px; border-color: transparent; background: none; color: var(--sv-text-secondary); font-weight: 500; } /* where else the slide lives: a quiet marker on the meta line, not another row */
 .slidevault .meta-row .also:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
 .slidevault .tag-team { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text-secondary); } /* the team's own labels: no colour, so they never look like a colleague's tag */
