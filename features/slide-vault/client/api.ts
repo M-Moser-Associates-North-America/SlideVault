@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideComment, SlideVotes, TagRemoval, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta, UploadPreview } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideComment, SlideVotes, TagRemoval, SectionSlides, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta, UploadPreview } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -148,6 +148,13 @@ export async function sendStoryFeedback(runtime: Transport, feedback: { role: St
   const res = await runtime.request({ path: '/storyboard/feedback', method: 'POST', body: feedback });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<{ saved: boolean }>).data;
+}
+
+/** One deck section in full, in deck order, so it can be opened or added whole (FD-80). Null when the server can't say. */
+export async function getSection(runtime: Transport, dividerId: string, signal?: AbortSignal): Promise<SectionSlides | null> {
+  const res = await runtime.request({ path: `/sections/${encodeURIComponent(dividerId)}`, method: 'GET', signal });
+  if (!res.ok) return null;
+  return ((await res.json()) as ApiOk<SectionSlides>).data;
 }
 
 /** Useful / Not relevant on a search result (FD-59); { saved: false } when the person hasn't turned on learning. */

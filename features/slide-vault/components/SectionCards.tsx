@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { getSection } from '../client/api';
 import type { SlideSummary } from '../contracts/dto';
 import { Icon } from './icons';
 import { clientOf, plural, yearOf } from './library';
@@ -11,8 +12,9 @@ import { useWorkspace } from './state';
  * A deck's section as one card (docs/DECISIONS.md FD-57; Alina, 28 Oct: "scroll through these five
  * slides in that section"): the section's cover, its name, how many slides it has, and two actions:
  * open just that section in the preview, or add all of it to the draft deck. The cards are made from
- * the slides in the results, grouped by the section they sit in. When the server can list a whole
- * section, the count and "add all" can cover slides the search words did not match.
+ * the slides in the results, grouped by the section they sit in; each card then asks the server for
+ * its whole section (FD-80), so the count, Open and "Add all" cover slides the search words did not
+ * match. If the server can't answer, the card falls back to the slides the search found.
  */
 
 export type SectionGroup = { key: string; name: string; deck: string; client: string; year: number | null; cover: SlideSummary; slides: SlideSummary[] };
@@ -37,9 +39,25 @@ export function groupBySection(slides: SlideSummary[]): SectionGroup[] {
 const FIRST = 6;
 
 export function SectionCards({ results }: { results: SlideSummary[] }) {
-  const { openPreview, selection, updateSelection, announce, toast } = useWorkspace();
-  const groups = useMemo(() => groupBySection(results), [results]);
+  const { runtime, openPreview, selection, updateSelection, announce, toast } = useWorkspace();
+  const found = useMemo(() => groupBySection(results), [results]);
   const [all, setAll] = useState(false);
+  const [whole, setWhole] = useState<Record<string, SlideSummary[]>>({});
+  const shownFound = all ? found : found.slice(0, FIRST);
+  /* The whole section of each card on screen, asked for once each. */
+  useEffect(() => {
+    const ctl = new AbortController();
+    for (const g of shownFound) {
+      const dividerId = g.cover.section?.dividerId;
+      if (!dividerId || whole[g.key]) continue;
+      getSection(runtime, dividerId, ctl.signal)
+        .then((sec) => { if (sec && sec.slides.length > 0) setWhole((cur) => ({ ...cur, [g.key]: sec.slides })); })
+        .catch(() => undefined);
+    }
+    return () => ctl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `whole` only skips what is already here
+  }, [shownFound.map((g) => g.key).join('|'), runtime]);
+  const groups = found.map((g) => (whole[g.key] ? { ...g, slides: whole[g.key] } : g));
   if (groups.length === 0) return null;
   const shown = all ? groups : groups.slice(0, FIRST);
 

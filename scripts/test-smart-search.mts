@@ -11,7 +11,7 @@ import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/
 import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, typedCodes, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
 import { mentionsWord, smartSearch } from '../features/slide-vault/server/services/smart-search';
-import { asksForCover, deckSections, isSectionSearch, sectionKind, sectionKinds } from '../features/slide-vault/server/services/sections';
+import { asksForCover, deckSections, isSectionSearch, sectionKind, sectionKinds, sectionMembers } from '../features/slide-vault/server/services/sections';
 import { taggedFirst, typedTags, type TagHit } from '../features/slide-vault/server/services/tagged-first';
 import { cleanSearchFeedback, learnedForSearch, learnedScore, searchWords, sinks } from '../features/slide-vault/server/search-feedback';
 import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
@@ -370,6 +370,9 @@ for (const [env, label] of [
   const sec = deckSections(numbered);
   check(sec.get('p3')?.kind === 'firm' && sec.get('p3')?.position === 1 && sec.get('p3')?.dividerId === 'p2', 'sections: a slide belongs to the section it sits in, and knows its place', sec.get('p3'));
   check(!sec.has('p1'), 'sections: slides before the first divider have none');
+  const members = sectionMembers(sec, 'p2');
+  check(members.length >= 2 && members[0][0] === 'p2' && members[0][1].divider && members.every(([, m], i) => m.position === i && m.dividerId === 'p2'), 'sections: a whole section is listed from its divider in deck order', members.map(([id]) => id));
+  check(sectionMembers(sec, 'nope').length === 0, 'sections: an unknown divider lists nothing');
 
   const lettered = deck(['A FIRM BACKGROUND WHO WE ARE KESTREL X M MOSER', 'A FIRM BACKGROUND WHO WE ARE KESTREL X M MOSER\n4\nFirm\nBackground'], ['A FIRM BACKGROUND WHO WE ARE KESTREL X M MOSER', 'Offices in 30 cities'], ['F PROPOSED TEAM AND RESUMES KESTREL X M MOSER', 'F PROPOSED TEAM AND RESUMES KESTREL X M MOSER\n44\nProposed\nTeam and Resumes'], ['F PROPOSED TEAM AND RESUMES KESTREL X M MOSER', 'Jane Doe, design lead']);
   check(JSON.stringify(names(lettered)) === '["p1:firm:Firm Background","p3:team:Proposed Team and Resumes"]', 'sections: a PDF\'s lettered heading opens a section once, not on every page', names(lettered));

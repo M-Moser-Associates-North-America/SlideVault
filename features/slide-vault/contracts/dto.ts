@@ -419,3 +419,6 @@ export type StoryboardResult = {
   /** Build: the decks we already made for clients the brief names, used for the parts about them */
   context?: { id: string; title: string }[];
 };
+
+/** One deck section in full, in deck order: GET /sections/:dividerId (FD-80). */
+export type SectionSlides = { name: string; kind: string; slides: SlideSummary[] };

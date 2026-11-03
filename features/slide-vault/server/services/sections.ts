@@ -201,6 +201,11 @@ export function librarySections(index: { sources: SectionDeck[] } | null, typeOf
 }
 
 /** A search that asks for a part's cover: "banner slides", "case study covers", "the page breakers". */
+/** The slides of one section in deck order, from every slide's section: [slide id, its section]. Empty when the divider is unknown. */
+export function sectionMembers(sections: Map<string, SlideSection>, dividerId: string): [string, SlideSection][] {
+  return [...sections].filter(([, sec]) => sec.dividerId === dividerId).sort((a, b) => a[1].position - b[1].position);
+}
+
 export const asksForCover = (query: string) => /\b(banners?|covers?|dividers?|page ?break(er)?s?|section (covers?|breaks?|openers?)|title slides?)\b/i.test(query);
 
 /**

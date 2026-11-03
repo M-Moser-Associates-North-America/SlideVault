@@ -19,7 +19,9 @@ import { buildStoryboard, clientSectors, keptOutOfStories, type StoryboardRespon
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
 import { familiesOf } from './families';
-import { askedSections, asksForCover, isSectionSearch, librarySections, sectionWhy, type SlideSection } from './sections';
+import { askedSections, asksForCover, isSectionSearch, librarySections, sectionMembers, sectionWhy, type SlideSection } from './sections';
+import { findSlide } from '../library-repository';
+import { toSummary } from './search';
 import { refineStory } from './story-refine';
 import type { StoryBeat, StoryRefineRequest, StoryRefineResult, StoryboardSlide } from '../../contracts/dto';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
@@ -268,6 +270,30 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   };
   const sectionOf = (id: string) => { const sec = sections.get(id); return sec ? { name: sec.name, kind: sec.kind, divider: sec.divider, dividerId: sec.dividerId } : null; };
   return { ...result, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
+}
+
+/**
+ * One deck section in full, in deck order (FD-57, FD-80): every slide from its divider to the next, not
+ * only the ones a search matched, so a section can be opened in the preview and added to a draft deck
+ * whole. Hidden-in-source and internal-only slides are left out unless asked for, as in search.
+ */
+export async function sectionSlides(dividerId: string, includeHidden = false): Promise<{ name: string; kind: string; slides: SlideSummary[] } | null> {
+  const index = await loadLibraryIndex();
+  await uploadedDecks();
+  const sections = sectionsOf(index, await loadSlideReadings());
+  const members = sectionMembers(sections, dividerId);
+  if (!members.length) return null;
+  const fromFiles = new Map<string, SlideSummary>();
+  if (index) for (const [id] of members) { const found = findSlide(index, id); if (found) fromFiles.set(id, toSummary(found.source, found.slide)); }
+  const rest = members.map(([id]) => id).filter((id) => !fromFiles.has(id));
+  const fromDb = new Map((rest.length ? await orWithoutDb('section slides', () => getSlideSummariesPg(rest), []) : []).map((s) => [s.id, s]));
+  const slides: SlideSummary[] = [];
+  for (const [id, sec] of members) {
+    const slide = fromFiles.get(id) ?? fromDb.get(id);
+    if (!slide || (!includeHidden && (slide.hiddenInSource || isInternalOnly(slide)))) continue;
+    slides.push({ ...slide, section: { name: sec.name, kind: sec.kind, divider: sec.divider, dividerId: sec.dividerId } });
+  }
+  return slides.length ? { name: members[0][1].name, kind: members[0][1].kind, slides } : null;
 }
 
 /** The configured storyboard reader, or null for the standard story order. Throws when misconfigured. */
