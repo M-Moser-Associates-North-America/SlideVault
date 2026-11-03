@@ -1132,8 +1132,8 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* Useful / Not useful as words (FD-81): the arrows said nothing about what they do */
 .slidevault .vp.vp-text { width: auto; padding: 0 11px; font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; }
 .slidevault .votepill.is-small .vp.vp-text { width: auto; height: 24px; padding: 0 9px; font-size: 12.5px; }
-.slidevault .vp.vp-text, .slidevault .vp.vp-text:hover, .slidevault .vp.vp-text:focus-visible, .slidevault .vp.vp-text[aria-pressed="true"].is-up { color: var(--sv-text); } /* dark words: orange on the orange tint was 4.05:1 */
-.slidevault .vp.vp-text[aria-pressed="true"].is-down { color: var(--sv-action-fg); }
+.slidevault .votepill .vp.vp-text, .slidevault .votepill .vp.vp-text:hover, .slidevault .votepill .vp.vp-text:focus-visible, .slidevault .votepill .vp.vp-text[aria-pressed="true"].is-up { color: var(--sv-text); } /* dark words: orange on the orange tint was 4.05:1 */
+.slidevault .votepill .vp.vp-text[aria-pressed="true"].is-down { color: var(--sv-action-fg); }
 .slidevault .votepill.is-small .vp .ic { width: 15px; height: 15px; }
 .slidevault .vp.is-up { color: var(--sv-brand-strong); }
 .slidevault .vp:hover, .slidevault .vp:focus-visible { background: color-mix(in srgb, var(--sv-brand) 18%, transparent); color: var(--sv-brand-strong); }
