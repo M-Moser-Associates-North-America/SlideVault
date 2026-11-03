@@ -15,6 +15,7 @@ import { asksForCover, deckSections, isSectionSearch, sectionKind, sectionKinds 
 import { taggedFirst, typedTags, type TagHit } from '../features/slide-vault/server/services/tagged-first';
 import { cleanSearchFeedback, learnedForSearch, learnedScore, searchWords } from '../features/slide-vault/server/search-feedback';
 import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
+import { byLearning } from '../features/slide-vault/server/services/library-smart-search';
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -429,6 +430,15 @@ for (const [env, label] of [
   check(l.get('bio')?.notRelevant === 2 && l.get('case')?.useful === 1 && !l.has('other'), 'feedback: counts only searches that share a word', Object.fromEntries(l));
   check(learnedForSearch(rows, ['hospitality'], 'director').get('bio')?.notRelevant === 3, 'feedback: someone in the same role counts double');
   check(learnedScore(l.get('case')) > 0 && learnedScore(l.get('bio')) < 0 && learnedScore(undefined) === 0, 'feedback: useful moves a slide up, not relevant moves it down');
+}
+
+{
+  // The database's results learn too (FD-78): useful first, not relevant last, its own order otherwise.
+  const rows = ['a', 'b', 'c', 'd'].map((id) => ({ summary: { id } }));
+  const learned = new Map([['c', { useful: 2, notRelevant: 0 }], ['a', { useful: 0, notRelevant: 1 }]]);
+  const order = byLearning(rows, learned).map((r) => r.summary.id).join('');
+  check(order === 'cbda', 'feedback on the database: marked useful leads, not relevant goes last, the rest keep their order', order);
+  check(byLearning(rows, new Map()).map((r) => r.summary.id).join('') === 'abcd', 'feedback on the database: with nothing marked, the order is unchanged');
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smart search checks passed');

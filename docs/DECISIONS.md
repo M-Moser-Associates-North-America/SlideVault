@@ -812,3 +812,17 @@ Acceptance evidence / affected PR criteria: typecheck and lint (0 errors), datab
 Documents/contracts changed: components/SlideActions.tsx (FeedbackPill; VotePill and CardVotes show it without counts).
 Revisit trigger: per-person vote routes are built (Alina has agreed to votes).
 ```
+
+```text
+Decision ID and title: FD-78 Search on the real decks learns from Useful / Not relevant too
+Status: proposed
+Decision date: 2026-11-02
+Decision owner/reviewer: Schiffon (search); Vincent (database search)
+Context and evidence: A read-through of the frozen code (2 Nov) found FD-59's learning applied only to the sample decks: their ranking adds each slide's learned score, but results from the database, where M Moser's library lives, were never re-ranked; "not relevant" reached them only for searches naming a rare word. So on the real setup a Useful click changed nothing in search.
+Options considered: (a) re-rank the database's results by the learned score, keeping its order otherwise; (b) push the learned score into the SQL ranking; (c) leave it for after the freeze.
+Chosen outcome: (a). byLearning (server/services/library-smart-search.ts) puts slides colleagues marked useful for searches sharing a word first and ones marked not relevant last; the rest keep the database's order. Same counts and weights as FD-59 (learnedScore), opt-in rows only.
+Consequences for scope, cost, security and integration: No database change; one sort of at most the result limit. (b) stays the better long-term place once there are many verdicts.
+Acceptance evidence / affected PR criteria: test:smart-search (2 new checks: useful leads and not relevant goes last with the rest in order; nothing marked leaves the order unchanged). typecheck and lint pass.
+Documents/contracts changed: server/services/library-smart-search.ts (byLearning), scripts/test-smart-search.mts, docs/DATA_AND_API.md (status line and an As built route list).
+Revisit trigger: enough verdicts that ranking inside the database query is worth it.
+```

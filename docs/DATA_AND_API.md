@@ -1,6 +1,6 @@
 # Data and API contract
 
-**Status:** recommended v0.1 design. No schema or endpoints exist yet. Gate 1 must publish an OpenAPI schema and shared TypeScript DTOs matching the implementation. Scope follows [Product brief](PRODUCT_BRIEF.md); provider choices remain in [Decisions](DECISIONS.md).
+**Status:** recommended v0.1 design, now partly built. The endpoints that exist, and where they differ from this design, are listed under [As built (2026-11-02)](#as-built-2026-11-02); the shared TypeScript DTOs are in `features/slide-vault/contracts/dto.ts`. No OpenAPI schema is published yet (Gate 1 asks for one). The original design text below is kept as the target. Scope follows [Product brief](PRODUCT_BRIEF.md); provider choices remain in [Decisions](DECISIONS.md).
 
 ## Domain model
 
@@ -45,6 +45,47 @@ Phase 1 uses extracted text and metadata search with controlled filters. Index o
 Support content class, approval, source/deck, owner, reviewed date and agreed taxonomy filters. Keep cursor ordering deterministic with an ID tie-breaker. Return a bounded page (proposed default 24, maximum 100). Clear filters and no-result states must be distinguishable from failures. Search never invents a match or source citation.
 
 A collection item pins the selected version. If a newer canonical version appears, show an explicit update option and preserve the user's order. Recheck restrictions at export time. Reordering uses item IDs and optimistic concurrency; a stale revision returns 409 rather than discarding another user's changes.
+
+## As built (2026-11-02)
+
+Every route below exists under `/api/slide-vault/v1` (one `route.ts` per path in `app/api/slide-vault/v1/`). Request and response shapes are the DTOs in `features/slide-vault/contracts/dto.ts`; each route's file says which decision (FD-…, `docs/DECISIONS.md`) set its behaviour. Responses use the `{ data }` / `{ error: { code, message, retryable } }` shapes described below.
+
+| Endpoint | What it does | Decision |
+| --- | --- | --- |
+| `GET /session` | The caller's effective capabilities | |
+| `GET /library` | Every ready deck and slide (uploaded decks, then sample decks) | FD-31 |
+| `GET /search` | Keyword search and listing: `q`, `kind=slide`, `cursor`, `limit`, `tag`; slides carry packs and tags | |
+| `GET /smart-search` | Plain-language search: `q`, `limit`, `read=1` (AI reads it), `role`, `hidden=include`; returns how it was read (chips), results and why each fits | FD-16, FD-17, FD-56 to FD-59, FD-70 |
+| `POST /smart-search/feedback` | Useful / Not relevant on a result: `{ query, slideId, verdict, by? }`; kept only for people who opted in, with the search's words and no name | FD-59, FD-77 |
+| `GET /meaning-search` | Slides close in meaning (pgvector) | FD-55 |
+| `GET /slides/:id`, `PATCH /slides/:id` | Slide details; rename a slide `{ title }` (`null` restores the original) | FD-73 |
+| `GET /slides/:id/preview` | The slide picture, served through the API | |
+| `PATCH /decks/:id` | Archive or restore a deck `{ archived }` | FD-50, FD-52 |
+| `POST /exports` | An editable .pptx from an ordered selection (a .zip of one .pptx per deck, or one combined deck) | FD-03, FD-09, FD-21 |
+| `POST /storyboard` | A client situation in, a story of slides out; opens or retells a named deck | FD-22 to FD-32, FD-75 |
+| `POST /storyboard/refine` | Continue a story from a message | FD-43 |
+| `POST /storyboard/feedback` | Useful / Not useful for a slide in a part of a story; opt-in only | FD-24, FD-37 |
+| `GET /tags`, `POST /tags` | Tags in use with counts; add a tag to a slide or deck | FD-53, FD-58 |
+| `DELETE /tags/:id`, `POST /tags/:id/restore`, `GET /tags/removed` | Remove (kept, with who and when), restore, and the removal log | FD-72 |
+| `POST /packs`, `PATCH /packs/:id`, `DELETE /packs/:id` | Slides that only work together: make, rename or confirm, ungroup | FD-38, FD-52 |
+| `POST /uploads/preview`, `GET /uploads/preview/:token/:slide` | See an upload's slides before saving it | FD-54 |
+| `POST /uploads/suggest` | Suggested deck details from the file (AI optional) | FD-23 |
+| `POST /uploads` | Save an uploaded deck with its details and tags | FD-52, FD-54 |
+| `GET /me/settings`, `PATCH /me/settings` | The signed-in person's settings, including their role | FD-71 |
+| `GET/POST/PATCH /me/activity` | Opt-in activity (90 days) for Top 10 and Suggested rows | FD-18 |
+| `GET /me/saved`, `PATCH /me/saved` | Saved slides | FD-18 |
+| `GET/POST /me/drafts`, `DELETE /me/drafts/:id` | Saved decks under My decks | FD-18 |
+| `GET /me/suggested` | Suggested for you by role (no screen yet) | FD-71 |
+| `GET /speech`, `POST /speech` | Whether talking instead of typing is set up; turn speech into text | |
+
+**Where the build differs from the design below (known, for the next phase):**
+
+- **Identity and authorization:** as decided in FD-01, the prototype's sign-in is a placeholder (the person's name comes in the `X-SlideVault-User` header); M Moser's login replaces it.
+- **Collections** are built as personal saved decks (`/me/drafts`), not shared `/collections`.
+- **Exports** are built and returned in the same request, not queued as a job (FD-03); there is no `/jobs` API.
+- **Uploads** are a single multipart request, not reserve-then-complete; there are no review, version or source-delete endpoints yet.
+- **Concurrency:** no `If-Match` revisions on changes yet.
+- **Schema:** one `server/sql/schema.sql` applied by `npm run db:setup`, not versioned migrations with rollback notes.
 
 ## HTTP conventions
 
