@@ -341,6 +341,12 @@ for (const [env, label] of [
   check(team.types[0] === 'team_structure' && team.sectors.includes('healthcare'), 'intent: "team slide for a healthcare client" asks for a team slide and a healthcare client', team);
   check(searchIntent('design lead résumé from Acme').types[0] === 'team_resume', 'intent: "résumé" with accents is read as a résumé');
   check(JSON.stringify(searchIntent('sustainability slides for a bank')) === JSON.stringify({ types: [], sectors: ['financial services'], themes: ['sustainability / net zero'] }), 'intent: a theme and a sector, no kind');
+  // 3 Nov: the 9 slide types and 8 curated themes the rules didn't know, without catching sector words.
+  check(searchIntent('cover letter for a bank').types[0] === 'cover_letter' && searchIntent('our awards').types.includes('awards') && searchIntent('scope and assumptions').types.includes('scope_assumptions') && searchIntent('design concept mood boards').types.includes('design_concept') && searchIntent('our understanding of the client').types.includes('client_understanding'), 'intent: the new slide types are read');
+  check(searchIntent('DEI and belonging').themes.includes('inclusion & DEI') && searchIntent('feature stair').themes.includes('interconnecting stair / vertical connection') && searchIntent('BIM and VDC').themes.includes('VDC / 3D process') && searchIntent('masterplan for the portfolio').themes.includes('masterplanning & portfolio strategy') && searchIntent('AI in the workplace').themes.includes('AI'), 'intent: the new themes are read');
+  const fin = searchIntent('financial services case study');
+  const legal = searchIntent('legal client team slide');
+  check(!fin.types.includes('capability_service') && fin.sectors.includes('financial services') && !legal.types.includes('legal_admin') && !searchIntent('private equity firm overview').themes.includes('inclusion & DEI') && !searchIntent('maintain the space').themes.includes('AI'), 'intent: sector words and words inside other words never trigger the new kinds or themes', { fin, legal });
   const structure = { type: 'team_structure', clientSector: 'healthcare / medtech' };
   const resume = { type: 'team_resume', clientSector: 'healthcare / medtech' };
   const bankTeam = { type: 'team_structure', clientSector: 'financial services' };

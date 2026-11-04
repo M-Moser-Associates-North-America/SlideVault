@@ -1,10 +1,13 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
+import { userOf } from '@/features/slide-vault/server/principal';
 import { cleanSearchFeedback, recordSearchFeedback, retractSearchFeedback } from '@/features/slide-vault/server/search-feedback';
+import { mayLearnFrom } from '@/features/slide-vault/server/story-feedback';
+import { activityOptedIn } from '@/features/slide-vault/server/user-data';
 
 // POST /smart-search/feedback { query, slideId, verdict: 'useful' | 'not-relevant', by?, undo? } (docs/DECISIONS.md FD-59)
-// Useful / Not relevant on a search result. Saved as the slide, the verdict, the search's words and the
-// person's role (never the search itself or a name), and used to rank the next search with those words.
-// On for everyone (FD-84): it is not personalization and stores nobody's identity, so it needs no opt-in.
+// Useful / Not relevant on a search result. Saved as the slide, the verdict and the search's words
+// (never the search itself or a name), and used to rank the next search with those words, only from
+// people who turned on "learn from my activity" (FD-37): otherwise { saved: false, reason: 'opted-out' }.
 export async function POST(request: Request) {
   const limited = rateLimit(request, RATE_POLICIES.searchFeedback);
   if (limited) return limited;
@@ -17,6 +20,7 @@ export async function POST(request: Request) {
   const feedback = cleanSearchFeedback(raw);
   if (!feedback) return fail(400, 'BAD_REQUEST', 'Feedback needs the search, a slide and a verdict (useful or not-relevant).');
   try {
+    if (!(await mayLearnFrom(userOf(request), activityOptedIn))) return ok({ saved: false, reason: 'opted-out' });
     if (feedback.undo) await retractSearchFeedback(feedback);
     else await recordSearchFeedback(feedback);
     return ok({ saved: true });
