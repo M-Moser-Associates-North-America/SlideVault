@@ -135,12 +135,15 @@ check(res.status === 200 && body.data.available && body.data.items[0]?.slide.tit
   const tsRes = await tsRoute.GET(new Request('http://localhost/x'), { params: Promise.resolve({ slideId: team }) } as never);
   const tsBody = (await tsRes.json()) as { data: { suggestions: { tag: string }[] } };
   check(tsRes.status === 200 && tsBody.data.suggestions.some((x) => x.tag === 'team culture'), 'GET /slides/:id/tag-suggestions answers', tsBody);
+  const { tagLike } = await import('../features/slide-vault/server/slide-embeddings');
+  check(tagLike('business ambition') && tagLike('Net zero') && !tagLike('we listen before we design') && !tagLike('this is where we come in') && !tagLike('Our approach'), 'reading words: short phrases are tags, copied headlines are not');
   const ranked = rankTagSuggestions([
     { slide_id: 'a', similarity: 0.9, themes: ['Net zero'], proof_sectors: [], tags: [] },
     { slide_id: 'b', similarity: 0.8, themes: ['net zero', 'Wellness'], proof_sectors: ['Banking'], tags: ['Flagship'] },
     { slide_id: 'c', similarity: 0.3, themes: ['Wellness'], proof_sectors: [], tags: ['Far away'] },
+    { slide_id: 'd', similarity: 0.7, themes: ['we listen before we design'], proof_sectors: [], tags: [], client_sector: 'Legal' },
   ], ['banking']);
-  check(JSON.stringify(ranked.map((r) => r.tag)) === '["Net zero","Flagship","Wellness"]', 'ranking: words close slides share rank first, then people tags, then one-off reading words; far slides and tags the slide has are left out', ranked);
+  check(JSON.stringify(ranked.map((r) => r.tag)) === '["Net zero","Flagship","Wellness","Legal"]', 'ranking: words close slides share rank first, then people tags, then one-off reading words; far slides and tags the slide has are left out', ranked);
 }
 
 // ---- Never breaks search

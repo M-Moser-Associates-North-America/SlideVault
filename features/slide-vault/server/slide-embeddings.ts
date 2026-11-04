@@ -58,7 +58,8 @@ export async function embedDeckQuietly(deckId: string): Promise<void> {
  * (free_tags) and the AI reading's themes and sectors on those neighbours, each weighted by how close
  * the neighbour is, so a word several close slides share ranks first. The reading's themes are written
  * per slide rather than from a fixed list (21 different themes and none shared among one real slide's
- * closest 12, 3 Nov), so one close slide is enough. Tags the slide already has are left out. Nothing is saved: a person clicks a suggestion to add it (Alina: AI
+ * closest 12, 3 Nov), so one close slide is enough; only tag-like ones (tagLike) are offered, plus the
+ * close slides' deck sector. Tags the slide already has are left out. Nothing is saved: a person clicks a suggestion to add it (Alina: AI
  * suggestions stay suggestions until a person confirms). Empty, never an error, when it can't run.
  */
 export type TagSuggestion = { tag: string; from: 'people' | 'reading'; score: number };
@@ -66,7 +67,17 @@ const NEIGHBOURS = 12;
 const MIN_SIMILARITY = Number(process.env.SV_MEANING_MIN_SIMILARITY || 0.55);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type Near = { slide_id: string; similarity: number; themes: string[] | null; proof_sectors: string[] | null; tags: string[] | null };
+type Near = { slide_id: string; similarity: number; themes: string[] | null; proof_sectors: string[] | null; tags: string[] | null; client_sector?: string | null };
+
+/**
+ * Does a reading word read like a tag? Some themes are headlines copied off the slide ("we listen before we
+ * design", real data 3 Nov), which nobody would click: a tag is one to three words, and doesn't open like a sentence.
+ */
+const SENTENCE_START = /^(we|our|this|that|it|you|your|how|why|what|where|when|the|a|an|is|are)\b/i;
+export const tagLike = (t: string) => {
+  const words = t.split(' ').filter(Boolean);
+  return words.length >= 1 && words.length <= 3 && t.length <= 30 && !SENTENCE_START.test(t) && !/[.!?:;]/.test(t);
+};
 
 /** Pure ranking, so it can be checked without a database. */
 export function rankTagSuggestions(near: Near[], have: string[], limit = 5): TagSuggestion[] {
@@ -88,7 +99,7 @@ export function rankTagSuggestions(near: Near[], have: string[], limit = 5): Tag
       pool.set(key, p);
     };
     for (const t of r.tags ?? []) add(t, true);
-    for (const t of [...(r.themes ?? []), ...(r.proof_sectors ?? [])]) add(t, false);
+    for (const t of [...(r.themes ?? []), ...(r.proof_sectors ?? []), ...(r.client_sector ? [r.client_sector] : [])]) if (tagLike(t.replace(/\s+/g, ' ').trim())) add(t, false);
   }
   return [...pool.values()]
     .sort((a, b) => b.score - a.score || a.tag.localeCompare(b.tag))
@@ -108,9 +119,9 @@ export async function tagSuggestions(slideId: string, limit = 5): Promise<TagSug
          where e.model = me.model and e.slide_id <> $1::uuid and d.status = 'ready' and d.archived_at is null
          order by e.embedding <=> me.embedding limit $2
        )
-       select near.slide_id::text as slide_id, near.similarity, s.themes, s.proof_sectors,
+       select near.slide_id::text as slide_id, near.similarity, s.themes, s.proof_sectors, d.client_sector,
          (select array_agg(t.tag) from free_tags t where t.target_kind = 'slide' and t.target_id = near.slide_id and t.removed_at is null) as tags
-       from near join slides s on s.id = near.slide_id order by near.similarity desc`,
+       from near join slides s on s.id = near.slide_id join decks d on d.id = s.deck_id order by near.similarity desc`,
       [slideId, NEIGHBOURS],
     );
     if (!near.length) return [];
