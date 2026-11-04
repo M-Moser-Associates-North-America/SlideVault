@@ -1,0 +1,142 @@
+/* Storyboard (FD-22, FD-24, FD-30; Schiffon's design, 23 Oct). Uses the app's own tokens so it sits
+   in Khushali's system: one calm column that reads like the deck it will become, uppercase labels,
+   thin rules, orange only as the accent. */
+.slidevault .sb { padding-bottom: 64px; container-type: inline-size; }
+.slidevault .sb-eyebrow, .slidevault .sb-label { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-brand-strong); margin: 0; }
+.slidevault .sb-title { margin: 6px 0 8px; }
+.slidevault .sb-lede { max-width: 64ch; margin: 0 0 20px; }
+.slidevault .sb-accent { color: var(--sv-brand-strong); }
+.slidevault .sb-n { font-weight: 700; color: var(--sv-brand); font-variant-numeric: tabular-nums; }
+.slidevault .sb-text-btn { font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sv-text-secondary); background: none; border: 0; padding: 6px 4px; cursor: pointer; }
+.slidevault .sb-text-btn:hover { color: var(--sv-text); }
+.slidevault .sb-text-btn:focus-visible, .slidevault .sb-pull:focus-visible, .slidevault .sb-add:focus-visible, .slidevault .sb-icon-btn:focus-visible, .slidevault .sb-beat-pic:focus-visible, .slidevault .sb-set-pic:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+
+/* ---- Start: the brief, the mic, who it's tuned for and "Pull the story", nothing else ---- */
+.slidevault .sb-compose { background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 16px; padding: 16px; }
+.slidevault .sb-compose textarea, .slidevault .sb-sharpen textarea { width: 100%; resize: vertical; border: 1px solid var(--sv-border-strong); border-radius: 12px; padding: 12px 14px; font: inherit; color: var(--sv-text); background: var(--sv-surface); }
+.slidevault .sb-compose textarea:focus-visible, .slidevault .sb-sharpen textarea:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 1px; }
+.slidevault .sb-compose-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
+.slidevault .sb-compose-row .sb-role-line { margin: 0; }
+.slidevault .sb-mic.is-on { border-color: var(--sv-brand); color: var(--sv-brand-strong); background: var(--sv-brand-tint); }
+.slidevault .sb-board-title { margin: 8px 0 12px; font-size: clamp(30px, 4vw, 46px); line-height: 1.02; font-weight: 300; text-transform: uppercase; letter-spacing: -0.01em; color: var(--sv-text); }
+.slidevault .sb-board-title b { font-weight: 700; }
+.slidevault .sb-board-title:focus { outline: none; }
+/* "Pull the story": the orange pill from the Home page's launch button, at the end of the brief's row */
+.slidevault .sb-pull { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 1px solid var(--sv-text-secondary); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-card); font: inherit; font-size: var(--sv-text-small); font-weight: 600; white-space: nowrap; cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .sb-pull:is(:hover, :focus-visible, :active) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+/* The label slides from Pull the story to Start planning story; the wider label sets the size, so nothing jumps. */
+.slidevault .sb-pull-swap { display: inline-grid; overflow: hidden; }
+.slidevault .sb-pull-1, .slidevault .sb-pull-2 { grid-area: 1 / 1; transition: transform var(--sv-duration-fast) var(--sv-ease-out), opacity var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .sb-pull-2 { transform: translateY(110%); opacity: 0; }
+.slidevault .sb-pull:is(:hover, :focus-visible, :active) .sb-pull-1 { transform: translateY(-110%); opacity: 0; }
+.slidevault .sb-pull:is(:hover, :focus-visible, :active) .sb-pull-2 { transform: none; opacity: 1; }
+.slidevault .sb-too-short { margin: 10px 0 0; font-size: var(--sv-text-small); color: var(--sv-text); }
+
+/* ---- Composing: the real steps, in order, inline ---- */
+.slidevault .sb-composing { max-width: 680px; margin: 24px auto 0; }
+.slidevault .sb-composing-title { margin: 24px 0 32px; font-size: clamp(28px, 4vw, 40px); font-weight: 300; line-height: 1.15; color: var(--sv-text-secondary); }
+.slidevault .sb-steps { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--sv-border); }
+.slidevault .sb-steps li { display: grid; grid-template-columns: 36px 1fr auto; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--sv-border); color: var(--sv-text-secondary); transition: color 0.3s; }
+.slidevault .sb-steps li.is-todo { opacity: 0.55; }
+.slidevault .sb-steps li.is-done { color: var(--sv-text); }
+.slidevault .sb-steps li.is-active .sb-step-label { color: var(--sv-brand-strong); }
+.slidevault .sb-step-n { font-size: 11px; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
+.slidevault .sb-step-state { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+.slidevault .sb-progress { height: 2px; margin-top: 28px; background: var(--sv-border); }
+.slidevault .sb-progress i { display: block; height: 100%; background: var(--sv-brand); transition: width 0.8s ease; }
+.slidevault .sb-composing-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); font-variant-numeric: tabular-nums; }
+
+/* ---- The story: a title, then one beat after another, like the deck it will become ---- */
+.slidevault .sb-story-head, .slidevault .sb-beats, .slidevault .sb-sharpen { max-width: 760px; margin-left: auto; margin-right: auto; }
+.slidevault .sb-story-head { padding: 16px 0 28px; border-bottom: 1px solid var(--sv-border); }
+.slidevault .sb-story-summary { margin: 0 0 20px; font-size: 18px; color: var(--sv-text-secondary); max-width: 60ch; }
+.slidevault .sb-head-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.slidevault .sb-add { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: var(--sv-text-small); font-weight: 500; color: var(--sv-text); background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: 999px; padding: 9px 18px; cursor: pointer; }
+.slidevault .sb-add:hover { border-color: var(--sv-brand); }
+.slidevault .sb-beats { list-style: none; padding: 0; margin-top: 0; margin-bottom: 0; }
+.slidevault .sb-beat { padding: 36px 0 32px; border-bottom: 1px solid var(--sv-border); }
+/* How a beat follows from the one before: one quiet line, so the slides read as one argument */
+.slidevault .sb-bridge { margin: 0 0 12px; padding-left: 14px; border-left: 2px solid var(--sv-brand); font-size: var(--sv-text-small); font-style: italic; line-height: 1.5; color: var(--sv-text-secondary); max-width: 62ch; }
+.slidevault .sb-thesis { color: var(--sv-text); }
+.slidevault .sb-close { max-width: 760px; margin: 36px auto 0; padding: 18px 0 0; border-top: 2px solid var(--sv-brand); font-size: clamp(18px, 2.2vw, 21px); line-height: 1.5; color: var(--sv-text); }
+.slidevault .sb-kind { margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .is-suggested .sb-kind { color: var(--sv-brand-strong); }
+.slidevault .is-suggested .sb-beat-pic { outline: 2px dashed var(--sv-brand); outline-offset: 3px; }
+.slidevault .sb-beat-title { display: flex; gap: 14px; align-items: baseline; margin: 0 0 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text); }
+.slidevault .sb-beat-title .sb-n { font-size: 12px; }
+.slidevault .sb-beat-frame { position: relative; }
+.slidevault .sb-beat-pic { display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); cursor: zoom-in; overflow: hidden; }
+.slidevault .sb-beat-pic img, .slidevault .sb-set-pic img { width: 100%; height: 100%; object-fit: contain; background: #fff; display: block; }
+.slidevault .sb-beat-more { position: absolute; right: 10px; bottom: 10px; min-width: 44px; min-height: 32px; padding: 4px 12px; border: 0; border-radius: 999px; background: color-mix(in srgb, var(--sv-text) 78%, transparent); color: #fff; font: inherit; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
+.slidevault .sb-beat-more:hover, .slidevault .sb-beat-more[aria-expanded='true'] { background: var(--sv-brand-strong); }
+.slidevault .sb-beat-more:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .sb-verdict { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; }
+.slidevault .sb-verdict.is-small .sb-icon-btn { font-size: 11px; padding: 4px 2px; }
+.slidevault .sb-beat-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin-top: 10px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .sb-beat-set { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 14px; }
+.slidevault .sb-beat-set li { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.slidevault .sb-set-pic { width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); cursor: zoom-in; overflow: hidden; }
+.slidevault .sb-beat-say { margin: 22px 0 10px; font-size: clamp(18px, 2.2vw, 21px); line-height: 1.5; color: var(--sv-text); max-width: 62ch; }
+.slidevault .sb-beat-why { margin: 0; font-size: 12px; letter-spacing: 0.04em; color: var(--sv-text-secondary); }
+.slidevault .sb-beat-why b { font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; }
+.slidevault .sb-icon-btn { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sv-text-secondary); background: none; border: 0; padding: 6px 2px; cursor: pointer; }
+.slidevault .sb-icon-btn:hover:not(:disabled) { color: var(--sv-text); }
+.slidevault .sb-icon-btn[aria-pressed='true'] { color: var(--sv-brand-strong); }
+.slidevault .sb-icon-btn:disabled { cursor: default; }
+.slidevault .sb-icon-btn:disabled:not([aria-pressed='true']) { opacity: 0.45; }
+.slidevault .sb-sharpen { margin-top: 40px; }
+.slidevault .sb-story-from { margin: -8px 0 20px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .sb-after { max-width: 760px; margin: 40px auto 0; }
+.slidevault a.sb-add { text-decoration: none; }
+/* Talk to your story (FD-43): the conversation under the story */
+.slidevault .sb-talk { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; max-height: 360px; overflow-y: auto; }
+.slidevault .sb-msg { margin: 0; padding: 10px 14px; border-radius: 14px; font-size: var(--sv-text-small); line-height: 1.5; max-width: 85%; }
+.slidevault .sb-msg-app { align-self: flex-start; background: var(--sv-surface-sunken); color: var(--sv-text); border-bottom-left-radius: 4px; }
+.slidevault .sb-msg-you { align-self: flex-end; background: var(--sv-brand-tint); color: var(--sv-text); border-bottom-right-radius: 4px; }
+.slidevault .sb-working { color: var(--sv-text-secondary); font-style: italic; }
+.slidevault .sb-sharpen-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
+.slidevault .sb-sharpen-row textarea { flex: 1 1 auto; }
+@media (prefers-reduced-motion: reduce) {
+  .slidevault .sb-pull, .slidevault .sb-pull-1, .slidevault .sb-pull-2, .slidevault .sb-progress i, .slidevault .sb-steps li { transition: none; }
+}
+@container (max-width: 560px) {
+  .slidevault .sb .sb-pull { width: 100%; justify-content: center; }
+  .slidevault .sb .sb-beat { padding: 28px 0 24px; }
+}
+
+/* The way in, beside the search bar (FD-24). Lays the hero's search and this button out in one row
+   without changing the search itself; when the search moves into the filter row, this goes with it. */
+.slidevault .home-hero:has(.sb-launch) { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; max-width: 1040px; }
+.slidevault .home-hero:has(.sb-launch) > .home-hero-search { flex: 1 1 520px; }
+.slidevault .sb-launch { position: relative; z-index: 28; display: flex; flex-direction: column; align-items: flex-start; }
+.slidevault .btn.sb-launch-btn { height: 58px; padding: 0 22px; border-radius: 999px; font-size: 16px; gap: 8px; }
+.slidevault .sb-launch-btn .ic { color: var(--sv-brand); }
+.slidevault .btn.sb-launch-btn.is-glow { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-brand-strong); animation: sb-glow-btn 1.8s ease-in-out infinite, sb-tick 0.5s ease-out 1; }
+.slidevault .sb-launch-hint { position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; display: flex; gap: 6px; align-items: center; white-space: nowrap; margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--sv-surface); border: 1px solid var(--sv-brand); box-shadow: var(--sv-shadow-card); font-size: var(--sv-text-small); }
+.slidevault .sb-launch-hint .ic { color: var(--sv-brand); }
+.slidevault .sb-crumbs { gap: 4px 36px; margin: 16px 0 12px; }
+.slidevault .sb-crumb-home { margin-right: 32px; display: inline-flex; gap: 6px; align-items: center; font-size: var(--sv-text-small); color: var(--sv-text-secondary); text-decoration: underline; text-underline-offset: 2px; }
+.slidevault .sb-crumb-home:hover { color: var(--sv-text); }
+@keyframes sb-glow-btn { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sv-brand) 45%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--sv-brand) 0%, transparent); } }
+@keyframes sb-tick { 0% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } 75% { transform: rotate(-2deg); } 100% { transform: rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .slidevault .sb-launch-btn.is-glow { animation: none; } }
+@media (max-width: 640px) {
+  .slidevault .sb-launch, .slidevault .sb-launch-btn { width: 100%; justify-content: center; }
+  .slidevault .sb-launch-hint { position: static; margin-top: 8px; white-space: normal; }
+}
+
+/* "Your role" at the top of My decks (FD-25): one line, opening to the choices. Rules, not boxes. */
+.slidevault .sb-roles { margin: 4px 0 24px; padding: 12px 0; border-top: 1px solid var(--sv-border); border-bottom: 1px solid var(--sv-border); }
+.slidevault .sb-roles-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin: 0; }
+.slidevault .sb-roles-line b { font-weight: 600; color: var(--sv-text); }
+.slidevault .sb-roles-line .muted { font-size: var(--sv-text-small); }
+.slidevault .sb-role-list { display: grid; gap: 2px; margin-top: 10px; }
+.slidevault .sb-role { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: baseline; padding: 8px 4px; border-radius: 8px; cursor: pointer; }
+.slidevault .sb-role:hover { background: var(--sv-surface-sunken); }
+.slidevault .sb-role input { accent-color: var(--sv-brand); grid-row: span 2; align-self: start; margin-top: 3px; }
+.slidevault .sb-role-name { font-weight: 600; color: var(--sv-text); }
+.slidevault .sb-role-day { grid-column: 2; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .sb-role:focus-within { outline: 2px solid var(--sv-brand); outline-offset: 1px; }
+.slidevault .sb-role-line { margin: 12px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .sb-role-pick { font: inherit; font-weight: 600; color: var(--sv-text); background: transparent; border: 0; border-bottom: 1px solid var(--sv-border-strong); padding: 2px 2px; cursor: pointer; }
+.slidevault .sb-role-pick:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }

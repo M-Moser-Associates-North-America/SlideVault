@@ -1,0 +1,1304 @@
+/*
+ * Additions to the v3 prototype styles for the real app. Still scoped to .slidevault.
+ * Prototype-only tokens (readable status text, tints) and states the prototype did not need.
+ */
+.slidevault {
+  --svp-danger-text: #b3261e;
+  --svp-success-text: #146c3a;
+  --svp-warning-tint: #fff4d6;
+  --svp-danger-tint: #fde8e6;
+  --svp-success-tint: #e3f5ec;
+  --sv-frame: #eceef1;
+}
+.slidevault[data-theme="dark"], .dark .slidevault:not([data-theme="light"]) {
+  --svp-danger-text: #ff9a8f;
+  --svp-success-text: #6fdc9f;
+  --svp-warning-tint: rgba(224, 163, 60, 0.16);
+  --svp-danger-tint: rgba(240, 104, 90, 0.16);
+  --svp-success-tint: rgba(52, 199, 125, 0.14);
+  --sv-frame: #26272c;
+}
+
+.slidevault .btn:disabled { opacity: .45; cursor: not-allowed; }
+.slidevault .thumb img { transition: transform var(--sv-duration) var(--sv-ease-out); }
+
+/* Example-search chips are buttons here (the prototype used links). */
+.slidevault button.try-chip { display: inline-flex; align-items: center; padding: 5px 9px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--sv-brand) 65%, transparent); background: var(--sv-surface); color: var(--sv-text); font-size: 12.25px; line-height: 1.35; cursor: pointer; }
+.slidevault button.try-chip:hover { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 10%, var(--sv-surface)); }
+.slidevault button.try-chip[aria-current="true"] { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); font-weight: 600; }
+
+/* The filter group list used inside the rail's second block. */
+.slidevault .rail > div { min-width: 0; }
+.slidevault .dropzone[aria-disabled="true"] { opacity: .8; }
+
+/* Cart rows: every control is at least 24×24 (WCAG 2.2 target size), the prototype's grip and tick were smaller. */
+.slidevault .ci { grid-template-columns: 24px 24px 44px minmax(0, 1fr) 28px; gap: 4px; }
+.slidevault .grip { width: 24px; height: 28px; }
+.slidevault .ci input { width: 24px; height: 24px; }
+
+/* Cart: note shown when the selection spans several decks (downloads as a zip) */
+.slidevault .cart-zip { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0 0 8px; }
+.slidevault .cart-zip .meta { margin: 0; }
+.slidevault .cart-zip .btn { gap: 4px 6px; flex-wrap: wrap; height: auto; min-height: 32px; max-width: 100%; justify-content: flex-start; }
+
+/* Card badges and notes. */
+.slidevault .thumb-badge { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.slidevault .card-note { display: flex; align-items: center; gap: 6px; font-size: var(--sv-text-meta); color: var(--sv-text); }
+.slidevault .card-note .ic { color: var(--sv-brand-strong); }
+.slidevault .also-list .t { display: block; }
+
+/*
+ * The bare Home hero: the original reference HTML's search (reference/SlideVault.html),
+ * values copied from it directly (34px/500/-0.02em headline, 10px 10px 10px 20px search
+ * padding, 44px controls), mapped onto the real app's --sv-* tokens instead of the
+ * reference's unprefixed ones. Sits above Khushali's existing rows, which are untouched.
+ */
+.slidevault .home-hero { padding: 40px 0 0; max-width: 840px; }
+.slidevault .home-try { max-width: 840px; }
+.slidevault .home-hero-caret {
+  display: inline-block;
+  width: 3px;
+  height: 20px;
+  margin-left: 3px;
+  vertical-align: -3px;
+  border-radius: 1px;
+  background: var(--sv-brand);
+  animation: svHeroCaret 1.1s step-end infinite;
+}
+@keyframes svHeroCaret { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .slidevault .home-hero-caret { animation: none; opacity: 1; }
+}
+.slidevault .home-hero-search {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+}
+.slidevault .home-hero-prefix { flex: none; font-size: 24px; font-weight: 500; letter-spacing: -0.02em; color: var(--sv-text); white-space: nowrap; }
+/* Sizes, colours and padding follow the HTML mockup's search bar (white bar, strong border, 20px left padding, 16px text), a little smaller. */
+.slidevault .home-hero-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 7px 7px 7px 24px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); box-shadow: var(--sv-shadow-card); }
+.slidevault .home-hero-field:focus-within { border-color: var(--sv-brand); }
+.slidevault .home-hero-field input { flex: 1; width: 100%; height: 44px; font-size: 18px; font-weight: 400; }
+.slidevault .home-hero-anim { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); font-size: 18px; font-weight: 400; color: color-mix(in srgb, var(--sv-text) 64%, transparent); pointer-events: none; white-space: nowrap; }
+.slidevault .home-hero-search .ic { flex: none; color: var(--sv-text-secondary); }
+.slidevault .home-hero-search input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  border: none;
+  background: transparent;
+  font-family: var(--sv-font-sans);
+  font-size: 16px;
+  color: var(--sv-text);
+}
+.slidevault .home-hero-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: var(--sv-action-bg);
+  color: var(--sv-action-fg);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.slidevault .home-hero-btn .ic { color: inherit; width: 18px; height: 18px; }
+.slidevault .home-hero-btn:hover { opacity: .88; }
+/* Talk instead of type: a quiet icon inside the bar, just left of the search button */
+.slidevault .home-hero-mic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; margin-right: -4px; border: none; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: pointer; }
+.slidevault .home-hero-mic:hover, .slidevault .home-hero-mic:focus-visible { background: var(--sv-surface-sunken); color: var(--sv-text); box-shadow: inset 0 0 0 1px var(--sv-border-strong); }
+.slidevault .home-hero-mic .ic { width: 20px; height: 20px; }
+.slidevault .home-hero-mic.is-on { background: var(--sv-brand-tint); color: var(--sv-brand-strong); box-shadow: inset 0 0 0 2px var(--sv-brand); }
+/* Not set up here yet: still looks and feels clickable (hover circle, tooltip, a polite message on click), just a little quieter */
+.slidevault .home-hero-mic[aria-disabled="true"] { color: var(--sv-text-secondary); }
+.slidevault .home-hero-try { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-top: 14px; }
+.slidevault .home-hero-try > span { font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .home-hero-try ul { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+
+
+
+
+/*
+ * Fake sign-in + profile pick, pulled pixel-for-pixel from reference/SlideVault.html's own
+ * login card (its doSignIn doesn't check a password either -- this matches that, not a shortcut).
+ */
+.slidevault .auth-screen {
+  height: 100%;
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: radial-gradient(120% 140% at 50% -10%, color-mix(in srgb, var(--sv-brand) 10%, var(--sv-bg)) 0%, var(--sv-bg) 60%);
+}
+.slidevault .auth-col { transform-origin: center; width: 100%; max-width: 412px; display: flex; flex-direction: column; align-items: center; }
+.slidevault .auth-col-wide { max-width: 560px; }
+.slidevault .auth-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 30px; }
+.slidevault .auth-brand .ic { width: 30px; height: 30px; color: var(--sv-text); }
+.slidevault .auth-wordmark { font-family: var(--sv-font-sans); font-size: 30px; line-height: 1; letter-spacing: 0.01em; font-weight: 700; color: var(--sv-text); }
+.slidevault .auth-card { width: 100%; background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: var(--sv-radius-panel); box-shadow: var(--sv-shadow-panel); padding: 40px 40px 34px; }
+.slidevault .auth-head { text-align: center; margin-bottom: 28px; }
+.slidevault .auth-eyebrow { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .auth-title { margin: 10px 0 6px; font-size: 23px; font-weight: 600; letter-spacing: -0.02em; color: var(--sv-text); }
+.slidevault .auth-sub { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--sv-text-secondary); }
+.slidevault .auth-form { display: flex; flex-direction: column; gap: 16px; }
+.slidevault .auth-field { display: flex; flex-direction: column; gap: 7px; }
+.slidevault .auth-field > span { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .auth-field input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--sv-border-strong);
+  background: var(--sv-surface);
+  border-radius: var(--sv-radius-control);
+  padding: 0 14px;
+  font-family: var(--sv-font-sans);
+  font-size: 14px;
+  color: var(--sv-text);
+  outline: none;
+}
+.slidevault .auth-field input:focus-visible { border-color: var(--sv-brand); }
+.slidevault .auth-pw { position: relative; }
+.slidevault .auth-pw input { padding-right: 44px; }
+.slidevault .auth-pw-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--sv-text-secondary); cursor: pointer; border-radius: 8px; }
+.slidevault .auth-pw-toggle:hover { color: var(--sv-text); }
+.slidevault .auth-pw-toggle .ic { width: 18px; height: 18px; }
+.slidevault .auth-sim { text-align: center; margin: 4px 0 16px; padding: 14px 16px; border-radius: 12px; background: var(--sv-surface-sunken); }
+.slidevault .auth-sim-title { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-brand, #ff3f0a); }
+.slidevault .auth-sim-note { margin: 6px 0 0; font-size: 13.5px; font-style: italic; color: var(--sv-text-secondary); }
+.slidevault .auth-submit { width: 100%; justify-content: center; height: 46px; font-size: 14.5px; margin-top: 4px; }
+.slidevault .auth-switch { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--sv-border); text-align: center; font-size: 13px; color: var(--sv-text-secondary); }
+.slidevault .auth-switch-cta { border: none; background: transparent; color: var(--sv-link); font-weight: 600; cursor: pointer; font-family: var(--sv-font-sans); font-size: 13px; padding: 0; }
+.slidevault .auth-foot { margin-top: 22px; display: flex; gap: 26px; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
+
+.slidevault .auth-pick-h { margin: 0 0 6px; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; color: var(--sv-text); text-align: center; }
+.slidevault .auth-pick-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; list-style: none; margin: 28px 0 0; padding: 0; }
+.slidevault .auth-pick-tile { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 128px; border: none; background: transparent; cursor: pointer; padding: 6px; border-radius: var(--sv-radius-card); }
+.slidevault .auth-pick-tile:hover .auth-pick-avatar, .slidevault .auth-pick-tile:focus-visible .auth-pick-avatar { box-shadow: 0 0 0 3px var(--sv-brand); }
+.slidevault .auth-pick-avatar { width: 84px; height: 84px; border-radius: var(--sv-radius-card); background: var(--sv-action-bg); color: var(--sv-action-fg); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.slidevault .auth-pick-name { font-size: 13.5px; font-weight: 600; color: var(--sv-text); text-align: center; }
+
+/*
+ * Save-to-profile: one heart toggle per slide, mirroring the existing cart checkbox's
+ * hover-reveal pattern and corner position (top-right instead of top-left).
+ */
+.slidevault .save-tg {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 2px solid #fff;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--sv-duration-fast);
+}
+.slidevault .save-tg .ic { width: 15px; height: 15px; fill: none; }
+.slidevault .vcard:hover .save-tg, .slidevault .save-tg:focus-visible, .slidevault .save-tg.is-saved { opacity: 1; }
+@media (hover: none) { .slidevault .save-tg { opacity: 1; } }
+.slidevault .save-tg.is-saved { background: var(--sv-brand); border-color: var(--sv-brand); }
+.slidevault .save-tg.is-saved .ic { fill: currentColor; }
+.slidevault .save-tg:focus-visible { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
+
+/*
+ * Profile dashboard (saved row + simple activity record) and the avatar nav tab that reaches it.
+ */
+.slidevault .profile-wrap .page-head { align-items: center; }
+.slidevault .profile-id { display: flex; align-items: center; gap: 14px; }
+.slidevault .profile-avatar { width: 48px; height: 48px; border-radius: var(--sv-radius-card); background: var(--sv-action-bg); color: var(--sv-action-fg); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex: none; }
+.slidevault .activity-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-width: 70ch; }
+.slidevault .activity-list li { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--sv-border); color: var(--sv-text-secondary); }
+.slidevault .activity-list .ic-sm { flex: none; color: var(--sv-text-secondary); }
+.slidevault .activity-label { flex: 1; min-width: 0; font-size: 14px; color: var(--sv-text); }
+.slidevault .activity-label strong { font-weight: 600; }
+.slidevault .activity-time { font-size: 12.5px; color: var(--sv-text-secondary); flex: none; }
+
+/*
+ * "Today's Top 10"-style giant outlined rank numbers, from the Netflix reference video.
+ */
+.slidevault .top10-item { display: flex; align-items: stretch; }
+.slidevault .top10-num {
+  flex: none;
+  align-self: flex-end;
+  font-size: 108px;
+  font-weight: 800;
+  line-height: 0.75;
+  font-family: var(--sv-font-sans);
+  color: transparent;
+  -webkit-text-stroke: 2px var(--sv-text);
+  margin-right: -26px;
+  margin-bottom: 4px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* container width: compact */ .slidevault .sv-app[data-size="compact"] .top10-num { font-size: 72px; margin-right: -16px; } 
+
+
+/* ---- Filter row under the Home search box (FilterBar.tsx) ---- */
+.slidevault .fbar { position: sticky; z-index: 25; margin: 0; padding: 12px 0 4px; background: var(--sv-bg); }
+.slidevault .fbar-sentinel { height: 0; }
+/* Stuck to the top: more room above the row. The negative margin keeps the page below from jumping. */
+.slidevault .fbar.is-stuck { padding-top: 22px; padding-bottom: 20px; margin-bottom: -26px; }
+/* The bar's background reaches the edges of the scrolling area (and the draft deck panel), so no slide cards show beside or under it. */
+.slidevault .fbar::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(-1 * var(--fb-l, 0px)); right: calc(-1 * var(--fb-r, 0px)); background: var(--sv-bg); pointer-events: none; }
+.slidevault .sv-app[data-size="wide"] .fbar { --fb-l: var(--sv-side); --fb-r: 24px; }
+.slidevault .sv-app[data-size="wide"] .cart-min .fbar { --fb-r: var(--sv-side); }
+.slidevault .sv-app[data-size="medium"] .fbar { --fb-l: 20px; --fb-r: 20px; }
+.slidevault .fbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: 840px; }
+.slidevault .fb-item { position: relative; }
+.slidevault .fb-btn { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.slidevault .fb-btn:hover { border-color: var(--sv-text-secondary); color: var(--sv-text); }
+.slidevault .fb-btn[aria-expanded="true"] { border-color: var(--sv-text); color: var(--sv-text); }
+.slidevault .fb-btn.on { background: var(--sv-brand-tint); border-color: var(--sv-brand); color: var(--sv-text); }
+.slidevault .fb-btn .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
+.slidevault .fb-btn.on .ic, .slidevault .fb-btn[aria-expanded="true"] .ic { color: var(--sv-brand); }
+.slidevault .fb-n-on { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 6px; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
+.slidevault .fb-clear-all { margin: 0 6px; font-size: var(--sv-text-small); white-space: nowrap; }
+.slidevault .fb-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 35; width: 280px; padding: 14px; border: 1px solid var(--sv-border); border-radius: 16px; background: var(--sv-surface); box-shadow: var(--sv-shadow-panel); overflow-y: auto; overscroll-behavior: contain; }
+.slidevault .fb-pop-wide { width: 320px; }
+.slidevault .fb-picker + .fb-picker, .slidevault .fb-more > * + * { margin-top: 14px; }
+.slidevault .fb-picker-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: var(--sv-text-small); font-weight: 700; }
+.slidevault .fb-find, .slidevault .fb-range input { width: 100%; height: 36px; padding: 0 12px; border: 1px solid var(--sv-control-border); border-radius: 10px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); }
+.slidevault .fb-find:focus, .slidevault .fb-range input:focus { outline: none; border-color: var(--sv-brand); }
+.slidevault .fb-list { list-style: none; margin: 8px 0 0; padding: 0; max-height: 220px; overflow-y: auto; overscroll-behavior: contain; }
+.slidevault .fb-list label { display: flex; align-items: center; gap: 10px; padding: 7px 6px; border-radius: 8px; cursor: pointer; font-size: var(--sv-text-small); }
+.slidevault .fb-list label:hover { background: var(--sv-surface-sunken); }
+.slidevault .fb-list input[type="checkbox"], .slidevault .fb-check input { accent-color: var(--sv-brand); width: 16px; height: 16px; }
+.slidevault .fb-opt { flex: 1; min-width: 0; }
+.slidevault .fb-n { color: var(--sv-text-secondary); font-size: 12px; }
+.slidevault .fb-none { padding: 8px 6px; color: var(--sv-text-secondary); font-size: var(--sv-text-small); }
+.slidevault .fb-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.slidevault .fb-range { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; font-size: 12px; color: var(--sv-text-secondary); }
+.slidevault .fb-range input { margin-top: 4px; }
+.slidevault .fb-check { display: flex; align-items: center; gap: 10px; font-size: var(--sv-text-small); cursor: pointer; }
+.slidevault .fb-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; }
+/* The whole search card shows the focus (orange border), so the input itself needs no second ring. */
+.slidevault .home-hero-field input:focus-visible { outline: none; }
+/* Home "Try" suggestions: sized like the mockup's chips (30px high, 12.5px text, light grey fill, thin border). */
+.slidevault .home-hero-try { margin-top: 14px; gap: 8px; }
+.slidevault .home-hero-try > span { font-size: 12px; color: color-mix(in srgb, var(--sv-text) 66%, transparent); }
+.slidevault .home-hero-try button.try-chip { height: 30px; padding: 0 13px; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); color: var(--sv-text-secondary); font-size: 12.5px; font-weight: 500; }
+.slidevault .home-hero-try button.try-chip:hover { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text); }
+.slidevault .home-hero-try button.try-chip[aria-current="true"] { background: var(--sv-brand-tint); border-color: var(--sv-brand); color: var(--sv-text); font-weight: 600; }
+.slidevault .home-hero-field input::-webkit-search-cancel-button { display: none; } /* the browser's own cross only shows on hover; ours (.home-hero-clear) stays while there is text */
+.slidevault .home-hero-clear { flex: none; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-text); cursor: pointer; }
+.slidevault .home-hero-clear[hidden] { display: none; }
+.slidevault .home-hero-clear:hover { background: var(--sv-surface-muted); }
+.slidevault .home-hero-clear .ic { width: 15px; height: 15px; }
+
+/* ---- Tabs styled like the mockup: icon + label, thin line under the whole row, orange underline on the current tab ---- */
+.slidevault .sv-top { box-shadow: none; border-bottom: 1px solid var(--sv-border); }
+.slidevault .sv-brandrow { padding: 0; }
+.slidevault .sv-nav ul { gap: 22px; }
+.slidevault .sv-nav a { min-height: 46px; padding: 0 4px; border-radius: 0; font-size: 15.5px; font-weight: 500; color: var(--sv-text-secondary); }
+.slidevault .sv-nav a:hover { background: transparent; color: var(--sv-text); }
+.slidevault .sv-nav a[aria-current="page"] { color: var(--sv-text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--sv-brand); }
+.slidevault .sv-nav a .ic { color: var(--sv-text-secondary); }
+.slidevault .sv-nav a[aria-current="page"] .ic { color: var(--sv-brand); }
+
+/* ---- Room at the sides and under the Try chips (the mockup centres its content, so on a laptop its side margin is well over 40px) ---- */
+.slidevault { --sv-side: 40px; }
+/* Side gutters grow with the space (4% of the width, between 40px and 120px), so large screens use their width instead of leaving wide empty margins. */
+.slidevault .sv-app[data-size="wide"], .slidevault .sv-app[data-size="wide"] .slidevault { --sv-side: clamp(40px, calc(var(--sv-w, 1280px) * 0.04), 120px); }
+/* container width: wide */
+  .slidevault .sv-app[data-size="wide"] .sv-top .sv-wrap { padding: 0 var(--sv-side); }
+  .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 var(--sv-side); --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 2200px) / 2 + var(--sv-side))); }
+
+.slidevault .home-try { margin-bottom: 36px; }
+
+/* ---- Slide selection column: slimmer, and flush with the right edge (no extra side gutter inside it) ---- */
+/* container width: wide */
+  .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 0 0 var(--sv-side); grid-template-columns: 272px minmax(0, 1fr) 264px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 264px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; }
+  .slidevault .sv-app[data-size="wide"] .cart-col { margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 2200px) / 2)); padding: 24px 16px 24px 22px; }
+  .slidevault .sv-app[data-size="wide"] .cart-min .cart-col { padding: 24px 4px; }
+  .slidevault .sv-app[data-size="wide"] .cart-min .mini-t { font-size: 10px; letter-spacing: 0.04em; text-align: center; }
+
+
+/* ---- First-visit tip ---- */
+
+/* ---- Loading placeholders shaped like the rows ---- */
+.slidevault .skel-rows { display: grid; gap: 36px; margin-top: 8px; }
+.slidevault .skel-title { width: 220px; height: 22px; margin-bottom: 16px; }
+.slidevault .skel-cards { display: flex; gap: 18px; overflow: hidden; }
+.slidevault .skel-cards .skel-card { flex: 0 0 260px; height: 250px; }
+
+/* ---- Calmer row headings: plain title, details tucked behind a small info icon ---- */
+.slidevault .row-head h2::before { display: none; }
+.slidevault .row-head h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0; }
+.slidevault .row-title { display: flex; align-items: center; gap: 8px; }
+.slidevault .row-info { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: help; }
+.slidevault .row-info:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
+.slidevault .row-info .ic { width: 15px; height: 15px; }
+.slidevault .row-info[data-tip]::after { white-space: normal; width: 230px; font-weight: 500; line-height: 1.4; text-align: left; }
+
+/* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
+.slidevault .sv-brandrow { justify-content: space-between; flex-wrap: nowrap; }
+.slidevault .compact-search { display: inline-flex; align-items: center; gap: 8px; width: min(320px, calc(var(--sv-w, 800px) * 0.4)); height: 34px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13.5px; cursor: text; text-align: left; animation: svFade 0.18s ease-out; }
+.slidevault .compact-search:hover { border-color: var(--sv-text-secondary); }
+.slidevault .compact-search .ic { width: 16px; height: 16px; flex: none; }
+.slidevault .compact-search span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .compact-search .cs-q { color: var(--sv-text); }
+@keyframes svFade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .slidevault .compact-search { animation: none; } }
+
+/* ---- Filter choices read from the typed sentence ---- */
+.slidevault .chip-x.from-search { border-style: dashed; }
+.slidevault .chip-x.from-search .ic-sm { color: var(--sv-brand); width: 13px; height: 13px; }
+.slidevault .fb-note { margin: 0 0 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .interp[hidden] { display: none; }
+
+/* ---- Status badge: icon + plain words, so colour is never the only clue ---- */
+
+/* ---- Filter options that would leave nothing are greyed out (still clickable) ---- */
+.slidevault .fb-list label.is-zero, .slidevault .fb-presets .pchip.is-zero { opacity: 0.45; }
+.slidevault .fb-presets .pchip .fb-n { margin-left: 4px; }
+
+/* ---- Upload tab when you don't have permission: still there, greyed, with the reason on hover ---- */
+.slidevault .sv-nav a.is-locked { opacity: 0.6; cursor: not-allowed; }
+.slidevault .sv-nav a.is-locked .ic { color: var(--sv-text-secondary); }
+
+/* ---- Draft deck: Clear and Save as draft sit under the list; Clear asks first ---- */
+.slidevault .cart-list-acts { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; }
+.slidevault .cart-list-acts .btn .ic { width: 15px; height: 15px; }
+.slidevault .cart-confirm { display: flex; align-items: center; gap: 8px; }
+.slidevault .cart-confirm .cc-q { font-size: var(--sv-text-small); font-weight: 600; margin-right: 2px; }
+.slidevault .cc-yes { background: var(--sv-action-bg); color: var(--sv-action-fg); border-color: transparent; }
+.slidevault .save-name { display: grid; gap: 6px; font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .save-name input { height: 42px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 12px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: 15px; font-weight: 400; }
+.slidevault .save-name input:focus { outline: none; border-color: var(--sv-brand); }
+
+/* ---- Working drafts list on My decks ---- */
+.slidevault .draft-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.slidevault .draft-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
+.slidevault .draft-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); flex: none; }
+.slidevault .draft-txt { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.slidevault .draft-acts { display: flex; gap: 6px; flex: none; }
+
+/* ---- The corner tick: always faintly visible, brighter on hover, solid orange once chosen ---- */
+.slidevault .pick { opacity: 0.8; }
+.slidevault .vcard:hover .pick, .slidevault .pick:focus-within, .slidevault .vcard.is-selected .pick { opacity: 1; }
+.slidevault .pick .box { border-color: rgba(255, 255, 255, 0.95); background: rgba(0, 0, 0, 0.32); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
+.slidevault .pick .pick-tip { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; padding: 5px 9px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+.slidevault .pick:hover .pick-tip, .slidevault .pick input:focus-visible ~ .pick-tip { display: block; }
+
+/* ---- Draft deck, in the look of the reference mockup's proposal tray --------------------------
+ * Open: a white side panel with a small caps label, a large title, two buttons on top, a sunken
+ * body holding the slides as white cards, and a footer. Closed: a black pill at the bottom right
+ * that says "Draft deck" (with an orange count). Same functions as before; only the look changed.
+ * Phones keep the older bottom bar (slidevault.css), so the new parts only apply from 1101px up. */
+.slidevault .cart-pill { display: none; }
+/* container width: wide */
+  .slidevault .sv-app[data-size="wide"] .sv-top .sv-wrap { padding: 0 var(--sv-side); }
+  .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 var(--sv-side); --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 2200px) / 2 + var(--sv-side))); }
+
+.slidevault .home-try { margin-bottom: 36px; }
+
+/* ---- Slide selection column: slimmer, and flush with the right edge (no extra side gutter inside it) ---- */
+/* container width: wide */
+  .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 0 0 var(--sv-side); grid-template-columns: 272px minmax(0, 1fr) 264px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 264px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; }
+  .slidevault .sv-app[data-size="wide"] .cart-col { margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 2200px) / 2)); padding: 24px 16px 24px 22px; }
+  .slidevault .sv-app[data-size="wide"] .cart-min .cart-col { padding: 24px 4px; }
+  .slidevault .sv-app[data-size="wide"] .cart-min .mini-t { font-size: 10px; letter-spacing: 0.04em; text-align: center; }
+
+
+/* ---- First-visit tip ---- */
+
+/* ---- Loading placeholders shaped like the rows ---- */
+.slidevault .skel-rows { display: grid; gap: 36px; margin-top: 8px; }
+.slidevault .skel-title { width: 220px; height: 22px; margin-bottom: 16px; }
+.slidevault .skel-cards { display: flex; gap: 18px; overflow: hidden; }
+.slidevault .skel-cards .skel-card { flex: 0 0 260px; height: 250px; }
+
+/* ---- Calmer row headings: plain title, details tucked behind a small info icon ---- */
+.slidevault .row-head h2::before { display: none; }
+.slidevault .row-head h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0; }
+.slidevault .row-title { display: flex; align-items: center; gap: 8px; }
+.slidevault .row-info { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: help; }
+.slidevault .row-info:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
+.slidevault .row-info .ic { width: 15px; height: 15px; }
+.slidevault .row-info[data-tip]::after { white-space: normal; width: 230px; font-weight: 500; line-height: 1.4; text-align: left; }
+
+/* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
+.slidevault .sv-brandrow { justify-content: space-between; flex-wrap: nowrap; }
+.slidevault .compact-search { display: inline-flex; align-items: center; gap: 8px; width: min(320px, calc(var(--sv-w, 800px) * 0.4)); height: 34px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13.5px; cursor: text; text-align: left; animation: svFade 0.18s ease-out; }
+.slidevault .compact-search:hover { border-color: var(--sv-text-secondary); }
+.slidevault .compact-search .ic { width: 16px; height: 16px; flex: none; }
+.slidevault .compact-search span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .compact-search .cs-q { color: var(--sv-text); }
+@keyframes svFade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .slidevault .compact-search { animation: none; } }
+
+/* ---- Filter choices read from the typed sentence ---- */
+.slidevault .chip-x.from-search { border-style: dashed; }
+.slidevault .chip-x.from-search .ic-sm { color: var(--sv-brand); width: 13px; height: 13px; }
+.slidevault .fb-note { margin: 0 0 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .interp[hidden] { display: none; }
+
+/* ---- Status badge: icon + plain words, so colour is never the only clue ---- */
+
+/* ---- Filter options that would leave nothing are greyed out (still clickable) ---- */
+.slidevault .fb-list label.is-zero, .slidevault .fb-presets .pchip.is-zero { opacity: 0.45; }
+.slidevault .fb-presets .pchip .fb-n { margin-left: 4px; }
+
+/* ---- Upload tab when you don't have permission: still there, greyed, with the reason on hover ---- */
+.slidevault .sv-nav a.is-locked { opacity: 0.6; cursor: not-allowed; }
+.slidevault .sv-nav a.is-locked .ic { color: var(--sv-text-secondary); }
+
+/* ---- Draft deck: Clear and Save as draft sit under the list; Clear asks first ---- */
+.slidevault .cart-list-acts { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; }
+.slidevault .cart-list-acts .btn .ic { width: 15px; height: 15px; }
+.slidevault .cart-confirm { display: flex; align-items: center; gap: 8px; }
+.slidevault .cart-confirm .cc-q { font-size: var(--sv-text-small); font-weight: 600; margin-right: 2px; }
+.slidevault .cc-yes { background: var(--sv-action-bg); color: var(--sv-action-fg); border-color: transparent; }
+.slidevault .save-name { display: grid; gap: 6px; font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .save-name input { height: 42px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 12px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: 15px; font-weight: 400; }
+.slidevault .save-name input:focus { outline: none; border-color: var(--sv-brand); }
+
+/* ---- Working drafts list on My decks ---- */
+.slidevault .draft-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.slidevault .draft-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
+.slidevault .draft-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); flex: none; }
+.slidevault .draft-txt { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.slidevault .draft-acts { display: flex; gap: 6px; flex: none; }
+
+/* ---- The corner tick: always faintly visible, brighter on hover, solid orange once chosen ---- */
+.slidevault .pick { opacity: 0.8; }
+.slidevault .vcard:hover .pick, .slidevault .pick:focus-within, .slidevault .vcard.is-selected .pick { opacity: 1; }
+.slidevault .pick .box { border-color: rgba(255, 255, 255, 0.95); background: rgba(0, 0, 0, 0.32); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
+.slidevault .pick .pick-tip { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; padding: 5px 9px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+.slidevault .pick:hover .pick-tip, .slidevault .pick input:focus-visible ~ .pick-tip { display: block; }
+
+/* ---- Draft deck, in the look of the reference mockup's proposal tray --------------------------
+ * Open: a white side panel with a small caps label, a large title, two buttons on top, a sunken
+ * body holding the slides as white cards, and a footer. Closed: a black pill at the bottom right
+ * that says "Draft deck" (with an orange count). Same functions as before; only the look changed.
+ * Phones keep the older bottom bar (slidevault.css), so the new parts only apply from 1101px up. */
+.slidevault .cart-pill { display: none; }
+/* container width: medium */
+  .slidevault .sv-app[data-size="medium"] .cart-head, .slidevault .sv-app[data-size="medium"] .cart-body, .slidevault .sv-app[data-size="medium"] .cart-foot { display: contents; }
+  .slidevault .sv-app[data-size="medium"] .cart-title, .slidevault .sv-app[data-size="medium"] .cart-name { display: none; }
+
+/* container width: wide */
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 360px; column-gap: 0; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail .center { padding-right: 24px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 0; padding-right: var(--sv-side); }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min .center { padding-right: 0; }
+
+  .slidevault .sv-app[data-size="wide"] .cart-col { padding: 0; min-height: 0; background: var(--sv-surface); border-top: 0; border-left: 1px solid var(--sv-brand); box-shadow: -8px 0 24px -12px rgba(20, 20, 20, 0.22); overflow: hidden; margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 2200px) / 2)); }
+  .slidevault .sv-app[data-size="wide"] .cart-min .cart-col { padding: 0; width: 0; min-height: 0; max-height: 0; border: 0; background: none; overflow: visible; margin-right: 0; }
+  .slidevault .sv-app[data-size="wide"] .cart-col { top: var(--cart-top, 47px); }
+  .slidevault .sv-app[data-size="wide"] .cart { gap: 0; height: var(--cart-room, calc(var(--sv-h, 100%) - 179px)); }
+
+
+  .slidevault .sv-app[data-size="wide"] .toasts.lift, .slidevault .sv-app[data-size="wide"] .toasts { bottom: 16px; }
+  .slidevault .sv-app[data-size="wide"]:has(.cart-min) .toasts { bottom: 92px; }
+  .slidevault .sv-app[data-size="wide"]:not(:has(.cart-min)) .toasts { right: 376px; }
+
+
+/* The draft deck's inside (header, list, footer, black pill): the same on desktop and phones.
+   Tablet widths keep the older layout until they are reworked. */
+/* container width: compact/wide */
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-head { padding: 22px 22px 18px; border-bottom: 1px solid var(--sv-border); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-top { align-items: center; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-h { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-h .count { display: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-tg { border: 1px solid var(--sv-border); border-radius: 8px; width: 32px; height: 32px; min-height: 32px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name { position: relative; display: block; margin: 10px 0 0; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name input { width: 100%; height: 44px; padding: 0 40px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); font: 600 20px var(--sv-font-sans); letter-spacing: -0.02em; color: var(--sv-text); text-overflow: ellipsis; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name input::placeholder { color: var(--sv-text-secondary); font-weight: 500; opacity: 1; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name input:hover { border-color: var(--sv-text-secondary); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name input:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 1px; border-color: var(--sv-brand); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name .cart-name-ic { position: absolute; right: 13px; top: 50%; width: 17px; height: 17px; margin-top: -8px; color: var(--sv-text-secondary); pointer-events: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-name:focus-within .cart-name-ic { color: var(--sv-brand); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-title { margin: 8px 2px 0; font-size: 13px; font-weight: 500; color: var(--sv-text-secondary); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-head .cart-acts { display: flex; gap: 8px; margin-top: 14px; flex-wrap: nowrap; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-head .cart-acts .btn { flex: 1 1 0; justify-content: center; height: 38px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-head .cart-acts .btn-primary { order: 0; flex: 1 1 0; }
+
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; background: var(--sv-surface-sunken); scrollbar-width: thin; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body .cart-items { max-height: none; overflow: visible; padding: 0; gap: 10px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body .ci { background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 12px; padding: 9px 8px 9px 4px; grid-template-columns: 20px 20px 62px minmax(0, 1fr) 28px; gap: 8px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body .ci .t { border-radius: 7px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body .ci-hint { margin: 12px 0 0; text-align: center; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-body .cart-zip { margin: 12px 0 0; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-empty .cart-body { display: flex; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-empty .cart-empty-body { flex: 1; align-self: stretch; justify-content: center; padding: 32px; border: 1.5px dashed var(--sv-border-strong); border-radius: var(--sv-radius-card); gap: 12px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-empty .ce-ic { width: 44px; height: 44px; border: 0; background: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-empty .ce-ic .ic { width: 32px; height: 32px; color: var(--sv-text-secondary); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-empty .cart-empty-body .meta { max-width: 240px; font-size: 13.5px; line-height: 1.55; }
+
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-foot { padding: 12px 18px; border-top: 1px solid var(--sv-border); background: var(--sv-surface); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-foot .txt { margin: 0 0 6px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-foot .cart-list-acts { margin: 0; justify-content: space-between; }
+  /* Closed: the black pill. */
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill { display: inline-flex; position: absolute; right: 28px; bottom: 28px; z-index: 55; align-items: center; gap: 10px; height: 50px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--sv-action-bg); color: var(--sv-action-fg); box-shadow: var(--sv-shadow-panel); cursor: pointer; font: 600 14px var(--sv-font-sans); letter-spacing: -0.01em; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:hover { opacity: 0.88; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 3px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill .ic { width: 20px; height: 20px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill .pill-n { min-width: 22px; height: 22px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
+
+
+/* The browse tiles fade at the edge like the card rows above them, to show there is more to scroll to. */
+
+/* ---- Quick tour: dimmed page, a spotlight on one thing, a plain-words note beside it ---- */
+/* Tour card (React Joyride places it; these rules only style it). */
+.slidevault .tour-pop { width: 340px; max-width: 100%; padding: 18px 20px 16px; background: var(--sv-surface); color: var(--sv-text); border: 1px solid var(--sv-border-strong); border-radius: 16px; box-shadow: var(--sv-shadow-panel); }
+.slidevault .tour-n { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .tour-pop h2 { margin: 6px 0 0; font-size: 18px; letter-spacing: -0.01em; outline: none; }
+.slidevault .tour-t { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: var(--sv-text-secondary); }
+.slidevault .tour-acts { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.slidevault .tour-nav { display: flex; gap: 8px; }
+
+/* Draft deck, dark mode: the grey secondary text and the name placeholder were hard to read on the dark panel. */
+.slidevault[data-theme="dark"] .cart-col, .dark .slidevault:not([data-theme="light"]) .cart-col { --sv-text-secondary: #d6d6da; }
+.slidevault[data-theme="dark"] .cart-name input::placeholder, .dark .slidevault:not([data-theme="light"]) .cart-name input::placeholder { color: #c9c9ce; opacity: 1; }
+
+/* Phones: the draft deck is a sidebar on the right. Closed, it is off screen and the black pill
+   opens it; open, it covers the right side and dims the page. It starts closed on phones. */
+/* container width: compact */
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-col, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-col:has(.cart-empty) {
+    display: block; position: absolute; top: 0; bottom: 0; right: 0; left: auto; transform: none;
+    width: min(calc(var(--sv-w, 390px) * 0.88), 360px); max-height: none; margin: 0; padding: 0; overflow: hidden; z-index: 60;
+    background: var(--sv-surface); border: 0; border-left: 1px solid var(--sv-brand);
+    box-shadow: -12px 0 32px -12px rgba(10, 10, 12, 0.45);
+    transition: right 0.22s var(--sv-ease-out), visibility 0.22s;
+  }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart-col, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart-col:has(.cart-empty) {
+    right: calc(-1 * min(calc(var(--sv-w, 390px) * 0.88), 360px) - 24px); visibility: hidden; box-shadow: none; padding: 0;
+  }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart {
+    display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0;
+    height: 100%; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
+  }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-head, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-body, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-foot { display: block; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-body { overscroll-behavior: contain; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-items { display: grid; max-height: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-tg { display: inline-flex; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-mini, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart-mini { display: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-head { padding-top: calc(18px + env(safe-area-inset-top)); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-top { order: 0; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart .txt { order: 0; flex: none; min-width: 0; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-pill { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .sv-main { padding-bottom: 96px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts.lift { bottom: calc(84px + env(safe-area-inset-bottom)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-col { transition: none; }
+}
+/* container width: compact */
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .grip { touch-action: none; width: 26px; height: 44px; cursor: grab; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-body .ci { grid-template-columns: 26px 20px 62px minmax(0, 1fr) 28px; }
+
+
+/* Phones: the search label sits above the box, and the example searches are one row you swipe. */
+/* container width: compact */
+  .slidevault .sv-app[data-size="compact"] .home-hero { padding-top: 20px; }
+  .slidevault .sv-app[data-size="compact"] .home-hero-search { flex-direction: column; align-items: stretch; gap: 8px; }
+  .slidevault .sv-app[data-size="compact"] .home-hero-prefix { font-size: 20px; }
+  .slidevault .sv-app[data-size="compact"] .home-hero-field { padding-left: 18px; }
+  .slidevault .sv-app[data-size="compact"] .home-hero-anim { left: 18px; }
+  .slidevault .sv-app[data-size="compact"] .home-hero-try { flex-wrap: nowrap; }
+  .slidevault .sv-app[data-size="compact"] .home-hero-try > span { flex: none; }
+  .slidevault .sv-app[data-size="compact"] .home-hero-try ul { flex-wrap: nowrap; overflow-x: auto; min-width: 0; padding-bottom: 4px; scrollbar-width: none; }
+  .slidevault .sv-app[data-size="compact"] .home-hero-try ul::-webkit-scrollbar { display: none; }
+  .slidevault .sv-app[data-size="compact"] .home-hero-try ul li { flex: none; }
+
+
+/* Phones: a working draft's buttons drop under its name instead of squeezing it. */
+/* container width: compact */
+  .slidevault .sv-app[data-size="compact"] .draft-item { flex-wrap: wrap; row-gap: 10px; }
+  .slidevault .sv-app[data-size="compact"] .draft-txt { flex: 1 1 0; }
+  .slidevault .sv-app[data-size="compact"] .draft-acts, .slidevault .sv-app[data-size="compact"] .draft-item .cart-confirm { flex: 1 1 100%; justify-content: flex-end; }
+
+
+/* Sign-in in a narrow space: the logo sits inside the card and everything fits one screen. */
+.slidevault .auth-screen[data-size="compact"] { padding: calc(env(safe-area-inset-top) + 64px) 24px max(20px, env(safe-area-inset-bottom)); align-items: stretch; background: var(--sv-surface); }
+/* No card on a phone: the screen is the card. Logo at the top, the form centred in the space left, links at the foot. */
+.slidevault .auth-screen[data-size="compact"] .auth-col { transform-origin: top center; max-width: 420px; min-height: 100%; margin: 0 auto; justify-content: flex-start; background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0; }
+.slidevault .auth-screen[data-size="compact"] .auth-card { margin: auto 0; }
+.slidevault .auth-screen[data-size="compact"] .auth-brand { margin-bottom: 0; }
+.slidevault .auth-screen[data-size="compact"] .auth-brand .ic { width: 26px; height: 26px; }
+.slidevault .auth-screen[data-size="compact"] .auth-wordmark { font-size: 24px; }
+.slidevault .auth-screen[data-size="compact"] .auth-card { padding: 0; border: 0; border-radius: 0; box-shadow: none; background: none; }
+.slidevault .auth-screen[data-size="compact"] .auth-head { margin-bottom: 20px; }
+.slidevault .auth-screen[data-size="compact"] .auth-title { margin: 8px 0 6px; font-size: 24px; }
+.slidevault .auth-screen[data-size="compact"] .auth-sim { margin: 0 0 18px; padding: 10px 14px; }
+.slidevault .auth-screen[data-size="compact"] .auth-sim-title { font-size: 15px; }
+.slidevault .auth-screen[data-size="compact"] .auth-sim-note { margin-top: 2px; font-size: 12.5px; }
+.slidevault .auth-screen[data-size="compact"] .auth-form { gap: 16px; }
+.slidevault .auth-screen[data-size="compact"] .auth-field { gap: 5px; }
+.slidevault .auth-screen[data-size="compact"] .auth-submit { height: 48px; margin-top: 4px; }
+.slidevault .auth-screen[data-size="compact"] .auth-switch { margin-top: 20px; padding-top: 18px; }
+.slidevault .auth-screen[data-size="compact"] .auth-foot { margin-top: 0; gap: 22px; }
+
+/* Draft deck button, a little higher on phones. */
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-pill { bottom: calc(32px + env(safe-area-inset-bottom)); }
+
+/* Filters on phones: one swipeable row, every filter opens in a bottom sheet, and a pinned button
+   stays in reach once the row has scrolled away. */
+.slidevault .fb-all, .slidevault .fb-pin { display: none; }
+.slidevault .sv-app[data-size="compact"] .fbar { position: static; padding-top: 8px; }
+.slidevault .sv-app[data-size="compact"] .fbar-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-size="compact"] .fbar-row::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="compact"] .fbar-row > * { flex: none; }
+.slidevault .sv-app[data-size="compact"] .fb-all { display: inline-flex; }
+.slidevault .sv-app[data-size="compact"] .fb-item:has([data-key="more"]) { display: none; }
+.slidevault .sv-app[data-size="compact"] .fb-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-size="compact"] .fb-chips::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="compact"] .fb-chips li { flex: none; }
+.slidevault .sv-app[data-size="compact"] .fb-pin { display: inline-flex; position: absolute; top: 12px; right: 16px; z-index: 45; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.slidevault .sv-app[data-size="compact"] .fb-pin .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
+dialog.slidevault.fb-sheet { margin: auto 0 0; width: 100%; max-width: none; max-height: 86%; border-radius: 20px 20px 0 0; border-bottom: 0; }
+dialog.slidevault.fb-sheet .fb-sheet-body { overflow-y: auto; overscroll-behavior: contain; }
+dialog.slidevault.fb-sheet .fb-sheet-body section + section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--sv-border); }
+dialog.slidevault.fb-sheet .fb-list { max-height: 260px; }
+dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+
+/* The dim layer behind the draft deck on phones. */
+.slidevault .cart-scrim { display: none; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-scrim { display: block; position: absolute; inset: 0; z-index: 59; padding: 0; border: 0; background: rgba(10, 10, 12, 0.5); cursor: default; }
+
+/* Save as a draft: update the older deck or save a new one. Same look on phone, tablet and desktop. */
+.slidevault .save-opts { margin: 0 0 16px; padding: 0; border: 0; display: grid; gap: 10px; }
+.slidevault .save-opt { display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 12px; row-gap: 2px; align-items: start; padding: 12px 14px; border: 1px solid var(--sv-border-strong); border-radius: 12px; background: var(--sv-surface); cursor: pointer; }
+.slidevault .save-opt.on { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
+.slidevault .save-opt.off { opacity: 0.5; cursor: not-allowed; }
+.slidevault .save-opt:has(input:focus-visible) { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
+.slidevault .save-opt input { grid-row: 1 / span 2; margin: 2px 0 0; width: 18px; height: 18px; accent-color: var(--sv-brand); }
+.slidevault .save-opt .so-t { font-size: var(--sv-text-small); font-weight: 600; color: var(--sv-text); }
+.slidevault .save-opt .so-d { grid-column: 2; font-size: 12.5px; line-height: 1.4; color: var(--sv-text-secondary); }
+
+/* Phone tabs along the bottom (the default; "top" keeps them up with the page). The bar is part of the workspace and
+   sits inside it, not on the window. The draft deck is its fifth item, so the black button is not needed. */
+.slidevault .sv-bottombar { display: none; }
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-bottombar { display: block; position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--sv-surface); border-top: 1px solid var(--sv-border); box-shadow: 0 -8px 20px -14px rgba(20, 20, 20, 0.35); padding-bottom: env(safe-area-inset-bottom); }
+.slidevault .sv-bottombar ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.slidevault .sv-bottombar a, .slidevault .sv-bottombar .bb-deck { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; height: 60px; padding: 0; border: 0; background: none; color: var(--sv-text-secondary); font: 600 11px var(--sv-font-sans); letter-spacing: 0; text-decoration: none; cursor: pointer; }
+.slidevault .sv-bottombar .ic { width: 22px; height: 22px; }
+.slidevault .sv-bottombar a[aria-current="page"], .slidevault .sv-bottombar .bb-deck[aria-expanded="true"] { color: var(--sv-text); }
+.slidevault .sv-bottombar a[aria-current="page"] .ic, .slidevault .sv-bottombar .bb-deck[aria-expanded="true"] .ic { color: var(--sv-brand); }
+.slidevault .sv-bottombar a[aria-current="page"]::before { content: ""; position: absolute; top: -1px; left: 22%; right: 22%; height: 3px; border-radius: 0 0 3px 3px; background: var(--sv-brand); }
+.slidevault .sv-bottombar a:focus-visible, .slidevault .sv-bottombar .bb-deck:focus-visible { outline: 2px solid var(--sv-focus); outline-offset: -4px; border-radius: 8px; }
+.slidevault .sv-bottombar .bb-n { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; display: inline-grid; place-items: center; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 11px; font-weight: 700; }
+.slidevault .sv-bottombar .is-locked { opacity: 0.6; }
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-top, .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .cart-pill { display: none; }
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-main { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts.lift { bottom: calc(76px + env(safe-area-inset-bottom)); }
+
+/* The Draft deck item in the bottom bar is the same black button as on larger screens. */
+.slidevault .sv-bottombar li:last-child { padding: 6px 6px; }
+.slidevault .sv-bottombar .bb-deck { height: 48px; border-radius: 14px; background: var(--sv-action-bg); color: var(--sv-action-fg); box-shadow: var(--sv-shadow-panel); }
+.slidevault .sv-bottombar .bb-deck:hover { opacity: 0.88; }
+.slidevault .sv-bottombar .bb-deck[aria-expanded="true"] { color: var(--sv-action-fg); }
+.slidevault .sv-bottombar .bb-deck[aria-expanded="true"] .ic { color: var(--sv-action-fg); }
+.slidevault .sv-bottombar .bb-deck:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; border-radius: 14px; }
+.slidevault .sv-bottombar .bb-deck .bb-n { top: 3px; left: calc(50% + 8px); }
+
+.slidevault .cart-zip .meta { margin: 6px 0 0 26px; font-size: 12.5px; }
+/* Bottom bar: the Draft deck section is filled in from its dividing line to the end of the bar, top to bottom, not a card on top of it. */
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-bottombar { padding-bottom: 0; }
+.slidevault .sv-bottombar a, .slidevault .sv-bottombar .bb-deck { height: calc(60px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); }
+.slidevault .sv-bottombar li:last-child { padding: 0; }
+.slidevault .sv-bottombar .bb-deck { border-radius: 0; box-shadow: none; }
+.slidevault .sv-bottombar .bb-deck:focus-visible { border-radius: 0; outline-offset: -4px; outline-color: var(--sv-brand); }
+.slidevault .sv-bottombar .bb-deck .bb-n { top: 7px; }
+
+/* Stepping through a deck: the old slide leaves and the new one enters from the side; the page stays put. */
+.slidevault .slide-stage { position: relative; overflow: hidden; }
+.slidevault .slide-layer { position: absolute; inset: 0; }
+.slidevault .slide-in-next { animation: sv-in-next 280ms cubic-bezier(0.2, 0, 0, 1) both; }
+.slidevault .slide-in-prev { animation: sv-in-prev 280ms cubic-bezier(0.2, 0, 0, 1) both; }
+.slidevault .slide-out-next { animation: sv-out-next 280ms cubic-bezier(0.2, 0, 0, 1) both; pointer-events: none; }
+.slidevault .slide-out-prev { animation: sv-out-prev 280ms cubic-bezier(0.2, 0, 0, 1) both; pointer-events: none; }
+@keyframes sv-in-next { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes sv-in-prev { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes sv-out-next { from { transform: none; } to { transform: translateX(-100%); } }
+@keyframes sv-out-prev { from { transform: none; } to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .slidevault .slide-in-next, .slidevault .slide-in-prev, .slidevault .slide-out-next, .slidevault .slide-out-prev { animation: none; }
+  .slidevault .slide-out-next, .slidevault .slide-out-prev { display: none; }
+}
+
+/* Phones: Home rows show two slides and the edge of a third (the peek says "scroll"), so a row is
+   scannable at a glance. Wider sizes keep the larger cards. */
+.slidevault .sv-app[data-size="compact"] .row-scroller { grid-auto-columns: clamp(140px, calc(var(--sv-w, 390px) * 0.42), 200px); gap: 10px; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; }
+.slidevault .sv-app[data-size="compact"] .row-scroller .card-body { padding: 8px 10px 10px; gap: 3px; }
+.slidevault .sv-app[data-size="compact"] .row-scroller .card-title { font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.6em; }
+.slidevault .sv-app[data-size="compact"] .row-scroller .meta { font-size: 12px; }
+.slidevault .sv-app[data-size="compact"] .row-scroller .matched { display: none; }
+
+/* The "Hidden slides" eye inside the search bar (same look as the search button), and the slim search above the sticky filter row. */
+.slidevault .hid-wrap { position: relative; flex: none; display: inline-flex; }
+.slidevault .hid-toggle { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--sv-border-strong); border-radius: 50%; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; box-shadow: var(--sv-shadow-card); }
+.slidevault .hid-toggle .ic { color: inherit; width: 18px; height: 18px; }
+.slidevault .hid-toggle:hover { border-color: var(--sv-text-secondary); }
+.slidevault .hid-toggle:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .hid-toggle.on { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .fb-search-wrap .hid-toggle { width: 40px; height: 40px; box-shadow: none; }
+/* Tooltip: shows at once on hover or keyboard focus. */
+.slidevault .hid-tip { position: absolute; top: calc(100% + 10px); right: 0; z-index: 60; width: 248px; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--sv-action-bg); color: var(--sv-action-fg); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22); text-align: left; opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity 0.12s, transform 0.12s, visibility 0.12s; pointer-events: none; }
+.slidevault .hid-tip strong { font-size: 14px; font-weight: 700; line-height: 1.25; }
+.slidevault .hid-tip span { font-size: 13px; font-weight: 400; line-height: 1.4; opacity: 0.9; }
+.slidevault .hid-wrap:hover .hid-tip, .slidevault .hid-wrap:has(:focus-visible) .hid-tip { opacity: 1; visibility: visible; transform: none; }
+@media (prefers-reduced-motion: reduce) { .slidevault .hid-tip { transition: none; transform: none; } }
+.slidevault .fb-search-wrap { display: flex; align-items: center; gap: 10px; max-width: 840px; margin-bottom: 10px; animation: svFade 0.18s ease-out; }
+.slidevault .fb-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); }
+.slidevault .fb-search:focus-within { border-color: var(--sv-brand); }
+.slidevault .fb-search .ic { width: 16px; height: 16px; flex: none; }
+.slidevault .fb-search input::-webkit-search-cancel-button { display: none; } /* ours (.fb-clear) stays while there is text; the browser's only shows on hover */
+.slidevault .fb-clear { flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-text); cursor: pointer; }
+.slidevault .fb-clear[hidden] { display: none; }
+.slidevault .fb-clear:hover { background: var(--sv-surface-muted); }
+.slidevault .fb-clear .ic { width: 13px; height: 13px; }
+.slidevault .fb-search input { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; font: inherit; font-size: 14px; color: var(--sv-text); outline: none; }
+.slidevault .fbar.has-search { margin-bottom: -50px; }
+@media (prefers-reduced-motion: reduce) { .slidevault .fb-search-wrap { animation: none; } }
+/* On Home the eye is as tall as the whole search bar: a circle that matches the bar's full height. */
+.slidevault .home-hero-search .hid-wrap { width: 60px; height: 60px; } /* the bar's full height: 44px button + 7px padding each side + 1px border each side */
+.slidevault .home-hero-search .hid-toggle { width: 100%; height: 100%; }
+.slidevault .home-hero-search .hid-toggle .ic { width: 20px; height: 20px; }
+/* Home: the search bar gives up width so the eye and the Storyboard button both fit beside it. */
+.slidevault .home-hero:has(.sb-launch) > .home-hero-search { flex: 1 1 360px; min-width: 0; }
+.slidevault .home-hero-search .home-hero-field input { min-width: 0; }
+.slidevault .home-hero:has(.sb-launch) > .sb-launch { flex: none; }
+
+/* A simple orange ring that revolves around the Draft deck button until clicked (client/draft-nudge.ts). */
+@property --sv-spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.slidevault .cart-pill.is-nudge, .slidevault .bb-deck.is-nudge { position: relative; }
+.slidevault .cart-pill.is-nudge::after, .slidevault .bb-deck.is-nudge::after {
+  content: ""; position: absolute; inset: -5px; padding: 3px; border-radius: 999px; pointer-events: none;
+  background: conic-gradient(from var(--sv-spin), transparent 0deg 200deg, var(--sv-brand) 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: svSpin 1.8s linear infinite;
+}
+.slidevault .bb-deck.is-nudge::after { border-radius: 16px; inset: 0; }
+.slidevault .sv-app[data-size="compact"] .bb-deck.is-nudge::after { border-radius: 0; }
+@keyframes svSpin { to { --sv-spin: 360deg; } }
+@media (prefers-reduced-motion: reduce) {
+  .slidevault .cart-pill.is-nudge::after, .slidevault .bb-deck.is-nudge::after { animation: none; background: var(--sv-brand); }
+}
+/* "New" badge on the Storyboard button, until it has been opened once. */
+.slidevault .sb-launch-btn { position: relative; }
+.slidevault .sb-new { position: absolute; top: -8px; right: 10px; padding: 1px 8px; border-radius: 999px; background: var(--sv-brand-tint); color: var(--sv-text); border: 1px solid var(--sv-brand); font-size: 11px; font-weight: 700; letter-spacing: 0.02em; line-height: 16px; }
+/* Storyboard button: white at rest, exactly like the eye and mic buttons beside it; it lights up orange
+   and says Build with AI on hover, focus and tap. (The brief glow keeps its own.) */
+.slidevault .btn.sb-launch-btn:not(.is-glow) { background: var(--sv-surface); border: 1px solid var(--sv-border-strong); color: var(--sv-text); box-shadow: var(--sv-shadow-card); }
+.slidevault .btn.sb-launch-btn:not(.is-glow) .ic { color: inherit; }
+.slidevault .btn.sb-launch-btn:not(.is-glow):focus-visible { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .btn.sb-launch-btn { -webkit-tap-highlight-color: transparent; }
+.slidevault .btn.sb-launch-btn:not(.is-glow):active { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .btn.sb-launch-btn:not(.is-glow):active .ic { color: #fff; }
+.slidevault .btn.sb-launch-btn:active .sb-new { background: #fff; color: var(--sv-text); }
+@media (hover: hover) {
+  .slidevault .btn.sb-launch-btn:not(.is-glow):hover { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+  .slidevault .btn.sb-launch-btn:not(.is-glow):hover .ic { color: #fff; }
+  .slidevault .btn.sb-launch-btn:hover .sb-new { background: #fff; color: var(--sv-text); }
+}
+/* Draft deck button: turns brand orange on hover (the count badge flips to white so it stays visible). */
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill { transition: background-color 0.15s; -webkit-tap-highlight-color: transparent; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:active { opacity: 1; background: var(--sv-brand); color: #fff; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:active .pill-n { background: #fff; color: var(--sv-brand-strong, var(--sv-brand)); }
+@media (hover: hover) {
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:hover { opacity: 1; background: var(--sv-brand); color: #fff; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:hover .pill-n { background: #fff; color: var(--sv-brand-strong, var(--sv-brand)); }
+}
+@media (prefers-reduced-motion: reduce) { .slidevault .sv-app .cart-pill { transition: none; } }
+
+/* The revolving ring holds still while the pointer is over the button. */
+.slidevault .cart-pill.is-nudge:active::after, .slidevault .bb-deck.is-nudge:active::after { animation-play-state: paused; }
+@media (hover: hover) { .slidevault .cart-pill.is-nudge:hover::after, .slidevault .bb-deck.is-nudge:hover::after { animation-play-state: paused; } }
+
+/* Tour: close X on the card, and the "paused" note shown while the tour waits. */
+.slidevault .tour-pop { position: relative; }
+.slidevault .tour-pop .tour-x { position: absolute; top: 8px; right: 8px; }
+.slidevault .tour-paused { position: absolute; left: 50%; transform: translateX(-50%); bottom: 28px; z-index: 95; display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 8px 10px; max-width: calc(100% - 32px); padding: 10px 14px; border-radius: 16px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); box-shadow: var(--sv-shadow-panel); }
+.slidevault .tour-paused-t { font-size: 14px; font-weight: 600; }
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .tour-paused { bottom: calc(84px + env(safe-area-inset-bottom)); }
+
+/* Packs (FD-38): slides that go together. */
+.slidevault .pack-badge { position: absolute; left: 8px; bottom: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--sv-surface); border: 1px solid var(--sv-brand); color: var(--sv-text); font-size: 12px; font-weight: 600; line-height: 16px; }
+.slidevault .pack-badge .ic { color: var(--sv-brand); }
+.slidevault .pack-badge.is-suggested { border-style: dashed; border-color: var(--sv-border-strong); }
+.slidevault .pack-badge.is-suggested .ic { color: var(--sv-text-secondary); }
+.slidevault .pack-strip { display: flex; gap: 6px; list-style: none; margin: 10px 0 0; padding: 0 0 4px; overflow-x: auto; }
+.slidevault .pack-strip li { flex: none; width: 92px; }
+.slidevault .pack-strip .ps-t { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; border: 1px solid var(--sv-border-strong); background: var(--sv-surface-sunken); }
+.slidevault .pack-strip .is-here .ps-t { border: 2px solid var(--sv-brand); }
+.slidevault .pack-strip .ps-n { position: absolute; left: 3px; top: 3px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 11px; font-weight: 700; line-height: 16px; text-align: center; }
+.slidevault .pack-dialog .dlg-body p { margin: 0 0 8px; }
+.slidevault .pack-dialog .dlg-foot { flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.slidevault .pack-panel h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.slidevault .pack-panel .pack-sug { border-style: dashed; }
+.slidevault .pack-rename { display: flex; gap: 8px; margin-top: 10px; }
+.slidevault .pack-rename input { flex: 1; min-width: 0; height: 34px; padding: 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); font: inherit; }
+/* Draft deck: a pack's slides sit together with a label above and an orange bar down the side. */
+.slidevault .cart-items .pack-head { display: flex; align-items: center; gap: 6px; margin: 6px 0 -2px; font-size: 12px; font-weight: 700; color: var(--sv-text); }
+.slidevault .cart-items .pack-head .ic { color: var(--sv-brand); }
+.slidevault .cart-items .pack-head .btn-link { margin-left: auto; font-size: 12px; }
+.slidevault .ci.in-pack { padding-left: 8px; box-shadow: inset 3px 0 0 var(--sv-brand); border-radius: 6px; }
+.slidevault .ci.in-pack:not(.pack-first) { border-top-left-radius: 0; }
+/* Group mode on a deck page. */
+.slidevault .gt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; list-style: none; margin: 12px 0 0; padding: 0 0 72px; }
+.slidevault .gt-tile { width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 8px; text-align: left; border: 2px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface); color: var(--sv-text); font: inherit; cursor: pointer; }
+.slidevault .gt-tile:disabled { opacity: 0.5; cursor: not-allowed; }
+.slidevault .gt-tile.is-picked { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
+.slidevault .gt-t { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); }
+.slidevault .gt-n { position: absolute; left: 6px; top: 6px; min-width: 24px; height: 24px; border-radius: 12px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-weight: 700; font-size: 13px; line-height: 24px; text-align: center; }
+.slidevault .gt-title { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.slidevault .gt-bar { position: sticky; bottom: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: -60px; padding: 12px 0; background: var(--sv-bg); border-top: 1px solid var(--sv-border); z-index: 5; }
+.slidevault .gt-bar input[type="text"] { flex: 1 1 200px; min-width: 0; height: 36px; padding: 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); font: inherit; }
+
+/* Draft deck on a wide screen: the panel inside sets its own height from the room measured under the tabs bar,
+   so the outer box must not cap it at a height that assumes a taller bar (it clipped the bottom 14px). */
+.slidevault .sv-app[data-size="wide"] .cart-col { max-height: none; }
+
+/* Card titles stop at two lines. One very long title used to stretch every card in its row (all cards in a
+   row share the tallest height), leaving the rest mostly empty. The full title is in the tooltip. */
+.slidevault .card-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.7em; } /* two lines of room (line-height 1.35), so one-line and two-line titles line up */
+
+/* Archive (FD-32): the Archived badge, and the small archive button on a deck card. */
+.slidevault .badge-archived { background: var(--sv-surface); border: 1px dashed var(--sv-border-strong); color: var(--sv-text); }
+.slidevault .toast .toast-act { margin-left: 8px; color: inherit; font-weight: 700; text-decoration: underline; }
+.slidevault .deck-arch { position: absolute; top: 8px; right: 8px; z-index: 3; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; opacity: 0; transition: opacity var(--sv-duration-fast); }
+.slidevault .deck-arch .ic { width: 16px; height: 16px; }
+.slidevault .vcard:hover .deck-arch, .slidevault .deck-arch:focus-visible { opacity: 1; }
+@media (hover: none) { .slidevault .deck-arch { opacity: 1; } }
+.slidevault .deck-arch:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .deck-arch-badge { position: absolute; top: 8px; left: 8px; z-index: 3; }
+
+.slidevault .arch-link { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px; }
+
+/* Archive dialog: deck name first, one clear sentence, then two short lines. */
+.slidevault .arch-body { display: flex; flex-direction: column; gap: 14px; }
+.slidevault .arch-deck { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface-sunken); }
+.slidevault .arch-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .arch-name { font-size: 15px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.slidevault .arch-lead { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.35; letter-spacing: -0.01em; }
+.slidevault .arch-list { margin: 0; padding: 0 0 0 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; line-height: 1.45; }
+.slidevault .arch-note { margin: 0; font-size: 13px; color: var(--sv-text-secondary); }
+
+/* Archived decks page. */
+.slidevault .arch-find { display: flex; align-items: center; gap: 8px; max-width: 420px; height: 40px; padding: 0 14px; margin-top: 4px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); }
+.slidevault .arch-find:focus-within { border-color: var(--sv-brand); }
+.slidevault .arch-find input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: var(--sv-text); outline: none; }
+.slidevault .arch-rows { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; max-width: 840px; }
+.slidevault .arch-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 12px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
+.slidevault .arch-mosaic { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; width: 120px; aspect-ratio: 16 / 9; padding: 0; border: 1px solid var(--sv-border-strong); border-radius: 8px; overflow: hidden; background: var(--sv-surface-sunken); cursor: pointer; }
+.slidevault .arch-mosaic span { display: block; overflow: hidden; }
+.slidevault .arch-title { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.slidevault .arch-info .meta { margin: 2px 0 0; }
+.slidevault .sv-app[data-size="compact"] .arch-row { grid-template-columns: 84px minmax(0, 1fr); }
+.slidevault .sv-app[data-size="compact"] .arch-row .arch-mosaic { width: 84px; }
+.slidevault .sv-app[data-size="compact"] .arch-row > .btn { grid-column: 1 / -1; justify-self: start; }
+
+/* Archived decks page: room between the heading, the explanation, the search and the cards. */
+.slidevault .sv-shell .sv-wrap.arch-page { padding-top: 32px; padding-bottom: 48px; }
+.slidevault .arch-page .page-head .lede { margin-top: 10px; max-width: 62ch; line-height: 1.5; }
+.slidevault .arch-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-top: 28px; }
+.slidevault .arch-tools .arch-find { margin-top: 0; flex: 1 1 280px; }
+.slidevault .arch-tools .meta { margin: 0; }
+.slidevault .arch-page .arch-rows { margin-top: 20px; gap: 16px; }
+.slidevault .arch-page .arch-row { padding: 16px 18px; gap: 20px; }
+.slidevault .arch-page .arch-info { display: flex; flex-direction: column; gap: 6px; }
+.slidevault .arch-page .arch-info .meta { margin: 0; }
+.slidevault .arch-page .skel, .slidevault .arch-page .state { margin-top: 28px; }
+
+.slidevault .deck-who { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 6px 0 0; }
+
+/* More panel: a list the server cannot fill yet stays visible but greyed out, with the reason. */
+.slidevault .fb-picker.is-off { opacity: 0.55; }
+.slidevault .fb-picker.is-off .fb-note { margin: 4px 0 0; font-size: 13px; color: var(--sv-text-secondary); }
+.slidevault .fb-picker.is-off .fb-find { pointer-events: none; }
+
+/* Pack and archive questions on a phone: the main button on top and full width, the others under it. */
+@media (max-width: 480px) {
+  .slidevault .pack-dialog .dlg-foot, .slidevault .sv-dialog:has(.arch-body) .dlg-foot { flex-direction: column-reverse; align-items: stretch; }
+  .slidevault .pack-dialog .dlg-foot .btn, .slidevault .sv-dialog:has(.arch-body) .dlg-foot .btn { width: 100%; justify-content: center; }
+}
+
+/* Create: two ways in. Build with AI opens the Storyboard; Build it yourself is planned and points to Home. */
+.slidevault .create-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; max-width: 820px; }
+.slidevault .narrow .create-cards, .slidevault .sv-app[data-size="compact"] .create-cards { grid-template-columns: 1fr; max-width: none; }
+.slidevault .create-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 22px; text-align: left; font: inherit; color: inherit; }
+.slidevault .create-card .ic-big { width: 28px; height: 28px; color: var(--sv-text-secondary); }
+.slidevault .create-card-ai { cursor: pointer; background: var(--sv-brand-tint); border-color: var(--sv-brand); }
+.slidevault .create-card-ai .ic-big { color: var(--sv-brand-strong); }
+.slidevault .create-card-ai:hover { box-shadow: var(--sv-shadow-card); }
+.slidevault .create-card-ai:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .create-card-ai .meta { color: var(--sv-text); }
+.slidevault .create-go { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: 700; color: var(--sv-text); text-decoration: underline; text-decoration-color: var(--sv-brand); text-underline-offset: 3px; }
+.slidevault .create-go .ic { color: var(--sv-brand-strong); }
+.slidevault .create-card-planned { border-style: dashed; box-shadow: none; }
+.slidevault .create-home { font-weight: 700; color: var(--sv-brand-strong); text-decoration: underline; text-underline-offset: 2px; }
+.slidevault .create-home:hover { text-decoration-thickness: 2px; }
+
+/* The Storyboard button's label slides up to "Build with AI" on hover, focus and tap. Both words share one
+   grid cell, so the button is as wide as the longer one from the start and never changes size. */
+.slidevault .sb-swap { display: grid; overflow: hidden; line-height: 1.35; }
+.slidevault .sb-swap > span { grid-area: 1 / 1; text-align: center; white-space: nowrap; transition: transform .22s ease, opacity .22s ease; }
+.slidevault .sb-swap2 { transform: translateY(110%); opacity: 0; }
+.slidevault .btn.sb-launch-btn:focus-visible .sb-swap1, .slidevault .btn.sb-launch-btn:active .sb-swap1 { transform: translateY(-110%); opacity: 0; }
+.slidevault .btn.sb-launch-btn:focus-visible .sb-swap2, .slidevault .btn.sb-launch-btn:active .sb-swap2 { transform: none; opacity: 1; }
+@media (hover: hover) {
+  .slidevault .btn.sb-launch-btn:hover .sb-swap1 { transform: translateY(-110%); opacity: 0; }
+  .slidevault .btn.sb-launch-btn:hover .sb-swap2 { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .slidevault .sb-swap > span { transition: none; } }
+
+/* Upload: category pills and the tag box */
+.slidevault .field > .field-label { font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .field-opt { font-weight: 400; color: var(--sv-text-secondary); margin-left: 4px; }
+.slidevault .field-hint { margin: 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .field-hint.is-auto, .slidevault .up-ok { color: var(--svp-success-text); font-style: italic; }
+.slidevault .field-hint.is-missing, .slidevault .up-todo { color: var(--svp-danger-text); font-style: italic; }
+.slidevault .req { color: var(--svp-danger-text); font-weight: 700; margin-left: 2px; }
+.slidevault .catpills { display: flex; flex-wrap: wrap; gap: 8px; }
+.slidevault .catpill { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); font-weight: 500; cursor: pointer; }
+.slidevault .catpill:hover:not(:disabled) { background: var(--sv-surface-sunken); }
+.slidevault .catpill[aria-pressed="true"] { background: var(--sv-brand-tint); border-color: var(--sv-brand); font-weight: 600; }
+.slidevault .catpill:disabled { opacity: .6; cursor: default; }
+.slidevault .catpill .ic { color: var(--sv-brand-strong); }
+.slidevault .catother-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; max-width: 460px; }
+.slidevault .catother { flex: 1; min-width: 0; max-width: 320px; margin-top: 0; }
+.slidevault .tagfield-wrap { position: relative; }
+.slidevault .tagfield { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 46px; padding: 6px 10px; border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius, 12px); background: var(--sv-surface); cursor: text; }
+.slidevault .tagfield:focus-within { border-color: var(--sv-brand); }
+.slidevault .tagfield.is-disabled { opacity: .6; }
+.slidevault .tagfield-chips { display: contents; list-style: none; margin: 0; padding: 0; }
+.slidevault .tagchip { display: inline-flex; align-items: center; gap: 2px; min-height: 30px; padding: 0 4px 0 12px; border-radius: 999px; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); font-size: var(--sv-text-small); color: var(--sv-text); }
+.slidevault .tagchip-x { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: pointer; }
+.slidevault .tagchip-x:hover:not(:disabled) { background: var(--sv-border); color: var(--sv-text); }
+.slidevault .tagchip-x .ic { width: 14px; height: 14px; }
+.slidevault .tagfield input { flex: 1 1 140px; min-width: 120px; height: 32px; border: none; outline: none; background: transparent; color: var(--sv-text); font: inherit; padding: 0; }
+.slidevault .tagfield input:focus-visible { outline: none; }
+.slidevault .tagfield-list { position: absolute; z-index: 20; left: -1px; right: -1px; top: calc(100% + 4px); margin: 0; padding: 6px; list-style: none; border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius, 12px); background: var(--sv-surface); box-shadow: var(--sv-shadow-card); max-height: 260px; overflow: auto; }
+.slidevault .tagfield-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 8px; cursor: pointer; font-size: var(--sv-text-small); }
+.slidevault .tagfield-opt:hover, .slidevault .tagfield-opt.is-active { background: var(--sv-surface-sunken); }
+.slidevault .tagfield-opt.is-active { box-shadow: inset 0 0 0 2px var(--sv-brand); }
+.slidevault .tagfield-count { color: var(--sv-text-secondary); font-size: 12px; }
+.slidevault .tagfield-popular { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .tagfield-popular ul { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.slidevault .tagquick { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 12px 0 8px; border: 1px dashed var(--sv-border-strong); border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); cursor: pointer; }
+.slidevault .tagquick:hover { background: var(--sv-surface-sunken); border-style: solid; }
+.slidevault .tagquick .ic { width: 14px; height: 14px; color: var(--sv-text-secondary); }
+.slidevault .tagfield-add { display: inline-flex; align-items: center; gap: 8px; }
+
+/* Upload: progress bar, the slides of the deck being uploaded, and the submit area at the bottom */
+.slidevault .upbar-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.slidevault .upbar-label { margin: 0; font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .upbar { position: relative; height: 10px; border-radius: 999px; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); overflow: hidden; }
+.slidevault .upbar > span { display: block; height: 100%; border-radius: 999px; background: var(--sv-brand); transition: width .2s ease; }
+.slidevault .upbar.is-indeterminate > span { width: 35%; animation: upbarSlide 1.2s ease-in-out infinite; }
+@keyframes upbarSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+@media (prefers-reduced-motion: reduce) { .slidevault .upbar.is-indeterminate > span { animation: none; width: 100%; opacity: .5; } .slidevault .upbar > span { transition: none; } }
+.slidevault .upgrid { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--sv-border); }
+.slidevault .upgrid-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.slidevault .upgrid-head .meta { margin: 4px 0 0; max-width: 60ch; }
+.slidevault .upgrid-bulk { position: sticky; top: 8px; z-index: 15; display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-top: 14px; padding: 10px 14px; border: 1px solid var(--sv-brand); border-radius: 14px; background: var(--sv-brand-tint); box-shadow: var(--sv-shadow-card); }
+.slidevault .upgrid-bulk-field { flex: 1 1 220px; min-width: 200px; }
+.slidevault .upgrid-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.slidevault .upcard { position: relative; display: flex; flex-direction: column; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
+.slidevault .upcard.is-selected { border-color: var(--sv-brand); box-shadow: 0 0 0 1px var(--sv-brand); }
+.slidevault .upcard-thumb { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 9; border-radius: 13px 13px 0 0; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); border-bottom: 1px solid var(--sv-border); }
+.slidevault .upcard.is-hidden .upcard-thumb { background-image: repeating-linear-gradient(135deg, transparent 0 10px, var(--sv-border) 10px 11px); }
+.slidevault .upcard-thumb .ic { width: 28px; height: 28px; }
+.slidevault .upcard-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 13px 13px 0 0; background: #fff; }
+.slidevault .upcard-num { z-index: 1; position: absolute; left: 10px; bottom: 8px; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--sv-surface); border: 1px solid var(--sv-border); color: var(--sv-text); }
+.slidevault .upcard-pick { position: absolute; z-index: 1; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); cursor: pointer; }
+.slidevault .upcard-pick input { width: 18px; height: 18px; margin: 0; cursor: pointer; accent-color: var(--sv-brand); }
+.slidevault .upcard-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; min-width: 0; }
+.slidevault .upcard-title { margin: 0; font-size: 14.5px; line-height: 1.3; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.slidevault .upcard-text { margin: 0; font-size: 13px; line-height: 1.4; color: var(--sv-text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.slidevault .upcard .tagfield-wrap.is-compact { width: 100%; }
+.slidevault .tagfield-wrap.is-compact .tagfield { min-height: 38px; padding: 4px 8px; }
+.slidevault .tagfield-wrap.is-compact .tagfield input { height: 28px; font-size: 13.5px; min-width: 70px; }
+.slidevault .tagfield-wrap.is-compact .tagchip { min-height: 26px; font-size: 13px; }
+.slidevault .upgrid-more { margin-top: 16px; }
+.slidevault .upsubmit { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--sv-border); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.slidevault .upsubmit .upbar-wrap { margin-top: 0; width: 100%; max-width: 520px; }
+.slidevault .upsubmit .meta { margin: 0; }
+
+/* Slide preview: results bar, deck filmstrip. The side arrows walk the deck; the bar walks the search results. */
+.slidevault .lb-results { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
+.slidevault .lb-nav:disabled { opacity: .35; cursor: default; }
+.slidevault .lb-strip { display: flex; gap: 8px; margin-top: 10px; padding: 4px 2px 6px; overflow-x: auto; scrollbar-width: thin; }
+.slidevault .lb-thumb { flex: none; width: 96px; aspect-ratio: 16/9; padding: 0; border: 2px solid transparent; border-radius: 8px; overflow: hidden; background: var(--sv-surface-sunken); cursor: pointer; opacity: .75; }
+.slidevault .lb-thumb:hover { opacity: 1; }
+.slidevault .lb-thumb[aria-current="true"] { border-color: var(--sv-brand); opacity: 1; }
+.slidevault .lb-legend { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; font-weight: 400; }
+.slidevault .lb-swatch { width: 14px; height: 10px; border: 2px solid color-mix(in srgb, var(--sv-brand) 65%, transparent); border-radius: 3px; background: var(--sv-brand-tint); }
+.slidevault .lb-thumb:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .lb-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+/* Phones: swipe the deck instead of a cramped filmstrip */
+@media (max-width: 640px) { .slidevault .lb-deck { display: none; } }
+.slidevault .lb-deck { margin-top: 10px; }
+.slidevault .lb-deck-label { margin: 0; font-size: var(--sv-text-small); font-weight: 600; color: var(--sv-text-secondary); }
+.slidevault .lb-deck .lb-strip { margin-top: 4px; }
+/* The action buttons stay in view even when the results bar and filmstrip make the preview taller than the window. */
+.slidevault .lb-caption { position: sticky; bottom: -16px; z-index: 3; margin-top: 8px; padding: 10px 0 16px; background: var(--sv-surface); border-top: 1px solid var(--sv-border); }
+.slidevault .lb-stage { max-height: calc(var(--sv-h, 700px) * 0.5); }
+/* Instant tooltip for the deck arrows (the browser's own title tooltip waits about a second). Opens sideways so the picture's edge doesn't clip it. */
+.slidevault .lb-nav[data-tip]::after { content: attr(data-tip); position: absolute; top: 50%; transform: translateY(-50%); padding: 4px 8px; border-radius: 6px; background: var(--sv-text); color: var(--sv-surface); font-size: 12px; font-weight: 600; line-height: 1.2; white-space: nowrap; pointer-events: none; opacity: 0; }
+.slidevault .lb-prev[data-tip]::after { left: calc(100% + 6px); }
+.slidevault .lb-next[data-tip]::after { right: calc(100% + 6px); }
+.slidevault .lb-nav[data-tip]:hover::after, .slidevault .lb-nav[data-tip]:focus-visible::after { opacity: 1; }
+/* Deck arrows sit on the left and right edges of the picture, not over it. */
+.slidevault .lb-row { position: relative; display: flex; align-items: center; gap: 10px; }
+.slidevault .lb-row > .lb-stage { flex: 1 1 0; min-width: 0; margin: 0; }
+.slidevault .lb-row > .lb-nav { position: relative; inset: auto; transform: none; flex: none; }
+.slidevault .lb-nav[data-tip]::after { top: auto; bottom: calc(100% + 6px); transform: none; }
+.slidevault .lb-prev[data-tip]::after { left: 0; right: auto; }
+.slidevault .lb-next[data-tip]::after { right: 0; left: auto; }
+/* Phones: no room beside the picture, so the arrows overlay it (swiping also works) */
+@media (max-width: 640px) {
+  .slidevault .lb-row > .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; }
+  .slidevault .lb-row > .lb-prev { left: 8px; } .slidevault .lb-row > .lb-next { right: 8px; }
+  .slidevault .lb-nav[data-tip]::after { display: none; }
+}
+/* Preview action buttons turn Moser orange with white text on hover */
+.slidevault .lb-caption .btn:hover:not(:disabled) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; opacity: 1; }
+
+/* Tags (FD-72): quiet grey pills; orange only on hover and focus */
+.slidevault .tag { --tag-rgb: 100, 116, 139; display: inline-flex; align-items: center; max-width: 100%; min-height: 24px; padding: 0 9px; border: 1px solid rgba(var(--tag-rgb), .75); border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: 12.5px; line-height: 1; cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .tag-t { display: block; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .tag[data-h="0"] { --tag-rgb: 59, 130, 246; }
+.slidevault .tag[data-h="1"] { --tag-rgb: 20, 184, 166; }
+.slidevault .tag[data-h="2"] { --tag-rgb: 34, 160, 90; }
+.slidevault .tag[data-h="3"] { --tag-rgb: 139, 92, 246; }
+.slidevault .tag[data-h="4"] { --tag-rgb: 219, 80, 140; }
+.slidevault .tag[data-h="5"] { --tag-rgb: 100, 116, 139; }
+.slidevault .tag:hover, .slidevault .tag:focus-visible { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
+.slidevault .tags-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.slidevault .tag[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; transform: none; max-width: 220px; }
+.slidevault .meta-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.slidevault .meta-wrap { display: block; flex: 1; min-width: 0; }
+.slidevault .meta-wrap[data-tip]::after { max-width: 100%; } /* wraps inside the card, never past its edge */
+.slidevault .meta-row .also { flex: none; align-self: center; min-height: 24px; padding: 0 8px; border-color: transparent; background: none; color: var(--sv-text-secondary); font-weight: 500; } /* where else the slide lives: a quiet marker on the meta line, not another row */
+.slidevault .meta-row .also:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
+.slidevault .tag-team { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text-secondary); } /* the team's own labels: no colour, so they never look like a colleague's tag */
+.slidevault .tagmenu { position: fixed; z-index: 90; display: flex; flex-direction: column; min-width: 150px; max-width: 280px; max-height: min(60vh, 360px); overflow-y: auto; padding: 6px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: 12px; box-shadow: var(--sv-shadow-panel); color: var(--sv-text); }
+.slidevault .tagmenu-item { text-align: left; padding: 7px 10px; border: 0; border-radius: 8px; background: none; color: var(--sv-text); font: inherit; font-size: 13px; line-height: 1.3; cursor: pointer; overflow-wrap: anywhere; }
+.slidevault .tagmenu-item:hover, .slidevault .tagmenu-item:focus-visible { background: var(--sv-brand-tint); }
+.slidevault .tag-more { background: none; border: 0; font: inherit; font-size: 12.5px; cursor: pointer; }
+.slidevault .tag-more { display: inline-flex; align-items: center; min-height: 24px; padding: 0 6px; border-radius: 999px; color: var(--sv-text-secondary); font-size: 12.5px; cursor: pointer; }
+.slidevault .tag-more:hover, .slidevault .tag-more:focus-visible { color: var(--sv-brand-strong); }
+.slidevault .taglist { display: grid; gap: 10px; }
+.slidevault .tagrows { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.slidevault .tagrow { display: inline-flex; align-items: center; gap: 0; }
+.slidevault .tagrow.is-hidden .tag { opacity: .7; }
+.slidevault .tagvote { display: inline-flex; margin-left: 2px; }
+.slidevault .tv, .slidevault .tagx { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 26px; min-height: 26px; padding: 0 4px; border: 0; border-radius: 999px; background: transparent; color: var(--sv-text-secondary); font: inherit; font-size: 12px; cursor: pointer; }
+.slidevault .tv .ic, .slidevault .tagx .ic { width: 14px; height: 14px; }
+.slidevault .tv:hover, .slidevault .tv:focus-visible, .slidevault .tagx:hover, .slidevault .tagx:focus-visible { background: var(--sv-brand-tint); color: var(--sv-brand-strong); }
+.slidevault .tv[aria-pressed="true"] { color: var(--sv-text); font-weight: 700; box-shadow: inset 0 0 0 1px var(--sv-border-strong); }
+.slidevault .tagadd { max-width: 360px; }
+.slidevault .tagfold summary { cursor: pointer; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .tagfold summary:hover { color: var(--sv-brand-strong); }
+.slidevault .tagfold[open] summary { margin-bottom: 6px; }
+.slidevault .tagremoved { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; font-size: var(--sv-text-small); }
+.slidevault .tagremoved li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.slidevault .tags-fromdeck { margin-top: 12px; }
+.slidevault .deck-tags { margin-top: 14px; max-width: 640px; }
+.slidevault .deck-tags .h3 { margin: 0 0 8px; font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .lb-tags { margin-top: 10px; display: grid; gap: 8px; }
+.slidevault .labels-source { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; }
+
+/* Back and Forward, top right of the tabs row. Quiet until hovered, then Moser orange. Hidden on phones (the phone's back gesture does it). */
+.slidevault .sv-brandrow-end { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.slidevault .hist-btns { display: inline-flex; gap: 6px; }
+.slidevault .hist-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--sv-border); border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
+.slidevault .hist-btn .ic { width: 18px; height: 18px; }
+.slidevault .hist-btn:hover:not(:disabled) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .hist-btn:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .hist-btn:disabled { opacity: .35; cursor: default; }
+@media (max-width: 600px) { .slidevault .hist-btns { display: none; } }
+@media (prefers-reduced-motion: reduce) { .slidevault .hist-btn { transition: none; } }
+
+/* Slide votes, comments and Share (FD-72): grey pills, orange on hover */
+.slidevault .slide-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.slidevault .slide-actions.is-card { margin-top: 8px; }
+.slidevault .votepill { display: inline-flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 4px; border: 1px solid color-mix(in srgb, var(--sv-brand) 30%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--sv-brand) 8%, var(--sv-surface)); }
+.slidevault .votepill.is-small { min-height: 28px; }
+.slidevault .vp { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--sv-text-secondary); cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .votepill.is-small .vp { width: 26px; height: 26px; }
+.slidevault .vp .ic { width: 18px; height: 18px; }
+.slidevault .votepill.is-small .vp .ic { width: 15px; height: 15px; }
+.slidevault .vp.is-up { color: var(--sv-brand-strong); }
+.slidevault .vp:hover, .slidevault .vp:focus-visible { background: color-mix(in srgb, var(--sv-brand) 18%, transparent); color: var(--sv-brand-strong); }
+.slidevault .vp[aria-pressed="true"].is-up { background: color-mix(in srgb, var(--sv-brand) 26%, transparent); color: var(--sv-brand-strong); box-shadow: inset 0 0 0 1px var(--sv-brand); }
+.slidevault .vp[aria-pressed="true"].is-up .ic { stroke-width: 2.6; }
+.slidevault .vp[aria-pressed="true"].is-down { background: var(--sv-action-bg); color: var(--sv-action-fg); }
+.slidevault .vp-n { min-width: 2ch; padding: 0 2px; text-align: center; font-size: 14px; font-weight: 600; color: var(--sv-text); }
+.slidevault .votepill.is-small .vp-n { font-size: 13px; }
+.slidevault .actpill { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--sv-surface-sunken); color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .actpill .ic { width: 17px; height: 17px; }
+.slidevault .actpill:hover, .slidevault .actpill:focus-visible { background: var(--sv-brand-tint); color: var(--sv-brand-strong); }
+.slidevault .actpill[aria-expanded="true"] { box-shadow: inset 0 0 0 1px var(--sv-border-strong); }
+.slidevault .comments { margin-top: 14px; display: grid; gap: 12px; }
+.slidevault .comments .h3 { margin: 0; font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .comment-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.slidevault .comment { display: grid; grid-template-columns: 32px 1fr; gap: 10px; }
+.slidevault .comment .avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); font-size: 12px; font-weight: 700; color: var(--sv-text-secondary); }
+.slidevault .comment-head { margin: 0 0 2px; font-size: var(--sv-text-small); display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; }
+.slidevault .comment-del { margin-left: 8px; font-size: var(--sv-text-small); }
+.slidevault .comment-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.slidevault .composer { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; }
+.slidevault .composer .avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); font-size: 12px; font-weight: 700; color: var(--sv-text-secondary); }
+.slidevault .composer-box { display: flex; align-items: flex-end; gap: 6px; min-height: 36px; padding: 3px 6px 3px 14px; border: 1px solid var(--sv-border-strong); border-radius: 20px; background: var(--sv-surface); transition: border-color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .composer-box:hover, .slidevault .composer-box:focus-within { border-color: var(--sv-brand); }
+.slidevault .composer-box textarea { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--sv-text); font: inherit; font-size: 14px; line-height: 1.4; resize: none; padding: 6px 0; max-height: 110px; }
+.slidevault .composer-post { border: 0; border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 700; padding: 5px 12px; margin-bottom: 1px; cursor: pointer; }
+.slidevault .composer-post:hover:not(:disabled), .slidevault .composer-post:focus-visible { background: var(--sv-brand-tint); color: var(--sv-brand-strong); }
+
+/* Toasts live in the browser's top layer (popover), so they show in front of the preview and other dialogs */
+.slidevault .toasts[popover] { position: fixed; inset: auto 16px 16px auto; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; width: auto; max-width: min(420px, calc(100vw - 32px)); color: inherit; }
+.slidevault .toasts[popover].lift { bottom: 100px; }
+.slidevault .toasts[popover]:not(:popover-open) { display: none; }
+
+/* Card: same zones in the same places. Title (two lines), meta, one line of tags, then a footer pinned to the bottom */
+.slidevault .vcard .card-body { container-type: inline-size; }
+.slidevault .vcard .tags-compact { flex-wrap: nowrap; margin-top: 0; min-width: 0; }
+.slidevault .vcard .tags-compact .tag { min-width: 0; flex: 0 1 auto; }
+.slidevault .vcard .tags-compact .tag-t { max-width: none; }
+.slidevault .vcard .tag-more { flex: none; }
+.slidevault .card-foot { margin-top: auto; padding-top: 2px; display: flex; align-items: center; gap: 8px; min-height: 28px; min-width: 0; } /* just tall enough for the small arrows or the Also-in chip (was 36px, from when votes with counts lived here) */
+.slidevault .card .card-body { padding-bottom: 10px; }
+.slidevault .card-foot:empty { display: none; }
+/* Useful on the left, Not useful on the right of the card, as in the Storyboard (FD-81) */
+.slidevault .card-foot { flex-wrap: wrap; }
+.slidevault .fb-verdict { margin-top: 0; flex: 1 1 170px; flex-wrap: nowrap; }
+.slidevault .fb-verdict.is-small { justify-content: space-between; }
+.slidevault .fb-verdict.is-small .sb-icon-btn { padding: 4px 2px; }
+.slidevault .fb-verdict .sb-icon-btn:disabled { opacity: 1; }
+.slidevault .fb-verdict .sb-icon-btn[data-tip]::after { text-transform: none; letter-spacing: normal; font-size: 12.5px; font-weight: 500; } /* the tooltip is a sentence, not small capitals */
+.slidevault .tags-spacer { display: none; height: 24px; }
+.slidevault .sv-main:has(.vcard .tags-compact) .tags-spacer { display: block; }
+/* In the preview, open comments get room before the tags start: a gap and a hairline */
+.slidevault .comments + .lb-tags { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--sv-border); }
+
+/* Add tag: a small dashed pill in the row with the tags; it becomes a small box in place */
+.slidevault .tag-add { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; padding: 0 10px 0 7px; border: 1px dashed var(--sv-border-strong); border-radius: 999px; background: transparent; color: color-mix(in srgb, var(--sv-text-secondary) 65%, var(--sv-text)); font: inherit; font-size: 12.5px; line-height: 1; cursor: pointer; transition: border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .tag-add .ic { width: 13px; height: 13px; }
+.slidevault .tag-add:hover:not(:disabled), .slidevault .tag-add:focus-visible { border-style: solid; border-color: var(--sv-brand); color: var(--sv-brand-strong); }
+.slidevault .tag-input-wrap { position: relative; display: inline-block; }
+.slidevault .tag-input { width: 150px; min-height: 26px; padding: 0 12px; border: 1px solid var(--sv-brand); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: 12.5px; outline: none; }
+.slidevault .tag-sugg { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 80; min-width: 190px; max-width: 280px; margin: 0; padding: 4px; list-style: none; background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 12px; box-shadow: var(--sv-shadow-popover); }
+.slidevault .tag-sugg li { padding: 6px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; overflow-wrap: anywhere; }
+.slidevault .tag-sugg li:hover, .slidevault .tag-sugg li[aria-selected="true"] { background: var(--sv-brand-tint); }
+
+/* Slide title with a pencil */
+.slidevault .slide-title-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+.slidevault .slide-title-row .h1 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.slidevault .title-edit { flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin-top: 4px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: color-mix(in srgb, var(--sv-text-secondary) 55%, transparent); cursor: pointer; transition: color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .title-edit .ic { width: 18px; height: 18px; }
+.slidevault .title-edit:hover, .slidevault .title-edit:focus-visible { color: var(--sv-brand-strong); }
+.slidevault .title-edit-note { margin: 6px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+/* Upload cards: thumbnails wait with a spinner, then fade the picture in; static tags (not saved yet) */
+.slidevault .upcard-thumb .spin { color: var(--sv-text-secondary); }
+.slidevault .upcard-thumb img { opacity: 0; transition: opacity var(--sv-duration) var(--sv-ease-out); background: transparent; }
+.slidevault .upcard-thumb img.is-loaded { opacity: 1; background: #fff; }
+.slidevault .tag.is-static { cursor: default; }
+.slidevault .tag.is-static:hover { border-color: rgba(var(--tag-rgb), .75); background: transparent; }
+.slidevault .tag.is-deck { opacity: .8; border-style: dashed; }
+
+/* Tabs turn orange (words and icon) on hover and keyboard focus; a locked tab stays quiet */
+.slidevault .sv-nav a:not(.is-locked):hover, .slidevault .sv-nav a:not(.is-locked):focus-visible { color: var(--sv-brand-strong); background: transparent; }
+.slidevault .sv-bottombar a:hover, .slidevault .sv-bottombar a:focus-visible { color: var(--sv-brand-strong); }
+.slidevault .sv-bottombar a:hover .ic, .slidevault .sv-bottombar a:focus-visible .ic { color: var(--sv-brand-strong); }
+.slidevault .sv-nav a:not(.is-locked):hover .ic, .slidevault .sv-nav a:not(.is-locked):focus-visible .ic { color: var(--sv-brand-strong); }
+
+/* Draft deck: one tag on every ticked slide (FD-58) */
+.slidevault .cart-tagall-open { display: inline-flex; align-items: center; gap: 4px; margin: 4px 0 8px; font-size: 13px; }
+.slidevault .cart-tagall { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; }
+.slidevault .cart-tagall .input { flex: 1 1 auto; min-width: 0; height: 32px; }
+
+/* Search results narrowed by deck section (FD-57) */
+.slidevault .sec-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
+.slidevault .sec-pills .meta { margin: 0; }
+.slidevault .sec-pills .chip-x { cursor: pointer; }
+.slidevault .sec-pills .chip-x .n { color: var(--sv-text-secondary); font-variant-numeric: tabular-nums; }
+.slidevault .sec-pills .chip-x[aria-pressed="true"] { border-color: var(--sv-brand-strong); color: var(--sv-text); font-weight: 600; }
+.slidevault .sec-pills .chip-x[aria-pressed="true"] .n { color: inherit; }
+
+/* Section cards (FD-57): one card per deck section, above the slide cards when a "By section" pill is picked */
+.slidevault .seccards { margin: 0 0 18px; }
+.slidevault .seccards-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 12px; }
+.slidevault .seccard { display: flex; gap: 14px; padding: 12px; border: 1px solid var(--sv-border); border-radius: var(--sv-radius-card); background: var(--sv-surface); box-shadow: var(--sv-shadow-card); min-width: 0; }
+.slidevault .seccard.is-in { border-color: var(--sv-brand); box-shadow: 0 0 0 1px var(--sv-brand), var(--sv-shadow-card); }
+.slidevault .seccard-cover { flex: 0 0 150px; align-self: flex-start; aspect-ratio: 16 / 9; padding: 0; border: 1px solid var(--sv-border); border-radius: 8px; background: var(--sv-surface-sunken); overflow: hidden; cursor: pointer; }
+.slidevault .seccard-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.slidevault .seccard-name { margin: 0; font-size: var(--sv-text-body, 15px); font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.slidevault .seccard-meta, .slidevault .seccard-n { margin: 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .seccard-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 8px; }
+@media (max-width: 520px) { .slidevault .seccard { gap: 10px; } .slidevault .seccard-cover { flex-basis: 104px; } }
+
+/* Loading: a turning ring, with the words beside it (it holds still when motion is reduced) */
+.slidevault .sv-loading { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--sv-text-secondary); }
+.slidevault .sv-ring { flex: none; width: 22px; height: 22px; border: 3px solid var(--sv-border); border-top-color: var(--sv-brand); border-radius: 50%; }
+.slidevault .sv-ring.is-small { width: 14px; height: 14px; border-width: 2px; }
+@media (prefers-reduced-motion: no-preference) { .slidevault .sv-ring { animation: sv-spin .9s linear infinite; } }
+.slidevault .seccard-acts .btn[aria-busy="true"] { cursor: progress; }
+.slidevault .lb-results .lb-of { color: var(--sv-text-secondary); font-weight: 400; }
+/* The section in the film strip: one orange frame round its slides, not an outline on each */
+.slidevault .lb-frame { flex: none; display: flex; gap: 8px; padding: 6px; border: 2px solid var(--sv-brand); border-radius: 12px; background: var(--sv-brand-tint); }
+.slidevault .lb-frame .lb-thumb { opacity: 1; }
+.slidevault .lb-frame .lb-thumb[aria-current="true"] { border-color: var(--sv-text); }
+
+.slidevault .sec-hidden-note { margin: 0 0 10px; }
+
+.slidevault .cart-tagall-wrap { margin: 4px 0 8px; }
+.slidevault .cart-tagall-wrap .cart-tagall { margin: 0; }
+.slidevault .cart-tagall-note { margin: 4px 0 0; font-size: 12.5px; }
+
+/* Search results in groups (Decks, Sections, Slides): a heading each, with room above and below */
+.slidevault .res-block { margin-top: 8px; }
+.slidevault .res-h { margin: 34px 0 14px; }
+.slidevault .res-block .res-h { margin-top: 28px; }
+.slidevault .state .btn + .btn { margin-left: 8px; } /* two buttons in an empty state: a gap, not touching */
+.slidevault .slide-actions:empty { display: none; } /* the slide page's bar has nothing in it when there are no votes or comments */
+.slidevault .dlg-head-tools { display: flex; align-items: center; gap: 2px; flex: none; }
+
+/* "Deeper AI search": the short-search note on the results page (FD-79) */
+.slidevault .ai-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0 4px; padding: 10px 14px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface-sunken); color: var(--sv-text); font-size: 14px; line-height: 1.4; }
+.slidevault .ai-note .ic { color: var(--sv-brand-strong); flex: none; }
+.slidevault .ai-note > span { flex: 1 1 260px; min-width: 0; }
+/* "Search with AI": a checkbox with its words, first in the filter row (FD-79) */
+.slidevault .ai-check-wrap { height: 34px; align-items: center; }
+.slidevault .ai-check { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 8px; border-radius: 999px; background: transparent; color: var(--sv-text); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.12s; }
+.slidevault .ai-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--sv-brand-strong); cursor: pointer; flex: none; }
+.slidevault .ai-check input:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .ai-tip { top: calc(100% + 6px); left: 0; right: auto; width: max-content; max-width: 240px; padding: 7px 11px; font-size: 13px; line-height: 1.35; }
+.slidevault .ai-check b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; } /* "AI" in orange: the part that sets it apart from the grey filter labels */
+.slidevault .ai-check:hover, .slidevault .ai-check:has(input:checked) { background: color-mix(in srgb, var(--sv-brand) 9%, transparent); } /* a faint orange wash on hover and when on */
+@media (prefers-reduced-motion: reduce) { .slidevault .ai-check { transition: none; } }
+
+/* Suggested tags (FD-82): the same dashed pill as "+ Add tag", in a row of their own after "Suggested". */
+.slidevault .tag-suggested { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.slidevault .tagrows .tag-suggested { margin-top: 0; }
+.slidevault .tag-suggested > .meta { font-size: 12px; }
+.slidevault .tag-suggest { max-width: 220px; }
+.slidevault .up-ai { margin-top: 12px; }
+.slidevault .up-ai .btn .ic { margin-right: 4px; }
+.slidevault .btn-ai { border-color: var(--sv-brand); } /* "Fill the rest with AI": an orange outline, orange sparkle and AI, as in "Search with AI" */
+.slidevault .btn-ai .ic { color: var(--sv-brand-strong); }
+.slidevault .btn-ai b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; }
+.slidevault .btn-ai:hover:not(:disabled) { background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); }
+.slidevault .tagchip.is-auto, .slidevault .tag.is-auto { gap: 4px; } /* a tag filled in for the person: a small orange sparkle before it, to check and remove if wrong */
+.slidevault .tagchip.is-auto .ic, .slidevault .tag.is-auto .ic { color: var(--sv-brand-strong); width: 12px; height: 12px; flex: none; }
