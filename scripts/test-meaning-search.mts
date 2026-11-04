@@ -110,6 +110,72 @@ const res = await route.GET(new Request('http://localhost/x?q=healthcare%20proje
 const body = (await res.json()) as { data: { available: boolean; items: { slide: { title: string } }[] } };
 check(res.status === 200 && body.data.available && body.data.items[0]?.slide.title === 'Hospital wing', 'GET /meaning-search answers, closest first');
 
+// ---- Fingerprints at upload, and tag suggestions (FD-82)
+{
+  const { embedDeck, tagSuggestions, rankTagSuggestions } = await import('../features/slide-vault/server/slide-embeddings');
+  const deckC = await deck('People deck', 'Crew Co', [['Our people', 'Meet our team and staff'], ['The crew', 'People and staff who meet you'], ['Team photo', 'Our team and crew']]);
+  await sql(`update slides set themes = '{team culture}' where deck_id = $1 and slide_number in (1, 2)`, [deckC]);
+  const made = await embedDeck(deckC);
+  check(made === 3, 'upload: a new deck gets its fingerprints without running embed:slides', made);
+  check((await embedDeck(deckC)) === 0, 'upload: running it again skips unchanged slides');
+  const [{ id: c1 }] = await sql<{ id: string }>(`select id from slides where deck_id = $1 and slide_number = 1`, [deckC]);
+  const [{ id: team }] = await sql<{ id: string }>(`select id from slides where title = 'Meet the Team'`);
+  await sql(`insert into free_tags (target_kind, target_id, tag, added_by) values ('slide', $1, 'Leadership', 'tester')`, [c1]);
+  await sql(`insert into free_tags (target_kind, target_id, tag, added_by, removed_by, removed_at) values ('slide', $1, 'Removed tag', 'tester', 'tester', now())`, [c1]);
+  const sug = await tagSuggestions(team);
+  const tags = sug.map((x) => x.tag);
+  check(tags.includes('Leadership') && sug.find((x) => x.tag === 'Leadership')?.from === 'people', 'tag suggestions: a tag people put on a slide close in meaning is suggested', sug);
+  check(tags.includes('team culture') && sug.find((x) => x.tag === 'team culture')?.from === 'reading', 'tag suggestions: a theme two close slides share is suggested', sug);
+  check(!tags.includes('Removed tag'), 'tag suggestions: removed tags are never suggested');
+  await sql(`insert into free_tags (target_kind, target_id, tag, added_by) values ('slide', $1, 'leadership', 'tester')`, [team]);
+  check(!(await tagSuggestions(team)).some((x) => x.tag.toLowerCase() === 'leadership'), 'tag suggestions: a tag the slide already has is left out');
+  check((await tagSuggestions('not-a-slide-id')).length === 0, 'tag suggestions: an unknown or sample-deck slide gets an empty list, not an error');
+  const tsRoute = await import('../app/api/slide-vault/v1/slides/[slideId]/tag-suggestions/route');
+  resetRateLimits();
+  const tsRes = await tsRoute.GET(new Request('http://localhost/x'), { params: Promise.resolve({ slideId: team }) } as never);
+  const tsBody = (await tsRes.json()) as { data: { suggestions: { tag: string }[] } };
+  check(tsRes.status === 200 && tsBody.data.suggestions.some((x) => x.tag === 'team culture'), 'GET /slides/:id/tag-suggestions answers', tsBody);
+  // Before saving: a file in the upload form gets suggestions from the library (nothing stored).
+  const { previewTagSuggestions } = await import('../features/slide-vault/server/slide-embeddings');
+  const [{ n: before }] = await sql<{ n: string }>('select count(*) as n from slide_embeddings');
+  const pre = await previewTagSuggestions([
+    { number: 1, title: 'Meet our people', text: 'Our team and staff, the crew you will meet' },
+    { number: 2, title: 'Slide 2', text: '' },
+    { number: 3, title: 'Hidden notes', text: 'Our team and staff notes for internal use', hidden: true },
+  ]);
+  const preTags = pre.slides['1']?.map((x) => x.tag) ?? [];
+  check(preTags.includes('Leadership') || preTags.includes('leadership') || preTags.includes('team culture'), 'upload form: a slide not saved yet gets tag suggestions from close library slides', pre);
+  check(!pre.slides['2'] && !pre.slides['3'] && pre.deck.length > 0, 'upload form: no suggestions for wordless or hidden slides; the deck gets its own list', pre);
+  const [{ n: stored }] = await sql<{ n: string }>('select count(*) as n from slide_embeddings');
+  check(stored === before, 'upload form: nothing is stored for a file that is only being previewed', { before, stored });
+  const { mkdirSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const token = 'a'.repeat(64);
+  mkdirSync(path.join(tmpdir(), 'slidevault-preview', token), { recursive: true });
+  writeFileSync(path.join(tmpdir(), 'slidevault-preview', token, 'slides.json'), JSON.stringify([{ number: 1, title: 'Meet our people', text: 'Our team and staff, the crew you will meet', hidden: false }]));
+  const preRoute = await import('../app/api/slide-vault/v1/uploads/preview/[token]/tag-suggestions/route');
+  resetRateLimits();
+  const preRes = await preRoute.GET(new Request('http://localhost/x'), { params: Promise.resolve({ token }) } as never);
+  const preBody = (await preRes.json()) as { data: { deck: unknown[]; slides: Record<string, unknown[]> } };
+  check(preRes.status === 200 && (preBody.data.slides['1']?.length ?? 0) > 0, 'GET /uploads/preview/:token/tag-suggestions answers for a previewed file', preBody);
+  resetRateLimits();
+  check((await preRoute.GET(new Request('http://localhost/x'), { params: Promise.resolve({ token: 'b'.repeat(64) }) } as never)).status === 404, 'an expired preview answers 404');
+  const { tagLike } = await import('../features/slide-vault/server/slide-embeddings');
+  check(tagLike('business ambition') && tagLike('Net zero') && !tagLike('we listen before we design') && !tagLike('this is where we come in') && !tagLike('Our approach') && !tagLike('whats inside'), 'reading words: short phrases are tags, copied headlines are not');
+  const ranked = rankTagSuggestions([
+    { slide_id: 'a', similarity: 0.9, themes: ['Net zero'], proof_sectors: [], tags: [] },
+    { slide_id: 'b', similarity: 0.8, themes: ['net zero', 'Wellness'], proof_sectors: ['Banking'], tags: ['Flagship'] },
+    { slide_id: 'c', similarity: 0.3, themes: ['Wellness'], proof_sectors: [], tags: ['Far away'] },
+    { slide_id: 'd', similarity: 0.7, themes: ['we listen before we design'], proof_sectors: [], tags: [], client_sector: 'Legal' },
+  ], ['banking']);
+  check(JSON.stringify(ranked.map((r) => r.tag)) === '["Net zero","Flagship","Legal"]', 'ranking: words close slides share rank first, then people tags and sectors; a one-word theme from one slide, far slides and tags the slide has are left out', ranked);
+  const named = rankTagSuggestions([
+    { slide_id: 'a', similarity: 0.9, themes: ['Prepared for Acme', 'Acme culture', 'collaborate,', 'Agile work,'], proof_sectors: [], tags: ['Acme'] },
+    { slide_id: 'b', similarity: 0.8, themes: ['collaborate'], proof_sectors: [], tags: [] },
+  ], [], 5, ['Acme Corp', 'Acme']);
+  check(JSON.stringify(named.map((r) => r.tag)) === '["collaborate","Agile work"]', 'ranking: never a client name, and stray commas trimmed', named);
+}
+
 // ---- Never breaks search
 const model = env.SV_EMBED_MODEL;
 delete env.SV_EMBED_MODEL;

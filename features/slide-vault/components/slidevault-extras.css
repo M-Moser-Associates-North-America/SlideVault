@@ -1288,3 +1288,11 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .ai-check b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; } /* "AI" in orange: the part that sets it apart from the grey filter labels */
 .slidevault .ai-check:hover, .slidevault .ai-check:has(input:checked) { background: color-mix(in srgb, var(--sv-brand) 9%, transparent); } /* a faint orange wash on hover and when on */
 @media (prefers-reduced-motion: reduce) { .slidevault .ai-check { transition: none; } }
+
+/* Suggested tags (FD-82): the same dashed pill as "+ Add tag", in a row of their own after "Suggested". */
+.slidevault .tag-suggested { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.slidevault .tagrows .tag-suggested { margin-top: 0; }
+.slidevault .tag-suggested > .meta { font-size: 12px; }
+.slidevault .tag-suggest { max-width: 220px; }
+.slidevault .up-ai { margin-top: 12px; }
+.slidevault .up-ai .btn .ic { margin-right: 4px; }

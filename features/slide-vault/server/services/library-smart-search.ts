@@ -357,10 +357,16 @@ export function configuredStoryReader(env: Record<string, string | undefined> = 
  * The sample decks get the same through their boost; without this, the database's results never
  * learned, which is where M Moser's library lives.
  */
+/** The learned score a database result needs before it is moved ahead of unrated results. */
+export const LIFT = 1;
+
 export function byLearning<T extends { summary: { id: string } }>(rows: T[], learned: Map<string, SearchLearned>): T[] {
   if (!learned.size) return rows;
-  /* Last if sunk; ahead of the rest if more useful than not, the more the further ahead; one stray Not relevant keeps its place (the database's order is already a good guess). */
-  const place = (l: SearchLearned | undefined) => (sinks(l) ? -1 : learnedScore(l) > 0 ? learnedScore(l) : 0);
+  /* Last if sunk; ahead of the rest if clearly more useful than not, the more the further ahead; one stray Not relevant keeps its place (the database's order is already a good guess).
+     "Clearly" is a score of at least LIFT: one Useful in a mostly-same search (2) lifts a slide, but one in a search that only
+     shares some words (under 1) doesn't jump it ahead of every unrated result (3 Nov review: the Nov 2 spreading, coming back
+     through partial matches). */
+  const place = (l: SearchLearned | undefined) => (sinks(l) ? -1 : learnedScore(l) >= LIFT ? learnedScore(l) : 0);
   return rows.map((r, i) => ({ r, i, s: place(learned.get(r.summary.id)) })).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.r);
 }
 

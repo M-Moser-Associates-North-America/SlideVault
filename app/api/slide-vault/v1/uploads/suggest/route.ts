@@ -37,3 +37,18 @@ export async function POST(request: Request) {
     return fail(422, 'UPLOAD_FAILED', 'This file could not be read. Check it opens in PowerPoint and try again.');
   }
 }
+
+// GET /uploads/suggest: { aiAvailable }, whether this server has an AI that can fill deck details, so the
+// upload form only offers "Fill the rest with AI" when it can work (FD-23, FD-82). A misconfigured AI
+// counts as not available here; POST still reports the setup error.
+export async function GET(request: Request) {
+  const limited = rateLimit(request, RATE_POLICIES.search);
+  if (limited) return limited;
+  let aiAvailable = false;
+  try {
+    aiAvailable = configuredDeckFactsReader() !== null;
+  } catch {
+    aiAvailable = false;
+  }
+  return ok({ aiAvailable });
+}

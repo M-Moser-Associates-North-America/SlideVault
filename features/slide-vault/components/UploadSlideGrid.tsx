@@ -6,6 +6,7 @@ import { Icon } from './icons';
 import { plural } from './library';
 import type { TagSuggestion } from './TagField';
 import { AddTagPill, LocalTagList } from './TagBits';
+import type { TagSuggestionItem } from '../client/api';
 
 const PAGE = 60;
 
@@ -29,11 +30,14 @@ export function UploadSlideGrid({
   tags,
   onTags,
   suggestions,
+  suggested,
   disabled,
   pictures,
   drawing,
   deckTags = [],
 }: {
+  /** Tags suggested per slide number from similar library slides (FD-82), once the server has them */
+  suggested?: Record<string, TagSuggestionItem[]>;
   /** The deck's own tags (set above the grid): shown on every card, since they apply to every slide */
   deckTags?: string[];
   /** Slide number -> picture address, once the server has drawn them */
@@ -134,7 +138,7 @@ export function UploadSlideGrid({
               <h3 className="upcard-title">{s.title}</h3>
               {s.hidden && <span className="badge">Hidden in the file</span>}
               {bodyOf(s) && <p className="upcard-text">{bodyOf(s)}</p>}
-              <LocalTagList label={`Tags for slide ${s.number}`} value={tags[s.number] ?? []} onChange={(list) => setOne(s.number, list)} inherited={deckTags} inheritedTip="Applies to the whole deck (set above)" suggestions={suggestions} disabled={disabled} />
+              <LocalTagList label={`Tags for slide ${s.number}`} value={tags[s.number] ?? []} onChange={(list) => setOne(s.number, list)} inherited={deckTags} inheritedTip="Applies to the whole deck (set above)" suggestions={suggestions} suggested={suggested?.[String(s.number)]} disabled={disabled} />
             </div>
           </li>
         ))}

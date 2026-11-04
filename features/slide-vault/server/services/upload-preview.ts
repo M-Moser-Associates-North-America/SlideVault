@@ -52,7 +52,7 @@ export async function previewUpload(fileName: string, bytes: Uint8Array): Promis
     try {
       const slides = await extractSlides(bytes);
       await renderPreviews(bytes, work, (n) => `${n}.png`);
-      writeFileSync(path.join(work, 'slides.json'), JSON.stringify(slides.map((s) => ({ number: s.number, title: s.title, hidden: s.hidden }))));
+      writeFileSync(path.join(work, 'slides.json'), JSON.stringify(slides.map((s) => ({ number: s.number, title: s.title, text: s.text, hidden: s.hidden }))));
       const final = path.join(root(), hash);
       rmSync(final, { recursive: true, force: true });
       renameSync(work, final);
@@ -85,4 +85,19 @@ export function previewImage(token: string, slideNumber: string): Uint8Array | n
   if (!dir) return null;
   const file = path.join(dir, `${Number(slideNumber)}.png`);
   return existsSync(file) ? new Uint8Array(readFileSync(file)) : null;
+}
+
+/**
+ * The words of a previewed file's slides, for tag suggestions in the upload form (FD-82). Read from the
+ * temporary preview folder; null when the preview has expired. A preview made before this change has
+ * titles only, which still works, a little less well.
+ */
+export function previewSlideTexts(token: string): { number: number; title: string; text?: string; hidden: boolean }[] | null {
+  const dir = cachedPreviewDir(token);
+  if (!dir) return null;
+  try {
+    return JSON.parse(readFileSync(path.join(dir, 'slides.json'), 'utf8'));
+  } catch {
+    return null;
+  }
 }

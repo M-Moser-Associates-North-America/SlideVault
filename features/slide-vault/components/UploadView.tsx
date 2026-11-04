@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { addTag, listLibrary, listTags, previewUpload, uploadDeck } from '../client/api';
+import { addTag, listLibrary, listTags, previewTagSuggestions, previewUpload, suggestUploadDetails, uploadAiAvailable, uploadDeck, type TagSuggestionItem } from '../client/api';
 import { setUploadDraft } from '../client/upload-draft-store';
 import { guessFromFileName, yearFromTitleSlide } from '../client/deck-details-guess';
 import { readDeckPreview, type DeckPreview } from '../client/pptx-preview';
@@ -10,6 +10,7 @@ import { Icon } from './icons';
 import { plural } from './library';
 import { Link } from './parts';
 import { useWorkspace } from './state';
+import { SuggestedTagChips } from './TagBits';
 import { TagField, type TagSuggestion } from './TagField';
 import { UploadConfirmDialog, type UploadSummary } from './UploadConfirmDialog';
 import { slideTagTotals, UploadSlideGrid, type SlideTags } from './UploadSlideGrid';
@@ -72,6 +73,11 @@ export function UploadView() {
   /* The server draws each slide as a picture (FD-54). It only keeps them in a temporary folder; nothing is stored. */
   const [pics, setPics] = useState<{ kind: 'none' | 'drawing' | 'unavailable' } | { kind: 'ready'; data: UploadPreview }>({ kind: 'none' });
   const picsAbort = useRef<AbortController | null>(null);
+  /* Tags suggested from similar library slides once the server has read the file (FD-82): for the deck, and per slide number. */
+  const [sugg, setSugg] = useState<{ deck: TagSuggestionItem[]; slides: Record<string, TagSuggestionItem[]> }>({ deck: [], slides: {} });
+  /* "Fill the rest with AI" (FD-23): offered only when the server has an AI for it. */
+  const [aiOk, setAiOk] = useState(false);
+  const [aiState, setAiState] = useState<{ kind: 'idle' | 'reading' } | { kind: 'done'; note: string }>({ kind: 'idle' });
   const [state, setState] = useState<UploadState>({ kind: 'idle' });
   const [confirming, setConfirming] = useState(false);
   const [over, setOver] = useState(false);
@@ -86,6 +92,12 @@ export function UploadView() {
 
   /* Tags already in use, most used first, so a new deck reuses the words the library already has. */
   useEffect(() => {
+    const ctrl = new AbortController();
+    uploadAiAvailable(runtime, ctrl.signal).then((v) => !ctrl.signal.aborted && setAiOk(v));
+    return () => ctrl.abort();
+  }, [runtime]);
+
+  useEffect(() => {
     let live = true;
     listTags(runtime).then((t) => live && setKnown(t), () => {});
     return () => {
@@ -96,6 +108,8 @@ export function UploadView() {
   const pick = (f: File | null) => {
     setFile(f);
     setSlideTags({});
+    setSugg({ deck: [], slides: {} });
+    setAiState({ kind: 'idle' });
     if (state.kind !== 'uploading') setState({ kind: 'idle' });
     const token = ++readToken.current;
     if (!f) {
@@ -122,7 +136,12 @@ export function UploadView() {
       picsAbort.current = ctrl;
       setPics({ kind: 'drawing' });
       previewUpload(runtime, f, ctrl.signal).then(
-        (data) => token === readToken.current && setPics(data ? { kind: 'ready', data } : { kind: 'unavailable' }),
+        (data) => {
+          if (token !== readToken.current) return;
+          setPics(data ? { kind: 'ready', data } : { kind: 'unavailable' });
+          /* Then the tag suggestions, which take a few seconds for a big deck: after the pictures, never before them. */
+          if (data) previewTagSuggestions(runtime, data.token, ctrl.signal).then((s) => token === readToken.current && setSugg(s), () => {});
+        },
         () => token === readToken.current && setPics({ kind: 'unavailable' }),
       );
     }
@@ -143,6 +162,41 @@ export function UploadView() {
       (e) => token === readToken.current && setReading({ kind: 'failed', message: (e as Error).message }),
     );
   };
+
+  /* Asks the server's AI for the details still empty; never overwrites what's there. Each value says it came from AI, to check. */
+  const fillWithAi = async () => {
+    if (!file) return;
+    const token = readToken.current;
+    setAiState({ kind: 'reading' });
+    const got = await suggestUploadDetails(runtime, file, { ai: true }).catch(() => null);
+    if (token !== readToken.current) return;
+    if (!got) return setAiState({ kind: 'done', note: "The AI couldn't read this file just now. Please fill in the rest yourself." });
+    const from = (src: string) => (src === 'ai' ? 'the AI (please check)' : src);
+    const added: string[] = [];
+    const s = got.suggestions;
+    if (!clientName.trim() && s.client) {
+      setClientName(s.client.value);
+      setAuto((a) => ({ ...a, client: from(s.client!.source) }));
+      added.push('client');
+    }
+    if (!deckYear.trim() && s.year) {
+      setDeckYear(String(s.year.value));
+      setAuto((a) => ({ ...a, year: from(s.year!.source) }));
+      added.push('year');
+    }
+    if (picked.length === 0 && s.category) {
+      const name = CATEGORIES.find((c) => c.toLowerCase() === s.category!.value.toLowerCase()) ?? s.category.value;
+      if (!CATEGORIES.includes(name)) setCustom((c) => (c.includes(name) ? c : [...c, name]));
+      setPicked([name]);
+      setAuto((a) => ({ ...a, category: from(s.category!.source) }));
+      added.push('category');
+    }
+    if (s.bestOfTheBest?.value && !bestOfTheBest) setBestOfTheBest(true);
+    const note = got.readerNote ?? (added.length ? `Filled in ${list(added)}. Please check ${added.length > 1 ? 'them' : 'it'}.` : 'Nothing more could be read from this file. Please fill in the rest yourself.');
+    setAiState({ kind: 'done', note });
+    announce(note);
+  };
+  const missingDetails = !clientName.trim() || !deckYear.trim() || picked.length === 0;
 
   const deckTitle = preview?.title ?? file?.name.replace(/\.pptx$/i, '') ?? '';
   const totals = slideTagTotals(slideTags);
@@ -379,6 +433,19 @@ export function UploadView() {
           )}
         </div>
 
+        {aiOk && file && reading.kind !== 'reading' && (missingDetails || aiState.kind !== 'idle') && (
+          <div className="up-ai" aria-live="polite">
+            {aiState.kind === 'done' ? (
+              <p className="field-hint">{aiState.note}</p>
+            ) : (
+              <button type="button" className="btn btn-sm" disabled={busy || aiState.kind === 'reading'} onClick={() => void fillWithAi()}>
+                <Icon name="sparkle" className="ic-sm" />
+                {aiState.kind === 'reading' ? 'Reading the file…' : 'Fill the rest with AI'}
+              </button>
+            )}
+          </div>
+        )}
+
         <p className="field-hint" style={{ marginTop: 14 }}>
           <span className="req" aria-hidden="true">*</span> Required
         </p>
@@ -455,6 +522,11 @@ export function UploadView() {
             {hintFor('category') && <p className={`field-hint${auto.category ? ' is-auto' : ' is-missing'}`}>{hintFor('category')}</p>}
           </div>
           <TagField label="Deck tags" hint="Words people might search for, they apply to every slide in the deck." value={tags} onChange={setTags} suggestions={known} disabled={busy} />
+          {sugg.deck.length > 0 && (
+            <div className="full">
+              <SuggestedTagChips label="Suggested deck tags" suggestions={sugg.deck} have={deckTags} disabled={busy} onAdd={(t) => setTags((x) => (x.some((y) => y.toLowerCase() === t.toLowerCase()) ? x : [...x, t]))} />
+            </div>
+          )}
           <div className="radio-row full">
             <label>
               <input type="checkbox" checked={bestOfTheBest} onChange={(e) => setBestOfTheBest(e.target.checked)} />
@@ -469,7 +541,7 @@ export function UploadView() {
             <span>This exact file is already in the library as &ldquo;{pics.data.alreadyUploadedAs}&rdquo;. Uploading it again won&rsquo;t add a copy.</span>
           </div>
         )}
-        {preview && <UploadSlideGrid deckTags={deckTags} pictures={pics.kind === 'ready' ? Object.fromEntries(pics.data.slides.map((x) => [x.number, runtime.assetUrl(x.previewPath)])) : undefined} drawing={pics.kind === 'drawing'} slides={preview.slides} tags={slideTags} onTags={setSlideTags} suggestions={known} disabled={busy} />}
+        {preview && <UploadSlideGrid deckTags={deckTags} pictures={pics.kind === 'ready' ? Object.fromEntries(pics.data.slides.map((x) => [x.number, runtime.assetUrl(x.previewPath)])) : undefined} drawing={pics.kind === 'drawing'} slides={preview.slides} tags={slideTags} onTags={setSlideTags} suggestions={known} suggested={sugg.slides} disabled={busy} />}
 
         <div className="upsubmit">
           {busy ? (
