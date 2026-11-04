@@ -1,12 +1,14 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
 import type { DeckFactsReader } from '@/features/slide-vault/server/ai/deck-facts';
-import { configuredDeckFactsReader, suggestUploadFacts } from '@/features/slide-vault/server/services/library-smart-search';
+import { configuredDeckFactsReader, configuredDeckTagsReader, suggestUploadFacts, suggestUploadTags } from '@/features/slide-vault/server/services/library-smart-search';
 
 // POST /uploads/suggest (multipart/form-data): file + folderPath?, read? (docs/DECISIONS.md FD-23)
 // Reads a .pptx and suggests its deck facts (client, year, category, Best of the Best, author,
 // last editor, office), each with where it came from. Nothing is stored: the upload form fills in
 // these values for the person to confirm, then POST /uploads stores the deck as usual.
 // read=true lets the configured AI read the first slides for anything the file itself doesn't say.
+// tags=true (with read=true) also has the AI read the slides for tags: up to 5 for the deck and 2 per slide,
+// as { tags: { deck: [{ tag, from: 'ai', score }], slides: { '3': [...] } } } (FD-85). Left out when it can't.
 export async function POST(request: Request) {
   const limited = rateLimit(request, RATE_POLICIES.uploadSuggest);
   if (limited) return limited;
@@ -31,7 +33,11 @@ export async function POST(request: Request) {
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
     const folderPath = (form.get('folderPath') as string | null)?.trim() || null;
-    return ok(await suggestUploadFacts(file.name, bytes, { reader, read: form.get('read') === 'true', folderPath }));
+    const read = form.get('read') === 'true';
+    const facts = await suggestUploadFacts(file.name, bytes, { reader, read, folderPath });
+    // Tags are a second, bigger AI job, only when asked for; the details above never wait on it failing.
+    const tags = read && form.get('tags') === 'true' ? await suggestUploadTags(file.name, bytes, { reader: configuredDeckTagsReader(), clientName: facts.suggestions.client?.value ?? null }) : null;
+    return ok(tags && (tags.deck.length || Object.keys(tags.slides).length) ? { ...facts, tags } : facts);
   } catch (e) {
     console.error('Deck suggestions failed', e);
     return fail(422, 'UPLOAD_FAILED', 'This file could not be read. Check it opens in PowerPoint and try again.');

@@ -30,6 +30,7 @@ export function UploadSlideGrid({
   tags,
   onTags,
   suggestions,
+  autoTags = {},
   suggested,
   disabled,
   pictures,
@@ -49,6 +50,8 @@ export function UploadSlideGrid({
   onTags: (next: SlideTags) => void;
   suggestions: TagSuggestion[];
   disabled?: boolean;
+  /** Slide tags filled in for the person, by slide number: marked on the card */
+  autoTags?: Record<number, string[]>;
 }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [shown, setShown] = useState(PAGE);
@@ -138,7 +141,7 @@ export function UploadSlideGrid({
               <h3 className="upcard-title">{s.title}</h3>
               {s.hidden && <span className="badge">Hidden in the file</span>}
               {bodyOf(s) && <p className="upcard-text">{bodyOf(s)}</p>}
-              <LocalTagList label={`Tags for slide ${s.number}`} value={tags[s.number] ?? []} onChange={(list) => setOne(s.number, list)} inherited={deckTags} inheritedTip="Applies to the whole deck (set above)" suggestions={suggestions} suggested={suggested?.[String(s.number)]} disabled={disabled} />
+              <LocalTagList auto={autoTags[s.number]} label={`Tags for slide ${s.number}`} value={tags[s.number] ?? []} onChange={(list) => setOne(s.number, list)} inherited={deckTags} inheritedTip="Applies to the whole deck (set above)" suggestions={suggestions} suggested={suggested?.[String(s.number)]} disabled={disabled} />
             </div>
           </li>
         ))}

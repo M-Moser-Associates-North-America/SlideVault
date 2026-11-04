@@ -20,6 +20,17 @@ const KINDS: { asks: RegExp; types: string[] }[] = [
   { asks: /\b(about us|firm profile|who we are|our firm|company profile|company overview|firm overview|about m ?moser)\b/, types: ['firm_profile', 'differentiator'] },
   // Words BD uses for slides that frame a deck (Gaby, 28 Oct): banners and dividers, covers, endings, contents
   { asks: /\b(banners?|dividers?|section (break|breaker|header|title)s?|page breakers?)\b/, types: ['section_divider'] },
+  // The 9 slide types in Alina's database the rules didn't know yet (3 Nov, #34 notes). Worded so they don't
+  // catch sector words: "financial services", "legal client", "private equity" stay sectors.
+  { asks: /\b(cover(ing)? letters?|intro(duction)? letters?)\b/, types: ['cover_letter'] },
+  { asks: /\b(capabilit(y|ies)|what we offer|our services|service (offering|lines?))\b/, types: ['capability_service'] },
+  { asks: /\b(our understanding|project understanding|understanding (of )?(the|your) (client|brief|needs|business)|client (needs|challenges?)|the brief)\b/, types: ['client_understanding'] },
+  { asks: /\b(design concepts?|concept design|concepts?|mood ?boards?|look and feel|design direction)\b/, types: ['design_concept'] },
+  { asks: /\b(scope( of (work|services))?|assumptions?|exclusions)\b/, types: ['scope_assumptions'] },
+  { asks: /\b(certifications?|accreditations?|iso \d+|esg credentials)\b/, types: ['certifications_esg'] },
+  { asks: /\b(awards?|accolades?|recognition)\b/, types: ['awards'] },
+  { asks: /\b(rfp (worksheets?|responses?|questionnaires?|answers?)|questionnaires?|worksheets?)\b/, types: ['rfp_worksheet'] },
+  { asks: /\b(legal (pages?|terms|information)|terms and conditions|t ?& ?cs?|insurance certificates?|contract terms|admin(istrative)? pages?)\b/, types: ['legal_admin'] },
   { asks: /\b(covers?|cover page|title slide|front page)\b/, types: ['cover'] },
   { asks: /\b(ending|end slide|closing|closer|thank you|final slide|last slide|back cover)\b/, types: ['closing'] },
   { asks: /\b(table of contents|contents|agenda)\b/, types: ['table_of_contents'] },
@@ -37,6 +48,15 @@ const THEMES: { asks: RegExp; theme: string }[] = [
   { asks: /\b(smart building|technology)\b/, theme: 'technology & smart building' },
   { asks: /\b(amenit\w*|hospitality)\b/, theme: 'amenities & hospitality' },
   { asks: /\b(brand\w*|identity)\b/, theme: 'brand experience' },
+  // The curated themes the rules didn't know yet (3 Nov, #34 notes), spelled exactly as stored on slides.
+  { asks: /\b(master ?plan\w*|portfolio strategy|real estate strategy|consolidat\w*)\b/, theme: 'masterplanning & portfolio strategy' },
+  { asks: /\b(dei|d ?& ?i|inclusi\w*|diversity|belonging|neurodivers\w*)\b/, theme: 'inclusion & DEI' },
+  { asks: /\b(global(-| )local|global delivery|multi-?country|global footprint)\b/, theme: 'global-local delivery' },
+  { asks: /\b(vdc|bim|3d|digital twin|virtual design)\b/, theme: 'VDC / 3D process' },
+  { asks: /\b(interconnecting stairs?|feature stairs?|staircases?|vertical connection)\b/, theme: 'interconnecting stair / vertical connection' },
+  { asks: /\b(design ?(&|and) ?build|design-build|turnkey)\b/, theme: 'design & build delivery' },
+  { asks: /\b(ai|artificial intelligence|machine learning)\b/, theme: 'AI' },
+  { asks: /\b(heritage|adaptive reuse|historic building|listed building)\b/, theme: 'heritage / adaptive reuse' },
 ];
 
 export type SearchIntent = { types: string[]; sectors: string[]; themes: string[] };
@@ -102,6 +122,15 @@ const KIND_SAID: Record<string, string> = {
   closing: 'A closing slide',
   table_of_contents: 'A contents page',
   client_logos: 'A client logo wall',
+  cover_letter: 'A cover letter',
+  capability_service: 'A capability slide',
+  client_understanding: 'A client understanding slide',
+  design_concept: 'A design concept',
+  scope_assumptions: 'A scope slide',
+  certifications_esg: 'A certifications slide',
+  awards: 'An awards slide',
+  rfp_worksheet: 'An RFP worksheet',
+  legal_admin: 'A legal or admin page',
 };
 
 /** What's known about a database slide (FD-51, FD-53), in the shape the intent rules read. */

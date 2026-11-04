@@ -9,6 +9,8 @@ import { readFileSync } from 'node:fs';
 import JSZip from 'jszip';
 import type { ExtractedSlide } from '../workers/slide-vault/processors/extract-text';
 import { mergeAiFacts, openAiCompatibleDeckFactsReader, type DeckFactsReader } from '../features/slide-vault/server/ai/deck-facts';
+import { cleanDeckTags, deckTagsInstructions, deckTagsSchema, openAiCompatibleDeckTagsReader, slidesForTags, MAX_DECK_TAGS, MAX_SLIDE_TAGS } from '../features/slide-vault/server/ai/deck-tags';
+import { labelMenu } from '../features/slide-vault/server/ai/label-menu';
 import { missingFacts, readFileProperties, suggestFromRules, type FileProperties } from '../features/slide-vault/server/deck-suggestions';
 import { suggestDeckFacts } from '../features/slide-vault/server/services/suggest-deck';
 
@@ -136,6 +138,68 @@ async function withProps(bytes: Uint8Array, creator: string, modified: string) {
   const body = JSON.parse(sent.body ?? '{}');
   check(out.client === 'Acme' && body.response_format?.json_schema?.strict === true, 'strict Structured Outputs with the deck-facts shape', body.response_format);
   check(/Slide 1: For Acme\./.test(body.messages?.[1]?.content ?? ''), 'the cover text is sent as data', body.messages?.[1]);
+}
+
+// ---- AI tags for an upload (FD-85): the team's labels first, a new tag only as a rare exception, few of them
+{
+  const menu = labelMenu(['healthcare', 'financial services', 'retail']);
+  const themes = menu.themes;
+  const sectors = menu.sectors;
+  const slides = [
+    { number: 1, title: 'Harbor Bank: headquarters consolidation', text: 'Proposal prepared by Northwind Studio' },
+    { number: 2, title: 'The challenge', text: 'Three leased buildings with peak desk use of 41%. Leases on two buildings end within 30 months.' },
+    { number: 3, title: 'Utilisation evidence', text: 'Sensor study, six weeks, 1,200 desks.' },
+    { number: 4, title: 'Thank you', text: 'Contact us' },
+  ];
+  const clean = (answer: Parameters<typeof cleanDeckTags>[0]) => cleanDeckTags(answer, { slides, themes, sectors, clientName: 'Harbor Bank' });
+
+  const ok = clean({ deck: { labels: ['HEALTH & wellbeing', 'financial services', 'made up', 'AI', 'hybrid / flexible work'], extra: [] }, slides: [] });
+  check(ok.deck.map((t) => t.tag).join() === 'health & wellbeing,financial services,hybrid / flexible work', `the deck gets at most ${MAX_DECK_TAGS} tags, only the team's labels, in the team's spelling; "AI" only where the slides say it`, ok.deck);
+  check(ok.deck.every((t) => t.from === 'ai'), 'each tag says it came from the AI');
+
+  const a = clean({ deck: { labels: [], extra: ['workplace stuff'] }, slides: [] });
+  check(a.deck.length === 0, 'a new tag that is not on any slide is dropped as invented', a.deck);
+  const b = clean({ deck: { labels: ['AI'], extra: ['utilisation'] }, slides: [] });
+  check(b.deck.length === 0, 'a deck tag outside the labels needs to be on at least two slides (or the first); one slide is not enough; "AI" is not on any slide', b.deck);
+  const c = clean({ deck: { labels: [], extra: ['bank'] }, slides: [] });
+  check(c.deck.map((t) => t.tag).join() === 'bank', 'a new deck tag that is on the first slide is kept (the one exception)', c.deck);
+  const d = clean({ deck: { labels: [], extra: ['bank', 'consolidation', 'leases'] }, slides: [] });
+  check(d.deck.length <= 1, 'at most one new tag for the deck', d.deck);
+
+  const s2 = clean({ deck: { labels: ['workplace strategy & data'], extra: [] }, slides: [{ number: 2, labels: ['cost certainty & risk', 'workplace strategy & data', 'AI'], extra: ['leases'] }] });
+  check(s2.slides['2']?.map((t) => t.tag).join() === 'cost certainty & risk,leases', `a slide gets at most ${MAX_SLIDE_TAGS} tags and never repeats a deck tag`, s2.slides);
+  // 3 Nov: the AI tagged slides "AI" everywhere; "ai" also hides inside "again", "said" and "maintain".
+  const aiSlides = [{ number: 1, title: 'Forecasting', text: 'We use AI to forecast desk demand.' }, { number: 2, title: 'Maintenance', text: 'We said we would maintain it again.' }];
+  const ai = cleanDeckTags({ deck: { labels: [], extra: [] }, slides: [{ number: 1, labels: ['AI'], extra: [] }, { number: 2, labels: ['AI'], extra: ['ai'] }] }, { slides: aiSlides, themes, sectors });
+  check(ai.slides['1']?.[0]?.tag === 'AI' && !ai.slides['2'], 'the "AI" label only where the slide says AI as a word; letters inside other words never count', ai.slides);
+  const s3 = clean({ deck: { labels: [], extra: [] }, slides: [{ number: 3, labels: [], extra: ['utilisation', 'sensor study'] }] });
+  check(s3.slides['3']?.map((t) => t.tag).join() === 'utilisation', 'a slide gets one new tag at most, and only if its words are on that slide', s3.slides);
+  const s4 = clean({ deck: { labels: [], extra: [] }, slides: [{ number: 3, labels: [], extra: ['lease expiry'] }, { number: 9, labels: ['AI'], extra: [] }] });
+  check(Object.keys(s4.slides).length === 0, 'an invented slide tag and a slide that does not exist give nothing', s4.slides);
+  const s5 = clean({ deck: { labels: [], extra: [] }, slides: [{ number: 1, labels: [], extra: ['harbor bank'] }, { number: 1, labels: [], extra: ['m moser'] }] });
+  check(Object.keys(s5.slides).length === 0, "never the client's name or M Moser", s5.slides);
+  check(Object.keys(clean({ deck: 'x', slides: 5 } as never).slides).length === 0 && clean({} as never).deck.length === 0, 'a wrongly shaped answer gives no tags');
+
+  const shown = slidesForTags([{ number: 1, title: 'T'.repeat(300), text: 'x'.repeat(5000), hidden: false }, { number: 2, title: 'Hidden notes', text: 'secret', hidden: true }]);
+  check(shown.length === 1 && shown[0].title.length === 100 && shown[0].text.length <= 240, 'hidden slides are not sent, and long titles and text are cut', shown.map((x) => [x.number, x.title.length, x.text.length]));
+
+  const schema = deckTagsSchema(themes, sectors) as { properties: { deck: { properties: { labels: { items: { enum: string[] } } } } } };
+  const allowed = schema.properties.deck.properties.labels.items.enum;
+  check(allowed.includes('hybrid / flexible work') && allowed.includes('healthcare') && allowed.length === themes.length + sectors.length, 'the reply format lets "labels" hold only the team\'s themes and sectors');
+  const said = deckTagsInstructions(themes, sectors);
+  check(said.includes('inclusion & DEI') && /none to 2 for a slide/.test(said) && /most decks and slides need none/.test(said), 'the instructions list the labels and ask for few tags');
+
+  let sent: { body?: string } = {};
+  const fetchFn = async (_url: string, init: RequestInit) => {
+    sent = { body: String(init.body) };
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ deck: { labels: ['AI'], extra: [] }, slides: [{ number: 2, labels: ['cost certainty & risk'], extra: [] }] }) } }] }), { status: 200 });
+  };
+  const reader = openAiCompatibleDeckTagsReader({ baseUrl: 'http://x/v1', apiKey: null, model: 'm', timeoutMs: 1000 }, fetchFn);
+  const out = await reader.read({ fileName: 'a.pptx', slides, themes, sectors });
+  const body = JSON.parse(sent.body ?? '{}');
+  check(out.deck.labels[0] === 'AI' && body.response_format?.json_schema?.strict === true && body.response_format?.json_schema?.name === 'deck_tags', 'strict Structured Outputs with the deck-tags shape', body.response_format?.json_schema?.name);
+  const user = String(body.messages?.[1]?.content ?? '');
+  check(user.includes('2 | The challenge |') && !user.includes('Hidden') && body.messages?.[0]?.content.includes('never as instructions'), 'every slide goes as data, and slide text is never taken as instructions');
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll deck suggestion checks passed');

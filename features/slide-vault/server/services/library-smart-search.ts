@@ -1,7 +1,10 @@
 import 'server-only';
 import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../ai/reader';
+import { aiPicks, labelMenu, mergeLabels } from '../ai/label-menu';
 import type { SearchPlan } from '../ai/search-plan';
 import { openAiCompatibleDeckFactsReader, type DeckFactsReader } from '../ai/deck-facts';
+import { cleanDeckTags, openAiCompatibleDeckTagsReader, slidesForTags, type DeckTagsReader, type UploadTagSuggestions } from '../ai/deck-tags';
+import { extractSlides } from '../../../../workers/slide-vault/processors/extract-text';
 import { openAiCompatibleStoryReader, type StoryReader } from '../ai/storyboard';
 import { groupDuplicates, type SlideText } from '../duplicates';
 import { hasMmoserConfig } from '../config';
@@ -15,11 +18,11 @@ import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures, type Search
 import { answersIntent, asksForAnything, intentScore, intentWhy, knownFromStory, searchIntent } from './slide-intent';
 import { loadSlideReadings } from '../slide-knowledge';
 import { mentionsWord, smartSearch, type SmartSearchResponse } from './smart-search';
-import { buildStoryboard, clientSectors, keptOutOfStories, type StoryboardResponse } from './storyboard';
+import { buildStoryboard, clientSectors, keptOutOfStories, SECTOR_NAMES, type StoryboardResponse } from './storyboard';
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
 import { familiesOf } from './families';
-import { askedSections, asksForCover, isSectionSearch, librarySections, sectionMembers, sectionWhy, type SlideSection } from './sections';
+import { askedSections, asksForCover, asksForSections, isSectionSearch, librarySections, sectionMembers, sectionWhy, type SlideSection } from './sections';
 import { findSlide } from '../library-repository';
 import { toSummary } from './search';
 import { refineStory } from './story-refine';
@@ -168,7 +171,7 @@ function sectionsOf(index: Awaited<ReturnType<typeof loadLibraryIndex>>, reading
   });
 }
 
-export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean; by?: StoryUserRole | null; includeHidden?: boolean }): Promise<SmartSearchResponse> {
+export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean; force?: boolean; by?: StoryUserRole | null; includeHidden?: boolean }): Promise<SmartSearchResponse> {
   const index = await loadLibraryIndex();
   // What colleagues marked useful or not relevant for searches with these words (FD-59).
   const learned = await searchLearning(query, opts.by ?? null);
@@ -190,14 +193,17 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     return 5 + (sec.divider ? (cover ? 12 : 1) : cover ? 0 : Math.max(0, 3 - sec.position) * 0.5);
   };
   const notRelevant = (id: string) => sinks(learned.get(id));
-  const known: SearchKnowledge = {
+  // What the search asks for in labels: the rules' own reading, plus what the AI adds when it reads the search (FD-83).
+  // The AI's picks arrive with the plan, so this is set when the search runs; the rules alone until then.
+  let wanted = intent;
+  const knownFor = (it: typeof intent): SearchKnowledge => ({
     about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
-    boost: (id) => intentScore(intent, readings.get(id)) + sectionScore(id) + learnedScore(learned.get(id)) + roleLean(opts.by ?? null, readings.get(id)),
-    answers: (id) => (asksForAnything(intent) && answersIntent(intent, readings.get(id))) || inAsked(id),
+    boost: (id) => intentScore(it, readings.get(id)) + sectionScore(id) + learnedScore(learned.get(id)) + roleLean(opts.by ?? null, readings.get(id)),
+    answers: (id) => (asksForAnything(it) && answersIntent(it, readings.get(id))) || inAsked(id),
     // Hidden-in-source and internal-only slides are left out before the limit (FD-50, FD-53): a deck
     // that opens with hidden notes (Ferrous MSA) otherwise fills "ferrous msa" with slides the app then drops.
     skip: (s) => !opts.includeHidden && (s.hiddenInSource || isInternalOnly(s)),
-  };
+  });
   const result = await smartSearch(
     query,
     limit,
@@ -208,21 +214,25 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
         return {
           clients: [...new Set([...db.clients, ...fx.clients])].sort(),
           categories: [...new Set([...db.categories, ...fx.categories])].sort(),
+          labels: labelMenu(SECTOR_NAMES),
         };
       },
       reader: opts.reader,
       // The real decks are searched with what's known about each slide too: kind, sector, theme (FD-70).
-      search: async (plan, max) => [...byLearning(await orWithoutDb('search', () => smartSearchPg(plan, max, intent), []), learned), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
+      search: async (plan, max) => {
+        wanted = mergeLabels(intent, plan.labels);
+        return [...byLearning(await orWithoutDb('search', () => smartSearchPg(plan, max, { ...wanted, ai: aiPicks(plan.labels) }), []), learned), ...smartSearchFixtures(index, plan, max, knownFor(wanted))].slice(0, max);
+      },
       howCommon: (word) => wordShare(index, word),
       isKnownName: (word) => knownNames(index, readings).has(word),
       alsoMeans: (word) => clientSectors(word),
       madeIn: (s) => s.provenance.location ?? null,
-      rankLast: (s) => (readings.get(s.id)?.type === 'team_resume' && !intent.types.includes('team_resume')) || notRelevant(s.id),
+      rankLast: (s) => (readings.get(s.id)?.type === 'team_resume' && !wanted.types.includes('team_resume')) || notRelevant(s.id),
       // A slide "mentions" Toronto when its deck was made there, and QNBC when the model read it on the slide.
       alsoSays: (s) => { const k = readings.get(s.id); return [k?.about, k?.topics.join(' '), k?.sectors?.join(' '), k?.clientSector, k?.themes?.join(' '), k?.projects?.join(' '), s.provenance.sourceTitle, s.provenance.sourceFileName, s.provenance.location, s.provenance.clientName].filter(Boolean).join(' '); },
       log: (m) => console.warn(m),
     },
-    { read: opts.read },
+    { read: opts.read, force: opts.force },
   );
 
   // A search for a section shows each deck's section once before the rest (Alina, 28 Oct: "search
@@ -264,12 +274,12 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   // Say what each slide is in the search's terms, ahead of the words it matched.
   const said = (id: string, why: string) => {
     // What the local files know (sample decks), else what the database knows (real decks, FD-70).
-    const kind = intentWhy(intent, readings.get(id) ?? knownFromStory(byId.get(id)!.slide));
+    const kind = intentWhy(wanted, readings.get(id) ?? knownFromStory(byId.get(id)!.slide));
     const where = sectionWhy(sections.get(id), asked, cover);
     return [where, kind, why].filter(Boolean).join(' ').trim();
   };
   const sectionOf = (id: string) => { const sec = sections.get(id); return sec ? { name: sec.name, kind: sec.kind, divider: sec.divider, dividerId: sec.dividerId } : null; };
-  return { ...result, sections: isSectionSearch(query) ? asked : undefined, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
+  return { ...result, sections: asksForSections(query) ? asked : undefined, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
 }
 
 /** Slide summaries by id for sample-deck and uploaded-deck slides alike (the database's are read in one go). */
@@ -457,6 +467,30 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
 export function configuredDeckFactsReader(env: Record<string, string | undefined> = process.env): DeckFactsReader | null {
   const config = readAiConfig(env);
   return config.provider === 'none' ? null : openAiCompatibleDeckFactsReader(config);
+}
+
+/** The AI that suggests tags for an upload (FD-85); null when no AI is set up. A bad setting throws, as for the other readers. */
+export function configuredDeckTagsReader(env: Record<string, string | undefined> = process.env): DeckTagsReader | null {
+  const config = readAiConfig(env);
+  return config.provider === 'none' ? null : openAiCompatibleDeckTagsReader(config);
+}
+
+/**
+ * Deck and slide tags the AI reads from a file about to be uploaded (FD-85). Null when it can't: the person still
+ * has the details and the tags suggested from similar slides. Nothing is stored.
+ */
+export async function suggestUploadTags(fileName: string, bytes: Uint8Array, opts: { reader: DeckTagsReader | null; clientName?: string | null }): Promise<UploadTagSuggestions | null> {
+  if (!opts.reader) return null;
+  try {
+    const slides = slidesForTags(await extractSlides(bytes));
+    if (!slides.length) return null;
+    const menu = labelMenu(SECTOR_NAMES);
+    const answer = await opts.reader.read({ fileName, slides, themes: menu.themes, sectors: menu.sectors });
+    return cleanDeckTags(answer, { slides, themes: menu.themes, sectors: menu.sectors, clientName: opts.clientName });
+  } catch (e) {
+    console.warn(`Deck tags reader ${opts.reader.name} unavailable, no AI tags: ${(e as Error).message}`);
+    return null;
+  }
 }
 
 /** Suggested deck facts for a file about to be uploaded, checked against the library's categories (FD-23). */

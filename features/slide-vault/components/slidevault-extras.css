@@ -262,7 +262,7 @@
 .slidevault .fb-btn .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
 .slidevault .fb-btn.on .ic, .slidevault .fb-btn[aria-expanded="true"] .ic { color: var(--sv-brand); }
 .slidevault .fb-n-on { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 6px; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
-.slidevault .fb-clear { margin: 0 6px; font-size: var(--sv-text-small); }
+.slidevault .fb-clear-all { margin: 0 6px; font-size: var(--sv-text-small); white-space: nowrap; }
 .slidevault .fb-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 35; width: 280px; padding: 14px; border: 1px solid var(--sv-border); border-radius: 16px; background: var(--sv-surface); box-shadow: var(--sv-shadow-panel); overflow-y: auto; overscroll-behavior: contain; }
 .slidevault .fb-pop-wide { width: 320px; }
 .slidevault .fb-picker + .fb-picker, .slidevault .fb-more > * + * { margin-top: 14px; }
@@ -1275,6 +1275,20 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .slide-actions:empty { display: none; } /* the slide page's bar has nothing in it when there are no votes or comments */
 .slidevault .dlg-head-tools { display: flex; align-items: center; gap: 2px; flex: none; }
 
+/* "Deeper AI search": the short-search note on the results page (FD-79) */
+.slidevault .ai-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0 4px; padding: 10px 14px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface-sunken); color: var(--sv-text); font-size: 14px; line-height: 1.4; }
+.slidevault .ai-note .ic { color: var(--sv-brand-strong); flex: none; }
+.slidevault .ai-note > span { flex: 1 1 260px; min-width: 0; }
+/* "Search with AI": a checkbox with its words, first in the filter row (FD-79) */
+.slidevault .ai-check-wrap { height: 34px; align-items: center; }
+.slidevault .ai-check { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 8px; border-radius: 999px; background: transparent; color: var(--sv-text); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.12s; }
+.slidevault .ai-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--sv-brand-strong); cursor: pointer; flex: none; }
+.slidevault .ai-check input:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .ai-tip { top: calc(100% + 6px); left: 0; right: auto; width: max-content; max-width: 240px; padding: 7px 11px; font-size: 13px; line-height: 1.35; }
+.slidevault .ai-check b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; } /* "AI" in orange: the part that sets it apart from the grey filter labels */
+.slidevault .ai-check:hover, .slidevault .ai-check:has(input:checked) { background: color-mix(in srgb, var(--sv-brand) 9%, transparent); } /* a faint orange wash on hover and when on */
+@media (prefers-reduced-motion: reduce) { .slidevault .ai-check { transition: none; } }
+
 /* Suggested tags (FD-82): the same dashed pill as "+ Add tag", in a row of their own after "Suggested". */
 .slidevault .tag-suggested { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
 .slidevault .tagrows .tag-suggested { margin-top: 0; }
@@ -1282,3 +1296,9 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .tag-suggest { max-width: 220px; }
 .slidevault .up-ai { margin-top: 12px; }
 .slidevault .up-ai .btn .ic { margin-right: 4px; }
+.slidevault .btn-ai { border-color: var(--sv-brand); } /* "Fill the rest with AI": an orange outline, orange sparkle and AI, as in "Search with AI" */
+.slidevault .btn-ai .ic { color: var(--sv-brand-strong); }
+.slidevault .btn-ai b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; }
+.slidevault .btn-ai:hover:not(:disabled) { background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); }
+.slidevault .tagchip.is-auto, .slidevault .tag.is-auto { gap: 4px; } /* a tag filled in for the person: a small orange sparkle before it, to check and remove if wrong */
+.slidevault .tagchip.is-auto .ic, .slidevault .tag.is-auto .ic { color: var(--sv-brand-strong); width: 12px; height: 12px; flex: none; }

@@ -52,11 +52,11 @@ Every route below exists under `/api/slide-vault/v1` (one `route.ts` per path in
 
 | Endpoint | What it does | Decision |
 | --- | --- | --- |
-| `GET /session` | The caller's effective capabilities | |
+| `GET /session` | The caller's effective capabilities, and `aiAvailable` (the server has an AI reader, so "Deeper AI search" can be offered before the first search) | FD-79 |
 | `GET /library` | Every ready deck and slide (uploaded decks, then sample decks) | FD-31 |
 | `GET /search` | Keyword search and listing: `q`, `kind=slide`, `cursor`, `limit`, `tag`; slides carry packs and tags | |
-| `GET /smart-search` | Plain-language search: `q`, `limit`, `read=1` (AI reads it), `ai=off` (skip the AI reader for this search; response says `aiAvailable`), `role`, `hidden=include`; returns how it was read (chips), results and why each fits | FD-16, FD-17, FD-56 to FD-59, FD-70, FD-79 |
-| `POST /smart-search/feedback` | Useful / Not relevant on a result: `{ query, slideId, verdict, by?, undo? }`; kept only for people who opted in, with the search's words and no name; `undo: true` takes one matching earlier click back (changed mind) | FD-59, FD-77, FD-81 |
+| `GET /smart-search` | Plain-language search: `q`, `limit`, `read=1` (AI reads it), `ai=off` (skip the AI reader for this search; response says `aiAvailable`, and `aiSkipped: "short"` when the AI was asked for but the search was too short for a model call), `ai=always` (read this submitted search with the AI even if it is short); when the AI read the request, `chips` can include `kind: "Label"` (a slide type, theme or sector it picked from the team's labels, FD-83), `role`, `hidden=include`; returns how it was read (chips), results and why each fits | FD-16, FD-17, FD-56 to FD-59, FD-70, FD-79 |
+| `POST /smart-search/feedback` | Useful / Not relevant on a result: `{ query, slideId, verdict, by?, undo? }`; kept only for people who opted in (FD-37; on for everyone is FD-84, waiting on Alina), with the search's words and role and no name; `undo: true` takes one matching earlier click back (changed mind) | FD-59, FD-77, FD-81 |
 | `GET /sections?kind=` | Every deck's section of one standard kind (`firm`, `case-studies`, `approach`, `team`, `fees`, `understanding`, `appendix`): `[{ dividerId, name, kind, slideCount, cover }]`, to browse sections without a search; read-only | FD-80 |
 | `GET /sections/:dividerId` | One deck section in full, in deck order: `{ name, kind, slides }`; `dividerId` is `slide.section.dividerId` on a result; `hidden=include`; read-only | FD-57, FD-80 |
 | `GET /meaning-search` | Slides close in meaning (pgvector) | FD-55 |
@@ -73,7 +73,7 @@ Every route below exists under `/api/slide-vault/v1` (one `route.ts` per path in
 | `DELETE /tags/:id`, `POST /tags/:id/restore`, `GET /tags/removed` | Remove (kept, with who and when), restore, and the removal log | FD-72 |
 | `POST /packs`, `PATCH /packs/:id`, `DELETE /packs/:id` | Slides that only work together: make, rename or confirm, ungroup | FD-38, FD-52 |
 | `POST /uploads/preview`, `GET /uploads/preview/:token/:slide` | See an upload's slides before saving it | FD-54 |
-| `POST /uploads/suggest` | Suggested deck details from the file (AI optional) | FD-23 |
+| `POST /uploads/suggest` | Suggested deck details from the file (AI optional); `tags=true` with `read=true` also has the AI read the slides for tags: `{ tags: { deck: [{ tag, from: 'ai', score }], slides: { '3': [...] } } }`, up to 5 for the deck and 2 per slide, left out when it can't | FD-23, FD-85 |
 | `POST /uploads` | Save an uploaded deck with its details and tags | FD-52, FD-54 |
 | `GET /me/settings`, `PATCH /me/settings` | The signed-in person's settings, including their role | FD-71 |
 | `GET/POST/PATCH /me/activity` | Opt-in activity (90 days) for Top 10 and Suggested rows | FD-18 |

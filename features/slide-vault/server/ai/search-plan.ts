@@ -12,6 +12,8 @@ import { isStopWord, parseQuery } from '../../components/search-rules';
  *      own words, not written by the model, so it can't claim something the slide doesn't say.
  */
 
+import { cleanLabels, hasLabels, labelName, type LabelMenu, type PlanLabels, type RawLabels } from './label-menu';
+
 export type SearchPlan = {
   /** One plain sentence: what we think the person is looking for */
   summary: string;
@@ -30,12 +32,17 @@ export type SearchPlan = {
    * thing that is rare in the library must be on every result (FD-56).
    */
   named?: string[];
+  /**
+   * Labels the team put on slides (type, theme, sector) that the request points at, even in other words
+   * (FD-83). Only read by the AI, only from the menu in PlanContext; added to the rules' own reading.
+   */
+  labels?: PlanLabels;
 };
 
 /** What the reader is allowed to pick from, so filters always match real values. */
-export type PlanContext = { clients: string[]; categories: string[]; thisYear: number };
+export type PlanContext = { clients: string[]; categories: string[]; thisYear: number; /** the labels the AI may pick from (FD-83); absent when none are offered */ labels?: LabelMenu };
 
-export type Chip = { kind: 'Topic' | 'Client' | 'Year' | 'Category' | 'Collection' | 'Mentions'; label: string };
+export type Chip = { kind: 'Topic' | 'Label' | 'Client' | 'Year' | 'Category' | 'Collection' | 'Mentions'; label: string };
 
 export const MAX_KEYWORDS = 12;
 
@@ -111,7 +118,7 @@ export function namedWords(query: string, ctx: PlanContext, plan: SearchPlan): s
  * Make any plan (the stand-in's or a model's) safe to run: filters must be real values, years
  * sensible, keywords short and de-duplicated. Anything that doesn't fit is dropped, not guessed.
  */
-export function cleanPlan(raw: Partial<SearchPlan>, ctx: PlanContext): SearchPlan {
+export function cleanPlan(raw: Partial<SearchPlan> & RawLabels, ctx: PlanContext): SearchPlan {
   const pick = (v: unknown, from: string[]) =>
     typeof v === 'string' ? (from.find((x) => x.toLowerCase() === v.trim().toLowerCase()) ?? null) : null;
   const year = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 1990 && v <= ctx.thisYear + 1 ? v : null);
@@ -131,6 +138,8 @@ export function cleanPlan(raw: Partial<SearchPlan>, ctx: PlanContext): SearchPla
     yearTo,
     category: pick(raw.category, ctx.categories),
     bestOfTheBest: raw.bestOfTheBest === true ? true : null,
+    // Only labels on the menu survive; none offered means none kept.
+    ...(ctx.labels ? { labels: cleanLabels(raw, ctx.labels) } : {}),
   };
 }
 
@@ -199,7 +208,7 @@ export function typedCodes(query: string): string[] {
 }
 
 export function hasFilters(p: SearchPlan): boolean {
-  return Boolean(p.client || p.yearFrom || p.yearTo || p.category || p.bestOfTheBest);
+  return Boolean(p.client || p.yearFrom || p.yearTo || p.category || p.bestOfTheBest || hasLabels(p.labels));
 }
 
 /** The same plan with every filter removed, for when the filters leave nothing. */
@@ -210,6 +219,8 @@ export function withoutFilters(p: SearchPlan): SearchPlan {
 /** Chips for the search box, so people can see (and later remove) how their words were read. */
 export function chipsFor(p: SearchPlan): Chip[] {
   const chips: Chip[] = p.topics.map((label) => ({ kind: 'Topic' as const, label }));
+  // What the AI read the request as, in the team's labels (FD-83). Shown, but not removable: they aren't words in the search.
+  if (hasLabels(p.labels)) for (const v of [...p.labels.types, ...p.labels.themes, ...p.labels.sectors]) chips.push({ kind: 'Label', label: labelName(v) });
   if (p.client) chips.push({ kind: 'Client', label: p.client });
   if (p.yearFrom || p.yearTo) {
     const label = p.yearFrom === p.yearTo ? String(p.yearFrom) : p.yearTo ? `${p.yearFrom ?? 'Up'} to ${p.yearTo}` : `${p.yearFrom} or later`;

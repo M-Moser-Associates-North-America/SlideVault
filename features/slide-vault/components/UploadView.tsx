@@ -15,6 +15,9 @@ import { TagField, type TagSuggestion } from './TagField';
 import { UploadConfirmDialog, type UploadSummary } from './UploadConfirmDialog';
 import { slideTagTotals, UploadSlideGrid, type SlideTags } from './UploadSlideGrid';
 
+/* "Fill the rest with AI" adds this many suggested tags to each slide (the rest stay as chips to add one by one). */
+const AI_TAGS_PER_SLIDE = 2;
+
 /* The kinds of deck M Moser keeps (the folders the library is sorted into). */
 const CATEGORIES = ['SME', 'IDD', 'MSA', 'Business Proposal', 'Design Consultancy', 'RFP'];
 
@@ -78,6 +81,12 @@ export function UploadView() {
   /* "Fill the rest with AI" (FD-23): offered only when the server has an AI for it. */
   const [aiOk, setAiOk] = useState(false);
   const [aiState, setAiState] = useState<{ kind: 'idle' | 'reading' } | { kind: 'done'; note: string }>({ kind: 'idle' });
+  /* "Fill the rest with AI" also adds the suggested tags once they have arrived (they take a few seconds on a big deck). */
+  /* The tags filled in for the person, and by what: marked on screen, with the same "please check" line as the other filled-in details. */
+  const [filledTags, setFilledTags] = useState<{ source: 'ai' | 'similar'; deck: string[]; slides: Record<number, string[]> } | null>(null);
+  const wantAiTags = useRef(false);
+  const suggested = useRef<{ ready: boolean; items: { deck: TagSuggestionItem[]; slides: Record<string, TagSuggestionItem[]> } }>({ ready: false, items: { deck: [], slides: {} } });
+  const lastTags = useRef<{ deck: string[]; slides: SlideTags }>({ deck: [], slides: {} });
   const [state, setState] = useState<UploadState>({ kind: 'idle' });
   const [confirming, setConfirming] = useState(false);
   const [over, setOver] = useState(false);
@@ -109,6 +118,9 @@ export function UploadView() {
     setFile(f);
     setSlideTags({});
     setSugg({ deck: [], slides: {} });
+    suggested.current = { ready: false, items: { deck: [], slides: {} } };
+    wantAiTags.current = false;
+    setFilledTags(null);
     setAiState({ kind: 'idle' });
     if (state.kind !== 'uploading') setState({ kind: 'idle' });
     const token = ++readToken.current;
@@ -140,7 +152,19 @@ export function UploadView() {
           if (token !== readToken.current) return;
           setPics(data ? { kind: 'ready', data } : { kind: 'unavailable' });
           /* Then the tag suggestions, which take a few seconds for a big deck: after the pictures, never before them. */
-          if (data) previewTagSuggestions(runtime, data.token, ctrl.signal).then((s) => token === readToken.current && setSugg(s), () => {});
+          if (data) previewTagSuggestions(runtime, data.token, ctrl.signal).then(
+            (s) => {
+              if (token !== readToken.current) return;
+              setSugg(s);
+              suggested.current = { ready: true, items: s };
+              if (wantAiTags.current) addSuggestedTags(s);
+            },
+            () => {
+              if (token !== readToken.current) return;
+              suggested.current = { ready: true, items: { deck: [], slides: {} } };
+              if (wantAiTags.current) addSuggestedTags({ deck: [], slides: {} });
+            },
+          );
         },
         () => token === readToken.current && setPics({ kind: 'unavailable' }),
       );
@@ -163,14 +187,49 @@ export function UploadView() {
     );
   };
 
+  /* "Fill the rest with AI" also adds tags: the ones the AI reads from the slides (FD-85), or, if it gives none, the ones
+     suggested from similar slides, which arrive a few seconds after the file is read, so this waits for them if not here yet. Nothing is saved
+     until Upload, each tag can be removed like any other, and the note asks the person to check them (Alina's rule). */
+  const addSuggestedTags = (items: { deck: TagSuggestionItem[]; slides: Record<string, TagSuggestionItem[]> }, source: 'ai' | 'similar' = 'similar') => {
+    wantAiTags.current = false;
+    const has = (list: string[], t: string) => list.some((x) => x.toLowerCase() === t.toLowerCase());
+    const now = lastTags.current;
+    const deckAdd = items.deck.map((x) => x.tag).filter((t) => !has(now.deck, t));
+    const slideAdd: SlideTags = {};
+    let slideN = 0;
+    for (const [key, list] of Object.entries(items.slides)) {
+      const n = Number(key);
+      const mine = now.slides[n] ?? [];
+      const add = list.map((x) => x.tag).filter((t) => !has(mine, t) && !has(now.deck, t) && !has(deckAdd, t)).slice(0, AI_TAGS_PER_SLIDE);
+      if (add.length) {
+        slideAdd[n] = add;
+        slideN += add.length;
+      }
+    }
+    if (deckAdd.length) setTags((cur) => [...cur, ...deckAdd.filter((t) => !has(cur, t))]);
+    if (slideN) setSlideTags((cur) => ({ ...cur, ...Object.fromEntries(Object.entries(slideAdd).map(([n, add]) => [n, [...(cur[Number(n)] ?? []), ...add.filter((t) => !has(cur[Number(n)] ?? [], t))]])) }));
+    if (deckAdd.length + slideN > 0) setFilledTags({ source, deck: deckAdd, slides: slideAdd });
+    const note = deckAdd.length + slideN > 0 ? `Added ${plural(deckAdd.length, 'deck tag')} and ${plural(slideN, 'slide tag')} ${source === 'ai' ? 'the AI read from your slides' : 'from similar slides'}. Please check them; nothing is saved until you upload.` : 'No tag suggestions for this deck yet.';
+    setAiState((s) => (s.kind === 'done' ? { kind: 'done', note: `${s.note} ${note}` } : s));
+    announce(note);
+  };
+  const askForSuggestedTags = () => {
+    if (suggested.current.ready) addSuggestedTags(suggested.current.items);
+    else wantAiTags.current = true;
+  };
+
   /* Asks the server's AI for the details still empty; never overwrites what's there. Each value says it came from AI, to check. */
   const fillWithAi = async () => {
     if (!file) return;
     const token = readToken.current;
     setAiState({ kind: 'reading' });
-    const got = await suggestUploadDetails(runtime, file, { ai: true }).catch(() => null);
+    const got = await suggestUploadDetails(runtime, file, { ai: true, tags: true }).catch(() => null);
     if (token !== readToken.current) return;
-    if (!got) return setAiState({ kind: 'done', note: "The AI couldn't read this file just now. Please fill in the rest yourself." });
+    if (!got) {
+      setAiState({ kind: 'done', note: "The AI couldn't read this file just now. Please fill in the rest yourself." });
+      askForSuggestedTags();
+      return;
+    }
     const from = (src: string) => (src === 'ai' ? 'the AI (please check)' : src);
     const added: string[] = [];
     const s = got.suggestions;
@@ -195,6 +254,15 @@ export function UploadView() {
     const note = got.readerNote ?? (added.length ? `Filled in ${list(added)}. Please check ${added.length > 1 ? 'them' : 'it'}.` : 'Nothing more could be read from this file. Please fill in the rest yourself.');
     setAiState({ kind: 'done', note });
     announce(note);
+    // The AI read the slides for tags too: add them. If it gave none, fall back to the tags suggested from similar slides.
+    if (got.tags && (got.tags.deck.length || Object.keys(got.tags.slides).length)) {
+      const fromAi = got.tags;
+      setSugg((cur) => ({
+        deck: [...fromAi.deck, ...cur.deck.filter((x) => !fromAi.deck.some((y) => y.tag.toLowerCase() === x.tag.toLowerCase()))],
+        slides: Object.fromEntries([...new Set([...Object.keys(cur.slides), ...Object.keys(fromAi.slides)])].map((n) => [n, [...(fromAi.slides[n] ?? []), ...(cur.slides[n] ?? []).filter((x) => !(fromAi.slides[n] ?? []).some((y) => y.tag.toLowerCase() === x.tag.toLowerCase()))]])),
+      }));
+      addSuggestedTags(fromAi, 'ai');
+    } else askForSuggestedTags();
   };
   const missingDetails = !clientName.trim() || !deckYear.trim() || picked.length === 0;
 
@@ -207,6 +275,13 @@ export function UploadView() {
   const missingNow = picked.length === 0;
   /* The extra categories travel as deck tags (the library keeps one main category per deck); no duplicates, whatever the capitals. */
   const deckTags = [...tags, ...picked.slice(1).filter((c) => !tags.some((t) => t.toLowerCase() === c.toLowerCase()))];
+  /* Only what is still there: a tag the person removed is no longer "filled in". */
+  const autoDeck = filledTags ? filledTags.deck.filter((t) => tags.some((x) => x.toLowerCase() === t.toLowerCase())) : [];
+  const autoSlideN = filledTags ? Object.entries(filledTags.slides).reduce((n, [k, list]) => n + list.filter((t) => (slideTags[Number(k)] ?? []).some((x) => x.toLowerCase() === t.toLowerCase())).length, 0) : 0;
+  const autoSaid = filledTags?.source === 'ai' ? 'Filled in from the AI (please check).' : 'Filled in from similar slides (please check).';
+  useEffect(() => {
+    lastTags.current = { deck: deckTags, slides: slideTags };
+  });
   const summary: UploadSummary | null = file
     ? {
         title: deckTitle,
@@ -218,6 +293,8 @@ export function UploadView() {
         deckTags,
         slideTags: totals.tags,
         taggedSlides: totals.slides,
+        filledIn: autoDeck.length + autoSlideN,
+        filledInBy: filledTags?.source ?? null,
       }
     : null;
 
@@ -438,9 +515,9 @@ export function UploadView() {
             {aiState.kind === 'done' ? (
               <p className="field-hint">{aiState.note}</p>
             ) : (
-              <button type="button" className="btn btn-sm" disabled={busy || aiState.kind === 'reading'} onClick={() => void fillWithAi()}>
+              <button type="button" className="btn btn-sm btn-ai" disabled={busy || aiState.kind === 'reading'} onClick={() => void fillWithAi()}>
                 <Icon name="sparkle" className="ic-sm" />
-                {aiState.kind === 'reading' ? 'Reading the file…' : 'Fill the rest with AI'}
+                {aiState.kind === 'reading' ? 'Reading the file…' : <>Fill the rest with <b>AI</b></>}
               </button>
             )}
           </div>
@@ -461,7 +538,7 @@ export function UploadView() {
             <label htmlFor={`${fieldId}-year`}>
               Year <span className="req" aria-hidden="true">*</span>
             </label>
-            <input id={`${fieldId}-year`} type="number" className="input" value={deckYear} onChange={(e) => edit('year', setDeckYear, e.target.value)} placeholder="e.g. 2026" required aria-required="true" aria-invalid={yearError ? true : undefined} aria-describedby={yearError || hintFor('year') ? `${fieldId}-year-hint` : undefined} />
+            <input id={`${fieldId}-year`} type="text" inputMode="numeric" autoComplete="off" maxLength={4} className="input" value={deckYear} onChange={(e) => edit('year', setDeckYear, e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026" required aria-required="true" aria-invalid={yearError ? true : undefined} aria-describedby={yearError || hintFor('year') ? `${fieldId}-year-hint` : undefined} />
             {(yearError || hintFor('year')) && <p id={`${fieldId}-year-hint`} className={`field-hint${yearError || !auto.year ? ' is-missing' : ' is-auto'}`}>{yearError ?? hintFor('year')}</p>}
           </div>
           <div className="field full" role="group" aria-labelledby={`${fieldId}-category`}>
@@ -521,7 +598,8 @@ export function UploadView() {
             <p className="field-hint">Pick all that apply. The first one you pick is the main category; any others are saved as deck tags so they&rsquo;re still searchable.</p>
             {hintFor('category') && <p className={`field-hint${auto.category ? ' is-auto' : ' is-missing'}`}>{hintFor('category')}</p>}
           </div>
-          <TagField label="Deck tags" hint="Words people might search for, they apply to every slide in the deck." value={tags} onChange={setTags} suggestions={known} disabled={busy} />
+          <TagField label="Deck tags" hint="Words people might search for, they apply to every slide in the deck." value={tags} onChange={setTags} suggestions={known} disabled={busy} auto={autoDeck} />
+          {autoDeck.length > 0 && <p className="field-hint is-auto full">{autoSaid} Remove any that don&rsquo;t fit.</p>}
           {sugg.deck.length > 0 && (
             <div className="full">
               <SuggestedTagChips label="Suggested deck tags" suggestions={sugg.deck} have={deckTags} disabled={busy} onAdd={(t) => setTags((x) => (x.some((y) => y.toLowerCase() === t.toLowerCase()) ? x : [...x, t]))} />
@@ -541,7 +619,8 @@ export function UploadView() {
             <span>This exact file is already in the library as &ldquo;{pics.data.alreadyUploadedAs}&rdquo;. Uploading it again won&rsquo;t add a copy.</span>
           </div>
         )}
-        {preview && <UploadSlideGrid deckTags={deckTags} pictures={pics.kind === 'ready' ? Object.fromEntries(pics.data.slides.map((x) => [x.number, runtime.assetUrl(x.previewPath)])) : undefined} drawing={pics.kind === 'drawing'} slides={preview.slides} tags={slideTags} onTags={setSlideTags} suggestions={known} suggested={sugg.slides} disabled={busy} />}
+        {preview && autoSlideN > 0 && <p className="field-hint is-auto">{autoSaid} They are marked with a sparkle on the slides.</p>}
+        {preview && <UploadSlideGrid autoTags={filledTags?.slides} deckTags={deckTags} pictures={pics.kind === 'ready' ? Object.fromEntries(pics.data.slides.map((x) => [x.number, runtime.assetUrl(x.previewPath)])) : undefined} drawing={pics.kind === 'drawing'} slides={preview.slides} tags={slideTags} onTags={setSlideTags} suggestions={known} suggested={sugg.slides} disabled={busy} />}
 
         <div className="upsubmit">
           {busy ? (

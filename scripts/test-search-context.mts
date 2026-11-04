@@ -60,6 +60,10 @@ const B = await deck('Beta Health', 2026, 'healthcare / medtech', [
   { title: 'Internal checklist', text: 'Do not send. Team hospitality notes', type: 'legal_admin', reuse: 'internal - never show' },
   { title: 'Thank you', text: 'Contact us', type: 'closing' },
 ]);
+await deck('Delta Care', 2025, 'healthcare / medtech', [
+  { title: 'Wellbeing for staff: wellbeing breaks and wellbeing walks', text: 'wellbeing wellbeing wellbeing staff staff quiet room breaks walks wellbeing' },
+  { title: 'Garden terrace project', text: 'A roof garden with seating and planting', type: 'case_study_detail', themes: ['health & wellbeing'] },
+]);
 await deck('Gamma Bank', 2024, 'financial services', [{ title: 'Team', text: 'Our people for this bank', type: 'team_structure' }]);
 // Made the way an upload makes a deck: no slide prints "Toronto"; only the file name says where (M Moser's "_TO_", 31 Oct).
 const lakeId = randomUUID();
@@ -73,6 +77,21 @@ const search = async (q: string) => {
   const ctx = { clients: ['Acme Hotels', 'Beta Health', 'Gamma Bank'], categories: [], thisYear: 2026 };
   return (await smartSearchPg(groundFilters(standInPlan(q, ctx), q), 20, searchIntent(q))).map((r) => r.summary.title);
 };
+
+// The AI picked a theme (FD-83). The rules' own theme guess weighs less than a slide type; one the AI chose counts for more.
+{
+  // "Team" (Gamma Bank) matches on slide type, which weighs 1.0; "Garden terrace project" only carries the theme.
+  const plan = { ...groundFilters(standInPlan('x', { clients: [], categories: [], thisYear: 2026 }), 'x'), keywords: [], labels: { types: ['team_structure'], themes: ['health & wellbeing'], sectors: [] } };
+  const asked = { types: ['team_structure'], sectors: [], themes: ['health & wellbeing'] };
+  const order = async (ai: boolean) => (await smartSearchPg(plan, 20, ai ? { ...asked, ai: { themes: ['health & wellbeing'], sectors: [] } } : asked)).map((r) => r.summary.title);
+  const rules = await order(false);
+  const chosen = await order(true);
+  check(rules.indexOf('Team') < rules.indexOf('Garden terrace project'), 'themes: a theme the rules guessed weighs less than a matching slide type', rules);
+  check(chosen.indexOf('Garden terrace project') >= 0 && chosen.indexOf('Garden terrace project') < chosen.indexOf('Team'), 'AI theme: a theme the AI picked leads a slide that only matches on type, though the slide never says it', chosen);
+  const sectorPlan = { ...plan, keywords: ['workplace'], labels: { types: [], themes: [], sectors: ['healthcare'] } };
+  const bySector = (await smartSearchPg(sectorPlan, 20, { types: [], themes: [], sectors: ['healthcare'], ai: { themes: [], sectors: ['healthcare'] } })).map((r) => r.summary.title);
+  check(bySector.includes('Meet the project team') && bySector.includes('Garden terrace project'), 'AI sector: slides proving, or made for, that sector come back though they never say it', bySector);
+}
 
 const hosp = await search('hospitality');
 check(hosp[0] === 'Guest lounge and amenities', '"hospitality": a hospitality slide comes before one that only says the word', hosp);

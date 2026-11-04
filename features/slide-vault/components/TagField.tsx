@@ -27,6 +27,7 @@ export function TagField({
   suggestions,
   disabled,
   compact,
+  auto = [],
 }: {
   label: string;
   hint?: string;
@@ -36,6 +37,8 @@ export function TagField({
   disabled?: boolean;
   /** Small, for a slide card: the label is read out but not shown, and no hint or quick picks */
   compact?: boolean;
+  /** Tags that were filled in for the person (by the AI or from similar slides): marked, to check and remove if wrong */
+  auto?: string[];
 }) {
   const { announce } = useWorkspace();
   const id = useId();
@@ -140,7 +143,8 @@ export function TagField({
         {value.length > 0 && (
           <ul className="tagfield-chips" aria-label={`${label} added`}>
             {value.map((t) => (
-              <li key={t} className="tagchip">
+              <li key={t} className={`tagchip${auto.some((a) => a.toLowerCase() === t.toLowerCase()) ? ' is-auto' : ''}`}>
+                {auto.some((a) => a.toLowerCase() === t.toLowerCase()) && <Icon name="sparkle" className="ic-sm" />}
                 <span>{t}</span>
                 <button type="button" className="tagchip-x" aria-label={`Remove tag ${t}`} disabled={disabled} onClick={() => remove(t)}>
                   <Icon name="x" />

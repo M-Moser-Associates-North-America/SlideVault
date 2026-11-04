@@ -220,6 +220,13 @@ export function isSectionSearch(query: string): boolean {
   return !/[a-z0-9]{3,}/.test(rest);
 }
 
+/**
+ * Does the search want deck sections shown as cards and the Section filter on? A search that is only a section
+ * does ("case studies"), and so does one that names a section and says "section" ("bank case studies section"):
+ * the person is asking for the section, not only for slides that mention the words (FD-80).
+ */
+export const asksForSections = (query: string): boolean => isSectionSearch(query) || (askedSections(query).length > 0 && /\bsections?\b/.test(plain(query)));
+
 /** The sections a search asks for ("resumes", "case studies", "our firm's value proposition"), none for "2026". */
 export const askedSections = (query: string): SectionKind[] => sectionKinds(query).filter((k) => k !== 'other' && k !== 'understanding');
 

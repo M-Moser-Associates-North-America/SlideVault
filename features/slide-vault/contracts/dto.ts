@@ -35,6 +35,8 @@ export type ApiError = {
 export type Session = {
   contractVersion: string;
   capabilities: string[];
+  /** true when the server has an AI reader set up, so Home can offer "Deeper AI search" before the first search (FD-79) */
+  aiAvailable?: boolean;
 };
 
 /** Provenance every slide carries (docs/PRODUCT_BRIEF.md, PR-03). Unknown values stay null. */
@@ -262,7 +264,7 @@ export type LibrarySlide = {
 export type LibraryData = { decks: LibraryDeck[]; slides: LibrarySlide[] };
 
 /** GET /smart-search (docs/DECISIONS.md FD-16, FD-17): results with the reading shown and a reason per slide. */
-export type SmartSearchChip = { kind: 'Topic' | 'Client' | 'Year' | 'Category' | 'Collection' | 'Mentions'; label: string };
+export type SmartSearchChip = { kind: 'Topic' | 'Label' | 'Client' | 'Year' | 'Category' | 'Collection' | 'Mentions'; label: string };
 
 export type SmartSearchItem = {
   slide: SlideSummary;
@@ -280,6 +282,8 @@ export type SmartSearchResult = {
   readerNote: string | null;
   /** true when the server has an AI reader set up, so the screen can offer "Deeper AI search" (FD-79) */
   aiAvailable?: boolean;
+  /** 'short' when the AI was asked for but the search was too short for it (about four words or fewer and not a question): the rules read it; the screen asks whether to use the AI anyway, which re-sends the search with ai=always (FD-79) */
+  aiSkipped?: 'short';
   /** How the request was read, as removable chips */
   chips: SmartSearchChip[];
   /** true when the request's filters left nothing, so results are shown without them */

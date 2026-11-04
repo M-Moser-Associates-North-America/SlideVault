@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideComment, SlideVotes, TagRemoval, SectionListing, SectionSlides, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta, UploadPreview } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideComment, SlideVotes, TagRemoval, SectionListing, SectionSlides, SlideDetail, SlideSummary, Session, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta, UploadPreview } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -39,15 +39,27 @@ export async function searchSlides(runtime: Transport, query: string, signal?: A
  * they type, the server reads with rules only, so a long question never calls the AI mid-sentence.
  * `ai: false` is the "Deeper AI search" checkbox unticked: the rules read it even on submit (FD-79).
  */
-export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean; role?: StoryUserRole | null; ai?: boolean } = {}): Promise<SmartSearchResult> {
+export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean; role?: StoryUserRole | null; ai?: boolean; forceAi?: boolean } = {}): Promise<SmartSearchResult> {
   const params = new URLSearchParams({ q: query.trim(), limit: '100' });
   if (opts.includeHidden) params.set('hidden', 'include'); // slides hidden in the original deck (FD-50)
   if (opts.role) params.set('role', opts.role); // how this person builds proposals tunes the results (FD-59)
   if (read) params.set('read', '1');
   if (opts.ai === false) params.set('ai', 'off'); // "Deeper AI search" unticked (FD-79)
+  else if (opts.forceAi) params.set('ai', 'always'); // the person chose the AI for a short search too (FD-79)
   const res = await runtime.request({ path: `/smart-search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<SmartSearchResult>).data;
+}
+
+/** Whether the server has an AI reader, so "Deeper AI search" can be offered before the first search (FD-79). Any failure reads as "not available". */
+export async function fetchAiAvailable(runtime: Transport, signal?: AbortSignal): Promise<boolean> {
+  try {
+    const res = await runtime.request({ path: '/session', method: 'GET', signal });
+    if (!res.ok) return false;
+    return ((await res.json()) as ApiOk<Session>).data.aiAvailable === true;
+  } catch {
+    return false;
+  }
 }
 
 const MAX_LIBRARY_PAGES = 30;
@@ -379,7 +391,7 @@ export async function setMyRole(runtime: Transport, role: StoryUserRole | null):
 }
 
 /** Tags worth adding to a slide, from the slides closest to it in meaning (FD-82). Empty when that isn't set up. */
-export type TagSuggestionItem = { tag: string; from: 'people' | 'reading'; score: number };
+export type TagSuggestionItem = { tag: string; from: 'people' | 'reading' | 'ai'; score: number };
 export async function tagSuggestions(runtime: Transport, slideId: string, signal?: AbortSignal): Promise<TagSuggestionItem[]> {
   const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}/tag-suggestions`, method: 'GET', signal }).catch(() => null);
   if (!res?.ok) return [];
@@ -404,12 +416,15 @@ export type UploadDetailSuggestions = {
   reader: 'rules' | 'model';
   readerNote: string | null;
   slideCount: number;
+  /** Tags the AI read from the slides (FD-85), present only when asked for (`tags: true`) and when it worked */
+  tags?: { deck: TagSuggestionItem[]; slides: Record<string, TagSuggestionItem[]> };
 };
-export async function suggestUploadDetails(runtime: Transport, file: File, opts: { ai: boolean; folderPath?: string | null }, signal?: AbortSignal): Promise<UploadDetailSuggestions | null> {
+export async function suggestUploadDetails(runtime: Transport, file: File, opts: { ai: boolean; tags?: boolean; folderPath?: string | null }, signal?: AbortSignal): Promise<UploadDetailSuggestions | null> {
   const form = new FormData();
   form.set('file', file);
   if (opts.folderPath) form.set('folderPath', opts.folderPath);
   if (opts.ai) form.set('read', 'true');
+  if (opts.ai && opts.tags) form.set('tags', 'true');
   const res = await runtime.request({ path: '/uploads/suggest', method: 'POST', body: form, signal });
   if (!res.ok) return null;
   return ((await res.json()) as ApiOk<UploadDetailSuggestions>).data;

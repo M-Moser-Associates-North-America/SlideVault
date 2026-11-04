@@ -34,8 +34,8 @@ const groupOf = (cover: SlideSummary, slides: SlideSummary[], total: number, nam
   total,
 });
 
-/** Group search results by (deck, section), in the order the search ranked them. Needs at least two slides: one slide is just a card. */
-export function groupBySection(slides: SlideSummary[]): SectionGroup[] {
+/** Group search results by (deck, section), in the order the search ranked them. By default a section needs at least two of the slides found; `min` 1 gives a card to every section touched (each card fetches its whole section). */
+export function groupBySection(slides: SlideSummary[], min = 2): SectionGroup[] {
   const groups = new Map<string, SlideSummary[]>();
   for (const s of slides) {
     if (!s.section?.dividerId) continue;
@@ -47,7 +47,7 @@ export function groupBySection(slides: SlideSummary[]): SectionGroup[] {
       const sorted = [...list].sort((a, b) => a.provenance.slideNumber - b.provenance.slideNumber);
       return groupOf(sorted.find((s) => s.section?.divider) ?? sorted[0], sorted, sorted.length);
     })
-    .filter((g) => g.slides.length > 1);
+    .filter((g) => g.slides.length >= min);
 }
 
 const FIRST = 6;
@@ -161,11 +161,25 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
   );
 }
 
-/** Section cards for the slides a search found. Nothing when no section has two or more of them. */
+/**
+ * Section cards for the slides a search found. Without a heading: nothing when no section has two or more of them.
+ * With one (the results page, when sections were asked for): a card for every section touched, and "No sections found."
+ * under the heading when there is none, so the slides below are not mistaken for sections.
+ */
 export function SectionCards({ results, only, heading }: { results: SlideSummary[]; only?: string[]; heading?: string }) {
-  const groups = useMemo(() => groupBySection(results).filter((g) => !only?.length || only.includes(g.cover.section?.kind ?? '')), [results, only]);
+  const groups = useMemo(() => groupBySection(results, heading ? 1 : 2).filter((g) => !only?.length || only.includes(g.cover.section?.kind ?? '')), [results, only, heading]);
   if (!heading) return <Cards groups={groups} />;
-  if (groups.length === 0) return null;
+  if (groups.length === 0)
+    return (
+      <section className="res-block" aria-labelledby="res-sections">
+        <h2 className="h2 res-h" id="res-sections">
+          {heading}
+        </h2>
+        <p className="meta" role="status">
+          No sections found.
+        </p>
+      </section>
+    );
   return (
     <section className="res-block" aria-labelledby="res-sections">
       <h2 className="h2 res-h" id="res-sections">

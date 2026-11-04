@@ -340,7 +340,17 @@ const STORY_TEXT = `concat_ws(' ', s.story_role, replace(coalesce(s.slide_type, 
   (select string_agg(f.tag, ' ') from free_tags f where f.removed_at is null and ((f.target_kind = 'slide' and f.target_id = s.id) or (f.target_kind = 'deck' and f.target_id = d.id))))`;
 
 /** What a search asks for beyond its words (slide-intent.ts): kinds of slide, client sectors, themes. */
-export type PgSearchIntent = { types: string[]; sectors: string[]; themes: string[] };
+export type PgSearchIntent = {
+  types: string[];
+  sectors: string[];
+  themes: string[];
+  /**
+   * Themes and sectors the AI picked on purpose (FD-83), already part of the lists above. The rules' own
+   * theme guess weighs little (their word lists are loose); one the AI chose counts a little more than a slide
+   * type (1.0), so slides labelled with it lead slides that only say a word, and the words order them among themselves.
+   */
+  ai?: { themes: string[]; sectors: string[] };
+};
 
 /**
  * Quick AI search (FD-16): slides matching ANY of the plan's keywords, inside its filters, best
@@ -377,6 +387,13 @@ export async function smartSearchPg(plan: SearchPlan, limit: number, intent?: Pg
     const isSector = `(exists (select 1 from unnest(s.proof_sectors) x where lower(x) like any(${se}::text[])) or lower(coalesce(d.client_sector, '')) like any(array(select '%' || y from unnest(${se}::text[]) y)))`;
     match.push(isType, isTheme, isSector);
     score.push(`case when ${isType} then 1.0 else 0 end`, `case when ${isSector} then 0.5 else 0 end`, `case when ${isTheme} then 0.35 else 0 end`);
+  }
+  const aiThemes = intent?.ai?.themes ?? [];
+  const aiSectors = (intent?.ai?.sectors ?? []).map((x) => `${x.toLowerCase()}%`);
+  if (aiThemes.length) score.push(`case when s.themes && ${add(aiThemes)}::text[] then 0.7 else 0 end`);
+  if (aiSectors.length) {
+    const se = add(aiSectors);
+    score.push(`case when (exists (select 1 from unnest(s.proof_sectors) x where lower(x) like any(${se}::text[])) or lower(coalesce(d.client_sector, '')) like any(array(select '%' || y from unnest(${se}::text[]) y))) then 0.55 else 0 end`);
   }
   if (match.length) where.push(`(${match.join(' or ')})`);
   if (q || asks) score.push(`case when s.reuse_status = 'internal - never show' or exists (select 1 from unnest(s.flags) fl where fl ilike '%names another client%') then -1.0 else 0 end`);

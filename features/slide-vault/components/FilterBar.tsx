@@ -4,6 +4,7 @@ import { startTransition, useCallback, useEffect, useId, useMemo, useRef, useSta
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, countBy, createdByOf, filterCount, SECTION_LABEL, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
 import { backdropClose, useDialogOpen } from './Dialogs';
+import { DeeperAiToggle } from './DeeperAiToggle';
 import { Link } from './parts';
 import type { SlideSummary, SmartSearchChip } from '../contracts/dto';
 import { rowReading, withoutChip } from './search-reading';
@@ -121,7 +122,7 @@ function NotYet({ label }: { label: string }) {
 }
 
 export function FilterBar() {
-  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search, includeArchived, setIncludeArchived } = useWorkspace();
+  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search, includeArchived, setIncludeArchived, autoSection, dismissAutoSection } = useWorkspace();
   const [open, setOpen] = useState<Key | null>(null);
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
   const compact = useWorkspaceCompact();
@@ -257,7 +258,7 @@ export function FilterBar() {
     { key: 'client', label: 'Client', icon: 'building', active: filters.client.length + (fromClient ? 1 : 0) },
     { key: 'category', label: 'Project type', icon: 'folder', active: filters.category.length },
     { key: 'slideType', label: 'Slide type', icon: 'layers', active: filters.slideType.length + fromTypes.length },
-    { key: 'section', label: 'Section', icon: 'folder', active: filters.section.length },
+    { key: 'section', label: 'Section', icon: 'folder', active: filters.section.length + (autoSection ? 1 : 0) },
     { key: 'more', label: 'More', icon: 'sliders', active: moreCount },
   ];
 
@@ -279,6 +280,7 @@ export function FilterBar() {
     ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
     ...(fromClient ? [{ id: 'sc', kind: 'Client', text: fromClient.label, remove: () => removeFromSearch(fromClient), fromSearch: true }] : []),
     ...fromTypes.map((t) => ({ id: `st-${t.label}`, kind: 'Slide type', text: t.label, remove: () => removeFromSearch(t.chip), fromSearch: true })),
+    ...(autoSection ? [{ id: 'ss', kind: 'Section', text: SECTION_LABEL[autoSection] ?? autoSection, remove: dismissAutoSection, fromSearch: true }] : []),
   ];
 
   const panel = (key: Key) => {
@@ -353,9 +355,11 @@ export function FilterBar() {
           label="Section"
           single
           options={Object.values(SECTION_LABEL)}
-          picked={filters.section.map((k) => SECTION_LABEL[k] ?? k)}
+          picked={(filters.section.length ? filters.section : autoSection ? [autoSection] : []).map((k) => SECTION_LABEL[k] ?? k)}
           onToggle={(label) => {
-            patchFilters({ section: filters.section.includes(kindOf(label)) ? [] : [kindOf(label)] });
+            // The section the search asked for is ticked already: ticking it again turns it off for this search.
+            if (!filters.section.length && autoSection === kindOf(label)) dismissAutoSection();
+            else patchFilters({ section: filters.section.includes(kindOf(label)) ? [] : [kindOf(label)] });
             if (!compact) setTimeout(() => close(true), 160); /* one choice: the tick shows first, then the card closes */
           }}
         />
@@ -417,6 +421,7 @@ export function FilterBar() {
     <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}${heroOut && !compact ? ' has-search' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
       {heroOut && !compact && <StickySearch />}
       <div className="fbar-row" ref={rowRef} role="toolbar" aria-label="Filter slides">
+        <DeeperAiToggle />
         <button type="button" className={`fb-btn fb-all${activeTotal ? ' on' : ''}`} aria-haspopup="dialog" onClick={() => setSheet('all')}>
           <Icon name="sliders" />
           <span className="fb-lbl">Filters</span>
@@ -444,7 +449,7 @@ export function FilterBar() {
           </div>
         ))}
         {n > 0 && (
-          <button type="button" className="btn-link fb-clear" onClick={clearFilters}>
+          <button type="button" className="btn-link fb-clear-all" onClick={clearFilters}>
             Clear all
           </button>
         )}

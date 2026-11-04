@@ -15,6 +15,7 @@ import { asksForCover, deckSections, isSectionSearch, sectionKind, sectionKinds,
 import { taggedFirst, typedTags, type TagHit } from '../features/slide-vault/server/services/tagged-first';
 import { cleanSearchFeedback, learnedForSearch, learnedScore, searchWords, sinks } from '../features/slide-vault/server/search-feedback';
 import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
+import { cleanLabels, hasLabels, labelMenu, labelName, mergeLabels } from '../features/slide-vault/server/ai/label-menu';
 import { byLearning, readerForSearch } from '../features/slide-vault/server/services/library-smart-search';
 
 let failures = 0;
@@ -119,6 +120,23 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
   const counting: PlanReader = { name: 'fake', read: async () => { calls++; return cleanPlan({ keywords: ['team'] }, ctx); } };
   const r = await smartSearch('team', 10, { context, thisYear: 2026, reader: counting, search: async () => [] }, { read: true });
   check(calls === 0 && r.reader === 'stand-in' && r.readerNote === null, 'flow: a basic search never calls the model, and shows no warning');
+}
+
+// ---- "Deeper AI search" (FD-79): a short search with the AI on says so, so the screen can invite more detail
+{
+  const reader: PlanReader = { name: 'fake', read: async () => cleanPlan({ keywords: ['team'] }, ctx) };
+  const short = await smartSearch('team slides', 10, { context, thisYear: 2026, reader, search: async () => [] }, { read: true });
+  check(short.aiSkipped === 'short' && short.reader === 'stand-in', 'ai: a short search asked for with the AI on is flagged "short" and read by the rules');
+  const typing = await smartSearch('team slides', 10, { context, thisYear: 2026, reader, search: async () => [] });
+  check(typing.aiSkipped === undefined, 'ai: typing (not submitted) is never flagged');
+  const off = await smartSearch('team slides', 10, { context, thisYear: 2026, reader: null, search: async () => [] }, { read: true });
+  check(off.aiSkipped === undefined, 'ai: with the AI off (or none set up) a short search is not flagged');
+  const forced = await smartSearch('team slides', 10, { context, thisYear: 2026, reader, search: async () => [] }, { read: true, force: true });
+  check(forced.reader === 'model' && forced.aiSkipped === undefined, 'ai: a short search the person chose the AI for anyway is read by the model');
+  const forcedTyping = await smartSearch('team slides', 10, { context, thisYear: 2026, reader, search: async () => [] }, { force: true });
+  check(forcedTyping.reader === 'stand-in', 'ai: forcing never reads while typing (only a submitted search)');
+  const long = await smartSearch('which team slides should I use for a bank?', 10, { context, thisYear: 2026, reader, search: async () => [] }, { read: true });
+  check(long.aiSkipped === undefined && long.reader === 'model', 'ai: a sentence is read by the model and not flagged');
 }
 
 // ---- Words that describe every slide are never search words
@@ -227,6 +245,31 @@ for (const [env, label] of [
   check(threw, `config: ${label} is an error, not a silent fallback`);
 }
 
+// ---- The team's labels as a menu for the AI (FD-83)
+{
+  const menu = labelMenu(['healthcare', 'financial services', 'retail']);
+  const withMenu: PlanContext = { ...ctx, labels: menu };
+  const picked = cleanLabels({ slideTypes: ['Case_Study_Detail', 'not_a_type', 'team_resume', 'cover'], themes: ['HYBRID / flexible work', 'made up', 'AI', 'brand experience', 'health & wellbeing'], sectors: ['Healthcare', 'space travel', 'retail', 'financial services'] }, menu);
+  check(picked.types.join() === 'case_study_detail,team_resume', 'labels: only menu values survive, spelled as the menu spells them, at most 2 types', picked.types);
+  check(picked.themes.join() === 'hybrid / flexible work,AI,brand experience', 'labels: at most 3 themes, invented ones dropped', picked.themes);
+  check(picked.sectors.join() === 'healthcare,retail', 'labels: at most 2 sectors, invented ones dropped', picked.sectors);
+  check(!hasLabels(cleanLabels({ slideTypes: 'cover', themes: [1, null], sectors: {} }, menu)), 'labels: wrongly shaped answers become no labels');
+  const merged = mergeLabels({ types: ['team_resume'], sectors: ['financial services'], themes: [] }, { types: ['team_resume', 'case_study_detail'], themes: ['AI'], sectors: ['Healthcare'] });
+  check(merged.types.join() === 'team_resume,case_study_detail' && merged.themes.join() === 'AI' && merged.sectors.join() === 'financial services,healthcare', 'labels: the AI adds to what the rules read, never twice, sectors lowercase', merged);
+  const rules = { types: ['cover'], sectors: [], themes: [] };
+  check(mergeLabels(rules, undefined) === rules && mergeLabels(rules, { types: [], themes: [], sectors: [] }) === rules, 'labels: with nothing from the AI the rules\' reading is exactly as it was');
+  check(labelName('case_study_detail') === 'Case study detail' && labelName('health & wellbeing') === 'Health & wellbeing' && labelName('AI') === 'AI', 'labels: shown the way a person reads them');
+
+  // Through the whole flow: the AI's labels reach the search and show as chips, though they are not words in the request.
+  const seen: (SearchPlan['labels'])[] = [];
+  const reader: PlanReader = { name: 'fake', read: async () => cleanPlan({ summary: 'Staff wellbeing', keywords: ['wellbeing'], topics: ['Wellbeing'], themes: ['health & wellbeing'], slideTypes: ['case_study_detail', 'bogus'] }, withMenu) };
+  const r = await smartSearch('slides that show we care about how our people feel at work?', 10, { context: async () => ({ ...ctx, labels: menu }), thisYear: 2026, reader, search: async (p) => { seen.push(p.labels); return []; } }, { read: true });
+  check(seen[0]?.themes.join() === 'health & wellbeing' && seen[0]?.types.join() === 'case_study_detail', 'labels: the search is given the AI\'s labels', seen);
+  check(r.chips.some((c) => c.kind === 'Label' && c.label === 'Health & wellbeing') && r.chips.some((c) => c.kind === 'Label' && c.label === 'Case study detail'), 'labels: the screen is told what the AI read, as Label chips', r.chips);
+  const rules2 = await smartSearch('team slides', 10, { context: async () => ({ ...ctx, labels: menu }), thisYear: 2026, reader: null, search: async (p) => { seen.push(p.labels); return []; } }, { read: true });
+  check(rules2.chips.every((c) => c.kind !== 'Label') && !hasLabels(seen[seen.length - 1]), 'labels: without the AI there are no AI labels', { seen, chips: rules2.chips });
+}
+
 // ---- The OpenAI-compatible reader, against a fake API
 {
   type Sent = { url: string; headers: Record<string, string>; body: Record<string, unknown> };
@@ -245,6 +288,15 @@ for (const [env, label] of [
   const system = String((s.body.messages as { content: string }[])[0].content);
   check(system.includes('Northgate Bank') && !system.includes('Kestrel Law'), 'reader: sends only the client names it was given');
   check(p.client === 'Northgate Bank' && p.keywords.includes('our people'), 'reader: plan read back and cleaned', p);
+  const withMenu: PlanContext = { ...ctx, clients: ['Northgate Bank'], labels: labelMenu(['healthcare']) };
+  const labelled = { ...plan, slideTypes: ['team_resume', 'nope'], themes: ['inclusion & DEI'], sectors: ['healthcare'] };
+  const lp = await openAiCompatibleReader({ baseUrl: 'http://localhost:11434/v1', apiKey: null, model: 'qwen3:8b', timeoutMs: 5000 }, reply(JSON.stringify(labelled))).read('people from different backgrounds', withMenu);
+  const sys2 = String(((box.sent as Sent).body.messages as { content: string }[])[0].content);
+  const schema = ((box.sent as Sent).body.response_format as { json_schema: { schema: { properties: Record<string, unknown>; required: string[] } } }).json_schema.schema;
+  check(sys2.includes('hybrid / flexible work') && sys2.includes('team_resume: a team member') && sys2.includes('Sectors: healthcare'), 'reader: the label menu is in the instructions, names only');
+  check(['slideTypes', 'themes', 'sectors'].every((k) => k in schema.properties && schema.required.includes(k)), 'reader: the reply format asks for slideTypes, themes and sectors');
+  check(lp.labels?.types.join() === 'team_resume' && lp.labels?.themes.join() === 'inclusion & DEI' && lp.labels?.sectors.join() === 'healthcare', 'reader: labels read back and checked against the menu', lp.labels);
+  check(!system.includes('Slide types (value'), 'reader: no menu offered, none in the instructions');
 
   await openAiCompatibleReader({ baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-test', model: 'gpt-x', timeoutMs: 5000 }, reply(JSON.stringify(plan))).read('x', ctx);
   check((box.sent as Sent).headers.authorization === 'Bearer sk-test', 'reader: hosted provider gets a bearer key');
@@ -289,6 +341,12 @@ for (const [env, label] of [
   check(team.types[0] === 'team_structure' && team.sectors.includes('healthcare'), 'intent: "team slide for a healthcare client" asks for a team slide and a healthcare client', team);
   check(searchIntent('design lead résumé from Acme').types[0] === 'team_resume', 'intent: "résumé" with accents is read as a résumé');
   check(JSON.stringify(searchIntent('sustainability slides for a bank')) === JSON.stringify({ types: [], sectors: ['financial services'], themes: ['sustainability / net zero'] }), 'intent: a theme and a sector, no kind');
+  // 3 Nov: the 9 slide types and 8 curated themes the rules didn't know, without catching sector words.
+  check(searchIntent('cover letter for a bank').types[0] === 'cover_letter' && searchIntent('our awards').types.includes('awards') && searchIntent('scope and assumptions').types.includes('scope_assumptions') && searchIntent('design concept mood boards').types.includes('design_concept') && searchIntent('our understanding of the client').types.includes('client_understanding'), 'intent: the new slide types are read');
+  check(searchIntent('DEI and belonging').themes.includes('inclusion & DEI') && searchIntent('feature stair').themes.includes('interconnecting stair / vertical connection') && searchIntent('BIM and VDC').themes.includes('VDC / 3D process') && searchIntent('masterplan for the portfolio').themes.includes('masterplanning & portfolio strategy') && searchIntent('AI in the workplace').themes.includes('AI'), 'intent: the new themes are read');
+  const fin = searchIntent('financial services case study');
+  const legal = searchIntent('legal client team slide');
+  check(!fin.types.includes('capability_service') && fin.sectors.includes('financial services') && !legal.types.includes('legal_admin') && !searchIntent('private equity firm overview').themes.includes('inclusion & DEI') && !searchIntent('maintain the space').themes.includes('AI'), 'intent: sector words and words inside other words never trigger the new kinds or themes', { fin, legal });
   const structure = { type: 'team_structure', clientSector: 'healthcare / medtech' };
   const resume = { type: 'team_resume', clientSector: 'healthcare / medtech' };
   const bankTeam = { type: 'team_structure', clientSector: 'financial services' };

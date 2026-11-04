@@ -18,6 +18,8 @@ export type SmartSearchResponse = {
   readerNote: string | null;
   /** true when the server has an AI reader set up, so the screen can offer "Deeper AI search" (FD-79) */
   aiAvailable?: boolean;
+  /** 'short' when an AI reader was set up and asked for, but the search was too short to be worth a model call (FD-79): the rules read it, and the screen can invite more detail */
+  aiSkipped?: 'short';
   plan: SearchPlan;
   chips: Chip[];
   /** true when the filters left nothing, so results are shown without them */
@@ -72,14 +74,16 @@ export function mentionsWord(hay: string, w: string): boolean {
  * `read` is true only when the person submitted the search (Enter or the Search button). While they
  * type, every search uses the rules, so a long question never calls the model mid-sentence.
  */
-export async function smartSearch(query: string, limit: number, deps: SmartSearchDeps, opts: { read?: boolean } = {}): Promise<SmartSearchResponse> {
+export async function smartSearch(query: string, limit: number, deps: SmartSearchDeps, opts: { read?: boolean; force?: boolean } = {}): Promise<SmartSearchResponse> {
   const ctx: PlanContext = { ...(await deps.context()), thisYear: deps.thisYear ?? new Date().getFullYear() };
 
   let plan: SearchPlan;
   let reader: SmartSearchResponse['reader'] = 'stand-in';
   let readerNote: string | null = null;
-  // Basic searches stay on the rules; only sentences and questions are worth a model call.
-  if (deps.reader && opts.read && !isBasicQuery(query)) {
+  let aiSkipped: SmartSearchResponse['aiSkipped'];
+  // Basic searches stay on the rules; only sentences and questions are worth a model call, unless the
+  // person asked for the AI on this one anyway (FD-79, ai=always).
+  if (deps.reader && opts.read && (opts.force || !isBasicQuery(query))) {
     try {
       // The model only sees client names typed in the request, never the whole list.
       plan = groundFilters(await deps.reader.read(query, { ...ctx, clients: relevantClients(query, ctx.clients) }), query);
@@ -93,6 +97,7 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
     }
   } else {
     plan = standInPlan(query, ctx);
+    if (deps.reader && opts.read) aiSkipped = 'short';
   }
   // A model or rule that finds nothing to search for still shouldn't lose the person's words.
   if (!plan.keywords.length && !hasFilters(plan)) plan = { ...plan, keywords: standInPlan(query, ctx).keywords };
@@ -110,7 +115,7 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
   });
   plan = { ...plan, named, keywords: [...new Set([...named.map((w) => w.toLowerCase()), ...plan.keywords])].slice(0, MAX_KEYWORDS) };
   // Nothing at all to search for means no results, never the whole library.
-  if (!plan.keywords.length && !hasFilters(plan)) return { query, reader, readerNote, plan, chips: chipsFor(plan), relaxed: false, items: [] };
+  if (!plan.keywords.length && !hasFilters(plan)) return { query, reader, readerNote, ...(aiSkipped ? { aiSkipped } : {}), plan, chips: chipsFor(plan), relaxed: false, items: [] };
 
   let relaxed = false;
   let rows = await deps.search(plan, named.length ? Math.max(limit, ROWS_WHEN_NAMED) : limit);
@@ -159,6 +164,7 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
     query,
     reader,
     readerNote,
+    ...(aiSkipped ? { aiSkipped } : {}),
     plan,
     chips: chipsFor(plan),
     relaxed,
