@@ -449,7 +449,7 @@ export function FilterBar() {
           </div>
         ))}
         {n > 0 && (
-          <button type="button" className="btn-link fb-clear" onClick={clearFilters}>
+          <button type="button" className="btn-link fb-clear-all" onClick={clearFilters}>
             Clear all
           </button>
         )}

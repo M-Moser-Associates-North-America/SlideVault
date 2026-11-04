@@ -262,7 +262,7 @@
 .slidevault .fb-btn .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
 .slidevault .fb-btn.on .ic, .slidevault .fb-btn[aria-expanded="true"] .ic { color: var(--sv-brand); }
 .slidevault .fb-n-on { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 6px; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
-.slidevault .fb-clear { margin: 0 6px; font-size: var(--sv-text-small); }
+.slidevault .fb-clear-all { margin: 0 6px; font-size: var(--sv-text-small); white-space: nowrap; }
 .slidevault .fb-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 35; width: 280px; padding: 14px; border: 1px solid var(--sv-border); border-radius: 16px; background: var(--sv-surface); box-shadow: var(--sv-shadow-panel); overflow-y: auto; overscroll-behavior: contain; }
 .slidevault .fb-pop-wide { width: 320px; }
 .slidevault .fb-picker + .fb-picker, .slidevault .fb-more > * + * { margin-top: 14px; }
