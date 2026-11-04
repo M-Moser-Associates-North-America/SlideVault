@@ -331,8 +331,10 @@ function HomeHeader() {
             <Icon name="search" />
           </button>
         </span>
-        <DeeperAiToggle />
-        <HiddenToggle />
+        <span className="hero-toggles">
+          <DeeperAiToggle />
+          <HiddenToggle />
+        </span>
       </form>
       <StoryLauncher />
     </div>

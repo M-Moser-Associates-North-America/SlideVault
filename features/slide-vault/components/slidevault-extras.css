@@ -1279,3 +1279,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .ai-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0 4px; padding: 10px 14px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface-sunken); color: var(--sv-text); font-size: 14px; line-height: 1.4; }
 .slidevault .ai-note .ic { color: var(--sv-brand-strong); flex: none; }
 .slidevault .ai-note > span { flex: 1 1 260px; min-width: 0; }
+/* The round switches beside the Home search: part of the bar's row on wide screens, side by side on their own row on phones */
+.slidevault .hero-toggles { display: contents; }
+.slidevault .sv-app[data-size="compact"] .hero-toggles { display: flex; gap: 8px; }
