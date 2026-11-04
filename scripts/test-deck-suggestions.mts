@@ -154,20 +154,24 @@ async function withProps(bytes: Uint8Array, creator: string, modified: string) {
   const clean = (answer: Parameters<typeof cleanDeckTags>[0]) => cleanDeckTags(answer, { slides, themes, sectors, clientName: 'Harbor Bank' });
 
   const ok = clean({ deck: { labels: ['HEALTH & wellbeing', 'financial services', 'made up', 'AI', 'hybrid / flexible work'], extra: [] }, slides: [] });
-  check(ok.deck.map((t) => t.tag).join() === 'health & wellbeing,financial services,AI', `the deck gets at most ${MAX_DECK_TAGS} tags, only the team's labels, in the team's spelling`, ok.deck);
+  check(ok.deck.map((t) => t.tag).join() === 'health & wellbeing,financial services,hybrid / flexible work', `the deck gets at most ${MAX_DECK_TAGS} tags, only the team's labels, in the team's spelling; "AI" only where the slides say it`, ok.deck);
   check(ok.deck.every((t) => t.from === 'ai'), 'each tag says it came from the AI');
 
   const a = clean({ deck: { labels: [], extra: ['workplace stuff'] }, slides: [] });
   check(a.deck.length === 0, 'a new tag that is not on any slide is dropped as invented', a.deck);
   const b = clean({ deck: { labels: ['AI'], extra: ['utilisation'] }, slides: [] });
-  check(b.deck.map((t) => t.tag).join() === 'AI', 'a deck tag outside the labels needs to be on at least two slides (or the first); one slide is not enough', b.deck);
+  check(b.deck.length === 0, 'a deck tag outside the labels needs to be on at least two slides (or the first); one slide is not enough; "AI" is not on any slide', b.deck);
   const c = clean({ deck: { labels: [], extra: ['bank'] }, slides: [] });
   check(c.deck.map((t) => t.tag).join() === 'bank', 'a new deck tag that is on the first slide is kept (the one exception)', c.deck);
   const d = clean({ deck: { labels: [], extra: ['bank', 'consolidation', 'leases'] }, slides: [] });
   check(d.deck.length <= 1, 'at most one new tag for the deck', d.deck);
 
   const s2 = clean({ deck: { labels: ['workplace strategy & data'], extra: [] }, slides: [{ number: 2, labels: ['cost certainty & risk', 'workplace strategy & data', 'AI'], extra: ['leases'] }] });
-  check(s2.slides['2']?.map((t) => t.tag).join() === 'cost certainty & risk,AI', `a slide gets at most ${MAX_SLIDE_TAGS} tags and never repeats a deck tag`, s2.slides);
+  check(s2.slides['2']?.map((t) => t.tag).join() === 'cost certainty & risk,leases', `a slide gets at most ${MAX_SLIDE_TAGS} tags and never repeats a deck tag`, s2.slides);
+  // 3 Nov: the AI tagged slides "AI" everywhere; "ai" also hides inside "again", "said" and "maintain".
+  const aiSlides = [{ number: 1, title: 'Forecasting', text: 'We use AI to forecast desk demand.' }, { number: 2, title: 'Maintenance', text: 'We said we would maintain it again.' }];
+  const ai = cleanDeckTags({ deck: { labels: [], extra: [] }, slides: [{ number: 1, labels: ['AI'], extra: [] }, { number: 2, labels: ['AI'], extra: ['ai'] }] }, { slides: aiSlides, themes, sectors });
+  check(ai.slides['1']?.[0]?.tag === 'AI' && !ai.slides['2'], 'the "AI" label only where the slide says AI as a word; letters inside other words never count', ai.slides);
   const s3 = clean({ deck: { labels: [], extra: [] }, slides: [{ number: 3, labels: [], extra: ['utilisation', 'sensor study'] }] });
   check(s3.slides['3']?.map((t) => t.tag).join() === 'utilisation', 'a slide gets one new tag at most, and only if its words are on that slide', s3.slides);
   const s4 = clean({ deck: { labels: [], extra: [] }, slides: [{ number: 3, labels: [], extra: ['lease expiry'] }, { number: 9, labels: ['AI'], extra: [] }] });

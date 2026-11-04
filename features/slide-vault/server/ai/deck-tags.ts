@@ -108,8 +108,20 @@ export function openAiCompatibleDeckTagsReader(config: ChatConfig, fetchFn: Para
   };
 }
 
-/** Does the tag's wording appear on the slide? A tag outside the team's labels has to, or it is dropped as invented. */
-const appearsIn = (tag: string, text: string) => text.toLowerCase().replace(/\s+/g, ' ').includes(tag.toLowerCase());
+/**
+ * Does the tag's wording appear on the slide, as whole words? A tag outside the team's labels has to, or it is
+ * dropped as invented. Whole words, not letters: "ai" is inside "again", "said" and "maintain" (3 Nov review).
+ */
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const appearsIn = (tag: string, text: string) =>
+  new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRe(tag.toLowerCase().replace(/\s+/g, ' ')).replace(/ /g, '\\s+')}($|[^\\p{L}\\p{N}])`, 'u').test(text.toLowerCase());
+
+/**
+ * Short labels ("AI") are picked for almost anything, so they count only where the slide says them: as a word,
+ * or spelled out. Longer labels describe a topic and are taken from the AI as they are.
+ */
+const SPELLED_OUT: Record<string, string[]> = { ai: ['ai', 'artificial intelligence', 'machine learning'] };
+const shortLabelOk = (label: string, text: string) => label.length > 3 || (SPELLED_OUT[label.toLowerCase()] ?? [label]).some((w) => appearsIn(w, text));
 
 /**
  * One tag as it may be shown: short, tidy, in the team's own spelling when it is one of their themes or sectors,
@@ -136,17 +148,17 @@ export function cleanDeckTags(answer: Partial<DeckTagsAnswer>, opts: { slides: D
   const onMenu = (raw: unknown) => (typeof raw === 'string' ? menu.find((m) => m.toLowerCase() === raw.trim().toLowerCase()) ?? null : null);
   const textOf = new Map(opts.slides.map((s) => [s.number, `${s.title} ${s.text}`]));
   const has = (list: string[], t: string) => list.some((x) => x.toLowerCase() === t.toLowerCase());
-  const pick = (labels: unknown, extra: unknown, max: number, maxNew: number, taken: string[], grounded: (tag: string) => boolean) => {
+  const pick = (labels: unknown, extra: unknown, max: number, maxNew: number, taken: string[], grounded: (tag: string) => boolean, said: (label: string) => boolean) => {
     const out: string[] = [];
     for (const raw of Array.isArray(labels) ? labels : []) {
       const t = onMenu(raw);
-      if (t && !has(out, t) && !has(taken, t)) out.push(t);
+      if (t && !has(out, t) && !has(taken, t) && said(t)) out.push(t);
     }
     let added = 0;
     for (const raw of Array.isArray(extra) ? extra : []) {
       if (added >= maxNew) break;
       const t = cleanTag(raw, { menu, clientName: opts.clientName });
-      if (t && !onMenu(t) && !has(out, t) && !has(taken, t) && grounded(t)) {
+      if (t && t.length >= 3 && !onMenu(t) && !has(out, t) && !has(taken, t) && grounded(t)) {
         out.push(t);
         added++;
       }
@@ -155,12 +167,13 @@ export function cleanDeckTags(answer: Partial<DeckTagsAnswer>, opts: { slides: D
   };
   const score = (i: number, n: number) => Math.round((0.95 - (0.4 * i) / Math.max(1, n)) * 100) / 100;
   const firstText = opts.slides[0] ? textOf.get(opts.slides[0].number) ?? '' : '';
-  const deck = pick(answer.deck?.labels, answer.deck?.extra, MAX_DECK_TAGS, MAX_NEW_DECK_TAGS, [], (t) => appearsIn(t, firstText) || opts.slides.filter((s) => appearsIn(t, textOf.get(s.number) ?? '')).length >= 2);
+  const allText = opts.slides.map((s) => textOf.get(s.number) ?? '').join(' \n ');
+  const deck = pick(answer.deck?.labels, answer.deck?.extra, MAX_DECK_TAGS, MAX_NEW_DECK_TAGS, [], (t) => appearsIn(t, firstText) || opts.slides.filter((s) => appearsIn(t, textOf.get(s.number) ?? '')).length >= 2, (l) => shortLabelOk(l, allText));
   const slides: Record<string, AiTagSuggestion[]> = {};
   for (const entry of Array.isArray(answer.slides) ? answer.slides : []) {
     const n = Number(entry?.number);
     if (!Number.isInteger(n) || !textOf.has(n) || slides[String(n)]) continue;
-    const tags = pick(entry.labels, entry.extra, MAX_SLIDE_TAGS, MAX_NEW_SLIDE_TAGS, deck, (t) => appearsIn(t, textOf.get(n) ?? ''));
+    const tags = pick(entry.labels, entry.extra, MAX_SLIDE_TAGS, MAX_NEW_SLIDE_TAGS, deck, (t) => appearsIn(t, textOf.get(n) ?? ''), (l) => shortLabelOk(l, textOf.get(n) ?? ''));
     if (tags.length) slides[String(n)] = tags.map((tag, i) => ({ tag, from: 'ai' as const, score: score(i, tags.length) }));
   }
   return { deck: deck.map((tag, i) => ({ tag, from: 'ai' as const, score: score(i, deck.length) })), slides };
