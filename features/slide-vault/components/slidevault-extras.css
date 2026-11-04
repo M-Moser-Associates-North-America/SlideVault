@@ -1281,7 +1281,10 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .ai-note > span { flex: 1 1 260px; min-width: 0; }
 /* "Search with AI": a checkbox with its words, first in the filter row (FD-79) */
 .slidevault .ai-check-wrap { height: 34px; align-items: center; }
-.slidevault .ai-check { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 11px; border: 1.5px solid var(--sv-brand); border-radius: 999px; background: transparent; color: var(--sv-text); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; } /* orange outline pill, no fill */
+.slidevault .ai-check { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 8px; border-radius: 999px; background: transparent; color: var(--sv-text); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.12s; }
 .slidevault .ai-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--sv-brand-strong); cursor: pointer; flex: none; }
 .slidevault .ai-check input:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
 .slidevault .ai-tip { top: calc(100% + 6px); left: 0; right: auto; width: max-content; max-width: 240px; padding: 7px 11px; font-size: 13px; line-height: 1.35; }
+.slidevault .ai-check b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; } /* "AI" in orange: the part that sets it apart from the grey filter labels */
+.slidevault .ai-check:hover, .slidevault .ai-check:has(input:checked) { background: color-mix(in srgb, var(--sv-brand) 9%, transparent); } /* a faint orange wash on hover and when on */
+@media (prefers-reduced-motion: reduce) { .slidevault .ai-check { transition: none; } }

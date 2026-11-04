@@ -16,7 +16,9 @@ export function DeeperAiToggle() {
     <span className="hid-wrap ai-check-wrap">
       <label className="ai-check">
         <input type="checkbox" checked={deeperAi} aria-describedby={tipId} onChange={(e) => setDeeperAi(e.target.checked)} />
-        <span>Search with AI</span>
+        <span>
+          Search with <b>AI</b>
+        </span>
       </label>
       <span className="hid-tip ai-tip" role="tooltip" id={tipId}>
         AI helps read longer searches.
