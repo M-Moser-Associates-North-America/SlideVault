@@ -1296,3 +1296,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .tag-suggest { max-width: 220px; }
 .slidevault .up-ai { margin-top: 12px; }
 .slidevault .up-ai .btn .ic { margin-right: 4px; }
+.slidevault .btn-ai { border-color: var(--sv-brand); } /* "Fill the rest with AI": an orange outline, orange sparkle and AI, as in "Search with AI" */
+.slidevault .btn-ai .ic { color: var(--sv-brand-strong); }
+.slidevault .btn-ai b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; }
+.slidevault .btn-ai:hover:not(:disabled) { background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); }

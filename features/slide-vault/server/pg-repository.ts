@@ -345,7 +345,7 @@ export type PgSearchIntent = {
   sectors: string[];
   themes: string[];
   /**
-   * Themes and sectors the AI picked on purpose (FD-82), already part of the lists above. The rules' own
+   * Themes and sectors the AI picked on purpose (FD-83), already part of the lists above. The rules' own
    * theme guess weighs little (their word lists are loose); one the AI chose counts a little more than a slide
    * type (1.0), so slides labelled with it lead slides that only say a word, and the words order them among themselves.
    */

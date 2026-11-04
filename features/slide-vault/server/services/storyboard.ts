@@ -163,7 +163,7 @@ const SECTOR_WORDS: [string, RegExp][] = [
   ['resources', /\b(mining|energy|oil|gas|resources)\b/],
 ];
 
-/** The sector names the rules know, for the AI's label menu (FD-82). */
+/** The sector names the rules know, for the AI's label menu (FD-83). */
 export const SECTOR_NAMES = SECTOR_WORDS.map(([name]) => name);
 
 /**

@@ -1,6 +1,6 @@
 /**
  * The labels the team put on slides (Schiffon's review: slide type, theme, the sector a case study proves),
- * as a menu the AI reader can pick from (docs/DECISIONS.md FD-82). The regular search turns words into
+ * as a menu the AI reader can pick from (docs/DECISIONS.md FD-83). The regular search turns words into
  * labels with fixed word lists, so a request worded another way ("people coming back to the office") gets
  * no help from them. The AI reads the request and names the labels it points at; those are added to what
  * the rules found, and the usual search, scoring and filters do the rest. Only these names go to the AI,
@@ -110,7 +110,7 @@ export function mergeLabels<I extends { types: string[]; sectors: string[]; them
   return { ...intent, types: union(intent.types, labels.types), themes: union(intent.themes, labels.themes), sectors: union(intent.sectors, labels.sectors.map((s) => s.toLowerCase())) };
 }
 
-/** The labels the AI picked, for the database search to weigh more than the rules' own guesses (FD-82). */
+/** The labels the AI picked, for the database search to weigh more than the rules' own guesses (FD-83). */
 export const aiPicks = (labels: PlanLabels | undefined) => (hasLabels(labels) ? { themes: labels.themes, sectors: labels.sectors.map((s) => s.toLowerCase()) } : undefined);
 
 /** A label as a person reads it: "case_study_detail" is "Case study detail", "health & wellbeing" is "Health & wellbeing". */

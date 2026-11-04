@@ -34,13 +34,13 @@ export type SearchPlan = {
   named?: string[];
   /**
    * Labels the team put on slides (type, theme, sector) that the request points at, even in other words
-   * (FD-82). Only read by the AI, only from the menu in PlanContext; added to the rules' own reading.
+   * (FD-83). Only read by the AI, only from the menu in PlanContext; added to the rules' own reading.
    */
   labels?: PlanLabels;
 };
 
 /** What the reader is allowed to pick from, so filters always match real values. */
-export type PlanContext = { clients: string[]; categories: string[]; thisYear: number; /** the labels the AI may pick from (FD-82); absent when none are offered */ labels?: LabelMenu };
+export type PlanContext = { clients: string[]; categories: string[]; thisYear: number; /** the labels the AI may pick from (FD-83); absent when none are offered */ labels?: LabelMenu };
 
 export type Chip = { kind: 'Topic' | 'Label' | 'Client' | 'Year' | 'Category' | 'Collection' | 'Mentions'; label: string };
 
@@ -219,7 +219,7 @@ export function withoutFilters(p: SearchPlan): SearchPlan {
 /** Chips for the search box, so people can see (and later remove) how their words were read. */
 export function chipsFor(p: SearchPlan): Chip[] {
   const chips: Chip[] = p.topics.map((label) => ({ kind: 'Topic' as const, label }));
-  // What the AI read the request as, in the team's labels (FD-82). Shown, but not removable: they aren't words in the search.
+  // What the AI read the request as, in the team's labels (FD-83). Shown, but not removable: they aren't words in the search.
   if (hasLabels(p.labels)) for (const v of [...p.labels.types, ...p.labels.themes, ...p.labels.sectors]) chips.push({ kind: 'Label', label: labelName(v) });
   if (p.client) chips.push({ kind: 'Client', label: p.client });
   if (p.yearFrom || p.yearTo) {

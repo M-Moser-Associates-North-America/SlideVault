@@ -191,7 +191,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     return 5 + (sec.divider ? (cover ? 12 : 1) : cover ? 0 : Math.max(0, 3 - sec.position) * 0.5);
   };
   const notRelevant = (id: string) => sinks(learned.get(id));
-  // What the search asks for in labels: the rules' own reading, plus what the AI adds when it reads the search (FD-82).
+  // What the search asks for in labels: the rules' own reading, plus what the AI adds when it reads the search (FD-83).
   // The AI's picks arrive with the plan, so this is set when the search runs; the rules alone until then.
   let wanted = intent;
   const knownFor = (it: typeof intent): SearchKnowledge => ({

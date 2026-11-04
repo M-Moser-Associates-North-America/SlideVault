@@ -108,7 +108,7 @@ function answerFor(key: string) {
 
 /**
  * The same arrows, without counts or names: ▲ Useful, ▼ Not relevant for the search you came from.
- * The server keeps it for everyone (FD-83), with the search's words and the person's role, never a name;
+ * The server keeps it for everyone (FD-84), with the search's words and the person's role, never a name;
  * it teaches the search and, through it, the storyboard (FD-75). It is not part of personalization.
  */
 function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searched: string; small?: boolean }) {

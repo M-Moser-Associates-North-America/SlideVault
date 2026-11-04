@@ -36,7 +36,7 @@ const SCHEMA = {
   required: ['summary', 'keywords', 'topics', 'client', 'yearFrom', 'yearTo', 'category', 'bestOfTheBest', 'slideTypes', 'themes', 'sectors'],
 } as const;
 
-/** The label menu in words (FD-82). Names only; no slide text is ever sent. */
+/** The label menu in words (FD-83). Names only; no slide text is ever sent. */
 function labelInstructions(menu: LabelMenu): string[] {
   return [
     'The team labelled every slide. Use these labels to find slides whose words differ from the request: fill slideTypes, themes and sectors with values copied exactly from the lists below, only when the request clearly points at them (for example "people coming back to the office" points at the theme "hybrid / flexible work", and "proof we have done hospitals" at a case study in the sector "healthcare"). Prefer none to a guess. At most 2 slide types, 3 themes and 2 sectors.',
