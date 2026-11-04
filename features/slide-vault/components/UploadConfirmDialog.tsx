@@ -17,6 +17,9 @@ export type UploadSummary = {
   deckTags: string[];
   slideTags: number;
   taggedSlides: number;
+  /** Tags that were filled in for the person (by the AI or from similar slides) and are still there: said before uploading */
+  filledIn?: number;
+  filledInBy?: 'ai' | 'similar' | null;
 };
 
 /** "Upload this deck?" with what will happen, in order of importance, before anything is sent. */
@@ -49,6 +52,7 @@ export function UploadConfirmDialog({ open, summary, onCancel, onConfirm }: { op
               </li>
               <li>{s.deckTags.length ? `Deck tags: ${s.deckTags.join(', ')}` : 'No deck tags'}</li>
               <li>{s.slideTags ? `${plural(s.slideTags, 'tag')} on ${plural(s.taggedSlides, 'slide')}` : 'No slide tags'}</li>
+              {s.filledIn ? <li>{plural(s.filledIn, 'tag')} filled in {s.filledInBy === 'ai' ? 'by the AI' : 'from similar slides'}: please check {s.filledIn === 1 ? 'it' : 'them'} before you upload</li> : null}
               {s.bestOfTheBest && <li>Marked as part of the Best of the Best collection</li>}
             </ul>
             <p className="arch-note">Everyone can see it once it&rsquo;s uploaded. You can archive it later if needed.</p>

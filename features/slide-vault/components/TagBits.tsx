@@ -498,7 +498,7 @@ function useSlideTagSuggestions(slideId: string | undefined): TagSuggestionItem[
  * "+ Add tag" as everywhere else. `inherited` are tags that already apply (the deck's); they show first and
  * can't be removed here.
  */
-export function LocalTagList({ label, value, onChange, inherited = [], inheritedTip, suggestions, suggested = [], disabled }: { label: string; value: string[]; onChange: (next: string[]) => void; inherited?: string[]; inheritedTip?: string; suggestions: TagSuggestion[]; suggested?: TagSuggestionItem[]; disabled?: boolean }) {
+export function LocalTagList({ label, value, onChange, inherited = [], inheritedTip, suggestions, suggested = [], disabled, auto = [] }: { auto?: string[]; label: string; value: string[]; onChange: (next: string[]) => void; inherited?: string[]; inheritedTip?: string; suggestions: TagSuggestion[]; suggested?: TagSuggestionItem[]; disabled?: boolean }) {
   const own = value.filter((t) => !inherited.some((i) => i.toLowerCase() === t.toLowerCase()));
   return (
     <ul className="tagrows" aria-label={label}>
@@ -511,7 +511,8 @@ export function LocalTagList({ label, value, onChange, inherited = [], inherited
       ))}
       {own.map((t) => (
         <li key={t} className="tagrow">
-          <span className="tag is-static" data-h={hueOf(t)}>
+          <span className={`tag is-static${auto.some((a) => a.toLowerCase() === t.toLowerCase()) ? ' is-auto' : ''}`} data-h={hueOf(t)}>
+            {auto.some((a) => a.toLowerCase() === t.toLowerCase()) && <Icon name="sparkle" className="ic-sm" />}
             <span className="tag-t">{t}</span>
           </span>
           <button type="button" className="tagx" aria-label={`Remove tag ${t}`} data-tip="Remove" disabled={disabled} onClick={() => onChange(own.filter((x) => x !== t))}>

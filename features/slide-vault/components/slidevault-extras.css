@@ -1300,3 +1300,5 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .btn-ai .ic { color: var(--sv-brand-strong); }
 .slidevault .btn-ai b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; }
 .slidevault .btn-ai:hover:not(:disabled) { background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); }
+.slidevault .tagchip.is-auto, .slidevault .tag.is-auto { gap: 4px; } /* a tag filled in for the person: a small orange sparkle before it, to check and remove if wrong */
+.slidevault .tagchip.is-auto .ic, .slidevault .tag.is-auto .ic { color: var(--sv-brand-strong); width: 12px; height: 12px; flex: none; }
