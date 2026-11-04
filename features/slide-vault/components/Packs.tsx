@@ -6,7 +6,7 @@ import type { SlideSummary } from '../contracts/dto';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
 import { plural } from './library';
-import { Link, Thumb, useCartToggle } from './parts';
+import { Link, Thumb, useAddSection, useCartToggle } from './parts';
 import { useWorkspace } from './state';
 
 /**
@@ -44,8 +44,9 @@ export function PackStrip({ pack, currentId, onNavigate }: { pack: Pack; current
 
 /** The question asked before adding or removing one slide of a pack, and before ungrouping one. */
 export function PackDialog() {
-  const { runtime, packDialog, closePackDialog, selection, addPackToDraft, removePackFromDraft, ungroupPack, toast, announce } = useWorkspace();
+  const { runtime, library, packDialog, closePackDialog, selection, updateSelection, addPackToDraft, removePackFromDraft, ungroupPack, toast, announce } = useWorkspace();
   const { setOne } = useCartToggle();
+  const { addNow } = useAddSection();
   const ref = useRef<HTMLDialogElement>(null);
   useDialogOpen(ref, !!packDialog);
   const [busy, setBusy] = useState(false);
@@ -103,6 +104,49 @@ export function PackDialog() {
           </button>
           <button type="button" className="btn btn-primary" disabled={busy} autoFocus onClick={() => run(() => addPackToDraft(pack))}>
             {inDeck.length > 0 ? `Add the other ${others.length + 1}` : `Add all ${total} slides`}
+          </button>
+        </>
+      );
+    } else if (d.kind === 'section' && d.section) {
+      const sec = d.section;
+      const inside = new Set(sec.slides.map((x) => x.id));
+      const inPacks = sec.slides.filter((x) => sec.packs.some((p) => p.slideIds.includes(x.id)));
+      const outsideIds = [...new Set(sec.packs.flatMap((p) => p.slideIds).filter((id) => !inside.has(id) && !selection.some((x) => x.id === id)))];
+      const bySlide = new Map((library.status === 'ready' ? library.slides : []).map((x) => [x.id, x]));
+      const outside = outsideIds.map((id) => bySlide.get(id)).filter((x): x is SlideSummary => !!x);
+      title = 'Part of this section belongs to a pack';
+      body = (
+        <>
+          <p>
+            {plural(inPacks.length, 'slide')} in <strong>{sec.name}</strong> {inPacks.length === 1 ? 'belongs' : 'belong'} to {sec.packs.length === 1 ? (pack.label ? <>the pack <strong>{pack.label}</strong></> : 'a pack') : `${sec.packs.length} packs`}, and {plural(outside.length, 'more slide')} of {sec.packs.length === 1 ? 'it' : 'them'} {outside.length === 1 ? 'is' : 'are'} outside this section. These slides work best added together.
+          </p>
+          <PackStrip pack={pack} onNavigate={closePackDialog} />
+          {pack.status === 'suggested' && <p className="meta">This pack was suggested and has not been confirmed by a person yet.</p>}
+        </>
+      );
+      actions = (
+        <>
+          <button type="button" className="btn btn-ghost" onClick={closePackDialog}>
+            Cancel
+          </button>
+          <button type="button" className="btn" disabled={busy} onClick={() => run(() => addNow(sec.name, sec.slides))}>
+            Only this section ({sec.slides.length})
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={busy}
+            autoFocus
+            onClick={() =>
+              run(() => {
+                const all = [...sec.slides, ...outside];
+                updateSelection((cur) => [...cur, ...all.filter((x) => !cur.some((c) => c.id === x.id))]);
+                toast(`Added ${plural(all.filter((x) => !selection.some((c) => c.id === x.id)).length, 'slide')}: the section and the rest of its pack`);
+                announce('Added the section and the rest of its pack to the draft deck');
+              })
+            }
+          >
+            Add the section and the pack ({sec.slides.length + outside.length})
           </button>
         </>
       );

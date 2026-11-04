@@ -33,6 +33,9 @@ export function titleEditOf(slideId: string, fromServer?: TitleEdit): TitleEdit 
 }
 const withDemoTitle = (s: SlideSummary): SlideSummary => (demoTitles.has(s.id) ? { ...s, title: demoTitles.get(s.id)! } : s);
 
+/** One section result the preview can move to: its cover and name, and its slides once they are known (the preview asks for them when it needs them). */
+export type SectionRef = { key: string; name: string; dividerId: string; slides: SlideSummary[] | null };
+
 export type LibraryState = { status: 'loading' } | { status: 'ready'; slides: SlideSummary[]; decks: Deck[] } | { status: 'error'; message: string };
 
 export type SearchState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; result: SmartSearchResult } | { status: 'error'; message: string };
@@ -41,7 +44,8 @@ export type Toast = { id: number; message: string; action?: { label: string; run
 
 export type ArchiveDialogState = { deck: { id: string; title: string; slideCount: number }; restore: boolean; /** Opened from a slide's page: say so, and leave the page when the deck is gone */ fromSlide?: string };
 
-export type PackDialogState = { kind: 'add' | 'remove' | 'ungroup'; pack: Pack; slide?: SlideSummary };
+/** `section` is set for kind 'section': adding a whole deck section whose slides belong to packs that reach outside it (FD-80). `pack` is the first of those packs. */
+export type PackDialogState = { kind: 'add' | 'remove' | 'ungroup' | 'section'; pack: Pack; slide?: SlideSummary; section?: { name: string; slides: SlideSummary[]; packs: Pack[] } };
 
 /** Placeholder sign-in: one demo profile until M Moser's login plugs in (FD-01). */
 export const DEMO_PROFILE = 'Person A';
@@ -113,10 +117,13 @@ type Workspace = {
   announcement: string;
   announce: (message: string) => void;
   /** Large preview over the page; `list` is what the arrows step through */
-  preview: { list: SlideSummary[]; index: number } | null;
-  openPreview: (list: SlideSummary[], index: number) => void;
+  preview: { list: SlideSummary[]; index: number; section?: string; sections?: SectionRef[]; sectionAt?: number } | null;
+  /** `section` names the deck section when the list is one whole section: the preview then counts "1 of 8 in section" and outlines those slides in the film strip. `sections` are all the section results it came from (this one is `sectionAt`), so Previous / Next result move between them (FD-80) */
+  openPreview: (list: SlideSummary[], index: number, opts?: { section?: string; sections?: SectionRef[]; sectionAt?: number }) => void;
   closePreview: () => void;
   movePreview: (delta: -1 | 1) => void;
+  /** Jump to one place in the preview's list */
+  goToPreview: (index: number) => void;
   /** Slides waiting in the download dialog, or null when it is closed */
   downloadSlides: SlideSummary[] | null;
   openDownload: (slides: SlideSummary[]) => void;
@@ -306,8 +313,16 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const [preview, setPreview] = useState<{
     list: SlideSummary[];
     index: number;
+    section?: string;
+    sections?: SectionRef[];
+    sectionAt?: number;
   } | null>(null);
-  const openPreview = useCallback((list: SlideSummary[], index: number) => setPreview({ list, index }), []);
+  const openPreview = useCallback(
+    (list: SlideSummary[], index: number, opts?: { section?: string; sections?: SectionRef[]; sectionAt?: number }) =>
+      setPreview({ list, index, section: opts?.section, sections: opts?.sections, sectionAt: opts?.sectionAt }),
+    [],
+  );
+  const goToPreview = useCallback((index: number) => setPreview((p) => (p && index >= 0 && index < p.list.length ? { ...p, index } : p)), []);
   const closePreview = useCallback(() => setPreview(null), []);
   const movePreview = useCallback((delta: -1 | 1) => setPreview((p) => (p && p.list.length > 1 ? { ...p, index: (p.index + delta + p.list.length) % p.list.length } : p)), []);
 
@@ -576,6 +591,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     openPreview,
     closePreview,
     movePreview,
+    goToPreview,
     downloadSlides,
     openDownload,
     closeDownload,

@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
-import { categoryOf, clientOf, countBy, createdByOf, filterCount, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
+import { categoryOf, clientOf, countBy, createdByOf, filterCount, SECTION_LABEL, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Link } from './parts';
 import type { SlideSummary, SmartSearchChip } from '../contracts/dto';
@@ -23,7 +23,7 @@ import { useWorkspace } from './state';
  * a small pinned "Filters" button once the row has scrolled out of view.
  */
 
-type Key = 'year' | 'client' | 'category' | 'slideType' | 'more';
+type Key = 'year' | 'client' | 'category' | 'slideType' | 'section' | 'more';
 
 const YEAR_PRESETS: [number, string][] = [
   [2, 'Last 2 years'],
@@ -55,14 +55,26 @@ function Picker({
   picked,
   counts,
   onToggle,
+  single,
 }: {
   label: string;
   options: string[];
   picked: string[];
   counts?: Map<string, number>;
   onToggle: (v: string) => void;
+  /** Only one can be picked: choosing another moves the tick */
+  single?: boolean;
 }) {
   const [text, setText] = useState('');
+  /* The tick shows the moment it is pressed; the page (which has a lot to redraw) follows a beat later, and
+     the pending tick gives way to the real choice as soon as that arrives. */
+  const sig = picked.join('|');
+  const [mine, setMine] = useState<{ sig: string; list: string[] } | null>(null);
+  const showing = mine && mine.sig === sig ? mine.list : picked;
+  const choose = (o: string) => {
+    setMine({ sig, list: showing.includes(o) ? showing.filter((x) => x !== o) : single ? [o] : [...showing, o] });
+    setTimeout(() => startTransition(() => onToggle(o)), 30);
+  };
   const shown = options.filter((o) => o.toLowerCase().includes(text.trim().toLowerCase()));
   const id = useId();
   return (
@@ -83,7 +95,7 @@ function Picker({
         {shown.map((o, i) => (
           <li key={o}>
             <label htmlFor={`${id}-${i}`} className={counts && (counts.get(o) ?? 0) === 0 && !picked.includes(o) ? 'is-zero' : undefined}>
-              <input id={`${id}-${i}`} type="checkbox" checked={picked.includes(o)} onChange={() => onToggle(o)} />
+              <input id={`${id}-${i}`} type="checkbox" checked={showing.includes(o)} onChange={() => choose(o)} />
               <span className="fb-opt">{o}</span>
               {counts && <span className="fb-n">{counts.get(o) ?? 0}</span>}
             </label>
@@ -192,6 +204,31 @@ export function FilterBar() {
     };
   }, [open, close]);
 
+  /* A filter card open under the row (wide and medium widths): the card gets the room left on screen and
+     scrolls inside itself, down to its last line, while the page behind stays where it is. */
+  useEffect(() => {
+    if (!open || compact) return;
+    const page = scroll.current;
+    const pop = wrap.current?.querySelector<HTMLElement>('.fb-pop');
+    if (!pop) return;
+    const fit = () => {
+      const room = window.innerHeight - pop.getBoundingClientRect().top - 16;
+      pop.style.maxHeight = `${Math.max(220, room)}px`;
+    };
+    fit();
+    const stop = (e: Event) => {
+      if (!pop.contains(e.target as Node)) e.preventDefault();
+    };
+    page?.addEventListener('wheel', stop, { passive: false });
+    page?.addEventListener('touchmove', stop, { passive: false });
+    window.addEventListener('resize', fit);
+    return () => {
+      page?.removeEventListener('wheel', stop);
+      page?.removeEventListener('touchmove', stop);
+      window.removeEventListener('resize', fit);
+    };
+  }, [open, compact, scroll]);
+
   /* Wide and medium widths: tell when the row has stuck to the top, to give it more room above. */
   useEffect(() => {
     const el = sentinel.current;
@@ -220,6 +257,7 @@ export function FilterBar() {
     { key: 'client', label: 'Client', icon: 'building', active: filters.client.length + (fromClient ? 1 : 0) },
     { key: 'category', label: 'Project type', icon: 'folder', active: filters.category.length },
     { key: 'slideType', label: 'Slide type', icon: 'layers', active: filters.slideType.length + fromTypes.length },
+    { key: 'section', label: 'Section', icon: 'folder', active: filters.section.length },
     { key: 'more', label: 'More', icon: 'sliders', active: moreCount },
   ];
 
@@ -235,6 +273,7 @@ export function FilterBar() {
     ...filters.slideType.map((v) => ({ id: `t-${v}`, kind: 'Slide type', text: v, remove: () => patchFilters({ slideType: filters.slideType.filter((x) => x !== v) }) })),
     ...filters.createdBy.map((v) => ({ id: `cb-${v}`, kind: 'File created by', text: v, remove: () => patchFilters({ createdBy: filters.createdBy.filter((x) => x !== v) }) })),
     ...filters.uploadedBy.map((v) => ({ id: `ub-${v}`, kind: 'Uploaded by', text: v, remove: () => patchFilters({ uploadedBy: filters.uploadedBy.filter((x) => x !== v) }) })),
+    ...filters.section.map((v) => ({ id: `sc-${v}`, kind: 'Section', text: SECTION_LABEL[v] ?? v, remove: () => patchFilters({ section: [] }) })),
     ...filters.tag.map((v) => ({ id: `tg-${v}`, kind: 'Tag', text: v, remove: () => patchFilters({ tag: filters.tag.filter((x) => x !== v) }) })),
     ...(filters.bestOnly ? [{ id: 'best', kind: 'Collection', text: 'Best of the Best', remove: () => patchFilters({ bestOnly: false }) }] : []),
     ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
@@ -307,6 +346,21 @@ export function FilterBar() {
       );
     if (key === 'category')
       return <Picker label="Project type" options={categories} picked={filters.category} counts={categoryCounts} onToggle={(v) => patchFilters({ category: toggle(filters.category, v) })} />;
+    if (key === 'section') {
+      const kindOf = (label: string) => Object.keys(SECTION_LABEL).find((k) => SECTION_LABEL[k] === label) ?? label;
+      return (
+        <Picker
+          label="Section"
+          single
+          options={Object.values(SECTION_LABEL)}
+          picked={filters.section.map((k) => SECTION_LABEL[k] ?? k)}
+          onToggle={(label) => {
+            patchFilters({ section: filters.section.includes(kindOf(label)) ? [] : [kindOf(label)] });
+            if (!compact) setTimeout(() => close(true), 160); /* one choice: the tick shows first, then the card closes */
+          }}
+        />
+      );
+    }
     if (key === 'slideType')
       return (
         <Picker

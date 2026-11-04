@@ -2,6 +2,7 @@
 
 import { SlideTitle } from './RenameSlide';
 import { SlideEngagement } from './SlideActions';
+import { SectionBrowse, SectionCards } from './SectionCards';
 import { DeckTags, SlideLabelsPanel, SlideTagsPanel } from './TagBits';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { getSlide } from '../client/api';
@@ -22,6 +23,7 @@ import {
   folderLabel,
   removeHint,
   plural,
+  SECTION_LABEL,
   slideMatches,
   UNKNOWN_CLIENT,
   yearOf,
@@ -334,7 +336,7 @@ function SearchHeader() {
 }
 
 export function HomeView() {
-  const { query } = useWorkspace();
+  const { query, filters } = useWorkspace();
   const searching = query.trim() !== '';
   return (
     <>
@@ -344,7 +346,7 @@ export function HomeView() {
         </h1>
       )}
       <SearchHeader />
-      {searching ? <ResultsView /> : <LibraryView />}
+      {searching ? <ResultsView /> : filters.section.length > 0 ? <SectionBrowse kind={filters.section[0]} /> : <LibraryView />}
     </>
   );
 }
@@ -593,7 +595,7 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 /* --------------------------------------------------------------- Search */
 
 export function ResultsView() {
-  const { query, search, filters, clearFilters, retrySearch, setQuery } = useWorkspace();
+  const { query, search, filters, patchFilters, clearFilters, retrySearch, setQuery } = useWorkspace();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
   const q = query.trim();
 
@@ -618,8 +620,7 @@ export function ResultsView() {
   }, [result, filters, sort]);
   /* By section (FD-57; Alina, 28 Oct: "searching for the slides in that particular section… between
      different decks"): each result knows its deck section, so the results can be narrowed to one kind. */
-  const [sectionPick, setSectionPick] = useState<{ q: string; kind: string } | null>(null);
-  const pickedSection = sectionPick?.q === q ? sectionPick.kind : null;
+  const pickedSection = filters.section[0] ?? null;
   const sectionCounts = useMemo(() => {
     const m = new Map<string, number>();
     for (const i of shown) {
@@ -747,19 +748,28 @@ export function ResultsView() {
                   <Icon name="info" />
                 </span>
               </p>
+              {pickedSection && shown.length - visible.length > 0 && (
+                <p className="meta sec-hidden-note">
+                  {shown.length - visible.length} more matching {shown.length - visible.length === 1 ? 'slide is' : 'slides are'} outside this section.{' '}
+                  <button type="button" className="btn-link" onClick={() => patchFilters({ section: [] })}>
+                    Show {shown.length - visible.length === 1 ? 'it' : 'them'}
+                  </button>
+                </p>
+              )}
               {sectionCounts.length > 1 && (
                 <div className="sec-pills" role="group" aria-label="Narrow to one section">
                   <span className="meta">By section:</span>
-                  <button type="button" className="chip-x" aria-pressed={!pickedSection} onClick={() => setSectionPick(null)}>
+                  <button type="button" className="chip-x" aria-pressed={!pickedSection} onClick={() => patchFilters({ section: [] })}>
                     All <span className="n">{shown.length}</span>
                   </button>
                   {sectionCounts.map(([kind, n]) => (
-                    <button key={kind} type="button" className="chip-x" aria-pressed={pickedSection === kind} onClick={() => setSectionPick(pickedSection === kind ? null : { q, kind })}>
+                    <button key={kind} type="button" className="chip-x" aria-pressed={pickedSection === kind} onClick={() => patchFilters({ section: pickedSection === kind ? [] : [kind] })}>
                       {SECTION_LABEL[kind]} <span className="n">{n}</span>
                     </button>
                   ))}
                 </div>
               )}
+              {(!!pickedSection || !!result?.sections?.length) && <SectionCards results={pickedSection ? slides : shown.map((i) => i.slide)} only={pickedSection ? [pickedSection] : result?.sections} />}
               <div className="grid">
                 {visible.map((i) => (
                   <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} note={sort === 'popular' ? downloadedNote(i.slide) : undefined} />
@@ -780,17 +790,6 @@ export function ResultsView() {
     </div>
   );
 }
-
-/** Names for the standard deck sections (server/services/sections.ts SectionKind); "other" isn't offered. */
-const SECTION_LABEL: Record<string, string> = {
-  firm: 'Firm overview',
-  'case-studies': 'Case studies',
-  approach: 'Approach',
-  team: 'Team',
-  fees: 'Fees',
-  understanding: 'Understanding',
-  appendix: 'Appendix',
-};
 
 /* ----------------------------------------------------------------- Deck */
 

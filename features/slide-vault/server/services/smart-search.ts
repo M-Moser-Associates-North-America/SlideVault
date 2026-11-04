@@ -22,6 +22,8 @@ export type SmartSearchResponse = {
   chips: Chip[];
   /** true when the filters left nothing, so results are shown without them */
   relaxed: boolean;
+  /** Set when the search is only a deck section ("case studies", "resumes"): the standard sections it asks for, so the screen can show section cards (FD-80) */
+  sections?: string[];
   items: SmartResult[];
 };
 

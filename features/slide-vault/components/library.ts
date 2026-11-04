@@ -41,9 +41,11 @@ export type Filters = {
   uploadedBy: string[];
   /** People's own tags (FD-58) on the slide or its deck, matched whatever the case ("priya" is "Priya") */
   tag: string[];
+  /** One standard deck section (FD-57, FD-80), kept as its kind ("case-studies"). Applied to search results and to the Home section browser, not to the plain library list. */
+  section: string[];
 };
 
-export const NO_FILTERS: Filters = { category: [], client: [], bestOnly: false, yfrom: null, yto: null, slideType: [], createdBy: [], uploadedBy: [], tag: [] };
+export const NO_FILTERS: Filters = { category: [], client: [], bestOnly: false, yfrom: null, yto: null, slideType: [], createdBy: [], uploadedBy: [], tag: [], section: [] };
 
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -96,7 +98,7 @@ export function folderLabel(d: Pick<Deck, 'bestOfTheBest' | 'year' | 'clientName
 export const yearsOf = (decks: Deck[]) => [...new Set(decks.map((d) => d.year).filter((y): y is number => y !== null))].sort((a, b) => b - a);
 
 export function filterCount(f: Filters): number {
-  return f.category.length + f.client.length + f.slideType.length + f.createdBy.length + f.uploadedBy.length + f.tag.length + (f.bestOnly ? 1 : 0) + (f.yfrom !== null || f.yto !== null ? 1 : 0);
+  return f.category.length + f.client.length + f.slideType.length + f.createdBy.length + f.uploadedBy.length + f.tag.length + f.section.length + (f.bestOnly ? 1 : 0) + (f.yfrom !== null || f.yto !== null ? 1 : 0);
 }
 
 /** The names of the filters that are on, in the order the filter row shows them. */
@@ -108,6 +110,7 @@ export function filterKinds(f: Filters): string[] {
     ...(f.slideType.length ? ['Slide type'] : []),
     ...(f.createdBy.length ? ['File created by'] : []),
     ...(f.uploadedBy.length ? ['Uploaded by'] : []),
+    ...(f.section.length ? ['Section'] : []),
     ...(f.tag.length ? ['Tag'] : []),
     ...(f.bestOnly ? ['Best of the Best'] : []),
   ];
@@ -248,3 +251,14 @@ export function hiddenGap(slides: SlideSummary[]): number {
   const last = Math.max(...slides.map((s) => s.provenance.slideNumber));
   return Math.max(0, last - slides.length);
 }
+
+/** Names for the standard deck sections (server/services/sections.ts SectionKind); "other" isn't offered. */
+export const SECTION_LABEL: Record<string, string> = {
+  firm: 'Firm overview',
+  'case-studies': 'Case studies',
+  approach: 'Approach',
+  team: 'Team',
+  fees: 'Fees',
+  understanding: 'Understanding',
+  appendix: 'Appendix',
+};
