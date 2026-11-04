@@ -62,6 +62,7 @@ Every route below exists under `/api/slide-vault/v1` (one `route.ts` per path in
 | `GET /meaning-search` | Slides close in meaning (pgvector) | FD-55 |
 | `GET /slides/:id`, `PATCH /slides/:id` | Slide details; rename a slide `{ title }` (`null` restores the original) | FD-73 |
 | `GET /slides/:id/preview` | The slide picture, served through the API | |
+| `GET /slides/:id/tag-suggestions` | Up to 5 tags worth adding, from the slides closest in meaning: `{ suggestions: [{ tag, from: 'people' \| 'reading', score }] }`; empty when meaning search isn't set up | FD-82 |
 | `PATCH /decks/:id` | Archive or restore a deck `{ archived }` | FD-50, FD-52 |
 | `POST /exports` | An editable .pptx from an ordered selection (a .zip of one .pptx per deck, or one combined deck) | FD-03, FD-09, FD-21 |
 | `POST /storyboard` | A client situation in, a story of slides out; opens or retells a named deck | FD-22 to FD-32, FD-75 |

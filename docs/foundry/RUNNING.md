@@ -48,7 +48,7 @@ Each slide gets a meaning fingerprint (an embedding: a list of 768 numbers) stor
    npm run embed:slides            # dry run: checks the model answers, counts the slides to do
    npm run embed:slides -- --yes   # makes them (all 1,874 real slides took under 4 minutes on a laptop)
    ```
-4. **Keep them current.** After uploading decks, or after slide text changes, run `npm run embed:slides -- --yes` again. It only redoes slides whose words changed. Changing the model means running it again; nothing else changes.
+4. **Keep them current.** Decks uploaded in the app get their fingerprints automatically a few seconds after saving (FD-82), as long as the app has the same `SV_EMBED_*` settings and the model is running. After slide text changes, after loading decks with a script, or if the model was down during an upload, run `npm run embed:slides -- --yes` again. It only redoes slides whose words changed. Changing the model means running it again; nothing else changes.
 
 Ollama has to be running while the app runs. If it isn't, meaning search steps aside quietly and search is keyword only. Two settings tune it: `SV_MEANING_MIN_SIMILARITY` (how close a slide must be, default 0.55) and `SV_MEANING_MIN_WORDS` (slides with fewer words of their own and no story reading are never added by meaning, default 4, so blank or photo-only slides don't show up).
 
@@ -139,7 +139,7 @@ npm run test:a11y        # accessibility (axe-core + keyboard), needs `npm run i
 - **Thumbnail fonts.** Brand fonts LibreOffice can't use (e.g. Untitled Sans, Bebas Neue) are mapped to Arial / Arial Narrow for thumbnails only. Exported files keep the original fonts.
 - **Still to do from the front-end review:** split `components/Views.tsx` and the workspace context by responsibility, and fold `slidevault.css` and `slidevault-extras.css` into component-owned rules.
 - **Who did it is "Person A" for now.** Archive, packs, tags and uploads record the signed-in name, which is the stand-in profile until M Moser's login replaces it (`server/principal.ts`). Who may archive, confirm packs or tag is an approval-tier decision for M Moser; anyone signed in can for the MVP.
-- **Meaning search needs a running embedding model**, and new uploads need `npm run embed:slides -- --yes` before they appear in meaning results (keyword search finds them straight away).
+- **Meaning search needs a running embedding model.** New uploads get their fingerprints automatically when the model is running; if it was down, `npm run embed:slides -- --yes` catches them up (keyword search finds them straight away either way). Tag suggestions use the same fingerprints, so a slide without one gets no suggestions.
 - **Local test decks.** If you once ran `npm run ingest`, the synthetic decks in `.data/library.json` show next to the real library on your laptop only. Rename that file to hide them for a demo.
 - Verified in Keynote and LibreOffice; please also open an export in Microsoft PowerPoint.
 

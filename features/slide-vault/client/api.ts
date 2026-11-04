@@ -377,3 +377,11 @@ export async function setMyRole(runtime: Transport, role: StoryUserRole | null):
   if (!res.ok) return failure(runtime, res);
   return true;
 }
+
+/** Tags worth adding to a slide, from the slides closest to it in meaning (FD-82). Empty when that isn't set up. */
+export type TagSuggestionItem = { tag: string; from: 'people' | 'reading'; score: number };
+export async function tagSuggestions(runtime: Transport, slideId: string, signal?: AbortSignal): Promise<TagSuggestionItem[]> {
+  const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}/tag-suggestions`, method: 'GET', signal });
+  if (!res.ok) return [];
+  return ((await res.json()) as ApiOk<{ suggestions: TagSuggestionItem[] }>).data.suggestions;
+}
