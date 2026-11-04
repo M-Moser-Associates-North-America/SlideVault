@@ -110,6 +110,9 @@ export function mergeLabels<I extends { types: string[]; sectors: string[]; them
   return { ...intent, types: union(intent.types, labels.types), themes: union(intent.themes, labels.themes), sectors: union(intent.sectors, labels.sectors.map((s) => s.toLowerCase())) };
 }
 
+/** The labels the AI picked, for the database search to weigh more than the rules' own guesses (FD-82). */
+export const aiPicks = (labels: PlanLabels | undefined) => (hasLabels(labels) ? { themes: labels.themes, sectors: labels.sectors.map((s) => s.toLowerCase()) } : undefined);
+
 /** A label as a person reads it: "case_study_detail" is "Case study detail", "health & wellbeing" is "Health & wellbeing". */
 export const labelName = (value: string) => {
   const text = value.replace(/_/g, ' ');

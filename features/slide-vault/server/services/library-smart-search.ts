@@ -1,6 +1,6 @@
 import 'server-only';
 import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../ai/reader';
-import { labelMenu, mergeLabels } from '../ai/label-menu';
+import { aiPicks, labelMenu, mergeLabels } from '../ai/label-menu';
 import type { SearchPlan } from '../ai/search-plan';
 import { openAiCompatibleDeckFactsReader, type DeckFactsReader } from '../ai/deck-facts';
 import { openAiCompatibleStoryReader, type StoryReader } from '../ai/storyboard';
@@ -219,7 +219,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
       // The real decks are searched with what's known about each slide too: kind, sector, theme (FD-70).
       search: async (plan, max) => {
         wanted = mergeLabels(intent, plan.labels);
-        return [...byLearning(await orWithoutDb('search', () => smartSearchPg(plan, max, wanted), []), learned), ...smartSearchFixtures(index, plan, max, knownFor(wanted))].slice(0, max);
+        return [...byLearning(await orWithoutDb('search', () => smartSearchPg(plan, max, { ...wanted, ai: aiPicks(plan.labels) }), []), learned), ...smartSearchFixtures(index, plan, max, knownFor(wanted))].slice(0, max);
       },
       howCommon: (word) => wordShare(index, word),
       isKnownName: (word) => knownNames(index, readings).has(word),
