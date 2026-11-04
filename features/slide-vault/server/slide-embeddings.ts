@@ -73,7 +73,7 @@ type Near = { slide_id: string; similarity: number; themes: string[] | null; pro
  * Does a reading word read like a tag? Some themes are headlines copied off the slide ("we listen before we
  * design", real data 3 Nov), which nobody would click: a tag is one to three words, and doesn't open like a sentence.
  */
-const SENTENCE_START = /^(we|our|this|that|it|you|your|how|why|what|where|when|the|a|an|is|are)\b/i;
+const SENTENCE_START = /^(we|our|this|that|it|you|your|how|why|what|whats|where|when|the|a|an|is|are|meet|introducing|welcome)\b/i;
 export const tagLike = (t: string) => {
   const words = t.split(' ').filter(Boolean);
   return words.length >= 1 && words.length <= 3 && t.length <= 30 && !SENTENCE_START.test(t) && !/[.!?:;]/.test(t);
