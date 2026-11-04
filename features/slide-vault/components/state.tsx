@@ -326,7 +326,12 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   /* "bank case studies section" turns the Section filter on by itself, the way "2024" lights Year (FD-80). Taking it off
      lasts for that search only, so the next search that asks for a section turns it on again. */
   const [sectionOffFor, setSectionOffFor] = useState('');
-  const sectionsFromSearch = useMemo(() => (query.trim() && sectionOffFor !== query.trim() && search.status === 'ready' ? (search.result.sections ?? []) : []), [query, sectionOffFor, search]);
+  const sectionsFromSearch = useMemo(() => {
+    if (!query.trim() || sectionOffFor === query.trim() || search.status !== 'ready') return [];
+    const { sections = [], items } = search.result;
+    // Only a section this search has slides in: an automatic filter must never hide every result (decks with no sections found).
+    return sections.filter((kind) => items.some((i) => i.slide.section?.kind === kind));
+  }, [query, sectionOffFor, search]);
   const autoSection = filters.section.length === 0 && sectionsFromSearch.length === 1 ? sectionsFromSearch[0] : null;
   const dismissAutoSection = useCallback(() => setSectionOffFor(query.trim()), [query]);
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);

@@ -608,10 +608,10 @@ test('slide page: Share sits with the other buttons in Use this slide, once, and
   expect(await axe(page)).toEqual([]);
 });
 
-test('Deeper AI search: hidden when the server has no AI; off by default, remembered, and a short search is told so', async ({ page }) => {
+test('Search with AI: hidden when the server has no AI; off by default, remembered, and a short search asks first', async ({ page }) => {
   // No AI reader in this server: no switch.
   await openHome(page);
-  await expect(page.getByRole('switch', { name: 'Deeper AI search' })).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: 'Search with AI' })).toHaveCount(0);
 
   // Pretend the server has one. Short searches that ask for the AI come back flagged, as the real server does.
   await page.route('**/api/slide-vault/v1/session', (route) => route.fulfill({ json: { data: { contractVersion: 'test', capabilities: ['library.read'], aiAvailable: true } } }));
@@ -626,9 +626,9 @@ test('Deeper AI search: hidden when the server has no AI; off by default, rememb
     await route.fulfill({ response: res, json: body });
   });
   await page.goto('/slide-vault/pages');
-  const toggle = page.getByRole('switch', { name: 'Deeper AI search' });
+  const toggle = page.getByRole('checkbox', { name: 'Search with AI' });
   await expect(toggle).toBeVisible();
-  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  await expect(toggle).not.toBeChecked();
 
   // Off: every search tells the server to keep the AI out, and no note shows.
   await page.getByLabel('Search slides').fill('services');
@@ -640,8 +640,8 @@ test('Deeper AI search: hidden when the server has no AI; off by default, rememb
   await expect(page.getByText('Your search is short for the AI to read')).toHaveCount(0);
 
   // Turning it on reads the words already typed with the AI (no ai=off); too short, so it asks first.
-  await toggle.click();
-  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  await toggle.check();
+  await expect(toggle).toBeChecked();
   const note = page.getByText('This is a short search, and a regular search usually handles those well.');
   await expect(note).toBeVisible();
   const last = asked[asked.length - 1];
@@ -663,11 +663,46 @@ test('Deeper AI search: hidden when the server has no AI; off by default, rememb
 
   // Remembered on this device after a reload; turning it off sends ai=off again.
   await page.reload();
-  const again = page.getByRole('switch', { name: 'Deeper AI search' });
-  await expect(again).toHaveAttribute('aria-checked', 'true');
-  await again.click();
-  await expect(again).toHaveAttribute('aria-checked', 'false');
+  const again = page.getByRole('checkbox', { name: 'Search with AI' });
+  await expect(again).toBeChecked();
+  await again.uncheck();
+  await expect(again).not.toBeChecked();
   await page.getByLabel('Search slides').fill('services');
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
   expect(asked[asked.length - 1].get('ai')).toBe('off');
+});
+
+test('upload: tags the AI fills in are marked "please check", can be removed, and are named before uploading', async ({ page }) => {
+  // A stand-in for the AI: it names the client and suggests one deck tag and one slide tag (FD-85).
+  await page.route('**/api/slide-vault/v1/uploads/suggest', async (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { data: { aiAvailable: true } } });
+    return route.fulfill({
+      json: { data: {
+        suggestions: { client: { value: 'Harbor Bank', source: 'ai', evidence: 'x' }, year: null, category: null, bestOfTheBest: null, author: null, lastEditedBy: null, office: null },
+        reader: 'model', readerNote: null, slideCount: 4,
+        tags: { deck: [{ tag: 'workplace strategy & data', from: 'ai', score: 0.9 }], slides: { '2': [{ tag: 'cost certainty & risk', from: 'ai', score: 0.8 }] } },
+      } },
+    });
+  });
+  await openHome(page);
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Upload' }).click();
+  await page.locator('input[type=file]').setInputFiles('tests/fixtures/harbor-bank-proposal.pptx');
+  await expect(page.locator('.upcard')).toHaveCount(4);
+  await page.getByRole('button', { name: 'Fill the rest with AI' }).click();
+  await expect(page.getByText('Added 1 deck tag and 1 slide tag the AI read from your slides.')).toBeVisible();
+
+  // Marked, with the same "please check" line as the other filled-in details.
+  await expect(page.locator('.tagchip.is-auto')).toHaveCount(1);
+  await expect(page.locator('.upcard').nth(1).locator('.tag.is-auto')).toHaveCount(1);
+  await expect(page.getByText('Filled in from the AI (please check). Remove any that don’t fit.')).toBeVisible();
+  expect(await axe(page)).toEqual([]);
+
+  // Taking one off is one click and it is no longer "filled in"; the other is named before uploading.
+  await page.getByRole('button', { name: 'Remove tag workplace strategy & data' }).click();
+  await expect(page.locator('.tagchip.is-auto')).toHaveCount(0);
+  await expect(page.getByText('Filled in from the AI (please check). Remove any that don’t fit.')).toHaveCount(0);
+  await page.getByRole('textbox', { name: 'Year' }).fill('2025');
+  await page.getByRole('button', { name: 'Upload deck' }).click();
+  await expect(page.getByRole('dialog').getByText('1 tag filled in by the AI: please check it before you upload')).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
 });
