@@ -381,15 +381,15 @@ export async function setMyRole(runtime: Transport, role: StoryUserRole | null):
 /** Tags worth adding to a slide, from the slides closest to it in meaning (FD-82). Empty when that isn't set up. */
 export type TagSuggestionItem = { tag: string; from: 'people' | 'reading'; score: number };
 export async function tagSuggestions(runtime: Transport, slideId: string, signal?: AbortSignal): Promise<TagSuggestionItem[]> {
-  const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}/tag-suggestions`, method: 'GET', signal });
-  if (!res.ok) return [];
+  const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}/tag-suggestions`, method: 'GET', signal }).catch(() => null);
+  if (!res?.ok) return [];
   return ((await res.json()) as ApiOk<{ suggestions: TagSuggestionItem[] }>).data.suggestions;
 }
 
 /** Tag suggestions for a file in the upload form, before saving (FD-82): for the deck and per slide number. Empty when not set up or expired. */
 export async function previewTagSuggestions(runtime: Transport, token: string, signal?: AbortSignal): Promise<{ deck: TagSuggestionItem[]; slides: Record<string, TagSuggestionItem[]> }> {
-  const res = await runtime.request({ path: `/uploads/preview/${encodeURIComponent(token)}/tag-suggestions`, method: 'GET', signal });
-  if (!res.ok) return { deck: [], slides: {} };
+  const res = await runtime.request({ path: `/uploads/preview/${encodeURIComponent(token)}/tag-suggestions`, method: 'GET', signal }).catch(() => null);
+  if (!res?.ok) return { deck: [], slides: {} };
   return ((await res.json()) as ApiOk<{ deck: TagSuggestionItem[]; slides: Record<string, TagSuggestionItem[]> }>).data;
 }
 
@@ -413,4 +413,15 @@ export async function suggestUploadDetails(runtime: Transport, file: File, opts:
   const res = await runtime.request({ path: '/uploads/suggest', method: 'POST', body: form, signal });
   if (!res.ok) return null;
   return ((await res.json()) as ApiOk<UploadDetailSuggestions>).data;
+}
+
+/** Whether the server can fill upload details with AI (GET /uploads/suggest). False when unsure. */
+export async function uploadAiAvailable(runtime: Transport, signal?: AbortSignal): Promise<boolean> {
+  try {
+    const res = await runtime.request({ path: '/uploads/suggest', method: 'GET', signal });
+    if (!res.ok) return false;
+    return ((await res.json()) as ApiOk<{ aiAvailable: boolean }>).data.aiAvailable === true;
+  } catch {
+    return false;
+  }
 }

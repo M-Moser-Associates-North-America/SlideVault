@@ -6,12 +6,12 @@ What we measured, how, and what it showed. Two kinds of evidence: the client's o
 
 Every search Alina and Gabby typed or described in the 28 Oct check-in, plus the searches BD staff gave in the survey, run against the real library (23 decks, about 1,900 slides) with no AI model, so the result is the same every time. Each search has a pass rule written before running it.
 
-**14 of 15 pass (93%).**
+**15 of 15 pass (100%)** on the shared database (2 Nov). On the local library, which has no deck locations, 14 of 15.
 
 | Search | From | Pass rule | Result |
 |---|---|---|---|
 | "firm overview" | Gabby, 28:40 | The slide she meant (a named team member's page) in the top 10, and most of the top 10 from firm-overview sections | Pass: it's there, 6 of 10 from firm sections |
-| "recent IDD deck… case studies in [a city]" | Gabby, 17:20 | 8 of the top 10 from that city | **Fail: 3 of 10 locally** (see below) |
+| "recent IDD deck… case studies in [a city]" | Gabby, 17:20 | 8 of the top 10 from that city | **Pass: 10 of 10** on the shared database, 5 of them naming the city (3 of 10 locally, see below) |
 | "[client] case study" | Gabby, 38:48 | That client on all of the top 10 | Pass: 10 of 10 |
 | "[client] msa" | Alina, 39:24 | That client on all of the top 10 | Pass: 10 of 10 |
 | "2026" | Alina, 43:09 | All of the top 10 from 2026 decks | Pass: 10 of 10 |
@@ -26,7 +26,7 @@ Every search Alina and Gabby typed or described in the 28 Oct check-in, plus the
 | "slides that demonstrate our firm's value proposition" | Survey | About-the-firm or differentiator slides in 5 of the top 10 | Pass: 5 of 10 |
 | "Looking for a strategy proposal" | Survey | The workplace strategy deck in the top 10 | Pass: 3 of 10 |
 
-**The one miss.** "Case studies in [a city]" ranks case studies from other places above the ones that name the city, on the local library, where decks have no recorded location yet. It may rank better on the shared database, where deck locations are filled in (#19); it has not been checked there. Known follow-up: a deck's location should add to the word match, never replace it. "IDD" can't be tested at all: no deck in the library is labelled IDD yet.
+**The city search.** "Case studies in [a city]" missed on the local library (3 of 10), where decks have no recorded location, so case studies from other places ranked above the ones that name the city. After the fix that makes a deck's location add to the word match rather than replace it (#19), and with deck locations filled in on the shared database, it was checked there on 2 Nov: all 10 of the top 10 came from that city's deck, 5 of them naming the city, and the search read "recent", "IDD" and "case studies" as filters on its own. Caveat: only one recent IDD deck from that city is in the library, so this shows the right deck wins, not how it ranks against several.
 
 How to run it: the meeting-search script in the data folder (outside this repo, since it names real clients), with the real library settings loaded.
 
