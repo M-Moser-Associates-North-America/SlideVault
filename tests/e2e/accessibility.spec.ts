@@ -606,3 +606,61 @@ test('slide page: Share sits with the other buttons in Use this slide, once, and
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/slide-vault\/slide\//);
   expect(await axe(page)).toEqual([]);
 });
+
+test('Deeper AI search: hidden when the server has no AI; off by default, remembered, and a short search is told so', async ({ page }) => {
+  // No AI reader in this server: no switch.
+  await openHome(page);
+  await expect(page.getByRole('switch', { name: 'Deeper AI search' })).toHaveCount(0);
+
+  // Pretend the server has one. Short searches that ask for the AI come back flagged, as the real server does.
+  await page.route('**/api/slide-vault/v1/session', (route) => route.fulfill({ json: { data: { contractVersion: 'test', capabilities: ['library.read'], aiAvailable: true } } }));
+  const asked: URLSearchParams[] = [];
+  await page.route(/\/api\/slide-vault\/v1\/smart-search\?/, async (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    asked.push(params);
+    const res = await route.fetch();
+    const body = await res.json();
+    body.data.aiAvailable = true;
+    if (params.get('read') === '1' && params.get('ai') !== 'off') body.data.aiSkipped = 'short';
+    await route.fulfill({ response: res, json: body });
+  });
+  await page.goto('/slide-vault/pages');
+  const toggle = page.getByRole('switch', { name: 'Deeper AI search' });
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+  // Off: every search tells the server to keep the AI out, and no note shows.
+  await page.getByLabel('Search slides').fill('services');
+  await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
+  await page.getByLabel('Search slides').press('Enter');
+  await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
+  expect(asked.length).toBeGreaterThan(0);
+  expect(asked.every((p) => p.get('ai') === 'off')).toBe(true);
+  await expect(page.getByText('Your search is short for the AI to read')).toHaveCount(0);
+
+  // Turning it on reads the words already typed with the AI (no ai=off); too short, so the note offers more detail.
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByText('Your search is short for the AI to read')).toBeVisible();
+  const last = asked[asked.length - 1];
+  expect(last.get('read')).toBe('1');
+  expect(last.get('ai')).toBeNull();
+  expect(await axe(page)).toEqual([]);
+
+  // "Add detail" puts the cursor back in the search box with the words kept; "Keep these results" puts the note away.
+  await page.getByRole('button', { name: 'Add detail' }).click();
+  await expect(page.getByLabel('Search slides')).toBeFocused();
+  await expect(page.getByLabel('Search slides')).toHaveValue('services');
+  await page.getByRole('button', { name: 'Keep these results' }).click();
+  await expect(page.getByText('Your search is short for the AI to read')).toHaveCount(0);
+
+  // Remembered on this device after a reload; turning it off sends ai=off again.
+  await page.reload();
+  const again = page.getByRole('switch', { name: 'Deeper AI search' });
+  await expect(again).toHaveAttribute('aria-checked', 'true');
+  await again.click();
+  await expect(again).toHaveAttribute('aria-checked', 'false');
+  await page.getByLabel('Search slides').fill('services');
+  await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
+  expect(asked[asked.length - 1].get('ai')).toBe('off');
+});

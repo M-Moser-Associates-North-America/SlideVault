@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { archiveDeck as archiveDeckApi, createPack as createPackApi, deletePack as deletePackApi, getMySettings, listLibrary, renamePack as renamePackApi, renameSlide as renameSlideApi, setMyRole, setPackStatus as setPackStatusApi, smartSearch } from '../client/api';
+import { archiveDeck as archiveDeckApi, fetchAiAvailable, createPack as createPackApi, deletePack as deletePackApi, getMySettings, listLibrary, renamePack as renamePackApi, renameSlide as renameSlideApi, setMyRole, setPackStatus as setPackStatusApi, smartSearch } from '../client/api';
 import { withDemoDetails } from '../client/demo-details';
 import { useLocalPacks } from '../client/pack-store';
 import { buildPacks, NO_PACKS, type Pack, type PacksIndex } from '../client/packs';
@@ -64,6 +64,11 @@ type Workspace = {
   /** Slides hidden in their original deck are left out of search and the library unless this is on (FD-27) */
   includeHidden: boolean;
   setIncludeHidden: (on: boolean) => void;
+  /** The server has an AI reader, so "Deeper AI search" is offered at all (FD-79) */
+  aiAvailable: boolean;
+  /** "Deeper AI search" is ticked: submitted sentences and questions are read by the AI. Off until the person turns it on; remembered on this device. */
+  deeperAi: boolean;
+  setDeeperAi: (on: boolean) => void;
   /** Archived decks are left out of every list unless this is on (FD-50) */
   includeArchived: boolean;
   setIncludeArchived: (on: boolean) => void;
@@ -168,6 +173,8 @@ export function useWorkspace(): Workspace {
 }
 
 const SEARCH_DELAY_MS = 250;
+/** Where "Deeper AI search" being on is remembered, on this device only (FD-79). */
+const DEEPER_AI_KEY = 'slidevault:deeper-ai';
 const TOAST_MS = 5000;
 
 /** A pretend-data switch turned on by ?name=1 in the address and kept for the browser tab. Off unless asked for. */
@@ -210,6 +217,21 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const demoDetails = useDemoFlag('demodetails');
   /* Off by default: slides hidden in the original deck stay out. The switch beside the search bar turns them on. */
   const [includeHidden, setIncludeHidden] = useState(false);
+  /* "Deeper AI search" (FD-79): off until the person turns it on, then remembered on this device. */
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const [deeperAi, setDeeperAiRaw] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(DEEPER_AI_KEY) === 'on') setDeeperAiRaw(true);
+    } catch {
+      /* storage blocked: it just starts off each visit */
+    }
+  }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchAiAvailable(transport, controller.signal).then((on) => !controller.signal.aborted && setAiAvailable(on));
+    return () => controller.abort();
+  }, [transport]);
   /* Archived decks stay out unless the switch in the filters' More panel is on (FD-50). */
   const [includeArchived, setIncludeArchived] = useState(false);
   useEffect(() => {
@@ -242,6 +264,24 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     setQueryRaw(q);
     setSearch(q.trim() ? { status: 'loading' } : { status: 'idle' });
   }, []);
+  /* Turning it on with words already typed reads them now; turning it off shows the plain results again. */
+  const setDeeperAi = useCallback(
+    (on: boolean) => {
+      setDeeperAiRaw(on);
+      try {
+        localStorage.setItem(DEEPER_AI_KEY, on ? 'on' : 'off');
+      } catch {
+        /* not remembered */
+      }
+      if (query.trim()) {
+        if (on) setSubmitted(query.trim());
+        setSearch({ status: 'loading' });
+        setSearchTry((n) => n + 1);
+      }
+    },
+    [query],
+  );
+  const aiOn = aiAvailable && deeperAi;
   const retrySearch = useCallback(() => {
     setSearch({ status: 'loading' });
     setSearchTry((n) => n + 1);
@@ -251,15 +291,18 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     if (!q) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      smartSearch(transport, q, q === submitted, controller.signal, { includeHidden, role: currentStoryRole() })
-        .then((result) => setSearch({ status: 'ready', result: demoTitles.size ? { ...result, items: result.items.map((i) => ({ ...i, slide: withDemoTitle(i.slide) })) } : result }))
+      smartSearch(transport, q, q === submitted, controller.signal, { includeHidden, role: currentStoryRole(), ai: aiOn ? undefined : false })
+        .then((result) => {
+          if (typeof result.aiAvailable === 'boolean') setAiAvailable(result.aiAvailable);
+          setSearch({ status: 'ready', result: demoTitles.size ? { ...result, items: result.items.map((i) => ({ ...i, slide: withDemoTitle(i.slide) })) } : result });
+        })
         .catch((e: Error) => e.name !== 'AbortError' && setSearch({ status: 'error', message: e.message }));
     }, SEARCH_DELAY_MS);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [transport, query, submitted, searchTry, includeHidden]);
+  }, [transport, query, submitted, searchTry, includeHidden, aiOn]);
 
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);
@@ -564,6 +607,9 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     setPackStatus,
     includeHidden,
     setIncludeHidden,
+    aiAvailable,
+    deeperAi,
+    setDeeperAi,
     query,
     setQuery,
     submitSearch,

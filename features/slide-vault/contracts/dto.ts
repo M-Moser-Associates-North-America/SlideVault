@@ -35,6 +35,8 @@ export type ApiError = {
 export type Session = {
   contractVersion: string;
   capabilities: string[];
+  /** true when the server has an AI reader set up, so Home can offer "Deeper AI search" before the first search (FD-79) */
+  aiAvailable?: boolean;
 };
 
 /** Provenance every slide carries (docs/PRODUCT_BRIEF.md, PR-03). Unknown values stay null. */
@@ -280,6 +282,8 @@ export type SmartSearchResult = {
   readerNote: string | null;
   /** true when the server has an AI reader set up, so the screen can offer "Deeper AI search" (FD-79) */
   aiAvailable?: boolean;
+  /** 'short' when the AI was asked for but the search was too short for it (about four words or fewer and not a question): the rules read it; the screen can invite more detail (FD-79) */
+  aiSkipped?: 'short';
   /** How the request was read, as removable chips */
   chips: SmartSearchChip[];
   /** true when the request's filters left nothing, so results are shown without them */

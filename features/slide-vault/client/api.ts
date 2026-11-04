@@ -2,7 +2,7 @@
  * Typed calls to /api/slide-vault/v1, made only through the host's runtime.request()
  * (docs/INTEGRATION_CONTRACT.md: the host owns transport, authentication and the API root).
  */
-import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideComment, SlideVotes, TagRemoval, SectionListing, SectionSlides, SlideDetail, SlideSummary, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta, UploadPreview } from '../contracts/dto';
+import type { ApiError, ApiOk, ApiPage, DeckSummary, ExportRequest, FreeTag, SlideComment, SlideVotes, TagRemoval, SectionListing, SectionSlides, SlideDetail, SlideSummary, Session, SmartSearchResult, StoryboardResult, StoryFeedbackVerdict, StoryRefineRequest, StoryRefineResult, StoryRole, StoryUserRole, UploadDeckMeta, UploadPreview } from '../contracts/dto';
 import type { SlideVaultRuntime } from '../contracts/runtime';
 
 /** The part of the runtime API calls need. Stable across navigation in a well-behaved host. */
@@ -48,6 +48,17 @@ export async function smartSearch(runtime: Transport, query: string, read: boole
   const res = await runtime.request({ path: `/smart-search?${params}`, method: 'GET', signal });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<SmartSearchResult>).data;
+}
+
+/** Whether the server has an AI reader, so "Deeper AI search" can be offered before the first search (FD-79). Any failure reads as "not available". */
+export async function fetchAiAvailable(runtime: Transport, signal?: AbortSignal): Promise<boolean> {
+  try {
+    const res = await runtime.request({ path: '/session', method: 'GET', signal });
+    if (!res.ok) return false;
+    return ((await res.json()) as ApiOk<Session>).data.aiAvailable === true;
+  } catch {
+    return false;
+  }
 }
 
 const MAX_LIBRARY_PAGES = 30;

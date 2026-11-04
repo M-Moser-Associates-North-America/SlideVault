@@ -121,6 +121,19 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
   check(calls === 0 && r.reader === 'stand-in' && r.readerNote === null, 'flow: a basic search never calls the model, and shows no warning');
 }
 
+// ---- "Deeper AI search" (FD-79): a short search with the AI on says so, so the screen can invite more detail
+{
+  const reader: PlanReader = { name: 'fake', read: async () => cleanPlan({ keywords: ['team'] }, ctx) };
+  const short = await smartSearch('team slides', 10, { context, thisYear: 2026, reader, search: async () => [] }, { read: true });
+  check(short.aiSkipped === 'short' && short.reader === 'stand-in', 'ai: a short search asked for with the AI on is flagged "short" and read by the rules');
+  const typing = await smartSearch('team slides', 10, { context, thisYear: 2026, reader, search: async () => [] });
+  check(typing.aiSkipped === undefined, 'ai: typing (not submitted) is never flagged');
+  const off = await smartSearch('team slides', 10, { context, thisYear: 2026, reader: null, search: async () => [] }, { read: true });
+  check(off.aiSkipped === undefined, 'ai: with the AI off (or none set up) a short search is not flagged');
+  const long = await smartSearch('which team slides should I use for a bank?', 10, { context, thisYear: 2026, reader, search: async () => [] }, { read: true });
+  check(long.aiSkipped === undefined && long.reader === 'model', 'ai: a sentence is read by the model and not flagged');
+}
+
 // ---- Words that describe every slide are never search words
 {
   const p = cleanPlan({ keywords: ['hospitality', 'proposal', 'deck', 'slides'] }, ctx);

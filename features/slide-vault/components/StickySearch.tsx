@@ -1,6 +1,7 @@
 'use client';
 
 import type { FormEvent } from 'react';
+import { DeeperAiToggle } from './DeeperAiToggle';
 import { HiddenToggle } from './HiddenToggle';
 import { Icon } from './icons';
 import { useWorkspace } from './state';
@@ -27,6 +28,7 @@ export function StickySearch() {
           <Icon name="x" />
         </button>
       </form>
+      <DeeperAiToggle />
       <HiddenToggle />
     </div>
   );

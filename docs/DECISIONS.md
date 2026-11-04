@@ -829,15 +829,16 @@ Revisit trigger: enough verdicts that ranking inside the database query is worth
 
 ```text
 Decision ID and title: FD-79 "Deeper AI search" checkbox: the person can turn the AI reader off per search
-Status: proposed
+Status: accepted (screen built 2026-11-03)
 Decision date: 2026-11-02
-Decision owner/reviewer: Vincent (server); Khushali (checkbox by the search bar)
+Decision owner/reviewer: Vincent (server); Khushali (switch by the search bar)
 Context and evidence: Search has three tiers: word matching as you type, meaning search on submit (added after the word matches, local Ollama), and the AI reader on submit when SV_AI_PROVIDER is set. Submitting turned on both of the last two at once, and only the server's settings decided whether the AI ran. The team wants people to choose, near the search bar, whether the AI reads their search.
 Options considered: (a) a per-search ai=off flag the screen sends when the box is unticked; (b) a second server setting; (c) a per-person saved preference on the server.
 Chosen outcome: (a). GET /smart-search takes ai=off, which skips the AI reader for that search (readerForSearch); the rules read it instead, exactly as with no AI set up. Meaning search is unaffected. The response's aiAvailable says whether the server has an AI reader, so the checkbox only shows when there is something to turn on. The flag can only turn the AI off, never on.
 Consequences for scope, cost, security and integration: No database change. Unticked, nothing about the search leaves the server. With SV_AI_PROVIDER unset (M Moser's default until a provider is approved) aiAvailable is false and no checkbox shows.
 Acceptance evidence / affected PR criteria: test:smart-search (3 new checks: ai=off skips the reader; otherwise the configured reader is used; ai=on never adds one). typecheck and lint pass.
 Documents/contracts changed: app/api/slide-vault/v1/smart-search/route.ts, server/services/library-smart-search.ts (readerForSearch), server/services/smart-search.ts and contracts/dto.ts (aiAvailable), client/api.ts (ai option), scripts/test-smart-search.mts, docs/DATA_AND_API.md.
+Screen (2026-11-03): a switch beside the search bar (Home and the sticky bar), shown only when the server has an AI reader. It is OFF by default (opt-in: Alina has approved the AI, but search words go to the AI service only when the person turns it on) and remembered on that device in the browser (localStorage `slidevault:deeper-ai`). Unticked, every search sends ai=off. Turning it on with words typed reads them now; turning it off re-runs them with the rules. Whether to offer it is known before the first search: GET /session now returns aiAvailable (the search response still carries it too). Short searches: the server still never calls the model for four words or fewer that are not a question (FD-17), so cost and wait stay low; with the AI on, such a submitted search comes back with aiSkipped: 'short' and the screen shows a note, "Your search is short for the AI to read", with Add detail (cursor back in the search box) and Keep these results. The results page says "Read by AI." when the model read the request.
 Revisit trigger: people want the choice remembered across devices (then option c).
 ```
 
