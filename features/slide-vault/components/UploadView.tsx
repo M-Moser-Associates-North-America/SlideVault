@@ -184,10 +184,10 @@ export function UploadView() {
     );
   };
 
-  /* "Fill the rest with AI" also adds the tags suggested from similar slides: once for the deck and a few for each slide.
-     They arrive a few seconds after the file is read, so this waits for them if they are not here yet. Nothing is saved
+  /* "Fill the rest with AI" also adds tags: the ones the AI reads from the slides (FD-85), or, if it gives none, the ones
+     suggested from similar slides, which arrive a few seconds after the file is read, so this waits for them if not here yet. Nothing is saved
      until Upload, each tag can be removed like any other, and the note asks the person to check them (Alina's rule). */
-  const addSuggestedTags = (items: { deck: TagSuggestionItem[]; slides: Record<string, TagSuggestionItem[]> }) => {
+  const addSuggestedTags = (items: { deck: TagSuggestionItem[]; slides: Record<string, TagSuggestionItem[]> }, source: 'ai' | 'similar' = 'similar') => {
     wantAiTags.current = false;
     const has = (list: string[], t: string) => list.some((x) => x.toLowerCase() === t.toLowerCase());
     const now = lastTags.current;
@@ -205,7 +205,7 @@ export function UploadView() {
     }
     if (deckAdd.length) setTags((cur) => [...cur, ...deckAdd.filter((t) => !has(cur, t))]);
     if (slideN) setSlideTags((cur) => ({ ...cur, ...Object.fromEntries(Object.entries(slideAdd).map(([n, add]) => [n, [...(cur[Number(n)] ?? []), ...add.filter((t) => !has(cur[Number(n)] ?? [], t))]])) }));
-    const note = deckAdd.length + slideN > 0 ? `Added ${plural(deckAdd.length, 'deck tag')} and ${plural(slideN, 'slide tag')} from similar slides. Please check them; nothing is saved until you upload.` : 'No tag suggestions for this deck yet.';
+    const note = deckAdd.length + slideN > 0 ? `Added ${plural(deckAdd.length, 'deck tag')} and ${plural(slideN, 'slide tag')} ${source === 'ai' ? 'the AI read from your slides' : 'from similar slides'}. Please check them; nothing is saved until you upload.` : 'No tag suggestions for this deck yet.';
     setAiState((s) => (s.kind === 'done' ? { kind: 'done', note: `${s.note} ${note}` } : s));
     announce(note);
   };
@@ -219,7 +219,7 @@ export function UploadView() {
     if (!file) return;
     const token = readToken.current;
     setAiState({ kind: 'reading' });
-    const got = await suggestUploadDetails(runtime, file, { ai: true }).catch(() => null);
+    const got = await suggestUploadDetails(runtime, file, { ai: true, tags: true }).catch(() => null);
     if (token !== readToken.current) return;
     if (!got) {
       setAiState({ kind: 'done', note: "The AI couldn't read this file just now. Please fill in the rest yourself." });
@@ -250,7 +250,15 @@ export function UploadView() {
     const note = got.readerNote ?? (added.length ? `Filled in ${list(added)}. Please check ${added.length > 1 ? 'them' : 'it'}.` : 'Nothing more could be read from this file. Please fill in the rest yourself.');
     setAiState({ kind: 'done', note });
     announce(note);
-    askForSuggestedTags();
+    // The AI read the slides for tags too: add them. If it gave none, fall back to the tags suggested from similar slides.
+    if (got.tags && (got.tags.deck.length || Object.keys(got.tags.slides).length)) {
+      const fromAi = got.tags;
+      setSugg((cur) => ({
+        deck: [...fromAi.deck, ...cur.deck.filter((x) => !fromAi.deck.some((y) => y.tag.toLowerCase() === x.tag.toLowerCase()))],
+        slides: Object.fromEntries([...new Set([...Object.keys(cur.slides), ...Object.keys(fromAi.slides)])].map((n) => [n, [...(fromAi.slides[n] ?? []), ...(cur.slides[n] ?? []).filter((x) => !(fromAi.slides[n] ?? []).some((y) => y.tag.toLowerCase() === x.tag.toLowerCase()))]])),
+      }));
+      addSuggestedTags(fromAi, 'ai');
+    } else askForSuggestedTags();
   };
   const missingDetails = !clientName.trim() || !deckYear.trim() || picked.length === 0;
 

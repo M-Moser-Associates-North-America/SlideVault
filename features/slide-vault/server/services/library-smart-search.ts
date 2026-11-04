@@ -3,6 +3,8 @@ import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '.
 import { aiPicks, labelMenu, mergeLabels } from '../ai/label-menu';
 import type { SearchPlan } from '../ai/search-plan';
 import { openAiCompatibleDeckFactsReader, type DeckFactsReader } from '../ai/deck-facts';
+import { cleanDeckTags, openAiCompatibleDeckTagsReader, slidesForTags, type DeckTagsReader, type UploadTagSuggestions } from '../ai/deck-tags';
+import { extractSlides } from '../../../../workers/slide-vault/processors/extract-text';
 import { openAiCompatibleStoryReader, type StoryReader } from '../ai/storyboard';
 import { groupDuplicates, type SlideText } from '../duplicates';
 import { hasMmoserConfig } from '../config';
@@ -465,6 +467,30 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
 export function configuredDeckFactsReader(env: Record<string, string | undefined> = process.env): DeckFactsReader | null {
   const config = readAiConfig(env);
   return config.provider === 'none' ? null : openAiCompatibleDeckFactsReader(config);
+}
+
+/** The AI that suggests tags for an upload (FD-85); null when no AI is set up. A bad setting throws, as for the other readers. */
+export function configuredDeckTagsReader(env: Record<string, string | undefined> = process.env): DeckTagsReader | null {
+  const config = readAiConfig(env);
+  return config.provider === 'none' ? null : openAiCompatibleDeckTagsReader(config);
+}
+
+/**
+ * Deck and slide tags the AI reads from a file about to be uploaded (FD-85). Null when it can't: the person still
+ * has the details and the tags suggested from similar slides. Nothing is stored.
+ */
+export async function suggestUploadTags(fileName: string, bytes: Uint8Array, opts: { reader: DeckTagsReader | null; clientName?: string | null }): Promise<UploadTagSuggestions | null> {
+  if (!opts.reader) return null;
+  try {
+    const slides = slidesForTags(await extractSlides(bytes));
+    if (!slides.length) return null;
+    const menu = labelMenu(SECTOR_NAMES);
+    const answer = await opts.reader.read({ fileName, slides, themes: menu.themes, sectors: menu.sectors });
+    return cleanDeckTags(answer, { slideNumbers: slides.map((s) => s.number), themes: menu.themes, sectors: menu.sectors, clientName: opts.clientName });
+  } catch (e) {
+    console.warn(`Deck tags reader ${opts.reader.name} unavailable, no AI tags: ${(e as Error).message}`);
+    return null;
+  }
 }
 
 /** Suggested deck facts for a file about to be uploaded, checked against the library's categories (FD-23). */

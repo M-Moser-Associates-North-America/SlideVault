@@ -391,7 +391,7 @@ export async function setMyRole(runtime: Transport, role: StoryUserRole | null):
 }
 
 /** Tags worth adding to a slide, from the slides closest to it in meaning (FD-82). Empty when that isn't set up. */
-export type TagSuggestionItem = { tag: string; from: 'people' | 'reading'; score: number };
+export type TagSuggestionItem = { tag: string; from: 'people' | 'reading' | 'ai'; score: number };
 export async function tagSuggestions(runtime: Transport, slideId: string, signal?: AbortSignal): Promise<TagSuggestionItem[]> {
   const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}/tag-suggestions`, method: 'GET', signal }).catch(() => null);
   if (!res?.ok) return [];
@@ -416,12 +416,15 @@ export type UploadDetailSuggestions = {
   reader: 'rules' | 'model';
   readerNote: string | null;
   slideCount: number;
+  /** Tags the AI read from the slides (FD-85), present only when asked for (`tags: true`) and when it worked */
+  tags?: { deck: TagSuggestionItem[]; slides: Record<string, TagSuggestionItem[]> };
 };
-export async function suggestUploadDetails(runtime: Transport, file: File, opts: { ai: boolean; folderPath?: string | null }, signal?: AbortSignal): Promise<UploadDetailSuggestions | null> {
+export async function suggestUploadDetails(runtime: Transport, file: File, opts: { ai: boolean; tags?: boolean; folderPath?: string | null }, signal?: AbortSignal): Promise<UploadDetailSuggestions | null> {
   const form = new FormData();
   form.set('file', file);
   if (opts.folderPath) form.set('folderPath', opts.folderPath);
   if (opts.ai) form.set('read', 'true');
+  if (opts.ai && opts.tags) form.set('tags', 'true');
   const res = await runtime.request({ path: '/uploads/suggest', method: 'POST', body: form, signal });
   if (!res.ok) return null;
   return ((await res.json()) as ApiOk<UploadDetailSuggestions>).data;

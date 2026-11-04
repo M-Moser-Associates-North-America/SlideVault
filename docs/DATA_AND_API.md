@@ -73,7 +73,7 @@ Every route below exists under `/api/slide-vault/v1` (one `route.ts` per path in
 | `DELETE /tags/:id`, `POST /tags/:id/restore`, `GET /tags/removed` | Remove (kept, with who and when), restore, and the removal log | FD-72 |
 | `POST /packs`, `PATCH /packs/:id`, `DELETE /packs/:id` | Slides that only work together: make, rename or confirm, ungroup | FD-38, FD-52 |
 | `POST /uploads/preview`, `GET /uploads/preview/:token/:slide` | See an upload's slides before saving it | FD-54 |
-| `POST /uploads/suggest` | Suggested deck details from the file (AI optional) | FD-23 |
+| `POST /uploads/suggest` | Suggested deck details from the file (AI optional); `tags=true` with `read=true` also has the AI read the slides for tags: `{ tags: { deck: [{ tag, from: 'ai', score }], slides: { '3': [...] } } }`, up to 5 for the deck and 2 per slide, left out when it can't | FD-23, FD-85 |
 | `POST /uploads` | Save an uploaded deck with its details and tags | FD-52, FD-54 |
 | `GET /me/settings`, `PATCH /me/settings` | The signed-in person's settings, including their role | FD-71 |
 | `GET/POST/PATCH /me/activity` | Opt-in activity (90 days) for Top 10 and Suggested rows | FD-18 |
