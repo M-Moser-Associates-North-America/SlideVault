@@ -736,7 +736,7 @@ export function ResultsView() {
                 We read this as:
               </span>
               {extraChips.map((c) =>
-                c.kind === 'Topic' ? (
+                c.kind === 'Topic' || c.kind === 'Label' ? (
                   <span key={`${c.kind}:${c.label}`} className="chip-x">
                     <span className="k">{c.kind}:</span> {c.label}
                   </span>

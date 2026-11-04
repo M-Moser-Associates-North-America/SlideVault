@@ -163,6 +163,9 @@ const SECTOR_WORDS: [string, RegExp][] = [
   ['resources', /\b(mining|energy|oil|gas|resources)\b/],
 ];
 
+/** The sector names the rules know, for the AI's label menu (FD-82). */
+export const SECTOR_NAMES = SECTOR_WORDS.map(([name]) => name);
+
 /**
  * The needs a brief can name, each read from the brief's plain words and found on slides by the
  * words decks use for it ("burnt out" in a brief, "wellbeing" on a slide). Every slide in a storyboard

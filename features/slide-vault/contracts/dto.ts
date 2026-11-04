@@ -264,7 +264,7 @@ export type LibrarySlide = {
 export type LibraryData = { decks: LibraryDeck[]; slides: LibrarySlide[] };
 
 /** GET /smart-search (docs/DECISIONS.md FD-16, FD-17): results with the reading shown and a reason per slide. */
-export type SmartSearchChip = { kind: 'Topic' | 'Client' | 'Year' | 'Category' | 'Collection' | 'Mentions'; label: string };
+export type SmartSearchChip = { kind: 'Topic' | 'Label' | 'Client' | 'Year' | 'Category' | 'Collection' | 'Mentions'; label: string };
 
 export type SmartSearchItem = {
   slide: SlideSummary;

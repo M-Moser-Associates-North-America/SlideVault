@@ -15,6 +15,7 @@ import { asksForCover, deckSections, isSectionSearch, sectionKind, sectionKinds,
 import { taggedFirst, typedTags, type TagHit } from '../features/slide-vault/server/services/tagged-first';
 import { cleanSearchFeedback, learnedForSearch, learnedScore, searchWords, sinks } from '../features/slide-vault/server/search-feedback';
 import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
+import { cleanLabels, hasLabels, labelMenu, labelName, mergeLabels } from '../features/slide-vault/server/ai/label-menu';
 import { byLearning, readerForSearch } from '../features/slide-vault/server/services/library-smart-search';
 
 let failures = 0;
@@ -244,6 +245,31 @@ for (const [env, label] of [
   check(threw, `config: ${label} is an error, not a silent fallback`);
 }
 
+// ---- The team's labels as a menu for the AI (FD-82)
+{
+  const menu = labelMenu(['healthcare', 'financial services', 'retail']);
+  const withMenu: PlanContext = { ...ctx, labels: menu };
+  const picked = cleanLabels({ slideTypes: ['Case_Study_Detail', 'not_a_type', 'team_resume', 'cover'], themes: ['HYBRID / flexible work', 'made up', 'AI', 'brand experience', 'health & wellbeing'], sectors: ['Healthcare', 'space travel', 'retail', 'financial services'] }, menu);
+  check(picked.types.join() === 'case_study_detail,team_resume', 'labels: only menu values survive, spelled as the menu spells them, at most 2 types', picked.types);
+  check(picked.themes.join() === 'hybrid / flexible work,AI,brand experience', 'labels: at most 3 themes, invented ones dropped', picked.themes);
+  check(picked.sectors.join() === 'healthcare,retail', 'labels: at most 2 sectors, invented ones dropped', picked.sectors);
+  check(!hasLabels(cleanLabels({ slideTypes: 'cover', themes: [1, null], sectors: {} }, menu)), 'labels: wrongly shaped answers become no labels');
+  const merged = mergeLabels({ types: ['team_resume'], sectors: ['financial services'], themes: [] }, { types: ['team_resume', 'case_study_detail'], themes: ['AI'], sectors: ['Healthcare'] });
+  check(merged.types.join() === 'team_resume,case_study_detail' && merged.themes.join() === 'AI' && merged.sectors.join() === 'financial services,healthcare', 'labels: the AI adds to what the rules read, never twice, sectors lowercase', merged);
+  const rules = { types: ['cover'], sectors: [], themes: [] };
+  check(mergeLabels(rules, undefined) === rules && mergeLabels(rules, { types: [], themes: [], sectors: [] }) === rules, 'labels: with nothing from the AI the rules\' reading is exactly as it was');
+  check(labelName('case_study_detail') === 'Case study detail' && labelName('health & wellbeing') === 'Health & wellbeing' && labelName('AI') === 'AI', 'labels: shown the way a person reads them');
+
+  // Through the whole flow: the AI's labels reach the search and show as chips, though they are not words in the request.
+  const seen: (SearchPlan['labels'])[] = [];
+  const reader: PlanReader = { name: 'fake', read: async () => cleanPlan({ summary: 'Staff wellbeing', keywords: ['wellbeing'], topics: ['Wellbeing'], themes: ['health & wellbeing'], slideTypes: ['case_study_detail', 'bogus'] }, withMenu) };
+  const r = await smartSearch('slides that show we care about how our people feel at work?', 10, { context: async () => ({ ...ctx, labels: menu }), thisYear: 2026, reader, search: async (p) => { seen.push(p.labels); return []; } }, { read: true });
+  check(seen[0]?.themes.join() === 'health & wellbeing' && seen[0]?.types.join() === 'case_study_detail', 'labels: the search is given the AI\'s labels', seen);
+  check(r.chips.some((c) => c.kind === 'Label' && c.label === 'Health & wellbeing') && r.chips.some((c) => c.kind === 'Label' && c.label === 'Case study detail'), 'labels: the screen is told what the AI read, as Label chips', r.chips);
+  const rules2 = await smartSearch('team slides', 10, { context: async () => ({ ...ctx, labels: menu }), thisYear: 2026, reader: null, search: async (p) => { seen.push(p.labels); return []; } }, { read: true });
+  check(rules2.chips.every((c) => c.kind !== 'Label') && !hasLabels(seen[seen.length - 1]), 'labels: without the AI there are no AI labels', { seen, chips: rules2.chips });
+}
+
 // ---- The OpenAI-compatible reader, against a fake API
 {
   type Sent = { url: string; headers: Record<string, string>; body: Record<string, unknown> };
@@ -262,6 +288,15 @@ for (const [env, label] of [
   const system = String((s.body.messages as { content: string }[])[0].content);
   check(system.includes('Northgate Bank') && !system.includes('Kestrel Law'), 'reader: sends only the client names it was given');
   check(p.client === 'Northgate Bank' && p.keywords.includes('our people'), 'reader: plan read back and cleaned', p);
+  const withMenu: PlanContext = { ...ctx, clients: ['Northgate Bank'], labels: labelMenu(['healthcare']) };
+  const labelled = { ...plan, slideTypes: ['team_resume', 'nope'], themes: ['inclusion & DEI'], sectors: ['healthcare'] };
+  const lp = await openAiCompatibleReader({ baseUrl: 'http://localhost:11434/v1', apiKey: null, model: 'qwen3:8b', timeoutMs: 5000 }, reply(JSON.stringify(labelled))).read('people from different backgrounds', withMenu);
+  const sys2 = String(((box.sent as Sent).body.messages as { content: string }[])[0].content);
+  const schema = ((box.sent as Sent).body.response_format as { json_schema: { schema: { properties: Record<string, unknown>; required: string[] } } }).json_schema.schema;
+  check(sys2.includes('hybrid / flexible work') && sys2.includes('team_resume: a team member') && sys2.includes('Sectors: healthcare'), 'reader: the label menu is in the instructions, names only');
+  check(['slideTypes', 'themes', 'sectors'].every((k) => k in schema.properties && schema.required.includes(k)), 'reader: the reply format asks for slideTypes, themes and sectors');
+  check(lp.labels?.types.join() === 'team_resume' && lp.labels?.themes.join() === 'inclusion & DEI' && lp.labels?.sectors.join() === 'healthcare', 'reader: labels read back and checked against the menu', lp.labels);
+  check(!system.includes('Slide types (value'), 'reader: no menu offered, none in the instructions');
 
   await openAiCompatibleReader({ baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-test', model: 'gpt-x', timeoutMs: 5000 }, reply(JSON.stringify(plan))).read('x', ctx);
   check((box.sent as Sent).headers.authorization === 'Bearer sk-test', 'reader: hosted provider gets a bearer key');

@@ -1,5 +1,6 @@
 import 'server-only';
 import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../ai/reader';
+import { labelMenu, mergeLabels } from '../ai/label-menu';
 import type { SearchPlan } from '../ai/search-plan';
 import { openAiCompatibleDeckFactsReader, type DeckFactsReader } from '../ai/deck-facts';
 import { openAiCompatibleStoryReader, type StoryReader } from '../ai/storyboard';
@@ -15,7 +16,7 @@ import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures, type Search
 import { answersIntent, asksForAnything, intentScore, intentWhy, knownFromStory, searchIntent } from './slide-intent';
 import { loadSlideReadings } from '../slide-knowledge';
 import { mentionsWord, smartSearch, type SmartSearchResponse } from './smart-search';
-import { buildStoryboard, clientSectors, keptOutOfStories, type StoryboardResponse } from './storyboard';
+import { buildStoryboard, clientSectors, keptOutOfStories, SECTOR_NAMES, type StoryboardResponse } from './storyboard';
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
 import { familiesOf } from './families';
@@ -190,14 +191,17 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     return 5 + (sec.divider ? (cover ? 12 : 1) : cover ? 0 : Math.max(0, 3 - sec.position) * 0.5);
   };
   const notRelevant = (id: string) => sinks(learned.get(id));
-  const known: SearchKnowledge = {
+  // What the search asks for in labels: the rules' own reading, plus what the AI adds when it reads the search (FD-82).
+  // The AI's picks arrive with the plan, so this is set when the search runs; the rules alone until then.
+  let wanted = intent;
+  const knownFor = (it: typeof intent): SearchKnowledge => ({
     about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
-    boost: (id) => intentScore(intent, readings.get(id)) + sectionScore(id) + learnedScore(learned.get(id)) + roleLean(opts.by ?? null, readings.get(id)),
-    answers: (id) => (asksForAnything(intent) && answersIntent(intent, readings.get(id))) || inAsked(id),
+    boost: (id) => intentScore(it, readings.get(id)) + sectionScore(id) + learnedScore(learned.get(id)) + roleLean(opts.by ?? null, readings.get(id)),
+    answers: (id) => (asksForAnything(it) && answersIntent(it, readings.get(id))) || inAsked(id),
     // Hidden-in-source and internal-only slides are left out before the limit (FD-50, FD-53): a deck
     // that opens with hidden notes (Ferrous MSA) otherwise fills "ferrous msa" with slides the app then drops.
     skip: (s) => !opts.includeHidden && (s.hiddenInSource || isInternalOnly(s)),
-  };
+  });
   const result = await smartSearch(
     query,
     limit,
@@ -208,16 +212,20 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
         return {
           clients: [...new Set([...db.clients, ...fx.clients])].sort(),
           categories: [...new Set([...db.categories, ...fx.categories])].sort(),
+          labels: labelMenu(SECTOR_NAMES),
         };
       },
       reader: opts.reader,
       // The real decks are searched with what's known about each slide too: kind, sector, theme (FD-70).
-      search: async (plan, max) => [...byLearning(await orWithoutDb('search', () => smartSearchPg(plan, max, intent), []), learned), ...smartSearchFixtures(index, plan, max, known)].slice(0, max),
+      search: async (plan, max) => {
+        wanted = mergeLabels(intent, plan.labels);
+        return [...byLearning(await orWithoutDb('search', () => smartSearchPg(plan, max, wanted), []), learned), ...smartSearchFixtures(index, plan, max, knownFor(wanted))].slice(0, max);
+      },
       howCommon: (word) => wordShare(index, word),
       isKnownName: (word) => knownNames(index, readings).has(word),
       alsoMeans: (word) => clientSectors(word),
       madeIn: (s) => s.provenance.location ?? null,
-      rankLast: (s) => (readings.get(s.id)?.type === 'team_resume' && !intent.types.includes('team_resume')) || notRelevant(s.id),
+      rankLast: (s) => (readings.get(s.id)?.type === 'team_resume' && !wanted.types.includes('team_resume')) || notRelevant(s.id),
       // A slide "mentions" Toronto when its deck was made there, and QNBC when the model read it on the slide.
       alsoSays: (s) => { const k = readings.get(s.id); return [k?.about, k?.topics.join(' '), k?.sectors?.join(' '), k?.clientSector, k?.themes?.join(' '), k?.projects?.join(' '), s.provenance.sourceTitle, s.provenance.sourceFileName, s.provenance.location, s.provenance.clientName].filter(Boolean).join(' '); },
       log: (m) => console.warn(m),
@@ -264,7 +272,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   // Say what each slide is in the search's terms, ahead of the words it matched.
   const said = (id: string, why: string) => {
     // What the local files know (sample decks), else what the database knows (real decks, FD-70).
-    const kind = intentWhy(intent, readings.get(id) ?? knownFromStory(byId.get(id)!.slide));
+    const kind = intentWhy(wanted, readings.get(id) ?? knownFromStory(byId.get(id)!.slide));
     const where = sectionWhy(sections.get(id), asked, cover);
     return [where, kind, why].filter(Boolean).join(' ').trim();
   };
