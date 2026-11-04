@@ -42,3 +42,13 @@ Use `rg` for file/text discovery. Preserve unrelated changes and keep each chang
 For implementation changes, run the actual available type, lint, targeted test and build commands required by the delivery plan. For UI changes inspect relevant loading, empty, error, keyboard and light/dark states in a browser. For export changes inspect real exported files in the agreed PowerPoint clients. Report what passed, what was not run, and any remaining limitation. Never substitute simulated success for verification.
 
 Update documentation and contract examples when behavior changes. Do not commit secrets, real client documents, model payload logs, generated exports, or private screenshots. Do not push, deploy, message third parties, or grant access unless the owner has authorized that action.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

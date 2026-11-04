@@ -6,7 +6,7 @@ Build it as a complete standalone application with modular interfaces that allow
 
 ## Start here
 
-This is a documentation and reference repository as of **29 September 2026**. There is no application, package manifest, backend, or executable test suite yet. The HTML is an interactive mockup with simulated behavior. The documents below describe the intended implementation, not working features.
+**Status, 7 October 2026:** a runnable prototype exists. It covers the slide library, search, slide preview, ordered selection and editable PowerPoint export, built and tested on synthetic fixtures. Setup and commands: [docs/foundry/RUNNING.md](docs/foundry/RUNNING.md). How we build: [docs/foundry/CONVENTIONS.md](docs/foundry/CONVENTIONS.md). Prototype shortcuts are recorded as proposed decisions FD-01 to FD-08 in [Decisions](docs/DECISIONS.md). There is no database, job worker, sign-in or upload yet, and exports combine slides from one deck at a time. The HTML is an interactive mockup with simulated behavior. The documents below describe the intended implementation; only what the run guide lists is working.
 
 | Read | Purpose |
 | --- | --- |

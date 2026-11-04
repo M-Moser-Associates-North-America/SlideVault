@@ -56,6 +56,8 @@ interface SlideVaultRuntime {
 interface SlideVaultWorkspaceProps { runtime: SlideVaultRuntime }
 ```
 
+> **Compilable types (prototype):** `features/slide-vault/contracts/runtime.ts`, contract v0.1. It adds `assetUrl(path)` for media such as slide previews (proposed, see [DECISIONS.md](DECISIONS.md) FD-04).
+
 Implement the runtime bridge in a Client Component. Functions, sets and adapter instances cannot be passed as ordinary serialized props from a Server Component. Pass only serializable initial data across that boundary, then construct the bridge on the client.
 
 `request` adds authentication and the configured API root outside the feature. It accepts only relative feature paths, rejects absolute URLs and path traversal, and does not forward credentials to a signed storage URL. A separate upload method may PUT binary content to a scoped upload grant. Neither API secrets nor raw session credentials enter feature state, local storage, analytics, or public component props.
