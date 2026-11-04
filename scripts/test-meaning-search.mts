@@ -135,6 +135,31 @@ check(res.status === 200 && body.data.available && body.data.items[0]?.slide.tit
   const tsRes = await tsRoute.GET(new Request('http://localhost/x'), { params: Promise.resolve({ slideId: team }) } as never);
   const tsBody = (await tsRes.json()) as { data: { suggestions: { tag: string }[] } };
   check(tsRes.status === 200 && tsBody.data.suggestions.some((x) => x.tag === 'team culture'), 'GET /slides/:id/tag-suggestions answers', tsBody);
+  // Before saving: a file in the upload form gets suggestions from the library (nothing stored).
+  const { previewTagSuggestions } = await import('../features/slide-vault/server/slide-embeddings');
+  const [{ n: before }] = await sql<{ n: string }>('select count(*) as n from slide_embeddings');
+  const pre = await previewTagSuggestions([
+    { number: 1, title: 'Meet our people', text: 'Our team and staff, the crew you will meet' },
+    { number: 2, title: 'Slide 2', text: '' },
+    { number: 3, title: 'Hidden notes', text: 'Our team and staff notes for internal use', hidden: true },
+  ]);
+  const preTags = pre.slides['1']?.map((x) => x.tag) ?? [];
+  check(preTags.includes('Leadership') || preTags.includes('leadership') || preTags.includes('team culture'), 'upload form: a slide not saved yet gets tag suggestions from close library slides', pre);
+  check(!pre.slides['2'] && !pre.slides['3'] && pre.deck.length > 0, 'upload form: no suggestions for wordless or hidden slides; the deck gets its own list', pre);
+  const [{ n: stored }] = await sql<{ n: string }>('select count(*) as n from slide_embeddings');
+  check(stored === before, 'upload form: nothing is stored for a file that is only being previewed', { before, stored });
+  const { mkdirSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const token = 'a'.repeat(64);
+  mkdirSync(path.join(tmpdir(), 'slidevault-preview', token), { recursive: true });
+  writeFileSync(path.join(tmpdir(), 'slidevault-preview', token, 'slides.json'), JSON.stringify([{ number: 1, title: 'Meet our people', text: 'Our team and staff, the crew you will meet', hidden: false }]));
+  const preRoute = await import('../app/api/slide-vault/v1/uploads/preview/[token]/tag-suggestions/route');
+  resetRateLimits();
+  const preRes = await preRoute.GET(new Request('http://localhost/x'), { params: Promise.resolve({ token }) } as never);
+  const preBody = (await preRes.json()) as { data: { deck: unknown[]; slides: Record<string, unknown[]> } };
+  check(preRes.status === 200 && (preBody.data.slides['1']?.length ?? 0) > 0, 'GET /uploads/preview/:token/tag-suggestions answers for a previewed file', preBody);
+  resetRateLimits();
+  check((await preRoute.GET(new Request('http://localhost/x'), { params: Promise.resolve({ token: 'b'.repeat(64) }) } as never)).status === 404, 'an expired preview answers 404');
   const { tagLike } = await import('../features/slide-vault/server/slide-embeddings');
   check(tagLike('business ambition') && tagLike('Net zero') && !tagLike('we listen before we design') && !tagLike('this is where we come in') && !tagLike('Our approach') && !tagLike('whats inside'), 'reading words: short phrases are tags, copied headlines are not');
   const ranked = rankTagSuggestions([

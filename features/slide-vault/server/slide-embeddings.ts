@@ -136,3 +136,51 @@ export async function tagSuggestions(slideId: string, limit = 5): Promise<TagSug
     return [];
   }
 }
+
+/**
+ * Tag suggestions inside the upload form, before anything is saved (FD-82): each preview slide's words
+ * get a fingerprint on the spot (nothing stored), and the library's closest slides suggest tags, as for a
+ * saved slide. Per slide (up to 3) and for the whole deck (up to 5, the words its slides' neighbours share
+ * most). Hidden slides and slides with almost no words get none. Empty, never an error, when it can't run.
+ */
+export type PreviewSlideText = { number: number; title: string; text?: string; hidden?: boolean };
+export type PreviewTagSuggestions = { deck: TagSuggestion[]; slides: Record<string, TagSuggestion[]> };
+const MAX_PREVIEW_SLIDES = 80;
+const PREVIEW_MIN_WORDS = 4;
+
+const NEAR_VECTOR = `with near as (
+    select e.slide_id, 1 - (e.embedding <=> $1::vector) as similarity
+    from slide_embeddings e join slides s on s.id = e.slide_id join decks d on d.id = s.deck_id
+    where e.model = $2 and d.status = 'ready' and d.archived_at is null
+    order by e.embedding <=> $1::vector limit $3
+  )
+  select near.slide_id::text as slide_id, near.similarity, s.themes, s.proof_sectors, d.client_sector,
+    (select array_agg(t.tag) from free_tags t where t.target_kind = 'slide' and t.target_id = near.slide_id and t.removed_at is null) as tags
+  from near join slides s on s.id = near.slide_id join decks d on d.id = s.deck_id order by near.similarity desc`;
+
+export async function previewTagSuggestions(slides: PreviewSlideText[], perSlide = 3, forDeck = 5): Promise<PreviewTagSuggestions> {
+  const empty: PreviewTagSuggestions = { deck: [], slides: {} };
+  const config = readEmbedConfig();
+  if (!config || !hasMmoserConfig()) return empty;
+  const words = (s: PreviewSlideText) => `${/^Slide \d+$/.test(s.title) ? '' : s.title} ${s.text ?? ''}`.split(/\s+/).filter(Boolean).length;
+  const todo = slides.filter((s) => !s.hidden && words(s) >= PREVIEW_MIN_WORDS).slice(0, MAX_PREVIEW_SLIDES);
+  if (!todo.length) return empty;
+  try {
+    const texts = todo.map((s) => slideEmbedText({ client: null, deckTitle: s.title, title: s.title, text: s.text ?? null }));
+    const vectors: number[][] = [];
+    for (let i = 0; i < texts.length; i += BATCH) vectors.push(...(await embed(config, texts.slice(i, i + BATCH), 'document')));
+    const out: PreviewTagSuggestions = { deck: [], slides: {} };
+    const all: Near[] = [];
+    for (const [i, s] of todo.entries()) {
+      const near = await sql<Near>(NEAR_VECTOR, [toVectorLiteral(vectors[i]), config.model, NEIGHBOURS]);
+      all.push(...near);
+      const ranked = rankTagSuggestions(near, [], perSlide);
+      if (ranked.length) out.slides[String(s.number)] = ranked;
+    }
+    out.deck = rankTagSuggestions(all, [], forDeck);
+    return out;
+  } catch (e) {
+    console.error('Upload tag suggestions unavailable right now', (e as Error).message);
+    return empty;
+  }
+}

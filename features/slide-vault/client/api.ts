@@ -385,3 +385,32 @@ export async function tagSuggestions(runtime: Transport, slideId: string, signal
   if (!res.ok) return [];
   return ((await res.json()) as ApiOk<{ suggestions: TagSuggestionItem[] }>).data.suggestions;
 }
+
+/** Tag suggestions for a file in the upload form, before saving (FD-82): for the deck and per slide number. Empty when not set up or expired. */
+export async function previewTagSuggestions(runtime: Transport, token: string, signal?: AbortSignal): Promise<{ deck: TagSuggestionItem[]; slides: Record<string, TagSuggestionItem[]> }> {
+  const res = await runtime.request({ path: `/uploads/preview/${encodeURIComponent(token)}/tag-suggestions`, method: 'GET', signal });
+  if (!res.ok) return { deck: [], slides: {} };
+  return ((await res.json()) as ApiOk<{ deck: TagSuggestionItem[]; slides: Record<string, TagSuggestionItem[]> }>).data;
+}
+
+/**
+ * Deck details read from the file for the upload form (FD-23): client, year, category and more, each with
+ * where it came from. `ai: true` lets the server's AI fill what the rules couldn't, only when the server
+ * has one (session aiAvailable) and the person ticked it; otherwise rules only. Null on failure.
+ */
+type SuggestedFact<T> = { value: T; source: 'folder' | 'file name' | 'file properties' | 'slide text' | 'ai'; evidence: string } | null;
+export type UploadDetailSuggestions = {
+  suggestions: { client: SuggestedFact<string>; year: SuggestedFact<number>; category: SuggestedFact<string>; bestOfTheBest: SuggestedFact<boolean>; author: SuggestedFact<string>; lastEditedBy: SuggestedFact<string>; office: SuggestedFact<string> };
+  reader: 'rules' | 'model';
+  readerNote: string | null;
+  slideCount: number;
+};
+export async function suggestUploadDetails(runtime: Transport, file: File, opts: { ai: boolean; folderPath?: string | null }, signal?: AbortSignal): Promise<UploadDetailSuggestions | null> {
+  const form = new FormData();
+  form.set('file', file);
+  if (opts.folderPath) form.set('folderPath', opts.folderPath);
+  if (opts.ai) form.set('read', 'true');
+  const res = await runtime.request({ path: '/uploads/suggest', method: 'POST', body: form, signal });
+  if (!res.ok) return null;
+  return ((await res.json()) as ApiOk<UploadDetailSuggestions>).data;
+}
