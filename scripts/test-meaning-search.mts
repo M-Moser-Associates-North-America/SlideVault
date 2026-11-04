@@ -140,7 +140,7 @@ check(res.status === 200 && body.data.available && body.data.items[0]?.slide.tit
     { slide_id: 'b', similarity: 0.8, themes: ['net zero', 'Wellness'], proof_sectors: ['Banking'], tags: ['Flagship'] },
     { slide_id: 'c', similarity: 0.3, themes: ['Wellness'], proof_sectors: [], tags: ['Far away'] },
   ], ['banking']);
-  check(JSON.stringify(ranked.map((r) => r.tag)) === '["Net zero","Flagship"]', 'ranking: shared reading words and people tags; one-off reading words, far slides and tags the slide has are left out', ranked);
+  check(JSON.stringify(ranked.map((r) => r.tag)) === '["Net zero","Flagship","Wellness"]', 'ranking: words close slides share rank first, then people tags, then one-off reading words; far slides and tags the slide has are left out', ranked);
 }
 
 // ---- Never breaks search

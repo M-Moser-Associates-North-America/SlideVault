@@ -56,8 +56,9 @@ export async function embedDeckQuietly(deckId: string): Promise<void> {
 /**
  * Tag suggestions for one slide: the tags of the slides closest to it in meaning. People's own tags
  * (free_tags) and the AI reading's themes and sectors on those neighbours, each weighted by how close
- * the neighbour is. A reading word needs two neighbours behind it; a person's tag needs one. Tags the
- * slide already has are left out. Nothing is saved: a person clicks a suggestion to add it (Alina: AI
+ * the neighbour is, so a word several close slides share ranks first. The reading's themes are written
+ * per slide rather than from a fixed list (21 different themes and none shared among one real slide's
+ * closest 12, 3 Nov), so one close slide is enough. Tags the slide already has are left out. Nothing is saved: a person clicks a suggestion to add it (Alina: AI
  * suggestions stay suggestions until a person confirms). Empty, never an error, when it can't run.
  */
 export type TagSuggestion = { tag: string; from: 'people' | 'reading'; score: number };
@@ -90,7 +91,6 @@ export function rankTagSuggestions(near: Near[], have: string[], limit = 5): Tag
     for (const t of [...(r.themes ?? []), ...(r.proof_sectors ?? [])]) add(t, false);
   }
   return [...pool.values()]
-    .filter((p) => p.people || p.n >= 2)
     .sort((a, b) => b.score - a.score || a.tag.localeCompare(b.tag))
     .slice(0, limit)
     .map((p) => ({ tag: p.tag, from: p.people ? 'people' : 'reading', score: Math.round(p.score * 100) / 100 }));
