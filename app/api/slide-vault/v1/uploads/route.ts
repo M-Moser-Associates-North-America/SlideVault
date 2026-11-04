@@ -1,11 +1,15 @@
+import { after } from 'next/server';
 import type { UploadDeckMeta } from '@/features/slide-vault/contracts/dto';
 import { fail, ok, RATE_POLICIES, rateLimit, ServiceError, toResponse } from '@/features/slide-vault/server';
 import { userOf } from '@/features/slide-vault/server/principal';
 import { processUpload } from '@/features/slide-vault/server/services/upload';
+import { embedDeckQuietly } from '@/features/slide-vault/server/slide-embeddings';
 import { addUploadTags } from '@/features/slide-vault/server/tags';
 
 // POST /uploads (multipart/form-data): file + clientName, deckYear, category, folderPath,
-// bestOfTheBest. A .pptx goes in, is stored unchanged, and is split into slide records.
+// bestOfTheBest. A .pptx goes in, is stored unchanged, and is split into slide records. Its meaning
+// fingerprints are made right after the response (FD-82), so the deck joins meaning search and tag
+// suggestions without anyone running embed:slides; the upload never waits on or fails because of them.
 export async function POST(request: Request) {
   const limited = rateLimit(request, RATE_POLICIES.upload);
   if (limited) return limited;
@@ -54,6 +58,14 @@ export async function POST(request: Request) {
         // The deck is stored either way; tags can be added from the slide page afterwards.
         console.error('Upload tags could not be saved', e);
         summary.tagsAdded = 0;
+      }
+    }
+    if (summary.status === 'ready') {
+      const job = () => embedDeckQuietly(summary.id);
+      try {
+        after(job);
+      } catch {
+        void job(); // outside a request (scripts and tests): just start it
       }
     }
     return ok(summary);
