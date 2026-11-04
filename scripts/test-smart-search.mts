@@ -245,7 +245,7 @@ for (const [env, label] of [
   check(threw, `config: ${label} is an error, not a silent fallback`);
 }
 
-// ---- The team's labels as a menu for the AI (FD-82)
+// ---- The team's labels as a menu for the AI (FD-83)
 {
   const menu = labelMenu(['healthcare', 'financial services', 'retail']);
   const withMenu: PlanContext = { ...ctx, labels: menu };

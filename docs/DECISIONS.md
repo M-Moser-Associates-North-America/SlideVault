@@ -868,7 +868,7 @@ Acceptance evidence / affected PR criteria: npm run test:search-learning (25 che
 Documents/contracts changed: server/search-feedback.ts (searchSimilarity, undo, retractSearchFeedback, learnedScore, sinks), server/services/library-smart-search.ts (byLearning), app/api/slide-vault/v1/smart-search/feedback/route.ts, client/api.ts, components/SlideActions.tsx (FeedbackPill), scripts/test-search-learning.mts (new), scripts/test-smart-search.mts, package.json, docs/DATA_AND_API.md.
 Revisit trigger: Alina agrees to a scrambled person ID (option b); Vince stores each click's search embedding; real clicks show the cap of 6 or the sink rule is wrong.
 
-Decision ID and title: FD-82 AI search reads the team's labels: the AI picks slide types, themes and sectors from a menu, and they are added to what the rules found
+Decision ID and title: FD-83 AI search reads the team's labels: the AI picks slide types, themes and sectors from a menu, and they are added to what the rules found
 Status: proposed
 Decision date: 2026-11-03
 Decision owner/reviewer: Khushali (built); Schiffon (the labels, and the rules' word lists in slide-intent.ts); Vincent (pg-repository.ts); Alina Pak (AI approved, 2026-11-03)
@@ -880,7 +880,7 @@ Acceptance evidence / affected PR criteria: npm run test:smart-search (label men
 Documents/contracts changed: server/ai/label-menu.ts (new), server/ai/search-plan.ts (labels, Label chips), server/ai/openai-compatible.ts, server/services/library-smart-search.ts, server/services/storyboard.ts (SECTOR_NAMES), server/pg-repository.ts (PgSearchIntent.ai), contracts/dto.ts (Label chip), components/Views.tsx, scripts/test-smart-search.mts, scripts/test-search-context.mts, docs/DATA_AND_API.md, NOTES.md.
 Revisit trigger: Schiffon reviews the theme list and merges near-duplicates; people report the AI leading with a label they did not mean; roles and projects are wanted as labels too; the re-ranking step (b) is wanted.
 
-Decision ID and title: FD-83 Useful / Not relevant on search results is on for everyone: no opt-in
+Decision ID and title: FD-84 Useful / Not relevant on search results is on for everyone: no opt-in
 Status: proposed (Khushali decided 2026-11-03; Alina Pak to confirm)
 Decision date: 2026-11-03
 Decision owner/reviewer: Khushali (decision, built); Alina Pak (to confirm); Vincent (server and table)

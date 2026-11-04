@@ -4,7 +4,7 @@ import { cleanSearchFeedback, recordSearchFeedback, retractSearchFeedback } from
 // POST /smart-search/feedback { query, slideId, verdict: 'useful' | 'not-relevant', by?, undo? } (docs/DECISIONS.md FD-59)
 // Useful / Not relevant on a search result. Saved as the slide, the verdict, the search's words and the
 // person's role (never the search itself or a name), and used to rank the next search with those words.
-// On for everyone (FD-83): it is not personalization and stores nobody's identity, so it needs no opt-in.
+// On for everyone (FD-84): it is not personalization and stores nobody's identity, so it needs no opt-in.
 export async function POST(request: Request) {
   const limited = rateLimit(request, RATE_POLICIES.searchFeedback);
   if (limited) return limited;

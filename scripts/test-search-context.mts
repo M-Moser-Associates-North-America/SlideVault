@@ -78,7 +78,7 @@ const search = async (q: string) => {
   return (await smartSearchPg(groundFilters(standInPlan(q, ctx), q), 20, searchIntent(q))).map((r) => r.summary.title);
 };
 
-// The AI picked a theme (FD-82). The rules' own theme guess weighs less than a slide type; one the AI chose counts for more.
+// The AI picked a theme (FD-83). The rules' own theme guess weighs less than a slide type; one the AI chose counts for more.
 {
   // "Team" (Gamma Bank) matches on slide type, which weighs 1.0; "Garden terrace project" only carries the theme.
   const plan = { ...groundFilters(standInPlan('x', { clients: [], categories: [], thisYear: 2026 }), 'x'), keywords: [], labels: { types: ['team_structure'], themes: ['health & wellbeing'], sectors: [] } };
