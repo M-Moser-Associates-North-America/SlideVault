@@ -612,7 +612,7 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 /* --------------------------------------------------------------- Search */
 
 export function ResultsView() {
-  const { query, search, filters, patchFilters, clearFilters, retrySearch, setQuery } = useWorkspace();
+  const { query, search, filters, patchFilters, clearFilters, retrySearch, setQuery, askAiAnyway } = useWorkspace();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
   const q = query.trim();
   /* The "your search is short for the AI" note, put away for this search only. */
@@ -709,21 +709,13 @@ export function ResultsView() {
         <>
           {result.aiSkipped === 'short' && dismissedShort !== q && (
             <div className="ai-note" role="status">
-              <Icon name="sparkle" className="ic-sm" />
-              <span>Your search is short for the AI to read, so these are regular results. Add a few more words, like what the slide should show, and the AI will read it.</span>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  const box = (document.getElementById('sv-fb-q') ?? document.getElementById('sv-hero-q')) as HTMLInputElement | null;
-                  box?.focus();
-                  box?.setSelectionRange(box.value.length, box.value.length);
-                }}
-              >
-                Add detail
+              <Icon name="alert" className="ic-sm" />
+              <span>This is a short search, and a regular search usually handles those well. Do you still want the AI to read it?</span>
+              <button type="button" className="btn" onClick={askAiAnyway}>
+                Yes, use AI
               </button>
               <button type="button" className="btn btn-ghost" onClick={() => setDismissedShort(q)}>
-                Keep these results
+                No, keep these results
               </button>
             </div>
           )}

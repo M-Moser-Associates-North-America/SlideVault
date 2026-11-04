@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await searchLibrary(query, limit, { reader: readerForSearch(reader, url.searchParams.get('ai')), read: url.searchParams.get('read') === '1', by: roleOf(url.searchParams.get('role')), includeHidden: url.searchParams.get('hidden') === 'include' });
+    const result = await searchLibrary(query, limit, { reader: readerForSearch(reader, url.searchParams.get('ai')), read: url.searchParams.get('read') === '1', force: url.searchParams.get('ai') === 'always', by: roleOf(url.searchParams.get('role')), includeHidden: url.searchParams.get('hidden') === 'include' });
     // Hidden-in-source slides (usually internal notes) only when asked for (FD-50).
     // ...and so are slides the team marked "internal - never show" (FD-53).
     if (url.searchParams.get('hidden') !== 'include') result.items = result.items.filter((i) => !i.slide.hiddenInSource && !isInternalOnly(i.slide));

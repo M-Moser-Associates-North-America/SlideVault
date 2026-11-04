@@ -479,7 +479,8 @@ test('Useful / Not relevant: remembered after a reload, changing your mind takes
 
   await useful.click();
   await expect(useful).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByText('Thanks. Search will use this for similar searches.')).toBeVisible();
+  // The toast and the screen reader's announcement both say it (one or both may be there yet): either shows it was told.
+  await expect(page.getByText('Thanks. Search will use this for similar searches.').first()).toBeVisible();
   expect(sent.map((s) => `${s.verdict}${s.undo ? ' undo' : ''}`)).toEqual(['useful']);
 
   // A reload forgets the page but not the answer: the arrow is still lit, and answering the same again sends nothing new.
@@ -621,7 +622,7 @@ test('Deeper AI search: hidden when the server has no AI; off by default, rememb
     const res = await route.fetch();
     const body = await res.json();
     body.data.aiAvailable = true;
-    if (params.get('read') === '1' && params.get('ai') !== 'off') body.data.aiSkipped = 'short';
+    if (params.get('read') === '1' && params.get('ai') !== 'off' && params.get('ai') !== 'always') body.data.aiSkipped = 'short';
     await route.fulfill({ response: res, json: body });
   });
   await page.goto('/slide-vault/pages');
@@ -638,21 +639,27 @@ test('Deeper AI search: hidden when the server has no AI; off by default, rememb
   expect(asked.every((p) => p.get('ai') === 'off')).toBe(true);
   await expect(page.getByText('Your search is short for the AI to read')).toHaveCount(0);
 
-  // Turning it on reads the words already typed with the AI (no ai=off); too short, so the note offers more detail.
+  // Turning it on reads the words already typed with the AI (no ai=off); too short, so it asks first.
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-checked', 'true');
-  await expect(page.getByText('Your search is short for the AI to read')).toBeVisible();
+  const note = page.getByText('This is a short search, and a regular search usually handles those well.');
+  await expect(note).toBeVisible();
   const last = asked[asked.length - 1];
   expect(last.get('read')).toBe('1');
   expect(last.get('ai')).toBeNull();
   expect(await axe(page)).toEqual([]);
 
-  // "Add detail" puts the cursor back in the search box with the words kept; "Keep these results" puts the note away.
-  await page.getByRole('button', { name: 'Add detail' }).click();
-  await expect(page.getByLabel('Search slides')).toBeFocused();
-  await expect(page.getByLabel('Search slides')).toHaveValue('services');
-  await page.getByRole('button', { name: 'Keep these results' }).click();
-  await expect(page.getByText('Your search is short for the AI to read')).toHaveCount(0);
+  // "Yes, use AI" reads this short search with the AI anyway (ai=always) and the question goes away.
+  await page.getByRole('button', { name: 'Yes, use AI' }).click();
+  await expect(note).toHaveCount(0);
+  await expect.poll(() => asked[asked.length - 1].get('ai')).toBe('always'); // sent after the short typing pause
+
+  // The next short search asks again; "No, keep these results" puts the question away for it.
+  await page.getByLabel('Search slides').fill('team');
+  await page.getByLabel('Search slides').press('Enter');
+  await expect(note).toBeVisible();
+  await page.getByRole('button', { name: 'No, keep these results' }).click();
+  await expect(note).toHaveCount(0);
 
   // Remembered on this device after a reload; turning it off sends ai=off again.
   await page.reload();

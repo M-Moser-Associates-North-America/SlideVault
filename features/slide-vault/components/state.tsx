@@ -69,6 +69,8 @@ type Workspace = {
   /** "Deeper AI search" is ticked: submitted sentences and questions are read by the AI. Off until the person turns it on; remembered on this device. */
   deeperAi: boolean;
   setDeeperAi: (on: boolean) => void;
+  /** The person chose the AI for this short search too: re-reads it with the AI (FD-79) */
+  askAiAnyway: () => void;
   /** Archived decks are left out of every list unless this is on (FD-50) */
   includeArchived: boolean;
   setIncludeArchived: (on: boolean) => void;
@@ -282,6 +284,16 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     [query],
   );
   const aiOn = aiAvailable && deeperAi;
+  /* A short search is left to the rules unless the person says "use AI anyway", and only for that search. */
+  const [forceAiFor, setForceAiFor] = useState('');
+  const askAiAnyway = useCallback(() => {
+    const q = query.trim();
+    if (!q) return;
+    setForceAiFor(q);
+    setSubmitted(q);
+    setSearch({ status: 'loading' });
+    setSearchTry((n) => n + 1);
+  }, [query]);
   const retrySearch = useCallback(() => {
     setSearch({ status: 'loading' });
     setSearchTry((n) => n + 1);
@@ -291,7 +303,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     if (!q) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      smartSearch(transport, q, q === submitted, controller.signal, { includeHidden, role: currentStoryRole(), ai: aiOn ? undefined : false })
+      smartSearch(transport, q, q === submitted, controller.signal, { includeHidden, role: currentStoryRole(), ai: aiOn ? undefined : false, forceAi: aiOn && forceAiFor === q })
         .then((result) => {
           if (typeof result.aiAvailable === 'boolean') setAiAvailable(result.aiAvailable);
           setSearch({ status: 'ready', result: demoTitles.size ? { ...result, items: result.items.map((i) => ({ ...i, slide: withDemoTitle(i.slide) })) } : result });
@@ -302,7 +314,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
       clearTimeout(timer);
       controller.abort();
     };
-  }, [transport, query, submitted, searchTry, includeHidden, aiOn]);
+  }, [transport, query, submitted, searchTry, includeHidden, aiOn, forceAiFor]);
 
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);
@@ -610,6 +622,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     aiAvailable,
     deeperAi,
     setDeeperAi,
+    askAiAnyway,
     query,
     setQuery,
     submitSearch,

@@ -168,7 +168,7 @@ function sectionsOf(index: Awaited<ReturnType<typeof loadLibraryIndex>>, reading
   });
 }
 
-export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean; by?: StoryUserRole | null; includeHidden?: boolean }): Promise<SmartSearchResponse> {
+export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean; force?: boolean; by?: StoryUserRole | null; includeHidden?: boolean }): Promise<SmartSearchResponse> {
   const index = await loadLibraryIndex();
   // What colleagues marked useful or not relevant for searches with these words (FD-59).
   const learned = await searchLearning(query, opts.by ?? null);
@@ -222,7 +222,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
       alsoSays: (s) => { const k = readings.get(s.id); return [k?.about, k?.topics.join(' '), k?.sectors?.join(' '), k?.clientSector, k?.themes?.join(' '), k?.projects?.join(' '), s.provenance.sourceTitle, s.provenance.sourceFileName, s.provenance.location, s.provenance.clientName].filter(Boolean).join(' '); },
       log: (m) => console.warn(m),
     },
-    { read: opts.read },
+    { read: opts.read, force: opts.force },
   );
 
   // A search for a section shows each deck's section once before the rest (Alina, 28 Oct: "search

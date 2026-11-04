@@ -74,15 +74,16 @@ export function mentionsWord(hay: string, w: string): boolean {
  * `read` is true only when the person submitted the search (Enter or the Search button). While they
  * type, every search uses the rules, so a long question never calls the model mid-sentence.
  */
-export async function smartSearch(query: string, limit: number, deps: SmartSearchDeps, opts: { read?: boolean } = {}): Promise<SmartSearchResponse> {
+export async function smartSearch(query: string, limit: number, deps: SmartSearchDeps, opts: { read?: boolean; force?: boolean } = {}): Promise<SmartSearchResponse> {
   const ctx: PlanContext = { ...(await deps.context()), thisYear: deps.thisYear ?? new Date().getFullYear() };
 
   let plan: SearchPlan;
   let reader: SmartSearchResponse['reader'] = 'stand-in';
   let readerNote: string | null = null;
   let aiSkipped: SmartSearchResponse['aiSkipped'];
-  // Basic searches stay on the rules; only sentences and questions are worth a model call.
-  if (deps.reader && opts.read && !isBasicQuery(query)) {
+  // Basic searches stay on the rules; only sentences and questions are worth a model call, unless the
+  // person asked for the AI on this one anyway (FD-79, ai=always).
+  if (deps.reader && opts.read && (opts.force || !isBasicQuery(query))) {
     try {
       // The model only sees client names typed in the request, never the whole list.
       plan = groundFilters(await deps.reader.read(query, { ...ctx, clients: relevantClients(query, ctx.clients) }), query);

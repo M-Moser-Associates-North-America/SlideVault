@@ -130,6 +130,10 @@ for (const q of ['which slides for a law firm?', 'how do I pitch a fit-out', 'we
   check(typing.aiSkipped === undefined, 'ai: typing (not submitted) is never flagged');
   const off = await smartSearch('team slides', 10, { context, thisYear: 2026, reader: null, search: async () => [] }, { read: true });
   check(off.aiSkipped === undefined, 'ai: with the AI off (or none set up) a short search is not flagged');
+  const forced = await smartSearch('team slides', 10, { context, thisYear: 2026, reader, search: async () => [] }, { read: true, force: true });
+  check(forced.reader === 'model' && forced.aiSkipped === undefined, 'ai: a short search the person chose the AI for anyway is read by the model');
+  const forcedTyping = await smartSearch('team slides', 10, { context, thisYear: 2026, reader, search: async () => [] }, { force: true });
+  check(forcedTyping.reader === 'stand-in', 'ai: forcing never reads while typing (only a submitted search)');
   const long = await smartSearch('which team slides should I use for a bank?', 10, { context, thisYear: 2026, reader, search: async () => [] }, { read: true });
   check(long.aiSkipped === undefined && long.reader === 'model', 'ai: a sentence is read by the model and not flagged');
 }

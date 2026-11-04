@@ -282,7 +282,7 @@ export type SmartSearchResult = {
   readerNote: string | null;
   /** true when the server has an AI reader set up, so the screen can offer "Deeper AI search" (FD-79) */
   aiAvailable?: boolean;
-  /** 'short' when the AI was asked for but the search was too short for it (about four words or fewer and not a question): the rules read it; the screen can invite more detail (FD-79) */
+  /** 'short' when the AI was asked for but the search was too short for it (about four words or fewer and not a question): the rules read it; the screen asks whether to use the AI anyway, which re-sends the search with ai=always (FD-79) */
   aiSkipped?: 'short';
   /** How the request was read, as removable chips */
   chips: SmartSearchChip[];
