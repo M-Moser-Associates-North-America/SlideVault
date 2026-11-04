@@ -20,7 +20,7 @@ import { buildStoryboard, clientSectors, keptOutOfStories, SECTOR_NAMES, type St
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
 import { familiesOf } from './families';
-import { askedSections, asksForCover, isSectionSearch, librarySections, sectionMembers, sectionWhy, type SlideSection } from './sections';
+import { askedSections, asksForCover, asksForSections, isSectionSearch, librarySections, sectionMembers, sectionWhy, type SlideSection } from './sections';
 import { findSlide } from '../library-repository';
 import { toSummary } from './search';
 import { refineStory } from './story-refine';
@@ -277,7 +277,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     return [where, kind, why].filter(Boolean).join(' ').trim();
   };
   const sectionOf = (id: string) => { const sec = sections.get(id); return sec ? { name: sec.name, kind: sec.kind, divider: sec.divider, dividerId: sec.dividerId } : null; };
-  return { ...result, sections: isSectionSearch(query) ? asked : undefined, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
+  return { ...result, sections: asksForSections(query) ? asked : undefined, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
 }
 
 /** Slide summaries by id for sample-deck and uploaded-deck slides alike (the database's are read in one go). */

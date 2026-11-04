@@ -64,6 +64,12 @@ type Workspace = {
   /** Slides hidden in their original deck are left out of search and the library unless this is on (FD-27) */
   includeHidden: boolean;
   setIncludeHidden: (on: boolean) => void;
+  /** The deck sections the search asked for, read by the server (FD-80); none once the person turns the Section filter off for this search */
+  sectionsFromSearch: string[];
+  /** The one section the search asked for, treated as the Section filter being on, unless a section is picked by hand */
+  autoSection: string | null;
+  /** Turn the section the search asked for off, for this search only */
+  dismissAutoSection: () => void;
   /** The server has an AI reader, so "Deeper AI search" is offered at all (FD-79) */
   aiAvailable: boolean;
   /** "Deeper AI search" is ticked: submitted sentences and questions are read by the AI. Off until the person turns it on; remembered on this device. */
@@ -317,6 +323,12 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   }, [transport, query, submitted, searchTry, includeHidden, aiOn, forceAiFor]);
 
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  /* "bank case studies section" turns the Section filter on by itself, the way "2024" lights Year (FD-80). Taking it off
+     lasts for that search only, so the next search that asks for a section turns it on again. */
+  const [sectionOffFor, setSectionOffFor] = useState('');
+  const sectionsFromSearch = useMemo(() => (query.trim() && sectionOffFor !== query.trim() && search.status === 'ready' ? (search.result.sections ?? []) : []), [query, sectionOffFor, search]);
+  const autoSection = filters.section.length === 0 && sectionsFromSearch.length === 1 ? sectionsFromSearch[0] : null;
+  const dismissAutoSection = useCallback(() => setSectionOffFor(query.trim()), [query]);
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);
   const clearFilters = useCallback(() => setFilters(NO_FILTERS), []);
 
@@ -619,6 +631,9 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     setPackStatus,
     includeHidden,
     setIncludeHidden,
+    sectionsFromSearch,
+    autoSection,
+    dismissAutoSection,
     aiAvailable,
     deeperAi,
     setDeeperAi,

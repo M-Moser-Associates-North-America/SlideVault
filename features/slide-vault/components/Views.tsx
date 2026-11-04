@@ -608,7 +608,7 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 /* --------------------------------------------------------------- Search */
 
 export function ResultsView() {
-  const { query, search, filters, patchFilters, clearFilters, retrySearch, setQuery, askAiAnyway } = useWorkspace();
+  const { query, search, filters, patchFilters, clearFilters, retrySearch, setQuery, askAiAnyway, autoSection, sectionsFromSearch, dismissAutoSection } = useWorkspace();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
   const q = query.trim();
   /* The "your search is short for the AI" note, put away for this search only. */
@@ -635,7 +635,12 @@ export function ResultsView() {
   }, [result, filters, sort]);
   /* By section (FD-57; Alina, 28 Oct: "searching for the slides in that particular section… between
      different decks"): each result knows its deck section, so the results can be narrowed to one kind. */
-  const pickedSection = filters.section[0] ?? null;
+  const pickedSection = filters.section[0] ?? autoSection ?? null;
+  /* Back to all sections: a section picked by hand is cleared, and the one the search asked for is turned off for this search. */
+  const clearSection = () => {
+    patchFilters({ section: [] });
+    dismissAutoSection();
+  };
   const sectionCounts = useMemo(() => {
     const m = new Map<string, number>();
     for (const i of shown) {
@@ -648,7 +653,7 @@ export function ResultsView() {
   const slides = visible.map((i) => i.slide);
   const deckCount = new Set(slides.map((s) => s.provenance.sourceId)).size;
   const grouped = shown.filter((i) => i.slide.alsoIn).length;
-  const sectionMode = !!pickedSection || !!result?.sections?.length;
+  const sectionMode = !!pickedSection || sectionsFromSearch.length > 0;
   /* Client, year and slide type already light up in the filter row above. */
   const extraChips = result ? result.chips.filter((c) => !shownInFilterRow(c)) : [];
 
@@ -747,7 +752,7 @@ export function ResultsView() {
           )}
           {result.relaxed && <p className="meta">Nothing matched every detail, so these results leave out the client, year or category filter.</p>}
           {/* Results in groups, each with its own heading and room: Decks, then Sections (when asked for), then Slides. */}
-          {shown.length > 0 && sectionMode && <SectionCards heading="Sections" results={pickedSection ? slides : shown.map((i) => i.slide)} only={pickedSection ? [pickedSection] : result.sections} />}
+          {sectionMode && <SectionCards heading="Sections" results={pickedSection ? slides : shown.map((i) => i.slide)} only={pickedSection ? [pickedSection] : sectionsFromSearch} />}
           {shown.length > 0 && (sectionMode || (found && found.decks.length > 0)) && <h2 className="h2 res-h">Slides</h2>}
           <div className="refine">
             <label>
@@ -791,7 +796,7 @@ export function ResultsView() {
               {pickedSection && shown.length - visible.length > 0 && (
                 <p className="meta sec-hidden-note">
                   {shown.length - visible.length} more matching {shown.length - visible.length === 1 ? 'slide is' : 'slides are'} outside this section.{' '}
-                  <button type="button" className="btn-link" onClick={() => patchFilters({ section: [] })}>
+                  <button type="button" className="btn-link" onClick={clearSection}>
                     Show {shown.length - visible.length === 1 ? 'it' : 'them'}
                   </button>
                 </p>
@@ -799,11 +804,11 @@ export function ResultsView() {
               {sectionCounts.length > 1 && (
                 <div className="sec-pills" role="group" aria-label="Narrow to one section">
                   <span className="meta">By section:</span>
-                  <button type="button" className="chip-x" aria-pressed={!pickedSection} onClick={() => patchFilters({ section: [] })}>
+                  <button type="button" className="chip-x" aria-pressed={!pickedSection} onClick={clearSection}>
                     All <span className="n">{shown.length}</span>
                   </button>
                   {sectionCounts.map(([kind, n]) => (
-                    <button key={kind} type="button" className="chip-x" aria-pressed={pickedSection === kind} onClick={() => patchFilters({ section: pickedSection === kind ? [] : [kind] })}>
+                    <button key={kind} type="button" className="chip-x" aria-pressed={pickedSection === kind} onClick={() => (pickedSection === kind ? clearSection() : patchFilters({ section: [kind] }))}>
                       {SECTION_LABEL[kind]} <span className="n">{n}</span>
                     </button>
                   ))}
