@@ -96,6 +96,12 @@ const score = (rows: ReturnType<typeof row>[], id: string, words = ['hospitality
   ]);
   const order = byLearning(rows, learned).map((r) => r.summary.id).join('');
   check(order === 'cdaeb', 'database results: most useful first, then one that is just nudged, then the sunk one last', order);
+  // One Useful in a search that only shares some words must not jump a slide ahead of everything (3 Nov review).
+  const loose = learnedForSearch([row('p', 'useful', ['hospitality', 'case', 'studi'])], searchWords('hospitality'));
+  const looseOrder = byLearning(['a', 'p', 'b'].map((id) => ({ summary: { id } })), loose).map((r) => r.summary.id).join('');
+  check(learnedScore(loose.get('p')) > 0 && looseOrder === 'apb', 'database results: one partly-similar Useful nudges the score but keeps the database order', { looseOrder, score: learnedScore(loose.get('p')) });
+  const strong = learnedForSearch([row('p', 'useful', ['hospitality'])], searchWords('hospitality'));
+  check(byLearning(['a', 'p', 'b'].map((id) => ({ summary: { id } })), strong).map((r) => r.summary.id).join('') === 'pab', 'database results: one Useful in the same search still lifts it to the top');
 }
 
 // Changing your mind takes the old click back (kept in a file here)
