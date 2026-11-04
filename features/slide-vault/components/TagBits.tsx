@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactElement, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { getSlide, listTags } from '../client/api';
+import { getSlide, listTags, tagSuggestions, type TagSuggestionItem } from '../client/api';
 import { demoTagsOn, ranked, TagsUnavailable, useTags, type TagsApi } from '../client/tag-store';
 import type { FreeTag, SlideDetail, SlideStory, SlideSummary, TagRemoval } from '../contracts/dto';
 import { Icon } from './icons';
@@ -448,11 +448,57 @@ export function AddTagPill({ label, known, have, disabled, onAdd }: { label: str
 }
 
 /**
+ * "Suggested" tags (FD-82): small dashed pills beside "+ Add tag", from the slides closest in meaning. One
+ * click adds the tag the normal way; nothing is added until then (Alina: AI suggestions stay suggestions
+ * until a person confirms). Tags already there are left out; nothing shows when there are none.
+ */
+export function SuggestedTagChips({ suggestions, have, disabled, onAdd, label = 'Suggested tags' }: { suggestions: TagSuggestionItem[]; have: string[]; disabled?: boolean; onAdd: (tag: string) => void; label?: string }) {
+  const left = suggestions.filter((s) => !have.some((h) => h.toLowerCase() === s.tag.toLowerCase()));
+  if (!left.length) return null;
+  return (
+    <div className="tag-suggested" role="group" aria-label={label}>
+      <span className="meta">Suggested</span>
+      {left.map((s) => (
+        <button
+          key={s.tag}
+          type="button"
+          className="tag-add tag-suggest"
+          disabled={disabled}
+          aria-label={`Add suggested tag ${s.tag}`}
+          data-tip={s.from === 'people' ? 'Colleagues tagged similar slides with this' : 'From slides similar to this one'}
+          onClick={() => onAdd(s.tag)}
+        >
+          <Icon name="plus" className="ic-sm" />
+          {s.tag}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The suggestions for one saved slide; empty while loading, for sample decks, or when meaning search isn't set up. */
+function useSlideTagSuggestions(slideId: string | undefined): TagSuggestionItem[] {
+  const { runtime } = useWorkspace();
+  /* Kept with the slide they belong to, so moving to another slide never shows the last one's suggestions. */
+  const [got, setGot] = useState<{ id: string; list: TagSuggestionItem[] } | null>(null);
+  useEffect(() => {
+    if (!slideId) return;
+    const ctrl = new AbortController();
+    tagSuggestions(runtime, slideId, ctrl.signal).then(
+      (list) => !ctrl.signal.aborted && setGot({ id: slideId, list }),
+      () => {},
+    );
+    return () => ctrl.abort();
+  }, [runtime, slideId]);
+  return slideId && got?.id === slideId ? got.list : [];
+}
+
+/**
  * Tags on something that isn't saved yet (a slide in the Upload screen): the same small pills and the same
  * "+ Add tag" as everywhere else. `inherited` are tags that already apply (the deck's); they show first and
  * can't be removed here.
  */
-export function LocalTagList({ label, value, onChange, inherited = [], inheritedTip, suggestions, disabled }: { label: string; value: string[]; onChange: (next: string[]) => void; inherited?: string[]; inheritedTip?: string; suggestions: TagSuggestion[]; disabled?: boolean }) {
+export function LocalTagList({ label, value, onChange, inherited = [], inheritedTip, suggestions, suggested = [], disabled }: { label: string; value: string[]; onChange: (next: string[]) => void; inherited?: string[]; inheritedTip?: string; suggestions: TagSuggestion[]; suggested?: TagSuggestionItem[]; disabled?: boolean }) {
   const own = value.filter((t) => !inherited.some((i) => i.toLowerCase() === t.toLowerCase()));
   return (
     <ul className="tagrows" aria-label={label}>
@@ -478,6 +524,11 @@ export function LocalTagList({ label, value, onChange, inherited = [], inherited
           <AddTagPill label={label} known={suggestions} have={[...inherited, ...own]} disabled={disabled} onAdd={(name) => onChange([...own, name])} />
         </li>
       )}
+      {own.length + inherited.length < 10 && suggested.length > 0 && (
+        <li className="tagrow">
+          <SuggestedTagChips label={`Suggested tags for ${label.replace(/^Tags for /, '')}`} suggestions={suggested} have={[...inherited, ...own]} disabled={disabled} onAdd={(name) => onChange([...own, name])} />
+        </li>
+      )}
     </ul>
   );
 }
@@ -486,9 +537,10 @@ export function LocalTagList({ label, value, onChange, inherited = [], inherited
  * The tags of one slide or deck: each as a pill with a remove button; an add box; the removal log
  * folded away underneath.
  */
-function TagList({ api, what, canEdit, onNavigate }: { api: TagsApi; what: 'slide' | 'deck'; canEdit: boolean; onNavigate?: () => void }) {
+function TagList({ api, what, canEdit, onNavigate, suggestFor }: { api: TagsApi; what: 'slide' | 'deck'; canEdit: boolean; onNavigate?: () => void; /** a saved slide's id: show tag suggestions for it (FD-82) */ suggestFor?: string }) {
   const { toast, announce } = useWorkspace();
   const known = useKnownTags();
+  const suggested = useSlideTagSuggestions(canEdit ? suggestFor : undefined);
   const [asking, setAsking] = useState<FreeTag | null>(null);
   const [busy, setBusy] = useState(false);
   const fail = (e: unknown) => toast(e instanceof TagsUnavailable || e instanceof Error ? e.message : 'That did not work. Please try again.');
@@ -554,6 +606,7 @@ function TagList({ api, what, canEdit, onNavigate }: { api: TagsApi; what: 'slid
       ) : (
         <p className="meta">No tags on this {what} yet.</p>
       )}
+      {canEdit && <SuggestedTagChips label={`Suggested tags for this ${what}`} suggestions={suggested} have={api.shown.map((t) => t.tag)} disabled={busy} onAdd={(name) => void add(name)} />}
       {!canEdit && <p className="meta">Tags can only be changed by curators.</p>}
       {api.removed.length > 0 && (
         <details className="tagfold">
@@ -602,7 +655,7 @@ export function SlideTagsPanel({ slide, loaded }: { slide: SlideSummary; loaded?
   return (
     <section className="panel">
       <h2>Tags</h2>
-      <TagList api={own} what="slide" canEdit={canEdit} />
+      <TagList api={own} what="slide" canEdit={canEdit} suggestFor={slide.id} />
       {deck.shown.length > 0 && (
         <div className="tags-fromdeck">
           <p className="meta">From the deck (change them on the deck page)</p>
@@ -628,7 +681,7 @@ export function PreviewTags({ slide, onNavigate }: { slide: SlideSummary; onNavi
   if (seed === undefined && !demoTagsOn() && team.length === 0) return null;
   return (
     <div className="lb-tags">
-      {(seed !== undefined || demoTagsOn()) && <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} />}
+      {(seed !== undefined || demoTagsOn()) && <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} suggestFor={slide.id} />}
       {deck.shown.length > 0 && (
         <div className="tags-compact" aria-label="Tags from the deck">
           {deck.shown.map((t) => (

@@ -73,38 +73,60 @@ type Near = { slide_id: string; similarity: number; themes: string[] | null; pro
  * Does a reading word read like a tag? Some themes are headlines copied off the slide ("we listen before we
  * design", real data 3 Nov), which nobody would click: a tag is one to three words, and doesn't open like a sentence.
  */
-const SENTENCE_START = /^(we|our|this|that|it|you|your|how|why|what|whats|where|when|the|a|an|is|are|meet|introducing|welcome)\b/i;
+const SENTENCE_START = /^(we|our|this|that|it|you|your|how|why|what|whats|where|when|the|a|an|is|are|meet|introducing|welcome|dear|thank|thanks|prepared)\b/i;
 export const tagLike = (t: string) => {
   const words = t.split(' ').filter(Boolean);
   return words.length >= 1 && words.length <= 3 && t.length <= 30 && !SENTENCE_START.test(t) && !/[.!?:;]/.test(t);
 };
 
 /** Pure ranking, so it can be checked without a database. */
-export function rankTagSuggestions(near: Near[], have: string[], limit = 5): TagSuggestion[] {
+/** Stray punctuation the reading left at either end ("collaborate,"). */
+const trimTag = (raw: string) => raw.replace(/\s+/g, ' ').trim().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * `avoid` are client names: a suggestion that names a client is never offered ("prepared for [client]" on
+ * another client's slide, 3 Nov), whoever's slide it came from. A one-word reading theme needs two close
+ * slides behind it ("arrive", "focus" from one slide are noise); people's tags and sectors need one.
+ */
+export function rankTagSuggestions(near: Near[], have: string[], limit = 5, avoid: string[] = []): TagSuggestion[] {
   const own = new Set(have.map((t) => t.trim().toLowerCase()));
-  const pool = new Map<string, { tag: string; score: number; people: boolean; n: number }>();
+  const names = avoid.map((c) => c.trim().toLowerCase()).filter((c) => c.length >= 3).map((c) => new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRe(c)}($|[^\\p{L}\\p{N}])`, 'u'));
+  const pool = new Map<string, { tag: string; score: number; people: boolean; strong: boolean; n: number }>();
   for (const r of near) {
     const sim = Number(r.similarity);
     if (!(sim >= MIN_SIMILARITY)) continue;
     const seen = new Set<string>();
-    const add = (raw: string, people: boolean) => {
-      const tag = raw.replace(/\s+/g, ' ').trim();
+    const add = (raw: string, people: boolean, strong = people) => {
+      const tag = trimTag(raw);
       const key = tag.toLowerCase();
-      if (!tag || tag.length > 60 || own.has(key) || seen.has(key)) return;
+      if (!tag || tag.length > 60 || own.has(key) || seen.has(key) || names.some((re) => re.test(key))) return;
       seen.add(key);
-      const p = pool.get(key) ?? { tag, score: 0, people: false, n: 0 };
+      const p = pool.get(key) ?? { tag, score: 0, people: false, strong: false, n: 0 };
       p.score += people ? sim * 1.5 : sim;
       p.people ||= people;
+      p.strong ||= strong;
       p.n += 1;
       pool.set(key, p);
     };
     for (const t of r.tags ?? []) add(t, true);
-    for (const t of [...(r.themes ?? []), ...(r.proof_sectors ?? []), ...(r.client_sector ? [r.client_sector] : [])]) if (tagLike(t.replace(/\s+/g, ' ').trim())) add(t, false);
+    for (const t of r.themes ?? []) if (tagLike(trimTag(t))) add(t, false);
+    for (const t of [...(r.proof_sectors ?? []), ...(r.client_sector ? [r.client_sector] : [])]) if (tagLike(trimTag(t))) add(t, false, true);
   }
   return [...pool.values()]
+    .filter((p) => p.strong || p.tag.includes(' ') || p.n >= 2)
     .sort((a, b) => b.score - a.score || a.tag.localeCompare(b.tag))
     .slice(0, limit)
     .map((p) => ({ tag: p.tag, from: p.people ? 'people' : 'reading', score: Math.round(p.score * 100) / 100 }));
+}
+
+/** Every client name in the library, so suggestions never carry one (kept for a few minutes). */
+let clientCache: { at: number; names: string[] } | null = null;
+async function clientNames(): Promise<string[]> {
+  if (clientCache && Date.now() - clientCache.at < 5 * 60_000) return clientCache.names;
+  const rows = await sql<{ c: string }>(`select distinct btrim(client) as c from decks where client is not null and length(btrim(client)) >= 3`);
+  clientCache = { at: Date.now(), names: rows.map((r) => r.c) };
+  return clientCache.names;
 }
 
 export async function tagSuggestions(slideId: string, limit = 5): Promise<TagSuggestion[]> {
@@ -130,7 +152,7 @@ export async function tagSuggestions(slideId: string, limit = 5): Promise<TagSug
          or (t.target_kind = 'deck' and t.target_id = (select deck_id from slides where id = $1::uuid)))`,
       [slideId],
     );
-    return rankTagSuggestions(near, have.map((h) => h.tag), limit);
+    return rankTagSuggestions(near, have.map((h) => h.tag), limit, await clientNames());
   } catch (e) {
     console.error('Tag suggestions unavailable right now', (e as Error).message);
     return [];
@@ -171,13 +193,14 @@ export async function previewTagSuggestions(slides: PreviewSlideText[], perSlide
     for (let i = 0; i < texts.length; i += BATCH) vectors.push(...(await embed(config, texts.slice(i, i + BATCH), 'document')));
     const out: PreviewTagSuggestions = { deck: [], slides: {} };
     const all: Near[] = [];
+    const avoid = await clientNames();
     for (const [i, s] of todo.entries()) {
       const near = await sql<Near>(NEAR_VECTOR, [toVectorLiteral(vectors[i]), config.model, NEIGHBOURS]);
       all.push(...near);
-      const ranked = rankTagSuggestions(near, [], perSlide);
+      const ranked = rankTagSuggestions(near, [], perSlide, avoid);
       if (ranked.length) out.slides[String(s.number)] = ranked;
     }
-    out.deck = rankTagSuggestions(all, [], forDeck);
+    out.deck = rankTagSuggestions(all, [], forDeck, avoid);
     return out;
   } catch (e) {
     console.error('Upload tag suggestions unavailable right now', (e as Error).message);

@@ -168,7 +168,12 @@ check(res.status === 200 && body.data.available && body.data.items[0]?.slide.tit
     { slide_id: 'c', similarity: 0.3, themes: ['Wellness'], proof_sectors: [], tags: ['Far away'] },
     { slide_id: 'd', similarity: 0.7, themes: ['we listen before we design'], proof_sectors: [], tags: [], client_sector: 'Legal' },
   ], ['banking']);
-  check(JSON.stringify(ranked.map((r) => r.tag)) === '["Net zero","Flagship","Wellness","Legal"]', 'ranking: words close slides share rank first, then people tags, then one-off reading words; far slides and tags the slide has are left out', ranked);
+  check(JSON.stringify(ranked.map((r) => r.tag)) === '["Net zero","Flagship","Legal"]', 'ranking: words close slides share rank first, then people tags and sectors; a one-word theme from one slide, far slides and tags the slide has are left out', ranked);
+  const named = rankTagSuggestions([
+    { slide_id: 'a', similarity: 0.9, themes: ['Prepared for Acme', 'Acme culture', 'collaborate,', 'Agile work,'], proof_sectors: [], tags: ['Acme'] },
+    { slide_id: 'b', similarity: 0.8, themes: ['collaborate'], proof_sectors: [], tags: [] },
+  ], [], 5, ['Acme Corp', 'Acme']);
+  check(JSON.stringify(named.map((r) => r.tag)) === '["collaborate","Agile work"]', 'ranking: never a client name, and stray commas trimmed', named);
 }
 
 // ---- Never breaks search
