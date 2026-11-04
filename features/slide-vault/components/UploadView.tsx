@@ -394,7 +394,7 @@ export function UploadView() {
             <label htmlFor={`${fieldId}-year`}>
               Year <span className="req" aria-hidden="true">*</span>
             </label>
-            <input id={`${fieldId}-year`} type="number" className="input" value={deckYear} onChange={(e) => edit('year', setDeckYear, e.target.value)} placeholder="e.g. 2026" required aria-required="true" aria-invalid={yearError ? true : undefined} aria-describedby={yearError || hintFor('year') ? `${fieldId}-year-hint` : undefined} />
+            <input id={`${fieldId}-year`} type="text" inputMode="numeric" autoComplete="off" maxLength={4} className="input" value={deckYear} onChange={(e) => edit('year', setDeckYear, e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026" required aria-required="true" aria-invalid={yearError ? true : undefined} aria-describedby={yearError || hintFor('year') ? `${fieldId}-year-hint` : undefined} />
             {(yearError || hintFor('year')) && <p id={`${fieldId}-year-hint`} className={`field-hint${yearError || !auto.year ? ' is-missing' : ' is-auto'}`}>{yearError ?? hintFor('year')}</p>}
           </div>
           <div className="field full" role="group" aria-labelledby={`${fieldId}-category`}>

@@ -326,7 +326,10 @@ test('upload: see the slides, tag the deck and a slide, confirm, and everything 
   expect(uploads).toBe(0);
   // The fixture names no client or year the page can read, so they are typed in (the page asks for both).
   await page.getByRole('textbox', { name: 'Client' }).fill('Harbor Bank');
-  await page.getByRole('spinbutton', { name: 'Year' }).fill('2025');
+  // Year takes only digits, four at most, in any browser: letters and extra digits are dropped as they are typed.
+  const yearBox = page.getByRole('textbox', { name: 'Year' });
+  await yearBox.pressSequentially('20a2-5x67');
+  await expect(yearBox).toHaveValue('2025');
   const idd = page.getByRole('button', { name: 'IDD', exact: true });
   await idd.click();
   await expect(idd).toHaveAttribute('aria-pressed', 'true');
