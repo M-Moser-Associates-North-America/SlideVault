@@ -346,8 +346,8 @@ export type PgSearchIntent = {
   themes: string[];
   /**
    * Themes and sectors the AI picked on purpose (FD-82), already part of the lists above. The rules' own
-   * theme guess weighs little (their word lists are loose); one the AI chose counts as much as a slide
-   * type, so slides labelled with it lead slides that only say a word, and the words order them among themselves.
+   * theme guess weighs little (their word lists are loose); one the AI chose counts a little more than a slide
+   * type (1.0), so slides labelled with it lead slides that only say a word, and the words order them among themselves.
    */
   ai?: { themes: string[]; sectors: string[] };
 };
@@ -390,10 +390,10 @@ export async function smartSearchPg(plan: SearchPlan, limit: number, intent?: Pg
   }
   const aiThemes = intent?.ai?.themes ?? [];
   const aiSectors = (intent?.ai?.sectors ?? []).map((x) => `${x.toLowerCase()}%`);
-  if (aiThemes.length) score.push(`case when s.themes && ${add(aiThemes)}::text[] then 0.65 else 0 end`);
+  if (aiThemes.length) score.push(`case when s.themes && ${add(aiThemes)}::text[] then 0.7 else 0 end`);
   if (aiSectors.length) {
     const se = add(aiSectors);
-    score.push(`case when (exists (select 1 from unnest(s.proof_sectors) x where lower(x) like any(${se}::text[])) or lower(coalesce(d.client_sector, '')) like any(array(select '%' || y from unnest(${se}::text[]) y))) then 0.5 else 0 end`);
+    score.push(`case when (exists (select 1 from unnest(s.proof_sectors) x where lower(x) like any(${se}::text[])) or lower(coalesce(d.client_sector, '')) like any(array(select '%' || y from unnest(${se}::text[]) y))) then 0.55 else 0 end`);
   }
   if (match.length) where.push(`(${match.join(' or ')})`);
   if (q || asks) score.push(`case when s.reuse_status = 'internal - never show' or exists (select 1 from unnest(s.flags) fl where fl ilike '%names another client%') then -1.0 else 0 end`);

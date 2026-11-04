@@ -78,12 +78,16 @@ const search = async (q: string) => {
   return (await smartSearchPg(groundFilters(standInPlan(q, ctx), q), 20, searchIntent(q))).map((r) => r.summary.title);
 };
 
-// The AI picked a theme (FD-82): a slide with that label leads one that only says the word, though it never says it.
+// The AI picked a theme (FD-82). The rules' own theme guess weighs less than a slide type; one the AI chose counts for more.
 {
-  const plan = { ...groundFilters(standInPlan('wellbeing', { clients: [], categories: [], thisYear: 2026 }), 'wellbeing'), keywords: ['wellbeing', 'staff', 'quiet', 'breaks', 'walks'], labels: { types: [], themes: ['health & wellbeing'], sectors: [] } };
-  const asked = { types: [], sectors: [], themes: ['health & wellbeing'] };
-  const withAi = (await smartSearchPg(plan, 20, { ...asked, ai: { themes: ['health & wellbeing'], sectors: [] } })).map((r) => r.summary.title);
-  check(withAi[0] === 'Garden terrace project' && withAi.includes('Wellbeing for staff: wellbeing breaks and wellbeing walks'), 'AI theme: the labelled slide leads, the word match is still found', withAi);
+  // "Team" (Gamma Bank) matches on slide type, which weighs 1.0; "Garden terrace project" only carries the theme.
+  const plan = { ...groundFilters(standInPlan('x', { clients: [], categories: [], thisYear: 2026 }), 'x'), keywords: [], labels: { types: ['team_structure'], themes: ['health & wellbeing'], sectors: [] } };
+  const asked = { types: ['team_structure'], sectors: [], themes: ['health & wellbeing'] };
+  const order = async (ai: boolean) => (await smartSearchPg(plan, 20, ai ? { ...asked, ai: { themes: ['health & wellbeing'], sectors: [] } } : asked)).map((r) => r.summary.title);
+  const rules = await order(false);
+  const chosen = await order(true);
+  check(rules.indexOf('Team') < rules.indexOf('Garden terrace project'), 'themes: a theme the rules guessed weighs less than a matching slide type', rules);
+  check(chosen.indexOf('Garden terrace project') >= 0 && chosen.indexOf('Garden terrace project') < chosen.indexOf('Team'), 'AI theme: a theme the AI picked leads a slide that only matches on type, though the slide never says it', chosen);
   const sectorPlan = { ...plan, keywords: ['workplace'], labels: { types: [], themes: [], sectors: ['healthcare'] } };
   const bySector = (await smartSearchPg(sectorPlan, 20, { types: [], themes: [], sectors: ['healthcare'], ai: { themes: [], sectors: ['healthcare'] } })).map((r) => r.summary.title);
   check(bySector.includes('Meet the project team') && bySector.includes('Garden terrace project'), 'AI sector: slides proving, or made for, that sector come back though they never say it', bySector);
