@@ -486,7 +486,7 @@ export async function suggestUploadTags(fileName: string, bytes: Uint8Array, opt
     if (!slides.length) return null;
     const menu = labelMenu(SECTOR_NAMES);
     const answer = await opts.reader.read({ fileName, slides, themes: menu.themes, sectors: menu.sectors });
-    return cleanDeckTags(answer, { slideNumbers: slides.map((s) => s.number), themes: menu.themes, sectors: menu.sectors, clientName: opts.clientName });
+    return cleanDeckTags(answer, { slides, themes: menu.themes, sectors: menu.sectors, clientName: opts.clientName });
   } catch (e) {
     console.warn(`Deck tags reader ${opts.reader.name} unavailable, no AI tags: ${(e as Error).message}`);
     return null;
