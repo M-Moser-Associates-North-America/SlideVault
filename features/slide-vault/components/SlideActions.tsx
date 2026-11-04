@@ -71,7 +71,6 @@ type Answer = 0 | 1 | -1;
 const answers = new Map<string, { shown: Answer; sent: Answer }>();
 const answerListeners = new Set<() => void>();
 const onAnswers = (cb: () => void) => (answerListeners.add(cb), () => void answerListeners.delete(cb));
-let toldOptedOut = false;
 let toldThanks = false;
 const MEMORY = 'slidevault:search-answers';
 const MEMORY_MAX = 400;
@@ -109,8 +108,8 @@ function answerFor(key: string) {
 
 /**
  * The same arrows, without counts or names: ▲ Useful, ▼ Not relevant for the search you came from.
- * The server keeps it only for people who turned on "learn from my activity", with the search's
- * words and no name; it teaches the search and, through it, the storyboard (FD-75).
+ * The server keeps it for everyone (FD-83), with the search's words and the person's role, never a name;
+ * it teaches the search and, through it, the storyboard (FD-75). It is not part of personalization.
  */
 function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searched: string; small?: boolean }) {
   const { runtime, toast } = useWorkspace();
@@ -139,10 +138,6 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
           }
         } else if (r && !r.saved) {
           answers.set(key, { shown: next, sent: 0 }); /* nothing was saved, so nothing to take back later */
-          if (!toldOptedOut) {
-            toldOptedOut = true;
-            toast('Not saved: learning from your activity is off. You can turn it on in Settings.');
-          }
         }
       },
       () => undefined,

@@ -115,7 +115,7 @@ create index if not exists story_feedback_slide_idx on story_feedback (slide_id)
 alter table story_feedback add column if not exists by_role text;
 
 -- Useful / Not relevant on a search result (docs/DECISIONS.md FD-59): the slide, the verdict and the
--- search's words, never the search itself or a name. Only from people who opted in (FD-37).
+-- search's words, never the search itself or a name. From everyone, no opt-in (FD-83).
 create table if not exists search_feedback (
   id bigint generated always as identity primary key,
   slide_id text not null,
