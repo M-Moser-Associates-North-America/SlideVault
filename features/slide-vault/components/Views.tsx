@@ -37,7 +37,6 @@ import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { setHeroOut } from '../client/hero-visibility';
 import { useTipSeen } from '../client/tip-store';
-import { DeeperAiToggle } from './DeeperAiToggle';
 import { HiddenToggle } from './HiddenToggle';
 import { shownInFilterRow, withoutChip } from './search-reading';
 import { useRoot } from './root';
@@ -331,10 +330,7 @@ function HomeHeader() {
             <Icon name="search" />
           </button>
         </span>
-        <span className="hero-toggles">
-          <DeeperAiToggle />
-          <HiddenToggle />
-        </span>
+        <HiddenToggle />
       </form>
       <StoryLauncher />
     </div>

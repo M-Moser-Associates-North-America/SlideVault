@@ -4,6 +4,7 @@ import { startTransition, useCallback, useEffect, useId, useMemo, useRef, useSta
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, countBy, createdByOf, filterCount, SECTION_LABEL, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
 import { backdropClose, useDialogOpen } from './Dialogs';
+import { DeeperAiToggle } from './DeeperAiToggle';
 import { Link } from './parts';
 import type { SlideSummary, SmartSearchChip } from '../contracts/dto';
 import { rowReading, withoutChip } from './search-reading';
@@ -417,6 +418,7 @@ export function FilterBar() {
     <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}${heroOut && !compact ? ' has-search' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
       {heroOut && !compact && <StickySearch />}
       <div className="fbar-row" ref={rowRef} role="toolbar" aria-label="Filter slides">
+        <DeeperAiToggle />
         <button type="button" className={`fb-btn fb-all${activeTotal ? ' on' : ''}`} aria-haspopup="dialog" onClick={() => setSheet('all')}>
           <Icon name="sliders" />
           <span className="fb-lbl">Filters</span>

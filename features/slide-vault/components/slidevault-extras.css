@@ -1279,9 +1279,9 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .ai-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0 4px; padding: 10px 14px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface-sunken); color: var(--sv-text); font-size: 14px; line-height: 1.4; }
 .slidevault .ai-note .ic { color: var(--sv-brand-strong); flex: none; }
 .slidevault .ai-note > span { flex: 1 1 260px; min-width: 0; }
-/* The round switches beside the Home search: part of the bar's row on wide screens, side by side on their own row on phones */
-.slidevault .hero-toggles { display: contents; }
-.slidevault .sv-app[data-size="compact"] .hero-toggles { display: flex; gap: 8px; }
-.slidevault .ai-mark { font-size: 15px; font-weight: 800; letter-spacing: 0.02em; line-height: 1; }
-.slidevault .fb-search-wrap .ai-mark { font-size: 13px; }
-.slidevault .hid-toggle.ai-toggle.on { background: var(--sv-brand-strong); border-color: var(--sv-brand-strong); } /* white letters need the darker orange to be readable */
+/* "Search with AI": a checkbox with its words, first in the filter row (FD-79) */
+.slidevault .ai-check-wrap { height: 34px; align-items: center; }
+.slidevault .ai-check { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 6px 0 2px; color: var(--sv-text); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.slidevault .ai-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--sv-brand-strong); cursor: pointer; flex: none; }
+.slidevault .ai-check input:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .ai-tip { top: calc(100% + 6px); left: 0; right: auto; width: max-content; max-width: 240px; padding: 7px 11px; font-size: 13px; line-height: 1.35; }
