@@ -289,7 +289,11 @@
 .slidevault .home-hero-try button.try-chip { height: 30px; padding: 0 13px; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); color: var(--sv-text-secondary); font-size: 12.5px; font-weight: 500; }
 .slidevault .home-hero-try button.try-chip:hover { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text); }
 .slidevault .home-hero-try button.try-chip[aria-current="true"] { background: var(--sv-brand-tint); border-color: var(--sv-brand); color: var(--sv-text); font-weight: 600; }
-.slidevault .home-hero-field input::-webkit-search-cancel-button { filter: grayscale(1); cursor: pointer; }
+.slidevault .home-hero-field input::-webkit-search-cancel-button { display: none; } /* the browser's own cross only shows on hover; ours (.home-hero-clear) stays while there is text */
+.slidevault .home-hero-clear { flex: none; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-text); cursor: pointer; }
+.slidevault .home-hero-clear[hidden] { display: none; }
+.slidevault .home-hero-clear:hover { background: var(--sv-surface-muted); }
+.slidevault .home-hero-clear .ic { width: 15px; height: 15px; }
 
 /* ---- Tabs styled like the mockup: icon + label, thin line under the whole row, orange underline on the current tab ---- */
 .slidevault .sv-top { box-shadow: none; border-bottom: 1px solid var(--sv-border); }
@@ -757,6 +761,11 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .fb-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); }
 .slidevault .fb-search:focus-within { border-color: var(--sv-brand); }
 .slidevault .fb-search .ic { width: 16px; height: 16px; flex: none; }
+.slidevault .fb-search input::-webkit-search-cancel-button { display: none; } /* ours (.fb-clear) stays while there is text; the browser's only shows on hover */
+.slidevault .fb-clear { flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-text); cursor: pointer; }
+.slidevault .fb-clear[hidden] { display: none; }
+.slidevault .fb-clear:hover { background: var(--sv-surface-muted); }
+.slidevault .fb-clear .ic { width: 13px; height: 13px; }
 .slidevault .fb-search input { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; font: inherit; font-size: 14px; color: var(--sv-text); outline: none; }
 .slidevault .fbar.has-search { margin-bottom: -50px; }
 @media (prefers-reduced-motion: reduce) { .slidevault .fb-search-wrap { animation: none; } }
@@ -1077,8 +1086,18 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .tag[data-h="5"] { --tag-rgb: 100, 116, 139; }
 .slidevault .tag:hover, .slidevault .tag:focus-visible { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
 .slidevault .tags-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
-.slidevault .tag[data-tip]::after, .slidevault .tag-more[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; transform: none; max-width: 220px; }
-.slidevault .tag-more { display: inline-flex; align-items: center; min-height: 24px; padding: 0 6px; border-radius: 999px; color: var(--sv-text-secondary); font-size: 12.5px; cursor: default; }
+.slidevault .tag[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; transform: none; max-width: 220px; }
+.slidevault .meta-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.slidevault .meta-wrap { display: block; flex: 1; min-width: 0; }
+.slidevault .meta-wrap[data-tip]::after { max-width: 100%; } /* wraps inside the card, never past its edge */
+.slidevault .meta-row .also { flex: none; align-self: center; min-height: 24px; padding: 0 8px; border-color: transparent; background: none; color: var(--sv-text-secondary); font-weight: 500; } /* where else the slide lives: a quiet marker on the meta line, not another row */
+.slidevault .meta-row .also:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
+.slidevault .tag-team { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text-secondary); } /* the team's own labels: no colour, so they never look like a colleague's tag */
+.slidevault .tagmenu { position: fixed; z-index: 90; display: flex; flex-direction: column; min-width: 150px; max-width: 280px; max-height: min(60vh, 360px); overflow-y: auto; padding: 6px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: 12px; box-shadow: var(--sv-shadow-panel); color: var(--sv-text); }
+.slidevault .tagmenu-item { text-align: left; padding: 7px 10px; border: 0; border-radius: 8px; background: none; color: var(--sv-text); font: inherit; font-size: 13px; line-height: 1.3; cursor: pointer; overflow-wrap: anywhere; }
+.slidevault .tagmenu-item:hover, .slidevault .tagmenu-item:focus-visible { background: var(--sv-brand-tint); }
+.slidevault .tag-more { background: none; border: 0; font: inherit; font-size: 12.5px; cursor: pointer; }
+.slidevault .tag-more { display: inline-flex; align-items: center; min-height: 24px; padding: 0 6px; border-radius: 999px; color: var(--sv-text-secondary); font-size: 12.5px; cursor: pointer; }
 .slidevault .tag-more:hover, .slidevault .tag-more:focus-visible { color: var(--sv-brand-strong); }
 .slidevault .taglist { display: grid; gap: 10px; }
 .slidevault .tagrows { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1159,17 +1178,18 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .vcard .tags-compact .tag { min-width: 0; flex: 0 1 auto; }
 .slidevault .vcard .tags-compact .tag-t { max-width: none; }
 .slidevault .vcard .tag-more { flex: none; }
-.slidevault .card-foot { margin-top: auto; padding-top: 4px; display: flex; align-items: center; gap: 8px; min-height: 36px; min-width: 0; }
+.slidevault .card-foot { margin-top: auto; padding-top: 2px; display: flex; align-items: center; gap: 8px; min-height: 28px; min-width: 0; } /* just tall enough for the small arrows or the Also-in chip (was 36px, from when votes with counts lived here) */
+.slidevault .card .card-body { padding-bottom: 10px; }
 .slidevault .card-foot:empty { display: none; }
-.slidevault .card-foot .also { align-self: center; margin-left: auto; }
-.slidevault .also-full { display: none; }
-@container (min-width: 250px) {
-  .slidevault .also-full { display: inline; }
-  .slidevault .also-short { display: none; }
-}
+/* Useful on the left, Not useful on the right of the card, as in the Storyboard (FD-81) */
+.slidevault .card-foot { flex-wrap: wrap; }
+.slidevault .fb-verdict { margin-top: 0; flex: 1 1 170px; flex-wrap: nowrap; }
+.slidevault .fb-verdict.is-small { justify-content: space-between; }
+.slidevault .fb-verdict.is-small .sb-icon-btn { padding: 4px 2px; }
+.slidevault .fb-verdict .sb-icon-btn:disabled { opacity: 1; }
+.slidevault .fb-verdict .sb-icon-btn[data-tip]::after { text-transform: none; letter-spacing: normal; font-size: 12.5px; font-weight: 500; } /* the tooltip is a sentence, not small capitals */
 .slidevault .tags-spacer { display: none; height: 24px; }
 .slidevault .sv-main:has(.vcard .tags-compact) .tags-spacer { display: block; }
-.slidevault .card-foot .also[data-tip]::after { top: auto; bottom: calc(100% + 6px); }
 /* In the preview, open comments get room before the tags start: a gap and a hairline */
 .slidevault .comments + .lb-tags { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--sv-border); }
 
@@ -1246,3 +1266,11 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .cart-tagall-wrap { margin: 4px 0 8px; }
 .slidevault .cart-tagall-wrap .cart-tagall { margin: 0; }
 .slidevault .cart-tagall-note { margin: 4px 0 0; font-size: 12.5px; }
+
+/* Search results in groups (Decks, Sections, Slides): a heading each, with room above and below */
+.slidevault .res-block { margin-top: 8px; }
+.slidevault .res-h { margin: 34px 0 14px; }
+.slidevault .res-block .res-h { margin-top: 28px; }
+.slidevault .state .btn + .btn { margin-left: 8px; } /* two buttons in an empty state: a gap, not touching */
+.slidevault .slide-actions:empty { display: none; } /* the slide page's bar has nothing in it when there are no votes or comments */
+.slidevault .dlg-head-tools { display: flex; align-items: center; gap: 2px; flex: none; }

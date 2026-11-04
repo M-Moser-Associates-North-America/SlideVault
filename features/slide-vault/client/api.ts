@@ -165,7 +165,7 @@ export async function listSections(runtime: Transport, kind: string, signal?: Ab
 }
 
 /** Useful / Not relevant on a search result (FD-59); { saved: false } when the person hasn't turned on learning. */
-export async function sendSearchFeedback(runtime: Transport, feedback: { query: string; slideId: string; verdict: 'useful' | 'not-relevant'; by?: StoryUserRole | null }): Promise<{ saved: boolean }> {
+export async function sendSearchFeedback(runtime: Transport, feedback: { query: string; slideId: string; verdict: 'useful' | 'not-relevant'; by?: StoryUserRole | null; undo?: boolean }): Promise<{ saved: boolean }> {
   const res = await runtime.request({ path: '/smart-search/feedback', method: 'POST', body: feedback });
   if (!res.ok) return failure(runtime, res);
   return ((await res.json()) as ApiOk<{ saved: boolean }>).data;

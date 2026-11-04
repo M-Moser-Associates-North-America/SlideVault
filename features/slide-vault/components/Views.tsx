@@ -1,7 +1,7 @@
 'use client';
 
 import { SlideTitle } from './RenameSlide';
-import { SlideEngagement } from './SlideActions';
+import { SlideEngagement, useShareSlide } from './SlideActions';
 import { SectionBrowse, SectionCards } from './SectionCards';
 import { DeckTags, SlideLabelsPanel, SlideTagsPanel } from './TagBits';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
@@ -309,6 +309,19 @@ function HomeHeader() {
               heroTouched = true;
               setTouched(true);
             }} />
+          <button
+            type="button"
+            className="home-hero-clear"
+            aria-label="Clear search"
+            hidden={!query}
+            onClick={() => {
+              setQuery('');
+              /* Home swaps its layout once the search is empty, so the box is a new element a moment later. */
+              setTimeout(() => document.getElementById('sv-hero-q')?.focus(), 0);
+            }}
+          >
+            <Icon name="x" />
+          </button>
           <MicButton className="home-hero-mic" showWhenOff onText={(t) => {
             spoken.current = true;
             setQuery(t);
@@ -633,6 +646,7 @@ export function ResultsView() {
   const slides = visible.map((i) => i.slide);
   const deckCount = new Set(slides.map((s) => s.provenance.sourceId)).size;
   const grouped = shown.filter((i) => i.slide.alsoIn).length;
+  const sectionMode = !!pickedSection || !!result?.sections?.length;
   /* Client, year and slide type already light up in the filter row above. */
   const extraChips = result ? result.chips.filter((c) => !shownInFilterRow(c)) : [];
 
@@ -713,6 +727,9 @@ export function ResultsView() {
             </div>
           )}
           {result.relaxed && <p className="meta">Nothing matched every detail, so these results leave out the client, year or category filter.</p>}
+          {/* Results in groups, each with its own heading and room: Decks, then Sections (when asked for), then Slides. */}
+          {shown.length > 0 && sectionMode && <SectionCards heading="Sections" results={pickedSection ? slides : shown.map((i) => i.slide)} only={pickedSection ? [pickedSection] : result.sections} />}
+          {shown.length > 0 && (sectionMode || (found && found.decks.length > 0)) && <h2 className="h2 res-h">Slides</h2>}
           <div className="refine">
             <label>
               Sort
@@ -725,11 +742,15 @@ export function ResultsView() {
             <span className="spacer" />
             {slides.length > 0 && <SelectAll slides={slides} />}
           </div>
-          {shown.length === 0 && found && found.decks.length > 0 ? null : shown.length === 0 ? (
+          {shown.length === 0 && found && found.decks.length > 0 && filterCount(filters) === 0 ? null : shown.length === 0 ? (
             <StateBlock
               icon="search"
-              title={`No slides match “${q}”`}
-              text={filterCount(filters) > 0 ? removeHint(filters) : 'Try fewer words, or say it a different way. For example, “team intro” instead of “introduction to our team”.'}
+              title={`No slides found matching “${q}”`}
+              text={
+                filterCount(filters) > 0
+                  ? `${found && found.decks.length > 0 ? 'The deck above matches your search, but none of its slides fit the filters. ' : ''}${removeHint(filters)}`
+                  : 'Try fewer words, or say it a different way. For example, “team intro” instead of “introduction to our team”.'
+              }
             >
               {filterCount(filters) > 0 && (
                 <button type="button" className="btn" onClick={clearFilters}>
@@ -769,7 +790,6 @@ export function ResultsView() {
                   ))}
                 </div>
               )}
-              {(!!pickedSection || !!result?.sections?.length) && <SectionCards results={pickedSection ? slides : shown.map((i) => i.slide)} only={pickedSection ? [pickedSection] : result?.sections} />}
               <div className="grid">
                 {visible.map((i) => (
                   <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} note={sort === 'popular' ? downloadedNote(i.slide) : undefined} />
@@ -895,6 +915,7 @@ function FromFolder() {
 
 export function SlideView({ id }: { id: string }) {
   const { runtime, library, openPreview, openDownload, logActivity, packs, selection, addPackToDraft, openArchiveDialog, setIncludeHidden } = useWorkspace();
+  const shareSlide = useShareSlide(id);
   const { isSelected, setOne } = useCartToggle();
   const lib = useReadyLibrary();
   const slide = library.status === 'ready' ? library.slides.find((s) => s.id === id) : undefined;
@@ -1029,6 +1050,10 @@ export function SlideView({ id }: { id: string }) {
                 <Icon name="check" />
                 <span>{sel ? 'In draft deck' : 'Add to draft deck'}</span>
               </button>
+              <button type="button" className="btn btn-sm" onClick={() => void shareSlide()} data-tip="Copy link">
+                <Icon name="share" />
+                <span>Share</span>
+              </button>
               {slidePack && (
                 <button type="button" className="btn btn-sm" disabled={slidePack.slideIds.every((pid) => selection.some((x) => x.id === pid))} onClick={() => addPackToDraft(slidePack)}>
                   <Icon name="plus" />
@@ -1037,10 +1062,11 @@ export function SlideView({ id }: { id: string }) {
               )}
               <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload([slide])}>
                 <Icon name="download" />
-                <span>Download only this slide</span>
+                <span>Download slide</span>
               </button>
               <Link className="btn btn-sm" to={{ view: 'deck', id: deck.id }}>
-                Open deck
+                <Icon name="deck" />
+                <span>Open deck</span>
               </Link>
             </div>
           </section>

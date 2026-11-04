@@ -62,13 +62,50 @@ export function CardVotes({ slide }: { slide: SlideSummary }) {
   return <VotePill slide={slide} engage={engage} small />;
 }
 
-/* Useful / Not relevant on a search result (FD-59, FD-77): the answer per search and slide, shared by
-   the card, the preview and the slide page, and what was last sent, so changing your mind sends the
-   new answer once and clicking the same arrow again only un-highlights it. Kept for this tab. */
-const answers = new Map<string, { shown: 0 | 1 | -1; sent: 0 | 1 | -1 }>();
+/* Useful / Not relevant on a search result (FD-59, FD-77, FD-81): the answer per search and slide,
+   shared by the card, the preview and the slide page. The browser remembers what it sent (also after a
+   reload), so the same answer is never sent twice; changing your mind takes the old click back first,
+   and clicking the lit arrow again takes it back. Nobody is named, so this is also what stops one
+   person counting twice. */
+type Answer = 0 | 1 | -1;
+const answers = new Map<string, { shown: Answer; sent: Answer }>();
 const answerListeners = new Set<() => void>();
 const onAnswers = (cb: () => void) => (answerListeners.add(cb), () => void answerListeners.delete(cb));
 let toldOptedOut = false;
+let toldThanks = false;
+const MEMORY = 'slidevault:search-answers';
+const MEMORY_MAX = 400;
+const answerKey = (searched: string, slideId: string) => `${searched.trim().toLowerCase().replace(/\s+/g, ' ')}|${slideId}`;
+
+/** What this browser already sent, kept between visits (a private window or blocked storage just forgets). */
+function remembered(): Record<string, Answer> {
+  try {
+    return JSON.parse(localStorage.getItem(MEMORY) ?? '{}') as Record<string, Answer>;
+  } catch {
+    return {};
+  }
+}
+function remember(key: string, sent: Answer) {
+  try {
+    const all = remembered();
+    delete all[key];
+    if (sent !== 0) all[key] = sent;
+    const keys = Object.keys(all);
+    for (const k of keys.slice(0, Math.max(0, keys.length - MEMORY_MAX))) delete all[k];
+    localStorage.setItem(MEMORY, JSON.stringify(all));
+  } catch {
+    /* storage unavailable: the tab still remembers */
+  }
+}
+function answerFor(key: string) {
+  let a = answers.get(key);
+  if (!a) {
+    const sent = remembered()[key] ?? 0;
+    a = { shown: sent, sent };
+    answers.set(key, a);
+  }
+  return a;
+}
 
 /**
  * The same arrows, without counts or names: ▲ Useful, ▼ Not relevant for the search you came from.
@@ -77,43 +114,60 @@ let toldOptedOut = false;
  */
 function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searched: string; small?: boolean }) {
   const { runtime, toast } = useWorkspace();
-  const key = `${searched.toLowerCase()}|${slide.id}`;
-  const shown = useSyncExternalStore(onAnswers, () => answers.get(key)?.shown ?? 0, () => 0);
+  const key = answerKey(searched, slide.id);
+  const shown = useSyncExternalStore(onAnswers, () => answerFor(key).shown, () => 0);
   const cast = (value: 1 | -1) => {
-    const now = answers.get(key) ?? { shown: 0, sent: 0 };
-    const next = now.shown === value ? 0 : value;
-    const send = next !== 0 && next !== now.sent;
-    answers.set(key, { shown: next, sent: send ? next : now.sent });
+    const now = answerFor(key);
+    const next: Answer = now.shown === value ? 0 : value;
+    const by = currentStoryRole();
+    const verdict = (a: 1 | -1) => (a === 1 ? 'useful' : 'not-relevant') as 'useful' | 'not-relevant';
+    const take = now.sent !== 0 && now.sent !== next ? sendSearchFeedback(runtime, { query: searched, slideId: slide.id, verdict: verdict(now.sent), by, undo: true }) : null;
+    const give = next !== 0 && next !== now.sent;
+    const sentAfter: Answer = give ? next : next === 0 ? 0 : now.sent;
+    answers.set(key, { shown: next, sent: sentAfter });
     answerListeners.forEach((l) => l());
-    if (!send) return;
-    sendSearchFeedback(runtime, { query: searched, slideId: slide.id, verdict: next === 1 ? 'useful' : 'not-relevant', by: currentStoryRole() }).then(
+    if (!take && !give) return;
+    take?.catch(() => undefined);
+    if (!give) return remember(key, sentAfter);
+    sendSearchFeedback(runtime, { query: searched, slideId: slide.id, verdict: verdict(next as 1 | -1), by }).then(
       (r) => {
-        if (r && !r.saved && !toldOptedOut) {
-          toldOptedOut = true;
-          toast('Not saved: learning from your activity is off. You can turn it on in Settings.');
+        if (r && r.saved) {
+          remember(key, next);
+          if (!toldThanks) {
+            toldThanks = true;
+            toast('Thanks. Search will use this for similar searches.');
+          }
+        } else if (r && !r.saved) {
+          answers.set(key, { shown: next, sent: 0 }); /* nothing was saved, so nothing to take back later */
+          if (!toldOptedOut) {
+            toldOptedOut = true;
+            toast('Not saved: learning from your activity is off. You can turn it on in Settings.');
+          }
         }
       },
       () => undefined,
     );
   };
+  /* The Storyboard's Useful / Not useful row (same classes): ticks and crosses, small capitals, one on each side of a card. */
   return (
-    <div className={`votepill${small ? ' is-small' : ''}`} role="group" aria-label="Is this slide useful for your search?">
-      <button type="button" className="vp is-up" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Useful" onClick={() => cast(1)}>
-        <Icon name="up" />
+    <div className={`sb-verdict fb-verdict${small ? ' is-small' : ''}`} role="group" aria-label="Is this slide useful for your search?">
+      <button type="button" className="sb-icon-btn" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Useful: ranks this slide higher in similar searches." data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(1)}>
+        <Icon name="check" className="ic-sm" />
+        Useful
       </button>
-      <button type="button" className="vp is-down" aria-pressed={shown === -1} aria-label="Not relevant to this search" data-tip="Not relevant" onClick={() => cast(-1)}>
-        <Icon name="dn" />
+      <button type="button" className="sb-icon-btn" aria-pressed={shown === -1} aria-label="Not useful for this search" data-tip="Not useful: ranks this slide lower in similar searches." data-tip-pos={small ? 'up end' : undefined} onClick={() => cast(-1)}>
+        <Icon name="x" className="ic-sm" />
+        Not useful
       </button>
     </div>
   );
 }
 
-/** The full bar: vote pill, comments, Share. */
-export function SlideActions({ slide, commentsOpen, onComments }: { slide: SlideSummary; commentsOpen?: boolean; onComments: () => void }) {
+/** Copies a link to the slide's page. Only people signed in at M Moser can open it, so it is safe to paste in a chat or an email. */
+export function useShareSlide(slideId: string) {
   const { runtime, toast } = useWorkspace();
-  const engage = useEngagement(runtime, slide);
-  const share = async () => {
-    const path = runtime.hrefFor?.({ view: 'slide', id: slide.id });
+  return async () => {
+    const path = runtime.hrefFor?.({ view: 'slide', id: slideId });
     if (!path) return toast("This page can't make a link here.");
     const url = new URL(path, window.location.origin).toString();
     try {
@@ -123,6 +177,23 @@ export function SlideActions({ slide, commentsOpen, onComments }: { slide: Slide
       toast(`Copy this link: ${url}`); /* clipboard blocked: show it instead */
     }
   };
+}
+
+/** Share as a small icon button, for the corner of the preview next to its close button. */
+export function ShareIconButton({ slideId }: { slideId: string }) {
+  const share = useShareSlide(slideId);
+  return (
+    <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Share: copy a link to this slide" data-tip="Copy link" data-tip-pos="end" onClick={() => void share()}>
+      <Icon name="share" />
+    </button>
+  );
+}
+
+/** The full bar: vote pill, comments, Share (the slide page has Share in its Use this slide card instead: noShare). */
+export function SlideActions({ slide, commentsOpen, onComments, noShare }: { slide: SlideSummary; commentsOpen?: boolean; onComments: () => void; noShare?: boolean }) {
+  const { runtime } = useWorkspace();
+  const engage = useEngagement(runtime, slide);
+  const share = useShareSlide(slide.id);
   return (
     <div className="slide-actions" role="group" aria-label="Slide actions">
       <VotePill slide={slide} engage={engage} />
@@ -133,10 +204,12 @@ export function SlideActions({ slide, commentsOpen, onComments }: { slide: Slide
           <span className="sr-only"> comments</span>
         </button>
       )}
-      <button type="button" className="actpill" onClick={() => void share()} data-tip="Copy a link to this slide">
-        <Icon name="share" />
-        <span>Share</span>
-      </button>
+      {!noShare && (
+        <button type="button" className="actpill" onClick={() => void share()} data-tip="Copy a link to this slide">
+          <Icon name="share" />
+          <span>Share</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -147,18 +220,18 @@ export function SlideEngagement({ slide, loaded }: { slide: SlideSummary; loaded
   const merged = loaded ? { ...slide, votes: loaded.votes ?? slide.votes, commentCount: loaded.commentCount ?? slide.commentCount } : slide;
   return (
     <>
-      <SlideActions slide={merged} commentsOpen={open} onComments={() => setOpen((o) => !o)} />
+      <SlideActions slide={merged} commentsOpen={open} onComments={() => setOpen((o) => !o)} noShare />
       {open && <CommentsSection slide={merged} />}
     </>
   );
 }
 
-/** The preview: the same bar, with the comments opening right below it. */
+/** The preview: the same bar without Share (that is an icon beside the close button), with the comments opening right below it. */
 export function PreviewActions({ slide }: { slide: SlideSummary }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <SlideActions slide={slide} commentsOpen={open} onComments={() => setOpen((o) => !o)} />
+      <SlideActions slide={slide} commentsOpen={open} onComments={() => setOpen((o) => !o)} noShare />
       {open && <CommentsSection slide={slide} />}
     </>
   );

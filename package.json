@@ -25,6 +25,7 @@
     "test:reasoning-map": "tsx --conditions=react-server scripts/test-reasoning-map.mts",
     "test:storyboard": "tsx --conditions=react-server scripts/test-storyboard.mts",
     "test:deck-suggestions": "tsx --conditions=react-server scripts/test-deck-suggestions.mts",
+    "test:search-learning": "tsx --conditions=react-server scripts/test-search-learning.mts",
     "test:story-learning": "tsx --conditions=react-server scripts/test-story-learning.mts",
     "test:deck-finder": "tsx scripts/test-deck-finder.mts",
     "upload:library": "tsx scripts/upload-library.mts",

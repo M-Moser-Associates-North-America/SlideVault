@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type MouseEvent, type RefObject } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactElement, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { getSlide, listTags } from '../client/api';
 import { demoTagsOn, ranked, TagsUnavailable, useTags, type TagsApi } from '../client/tag-store';
 import type { FreeTag, SlideDetail, SlideStory, SlideSummary, TagRemoval } from '../contracts/dto';
@@ -89,13 +90,21 @@ function useTagSearch(onNavigate?: () => void) {
 /** One of six soft hues per tag, the same everywhere, so tags look different from the grey action buttons. */
 export const hueOf = (tag: string) => [...tag.toLowerCase()].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 5) % 6;
 
+/** When a chip's text is cut off ("Workplace str…"), hover or focus names it in full. Nothing when it fits. */
+function nameWhenCut(e: { currentTarget: HTMLElement }, text: string) {
+  const b = e.currentTarget;
+  const t = b.querySelector<HTMLElement>('.tag-t');
+  if (t && t.scrollWidth > t.clientWidth) b.setAttribute('data-tip', text);
+  else b.removeAttribute('data-tip');
+}
+
 /** A small pill. Click to search for it; hover or focus says who added it. */
 export function TagChip({ tag, onNavigate }: { tag: FreeTag; onNavigate?: () => void }) {
   const search = useTagSearch(onNavigate);
   const tipId = useId();
   return (
     <>
-      <button type="button" className="tag" data-h={hueOf(tag.tag)} data-tip={tipFor(tag)} aria-describedby={tipId} onClick={() => search(tag.tag)}>
+      <button type="button" className="tag" data-h={hueOf(tag.tag)} aria-describedby={tipId} onClick={() => search(tag.tag)} onMouseEnter={(e) => nameWhenCut(e, tag.tag)} onFocus={(e) => nameWhenCut(e, tag.tag)}>
         <span className="tag-t">{tag.tag}</span>
       </button>
       <span id={tipId} className="sr-only">
@@ -105,27 +114,191 @@ export function TagChip({ tag, onNavigate }: { tag: FreeTag; onNavigate?: () => 
   );
 }
 
+/* ---------------------------------------------------------------- The team's labels */
+
+/** One of the team's reviewed labels for a slide (Schiffon's story tags, FD-53), shown like a tag. */
+export type TeamLabel = { text: string; what: string };
+
+/** A slide's reviewed labels, most telling first: its type, the sectors and themes it proves, its projects, its role. */
+export function teamLabels(story: SlideStory | null | undefined): TeamLabel[] {
+  if (!story) return [];
+  const all: TeamLabel[] = [
+    ...(story.type ? [{ text: words(story.type), what: 'Slide type' }] : []),
+    ...story.sectors.map((x) => ({ text: words(x), what: 'Sector' })),
+    ...story.themes.map((x) => ({ text: words(x), what: 'Theme' })),
+    ...story.projects.map((x) => ({ text: x, what: 'Project' })),
+    ...(story.role ? [{ text: words(story.role), what: 'Role' }] : []),
+  ];
+  const seen = new Set<string>();
+  return all.filter((l) => !seen.has(l.text.toLowerCase()) && !!seen.add(l.text.toLowerCase()));
+}
+
+/** Does this label say something the person typed? Those go first on a card. */
+const matchesQuery = (text: string, query: string) => {
+  const t = text.toLowerCase();
+  return query
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .some((w) => w.length >= 3 && t.includes(w.replace(/(es|s)$/, '')));
+};
+
+/** A team label as a small pill: plain grey with no colour, so it never looks like something a colleague typed. Click to search for it. */
+export function TeamChip({ label, onNavigate }: { label: TeamLabel; onNavigate?: () => void }) {
+  const search = useTagSearch(onNavigate);
+  return (
+    <button type="button" className="tag tag-team" aria-label={`${label.text}. ${label.what}, reviewed by the team. Search for it.`} onClick={() => search(label.text)} onMouseEnter={(e) => nameWhenCut(e, label.text)} onFocus={(e) => nameWhenCut(e, label.text)}>
+      <span className="tag-t">{label.text}</span>
+    </button>
+  );
+}
+
+/**
+ * "+3": the rest of a card's tags, one below the other in a small card at the bottom right of the "+3",
+ * on hover (with a mouse) or click (a tap, or Enter). The card is drawn at the top of the feature, not inside
+ * the slide card, so it can reach past the slide card's edge; it flips to the left or above when there is no room.
+ */
+function MoreTags({ names }: { names: string[] }) {
+  const search = useTagSearch();
+  const [pinned, setPinned] = useState(false);
+  const [hover, setHover] = useState(false);
+  const [at, setAt] = useState<{ top: number; left: number } | null>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  const timer = useRef<number | undefined>(undefined);
+  const id = useId();
+  const [root, setRoot] = useState<HTMLElement | null>(null);
+  const open = pinned || hover;
+  const placed = at !== null;
+  const close = () => {
+    setPinned(false);
+    setHover(false);
+  };
+
+  useLayoutEffect(() => {
+    if (!open || !button.current || !menu.current) return setAt(null);
+    const r = button.current.getBoundingClientRect();
+    const w = menu.current.offsetWidth;
+    const h = menu.current.offsetHeight;
+    const left = r.left + w > window.innerWidth - 8 ? Math.max(8, r.right - w) : r.left;
+    const top = r.bottom + 6 + h > window.innerHeight - 8 ? Math.max(8, r.top - h - 6) : r.bottom + 6;
+    setAt({ top, left });
+  }, [open, names.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: Event) => {
+      const t = e.target as Node;
+      if (!menu.current?.contains(t) && !button.current?.contains(t)) close();
+    };
+    document.addEventListener('pointerdown', away);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
+
+  useEffect(() => setRoot(button.current?.closest<HTMLElement>('.slidevault') ?? null), []);
+
+  /* Opened with a click or Enter: move into the list, so the keyboard can reach it; Escape comes back. */
+  useEffect(() => {
+    if (pinned) menu.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [pinned, placed]);
+
+  const enter = (e: ReactPointerEvent) => {
+    if (e.pointerType !== 'mouse') return;
+    window.clearTimeout(timer.current);
+    setHover(true);
+  };
+  const leave = (e: ReactPointerEvent) => {
+    if (e.pointerType !== 'mouse') return;
+    timer.current = window.setTimeout(() => setHover(false), 150);
+  };
+
+  return (
+    <>
+      <button
+        ref={button}
+        type="button"
+        className="tag-more"
+        aria-expanded={open}
+        aria-controls={open ? id : undefined}
+        aria-label={`${plural(names.length, 'more tag')}`}
+        onClick={() => setPinned((p) => !p)}
+        onPointerEnter={enter}
+        onPointerLeave={leave}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') close();
+        }}
+      >
+        +{names.length}
+      </button>
+      {open &&
+        root &&
+        createPortal(
+          <div
+            ref={menu}
+            id={id}
+            role="group"
+            aria-label="More tags"
+            className="tagmenu"
+            style={{ top: at?.top ?? 0, left: at?.left ?? 0, visibility: at ? 'visible' : 'hidden' }}
+            onPointerEnter={enter}
+            onPointerLeave={leave}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                close();
+                button.current?.focus();
+              }
+            }}
+          >
+            {names.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className="tagmenu-item"
+                onClick={() => {
+                  close();
+                  search(n);
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>,
+          root,
+        )}
+    </>
+  );
+}
+
 /* ---------------------------------------------------------------- Cards */
 
-/** The best two tags, small, under a card's title. Nothing at all when the slide has none. */
+/**
+ * The two most relevant tags, small, under a card's title, then "+N" for the rest (hover, focus or click).
+ * Ones that match the search come first, then the people's tags (the slide's own, then its deck's), then
+ * the team's labels. Nothing at all when the slide has none.
+ */
 export function CompactTags({ slide }: { slide: SlideSummary }) {
-  const { runtime, profile } = useWorkspace();
+  const { runtime, profile, query } = useWorkspace();
   const own = useTags(runtime, profile, 'slide', slide.id, slide.tags);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, slide.tags);
-  const all = [...ranked(own.shown), ...ranked(deck.shown)]; /* the slide's own tags first, then its deck's */
+  type Item = { key: string; text: string; node: ReactElement };
+  const items: Item[] = [
+    ...[...ranked(own.shown), ...ranked(deck.shown)].map((t) => ({ key: `p${t.id}`, text: t.tag, node: <TagChip key={`p${t.id}`} tag={t} /> })),
+    ...teamLabels(slide.story).map((l) => ({ key: `t${l.what}${l.text}`, text: l.text, node: <TeamChip key={`t${l.what}${l.text}`} label={l} /> })),
+  ];
+  const q = query.trim();
+  const all = q ? [...items.filter((i) => matchesQuery(i.text, q)), ...items.filter((i) => !matchesQuery(i.text, q))] : items;
   /* A card without tags keeps an empty row when other cards on the page have tags, so everything below lines up. */
   if (all.length === 0) return <div className="tags-spacer" aria-hidden="true" />;
   const more = all.slice(2);
   return (
     <div className="tags-compact" role="group" aria-label="Tags">
-      {all.slice(0, 2).map((t) => (
-        <TagChip key={t.id} tag={t} />
-      ))}
-      {more.length > 0 && (
-        <span className="tag-more" tabIndex={0} data-tip={more.map((t) => t.tag).join(', ')} aria-label={`${plural(more.length, 'more tag')}: ${more.map((t) => t.tag).join(', ')}`}>
-          +{more.length}
-        </span>
-      )}
+      {all.slice(0, 2).map((i) => i.node)}
+      {more.length > 0 && <MoreTags names={more.map((i) => i.text)} />}
     </div>
   );
 }
@@ -451,14 +624,22 @@ export function PreviewTags({ slide, onNavigate }: { slide: SlideSummary; onNavi
   const own = useTags(runtime, profile, 'slide', slide.id, seed);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, seed);
   const canEdit = useCanEdit();
-  if (seed === undefined && !demoTagsOn()) return null;
+  const team = teamLabels(slide.story);
+  if (seed === undefined && !demoTagsOn() && team.length === 0) return null;
   return (
     <div className="lb-tags">
-      <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} />
+      {(seed !== undefined || demoTagsOn()) && <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} />}
       {deck.shown.length > 0 && (
         <div className="tags-compact" aria-label="Tags from the deck">
           {deck.shown.map((t) => (
             <TagChip key={t.id} tag={t} onNavigate={onNavigate} />
+          ))}
+        </div>
+      )}
+      {team.length > 0 && (
+        <div className="tags-compact" role="group" aria-label="Labels from the team">
+          {team.map((l) => (
+            <TeamChip key={l.what + l.text} label={l} onNavigate={onNavigate} />
           ))}
         </div>
       )}

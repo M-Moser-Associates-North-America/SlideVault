@@ -109,7 +109,7 @@ test('no violations in the preview and download dialogs, empty results and the d
   await page.keyboard.press('Escape');
 
   await page.getByLabel('Search slides').fill('zzqq');
-  await expect(page.getByText(/No slides match/)).toBeVisible();
+  await expect(page.getByText(/No slides found matching/)).toBeVisible();
   expect(await axe(page)).toEqual([]);
   await page.getByRole('button', { name: 'Clear search' }).first().click();
 
@@ -460,5 +460,146 @@ test('sections: type a section, open it, see it framed in the deck strip, add it
   await page.getByRole('checkbox', { name: /Case studies/ }).click();
   await expect(page.getByRole('heading', { name: 'Case studies', level: 2 })).toBeVisible();
   await expect(page.locator('.seccard')).toHaveCount(1);
+  expect(await axe(page)).toEqual([]);
+});
+
+test('Useful / Not relevant: remembered after a reload, changing your mind takes the old click back, nothing is sent twice', async ({ page }) => {
+  const sent: { verdict: string; undo?: boolean; slideId: string }[] = [];
+  await page.route('**/api/slide-vault/v1/smart-search/feedback', async (route) => {
+    sent.push(route.request().postDataJSON());
+    await route.fulfill({ json: { data: { saved: true } } });
+  });
+  await openResults(page);
+  const first = page.locator('article.card').first();
+  const useful = first.getByRole('button', { name: 'Useful for this search', exact: true });
+  const notRelevant = first.getByRole('button', { name: 'Not useful for this search' });
+
+  await useful.click();
+  await expect(useful).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('Thanks. Search will use this for similar searches.')).toBeVisible();
+  expect(sent.map((s) => `${s.verdict}${s.undo ? ' undo' : ''}`)).toEqual(['useful']);
+
+  // A reload forgets the page but not the answer: the arrow is still lit, and answering the same again sends nothing new.
+  await openResults(page);
+  const again = page.locator('article.card').first();
+  await expect(again.getByRole('button', { name: 'Useful for this search', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(sent).toHaveLength(1);
+
+  // Changing your mind takes the Useful back, then sends Not relevant.
+  await again.getByRole('button', { name: 'Not useful for this search' }).click();
+  await expect(again.getByRole('button', { name: 'Not useful for this search' })).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => sent.length).toBe(3);
+  expect(sent.slice(1).map((s) => `${s.verdict}${s.undo ? ' undo' : ''}`).sort()).toEqual(['not-relevant', 'useful undo']);
+
+  // Clicking the lit arrow again just takes it back.
+  await again.getByRole('button', { name: 'Not useful for this search' }).click();
+  await expect(again.getByRole('button', { name: 'Not useful for this search' })).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(() => sent.length).toBe(4);
+  expect(`${sent[3].verdict}${sent[3].undo ? ' undo' : ''}`).toBe('not-relevant undo');
+
+  // Not a second time on the same arrow, and a different search starts clean.
+  await searchFor(page, 'team');
+  await expect(page.locator('article.card').first().getByRole('button', { name: 'Not useful for this search' })).toHaveAttribute('aria-pressed', 'false');
+  expect(sent).toHaveLength(4);
+});
+
+test('Personalize: turning it on or off is confirmed on a card, not only a toast', async ({ page }) => {
+  let on = false;
+  await page.route('**/api/slide-vault/v1/me/activity', async (route) => {
+    if (route.request().method() === 'PATCH') on = route.request().postDataJSON().optedIn;
+    await route.fulfill({ json: { data: { optedIn: on, retentionDays: 90, entries: [] } } });
+  });
+  // The one-time question after sign-in would be in the way: mark it answered.
+  await page.evaluate(() => localStorage.setItem('slidevault:tip:activity-ask', '1'));
+  await page.goto('/slide-vault/settings');
+  const box = page.getByLabel(/Use my activity to personalize/);
+  await box.click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Personalize my Vault?' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Turn on' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Personalization is on' })).toBeVisible();
+  await expect(dialog).toContainText('Kept 90 days');
+  expect(await axe(page)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Done' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(box).toBeChecked();
+
+  await box.click();
+  await dialog.getByRole('button', { name: 'Turn off and delete my history' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Personalization is off' })).toBeVisible();
+  await expect(dialog).toContainText('Your history was deleted');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(box).not.toBeChecked();
+});
+
+test('Home search: the clear cross is there as soon as there is text, without hovering, and clears it', async ({ page }) => {
+  await openHome(page);
+  const box = page.getByLabel('Search slides');
+  const clear = page.getByRole('button', { name: 'Clear search' });
+  await expect(clear).toBeHidden();
+  await box.fill('services');
+  await page.mouse.move(5, 5); // nowhere near the search box
+  await expect(clear).toBeVisible();
+  await clear.click();
+  await expect(box).toHaveValue('');
+  await expect(box).toBeFocused();
+  await expect(clear).toBeHidden();
+
+  // The slim search that stays after scrolling has its own cross too.
+  await page.setViewportSize({ width: 1280, height: 520 });
+  await box.fill('services');
+  await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
+  await page.mouse.move(400, 400); // over the results, so the wheel scrolls them
+  await page.mouse.wheel(0, 900);
+  const slim = page.locator('.fb-search');
+  await expect(slim).toBeVisible();
+  await expect(slim.getByRole('button', { name: 'Clear search' })).toBeVisible();
+});
+
+test("the team's labels: a card shows the two most relevant and +N for the rest; the preview shows them all", async ({ page }) => {
+  await page.route('**/api/slide-vault/v1/smart-search?*', async (route) => {
+    const res = await route.fetch();
+    const body = await res.json();
+    body.data.items[0].slide.story = { role: 'proof', type: 'case_study_detail', reuse: 'reusable', themes: ['workplace strategy & data', 'cost certainty & risk'], sectors: ['hospitality'], projects: [], flags: [], shows: null, convinces: null, status: 'confirmed' };
+    await route.fulfill({ response: res, json: body });
+  });
+  await openResults(page);
+  const first = page.locator('article.card').first();
+  // Two labels, the slide's type first, then the rest behind +3.
+  await expect(first.locator('.tags-compact .tag-team')).toHaveText(['Case study detail', 'Hospitality']);
+  const more = first.getByRole('button', { name: /3 more tags/ });
+  await expect(more).toHaveText('+3');
+  // No tooltips on the tags themselves; the rest open as a list, one below the other.
+  await expect(first.locator('.tag-team').first()).not.toHaveAttribute('data-tip', /.*/);
+  await more.click();
+  await expect(more).toHaveAttribute('aria-expanded', 'true');
+  const list = page.getByRole('group', { name: 'More tags' });
+  await expect(list.getByRole('button')).toHaveText(['Workplace strategy & data', 'Cost certainty & risk', 'Proof']);
+  const [a, b] = await Promise.all([list.getByRole('button').nth(0).boundingBox(), list.getByRole('button').nth(1).boundingBox()]);
+  expect(b!.y).toBeGreaterThan(a!.y); // one below the other
+  expect(await axe(page)).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(list).toBeHidden();
+  await expect(more).toHaveAttribute('aria-expanded', 'false');
+  // The preview lists all five.
+  await first.locator('.thumb').first().click();
+  const labels = page.getByRole('dialog').getByRole('group', { name: 'Labels from the team' });
+  await expect(labels.locator('.tag-team')).toHaveCount(5);
+  // Share in the preview is a small icon beside the close button, not a row of its own.
+  await expect(page.getByRole('dialog').getByRole('button', { name: /^Share: copy a link/ })).toBeVisible();
+  expect(await axe(page)).toEqual([]);
+});
+
+test('slide page: Share sits with the other buttons in Use this slide, once, and copies the slide link', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await openResults(page);
+  await page.locator('article.card').first().getByRole('link').first().click();
+  const panel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Use this slide' }) });
+  await expect(panel.getByRole('button')).toContainText(['Add to draft deck', 'Share', 'Download slide']);
+  await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(1);
+  await panel.getByRole('button', { name: 'Share' }).click();
+  await expect(page.getByText('Link copied.')).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/slide-vault\/slide\//);
   expect(await axe(page)).toEqual([]);
 });

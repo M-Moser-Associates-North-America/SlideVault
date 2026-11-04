@@ -162,9 +162,18 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
 }
 
 /** Section cards for the slides a search found. Nothing when no section has two or more of them. */
-export function SectionCards({ results, only }: { results: SlideSummary[]; only?: string[] }) {
+export function SectionCards({ results, only, heading }: { results: SlideSummary[]; only?: string[]; heading?: string }) {
   const groups = useMemo(() => groupBySection(results).filter((g) => !only?.length || only.includes(g.cover.section?.kind ?? '')), [results, only]);
-  return <Cards groups={groups} />;
+  if (!heading) return <Cards groups={groups} />;
+  if (groups.length === 0) return null;
+  return (
+    <section className="res-block" aria-labelledby="res-sections">
+      <h2 className="h2 res-h" id="res-sections">
+        {heading}
+      </h2>
+      <Cards groups={groups} />
+    </section>
+  );
 }
 
 /** Browse one kind of section across every deck, with no search (the Section filter on Home, FD-80). The other filters still apply. */

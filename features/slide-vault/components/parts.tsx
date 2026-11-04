@@ -264,8 +264,32 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
         <Link className="card-title" to={{ view: 'slide', id: slide.id }} title={slide.title}>
           {slide.title}
         </Link>
-        <div className="meta clip" title={`Slide ${p.slideNumber} of ${p.sourceTitle}`}>
-          {meta || p.sourceTitle}
+        <div className="meta-row">
+          {/* Hover: the whole line when it is cut off ("Next Level Games · 2025 · Design Consultancy"), else where the slide is from. */}
+          <span
+            className="meta-wrap"
+            data-tip-pos="start"
+            onMouseEnter={(e) => {
+              const w = e.currentTarget;
+              const m = w.querySelector<HTMLElement>('.meta');
+              w.setAttribute('data-tip', m && m.scrollWidth > m.clientWidth ? meta || p.sourceTitle : `Slide ${p.slideNumber} of ${p.sourceTitle}`);
+            }}
+          >
+            <div className="meta clip">{meta || p.sourceTitle}</div>
+          </span>
+          {slide.alsoIn && (
+            <button
+              type="button"
+              className="also"
+              aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`}
+              data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'deck')}`}
+              data-tip-pos="end"
+              onClick={() => openAlso(slide)}
+            >
+              <Icon name="folders" className="ic-sm" />
+              <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
+            </button>
+          )}
         </div>
         <CompactTags slide={slide} />
         {note && (
@@ -285,20 +309,6 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
         )}
         <div className="card-foot">
           <CardVotes slide={slide} />
-          {slide.alsoIn && (
-          <button
-            type="button"
-            className="also"
-            aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`}
-            data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'deck')}`}
-            data-tip-pos="end"
-            onClick={() => openAlso(slide)}
-          >
-            <Icon name="folders" className="ic-sm" />
-            <span className="also-full">Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</span>
-            <span className="also-short" aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
-          </button>
-        )}
         </div>
       </div>
     </article>

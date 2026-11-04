@@ -1,6 +1,6 @@
 'use client';
 
-import { PreviewActions } from './SlideActions';
+import { PreviewActions, ShareIconButton } from './SlideActions';
 import { PreviewTags } from './TagBits';
 import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react';
 import { exportPptx, getSection } from '../client/api';
@@ -164,9 +164,12 @@ export function Lightbox() {
                 {slide.hiddenInSource ? ' · hidden in source' : ''}
               </p>
             </div>
-            <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close preview" onClick={closePreview}>
-              <Icon name="x" />
-            </button>
+            <div className="dlg-head-tools">
+              <ShareIconButton slideId={slide.id} />
+              <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close preview" onClick={closePreview}>
+                <Icon name="x" />
+              </button>
+            </div>
           </div>
           <div className="dlg-body">
             {results && (
@@ -344,11 +347,13 @@ export function Lightbox() {
                   <span>Download only this slide</span>
                 </button>
                 <Link className="btn btn-sm" to={{ view: 'slide', id: slide.id }} onNavigate={closePreview}>
-                  Open slide page
+                  <Icon name="open" />
+                  <span>Open slide page</span>
                 </Link>
                 {deck && (
                   <Link className="btn btn-sm" to={{ view: 'deck', id: deck.id }} onNavigate={closePreview}>
-                    Open deck
+                    <Icon name="deck" />
+                    <span>Open deck</span>
                   </Link>
                 )}
               </span>
