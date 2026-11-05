@@ -306,6 +306,8 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
       if (!q) return;
       setForceAiFor(useAi ? q : '');
       setDeclineAiFor(useAi ? '' : q);
+      /* No also unticks "Search with AI": the person said they do not want it, so the regular search runs and the box shows it. */
+      if (!useAi) setDeeperAiRaw(false);
       setSubmitted(q);
       setSearch({ status: 'loading' });
       setSearchTry((n) => n + 1);
