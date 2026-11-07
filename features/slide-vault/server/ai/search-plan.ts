@@ -279,14 +279,23 @@ export function whyItFits(plan: SearchPlan, slide: SlideFacts): { why: string; m
   const title = slide.title.toLowerCase();
   const text = slide.text.toLowerCase();
   // A short word must be the whole word ("app" is not "approach"), as in the search itself.
-  const has = (hay: string, k: string) => { const e = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return new RegExp(k.length <= 3 ? `\\b${e}s?\\b` : `\\b${e}`, 'i').test(hay); };
+  const find = (hay: string, k: string) => { const e = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return new RegExp(k.length <= 3 ? `\\b${e}s?\\b` : `\\b${e}[\\w'’-]*`, 'i').exec(hay)?.[0] ?? null; };
+  const has = (hay: string, k: string) => find(hay, k) !== null;
   const inTitle = plan.keywords.filter((k) => has(title, k));
   const inText = plan.keywords.filter((k) => !inTitle.includes(k) && has(text, k));
   const matched = [...inTitle, ...inText];
+  /* Say the word as the slide has it, once: a word stem the search uses ("offic") shows as "office", and
+     "office" and "offices" from one search are listed once (FD-96). */
+  const shown: string[] = [];
+  const same = (a: string, b: string) => a.startsWith(b) || b.startsWith(a);
+  const words = (hay: string, ks: string[]) =>
+    ks.map((k) => find(hay, k)!).filter((w) => !shown.some((x) => same(x, w)) && shown.push(w) > 0);
+  const titleWords = words(title, inTitle);
+  const textWords = words(text, inText);
 
   const bits: string[] = [];
-  if (inTitle.length) bits.push(`Has ${quoteList(inTitle.slice(0, 2))} in its title`);
-  if (inText.length) bits.push(`${inTitle.length ? 'mentions' : 'Mentions'} ${quoteList(inText.slice(0, 2))}`);
+  if (titleWords.length) bits.push(`Has ${quoteList(titleWords.slice(0, 2))} in its title`);
+  if (textWords.length) bits.push(`${titleWords.length ? 'mentions' : 'Mentions'} ${quoteList(textWords.slice(0, 2))}`);
   const deck: string[] = [];
   if (plan.client && slide.client === plan.client) deck.push(`from the ${slide.client} deck`);
   if ((plan.yearFrom || plan.yearTo) && slide.year) deck.push(`from ${slide.year}`);

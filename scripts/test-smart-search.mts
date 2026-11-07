@@ -80,6 +80,12 @@ const facts = (o: Partial<SlideFacts> = {}): SlideFacts => ({ title: 'Your team 
   check(w.why === 'Has “team” in its title and mentions “workplace strategy”, from the Kestrel Law deck, from 2024, in Best of the Best.', 'why: title words, text words, then deck details', w.why);
   check(!w.matched.includes('cafeteria'), 'why: never claims a word the slide does not have', w.matched);
   check(whyItFits(cleanPlan({ keywords: ['team'] }, ctx), facts({ title: 'Teamwork' })).matched.length === 1, 'why: matches word starts (team -> teamwork, like the search does)');
+  {
+    const off = whyItFits(cleanPlan({ keywords: ['offices', 'offic'] }, ctx), facts({ title: 'Office Sustainability', text: 'our offices around the world' })).why;
+    check(!off.includes('“offic”') && off.includes('“office”'), 'why: a word stem shows as the word on the slide ("offic" -> "office")');
+    const both = whyItFits(cleanPlan({ keywords: ['offices', 'offic'] }, ctx), facts({ title: 'Locations', text: 'offices in 30 cities', bestOfTheBest: false })).why;
+    check(both === 'Mentions “offices”.', `why: one word found by two search words is listed once (got ${both})`);
+  }
 }
 
 // ---- The whole flow, with fakes
@@ -559,6 +565,25 @@ for (const [env, label] of [
   check(ids(inAskedOrder(items, 'most-liked', likes)) === 'cdab', 'order: most liked by Useful minus Not relevant, unrated last', ids(inAskedOrder(items, 'most-liked', likes)));
   check(ids(inAskedOrder(items, 'least-liked', likes)) === 'adcb', 'order: least liked first, unrated last');
   check(ids(inAskedOrder(items, null, likes)) === 'abcd', 'order: none asked keeps the search order');
+  {
+  // Search by meaning in the ranking (FD-95): words and meaning merged, inside the filters; strict when something is named.
+  const { blendByMeaning, passesFilters, MEANING_ONLY, ALSO_MEANING } = await import('../features/slide-vault/server/services/hybrid-rank');
+  const sl = (id: string, prov: Record<string, unknown> = {}) => ({ id, provenance: { deckYear: 2025, clientName: 'Acme', category: 'IDD', ...prov } }) as unknown as SlideSummary;
+  const it = (id: string) => ({ slide: sl(id), why: 'Mentions "hybrid".', matched: ['hybrid'] });
+  const words = Array.from({ length: 30 }, (_, i) => it(`w${i + 1}`));
+  const hits = [{ slide: sl('m1'), similarity: 0.8 }, { slide: sl('w4'), similarity: 0.75 }, { slide: sl('m2'), similarity: 0.5 }, { slide: sl('old', { deckYear: 2019 }), similarity: 0.9 }];
+  const loose = blendByMeaning(words, hits, { limit: 40, minSimilarity: 0.55, filters: { yearFrom: 2024 }, strict: false });
+  const ids = loose.map((x) => x.slide.id);
+  check(ids.indexOf('m1') >= 0 && ids.indexOf('m1') < 10 && ids[0] === 'w4' && ids[1] === 'w1', 'meaning: the closest slide in meaning lands in the first results (not after all 30 word matches); a good word match that is also close in meaning leads, then the best word match', ids.slice(0, 12));
+  check(ids.indexOf('w4') < ids.indexOf('w3'), 'meaning: a word match that is also close in meaning moves up', ids);
+  check(!ids.includes('m2') && !ids.includes('old'), 'meaning: too far in meaning, or outside the filters (an old deck for "recent"), stays out', ids);
+  check(loose.find((x) => x.slide.id === 'm1')?.why === MEANING_ONLY && !!loose.find((x) => x.slide.id === 'w4')?.why.endsWith(ALSO_MEANING), 'meaning: why it fits says when meaning brought a slide in or up');
+  const strict = blendByMeaning(words, hits, { limit: 40, minSimilarity: 0.55, filters: {}, strict: true }).map((x) => x.slide.id);
+  check(strict.slice(0, 5).join() === 'w1,w2,w3,w4,w5' && strict.indexOf('m1') === 30, 'meaning: a named thing or section search keeps the word order and only adds after', strict);
+  check(blendByMeaning(words, hits, { limit: 3, minSimilarity: 0.55, filters: {}, strict: false }).length === 3, 'meaning: never more than the limit');
+  check(!passesFilters(sl('x', { clientName: 'Other' }), { client: 'Acme' }) && passesFilters(sl('x'), { client: 'acme', category: 'idd', yearFrom: 2024, yearTo: 2026 }) && !passesFilters(sl('x', { bestOfTheBest: false }), { bestOfTheBest: true }), 'meaning: filters for client, category, years and Best of the Best');
+  check(blendByMeaning(words, [], { limit: 30, minSimilarity: 0.55, filters: {}, strict: false }).map((x) => x.slide.id).join() === words.map((x) => x.slide.id).join(), 'meaning: with nothing close in meaning, the word order is unchanged');
+  }
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smart search checks passed');
