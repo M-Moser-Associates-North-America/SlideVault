@@ -608,68 +608,90 @@ test('slide page: Share sits with the other buttons in Use this slide, once, and
   expect(await axe(page)).toEqual([]);
 });
 
-test('Search with AI: hidden when the server has no AI; off by default, remembered, and a short search asks first', async ({ page }) => {
+test('Search with AI: hidden when the server has no AI; off every session; a card asks before a short search with it on, or a long one with it off', async ({ page }) => {
   // No AI reader in this server: no switch.
   await openHome(page);
   await expect(page.getByRole('checkbox', { name: 'Search with AI' })).toHaveCount(0);
 
-  // Pretend the server has one. Short searches that ask for the AI come back flagged, as the real server does.
+  // Pretend the server has one.
   await page.route('**/api/slide-vault/v1/session', (route) => route.fulfill({ json: { data: { contractVersion: 'test', capabilities: ['library.read'], aiAvailable: true } } }));
   const asked: URLSearchParams[] = [];
   await page.route(/\/api\/slide-vault\/v1\/smart-search\?/, async (route) => {
-    const params = new URL(route.request().url()).searchParams;
-    asked.push(params);
+    asked.push(new URL(route.request().url()).searchParams);
     const res = await route.fetch();
     const body = await res.json();
     body.data.aiAvailable = true;
-    if (params.get('read') === '1' && params.get('ai') !== 'off' && params.get('ai') !== 'always') body.data.aiSkipped = 'short';
     await route.fulfill({ response: res, json: body });
   });
   await page.goto('/slide-vault/pages');
   const toggle = page.getByRole('checkbox', { name: 'Search with AI' });
+  const search = page.getByLabel('Search slides');
+  const card = page.getByRole('dialog', { name: /AI for this search|this with AI/ });
+  const submitted = () => asked.filter((p) => p.get('read') === '1').length;
   await expect(toggle).toBeVisible();
   await expect(toggle).not.toBeChecked();
 
-  // Off: every search tells the server to keep the AI out, and no note shows.
-  await page.getByLabel('Search slides').fill('services');
+  // Off, short search: no card, a regular search that keeps the AI out.
+  await search.fill('services');
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
-  await page.getByLabel('Search slides').press('Enter');
+  await search.press('Enter');
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
+  await expect(card).toHaveCount(0);
   expect(asked.length).toBeGreaterThan(0);
   expect(asked.every((p) => p.get('ai') === 'off')).toBe(true);
-  await expect(page.getByText('Your search is short for the AI to read')).toHaveCount(0);
 
-  // Turning it on reads the words already typed with the AI (no ai=off); too short, so it asks first.
-  await toggle.check();
-  await expect(toggle).toBeChecked();
-  const note = page.getByText('This is a short search, and a regular search usually handles those well.');
-  await expect(note).toBeVisible();
-  const last = asked[asked.length - 1];
-  expect(last.get('read')).toBe('1');
-  expect(last.get('ai')).toBeNull();
+  // Off, long sentence: a card asks first and nothing is submitted until it is answered.
+  const sentence = 'slides showing our approach to hybrid work for a healthcare client';
+  const before = submitted();
+  await search.fill(sentence);
+  await search.press('Enter');
+  await expect(card).toBeVisible();
+  await expect(card.getByRole('heading', { name: 'Search this with AI?' })).toBeVisible();
+  await page.waitForTimeout(800);
+  expect(submitted()).toBe(before);
   expect(await axe(page)).toEqual([]);
 
-  // "Yes, use AI" reads this short search with the AI anyway (ai=always) and the question goes away.
-  await page.getByRole('button', { name: 'Yes, use AI' }).click();
-  await expect(note).toHaveCount(0);
-  await expect.poll(() => asked[asked.length - 1].get('ai')).toBe('always'); // sent after the short typing pause
-
-  // The next short search asks again; "No, keep these results" puts the question away for it.
-  await page.getByLabel('Search slides').fill('team');
-  await page.getByLabel('Search slides').press('Enter');
-  await expect(note).toBeVisible();
-  await page.getByRole('button', { name: 'No, keep these results' }).click();
-  await expect(note).toHaveCount(0);
-
-  // Remembered on this device after a reload; turning it off sends ai=off again.
-  await page.reload();
-  const again = page.getByRole('checkbox', { name: 'Search with AI' });
-  await expect(again).toBeChecked();
-  await again.uncheck();
-  await expect(again).not.toBeChecked();
-  await page.getByLabel('Search slides').fill('services');
-  await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
+  // "No, regular search" keeps the box off and runs the regular search.
+  await card.getByRole('button', { name: 'No, regular search' }).click();
+  await expect(card).toHaveCount(0);
+  await expect(toggle).not.toBeChecked();
+  await expect.poll(() => submitted()).toBe(before + 1);
   expect(asked[asked.length - 1].get('ai')).toBe('off');
+
+  // The next long sentence asks again; "Yes, use AI" ticks the box and reads it with the AI (no ai=off).
+  await search.fill(sentence + ' in Singapore');
+  await search.press('Enter');
+  await expect(card).toBeVisible();
+  await card.getByRole('button', { name: 'Yes, use AI' }).click();
+  await expect(card).toHaveCount(0);
+  await expect(toggle).toBeChecked();
+  await expect.poll(() => asked[asked.length - 1].get('ai')).toBeNull();
+  expect(asked[asked.length - 1].get('read')).toBe('1');
+
+  // On, short search: the card asks first. "Yes, use AI" reads it with the AI anyway (ai=always).
+  await search.fill('team');
+  await search.press('Enter');
+  await expect(card.getByRole('heading', { name: 'Use AI for this search?' })).toBeVisible();
+  await card.getByRole('button', { name: 'Yes, use AI' }).click();
+  await expect(card).toHaveCount(0);
+  await expect.poll(() => asked[asked.length - 1].get('ai')).toBe('always');
+  await expect(toggle).toBeChecked();
+
+  // It asks again every time; "No, search normally" also unticks the box and runs a regular search.
+  await search.fill('cost');
+  await search.press('Enter');
+  await expect(card).toBeVisible();
+  await card.getByRole('button', { name: 'No, search normally' }).click();
+  await expect(card).toHaveCount(0);
+  await expect(toggle).not.toBeChecked();
+  await expect.poll(() => asked[asked.length - 1].get('ai')).toBe('off');
+
+  // Never remembered: a ticked box is off again after a reload.
+  await toggle.check();
+  await expect(toggle).toBeChecked();
+  await page.reload();
+  await expect(page.getByRole('checkbox', { name: 'Search with AI' })).not.toBeChecked();
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
 });
 
 test('upload: tags the AI fills in are marked "please check", can be removed, and are named before uploading', async ({ page }) => {
