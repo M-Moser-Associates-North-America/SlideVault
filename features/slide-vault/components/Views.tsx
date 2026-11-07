@@ -206,9 +206,10 @@ function useTypewriter(phrases: string[], active: boolean): string {
 
 /** The "Try" example searches, shown under the search and filter card. */
 function HomeTry() {
-  const { query, setQuery, runtime } = useWorkspace();
+  const { query, setQuery, submitSearch, runtime } = useWorkspace();
   const search = (q: string) => {
     setQuery(q);
+    submitSearch(q);
     if (runtime.location.view !== 'pages') runtime.navigate({ view: 'pages' });
   };
   return (

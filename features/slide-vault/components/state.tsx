@@ -111,7 +111,8 @@ type Workspace = {
   query: string;
   setQuery: (q: string) => void;
   /** Enter or the Search button: lets the AI read the current request (once; repeats are cached) */
-  submitSearch: () => void;
+  /** Runs the search for what is typed, or for `text` when a chip or tag was clicked. Asks first when the AI choice applies (FD-79). */
+  submitSearch: (text?: string) => void;
   retrySearch: () => void;
   search: SearchState;
   filters: Filters;
@@ -263,8 +264,8 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const [aiAskKind, setAiAskKind] = useState<'short' | 'long'>('short');
   const aiOnRef = useRef(false);
   const aiAvailableRef = useRef(false);
-  const submitSearch = useCallback(() => {
-    const q = query.trim();
+  const submitSearch = useCallback((text?: string) => {
+    const q = (text ?? query).trim();
     /* A short search with "Search with AI" ticked asks first, in a card, and only searches once answered (FD-79). */
     if (aiOnRef.current && isBasicQuery(q)) {
       setAiAskKind('short');
