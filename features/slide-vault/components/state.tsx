@@ -78,6 +78,8 @@ type Workspace = {
   setDeeperAi: (on: boolean) => void;
   /** The short search waiting for a yes or no before anything is searched with the AI (FD-79); null when none is waiting */
   aiAsk: string | null;
+  /** 'short': the box is ticked and the search is short. 'long': the box is off and the search looks like it needs the AI. */
+  aiAskKind: 'short' | 'long';
   /** Yes: the AI reads this short search. No: the regular search reads it. Either way the search runs now. */
   answerAiAsk: (useAi: boolean) => void;
   /** Archived decks are left out of every list unless this is on (FD-50) */
@@ -258,11 +260,20 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   /* The request the person submitted. Only that one may be read by the AI; typing uses the rules. */
   const [submitted, setSubmitted] = useState('');
   const [aiAsk, setAiAsk] = useState<string | null>(null);
+  const [aiAskKind, setAiAskKind] = useState<'short' | 'long'>('short');
   const aiOnRef = useRef(false);
+  const aiAvailableRef = useRef(false);
   const submitSearch = useCallback(() => {
     const q = query.trim();
     /* A short search with "Search with AI" ticked asks first, in a card, and only searches once answered (FD-79). */
     if (aiOnRef.current && isBasicQuery(q)) {
+      setAiAskKind('short');
+      setAiAsk(q);
+      return;
+    }
+    /* A long sentence or question with the box off, when the AI is set up: offer the AI in the same kind of card. Asked every time. */
+    if (!aiOnRef.current && aiAvailableRef.current && q && !isBasicQuery(q)) {
+      setAiAskKind('long');
       setAiAsk(q);
       return;
     }
@@ -281,6 +292,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
       setDeeperAiRaw(on);
       /* Ticking it with a short search already typed asks first, the same card as pressing Enter. */
       if (on && query.trim() && isBasicQuery(query.trim())) {
+        setAiAskKind('short');
         setAiAsk(query.trim());
         return;
       }
@@ -295,6 +307,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   );
   const aiOn = aiAvailable && deeperAi;
   aiOnRef.current = aiOn;
+  aiAvailableRef.current = aiAvailable;
   /* A short search is left to the rules unless the person says yes in the card, and only for that search.
      "No" is remembered for that search so it reads with the rules. It asks again every time, on every short search. */
   const [forceAiFor, setForceAiFor] = useState('');
@@ -304,15 +317,22 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
       const q = aiAsk;
       setAiAsk(null);
       if (!q) return;
-      setForceAiFor(useAi ? q : '');
-      setDeclineAiFor(useAi ? '' : q);
-      /* No also unticks "Search with AI": the person said they do not want it, so the regular search runs and the box shows it. */
-      if (!useAi) setDeeperAiRaw(false);
+      if (aiAskKind === 'long') {
+        /* Yes ticks the box and reads the sentence with the AI; No leaves the box off and runs the regular search. */
+        if (useAi) setDeeperAiRaw(true);
+        setForceAiFor('');
+        setDeclineAiFor('');
+      } else {
+        setForceAiFor(useAi ? q : '');
+        setDeclineAiFor(useAi ? '' : q);
+        /* No also unticks "Search with AI": the person said they do not want it, so the regular search runs and the box shows it. */
+        if (!useAi) setDeeperAiRaw(false);
+      }
       setSubmitted(q);
       setSearch({ status: 'loading' });
       setSearchTry((n) => n + 1);
     },
-    [aiAsk],
+    [aiAsk, aiAskKind],
   );
   const retrySearch = useCallback(() => {
     setSearch({ status: 'loading' });
@@ -657,6 +677,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     deeperAi,
     setDeeperAi,
     aiAsk,
+    aiAskKind,
     answerAiAsk,
     query,
     setQuery,

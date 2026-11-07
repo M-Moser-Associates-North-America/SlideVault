@@ -11,7 +11,7 @@ import { useWorkspace } from './state';
  * No (or Escape, or a click outside) uses the regular search, which does not call the AI at all.
  */
 export function AiAskDialog() {
-  const { runtime, aiAsk, answerAiAsk } = useWorkspace();
+  const { runtime, aiAsk, aiAskKind, answerAiAsk } = useWorkspace();
   const ref = useRef<HTMLDialogElement>(null);
   const yesRef = useRef<HTMLButtonElement>(null);
   useDialogOpen(ref, !!aiAsk);
@@ -19,6 +19,7 @@ export function AiAskDialog() {
     if (aiAsk) yesRef.current?.focus();
   }, [aiAsk]);
   const no = () => answerAiAsk(false);
+  const long = aiAskKind === 'long';
   return (
     <dialog
       ref={ref}
@@ -35,13 +36,17 @@ export function AiAskDialog() {
         <span className="ai-ask-ic" aria-hidden="true">
           <Icon name="sparkle" />
         </span>
-        <h2 id="sv-ai-ask-title">Use AI for this search?</h2>
+        <h2 id="sv-ai-ask-title">{long ? 'Search this with AI?' : 'Use AI for this search?'}</h2>
         <p className="ai-ask-words">“{aiAsk}”</p>
-        <p className="ai-ask-text">This is a short search, and a regular search usually handles those well. The AI is meant for longer requests. Do you still want the AI to read it?</p>
+        <p className="ai-ask-text">
+          {long
+            ? 'This reads like a longer request, which the AI is good at understanding. Do you want the AI to read it? Choosing Yes also ticks “Search with AI”.'
+            : 'This is a short search, and a regular search usually handles those well. The AI is meant for longer requests. Do you still want the AI to read it?'}
+        </p>
       </div>
       <div className="dlg-foot ai-ask-foot">
         <button type="button" className="btn btn-ghost" onClick={no}>
-          No, search normally
+          {long ? 'No, regular search' : 'No, search normally'}
         </button>
         <button ref={yesRef} type="button" className="btn btn-primary" onClick={() => answerAiAsk(true)}>
           Yes, use AI
