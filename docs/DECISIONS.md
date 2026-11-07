@@ -1025,4 +1025,27 @@ Acceptance evidence / affected PR criteria: run on 7 Nov against a production bu
 Consequences: one app process serves searches one after another, so M Moser should run at least two app servers; the database search on their side replaces the local-file search used here. Repeat the test there before go-live.
 Documents/contracts changed: scripts/load-test.mts (new), package.json, server/slide-knowledge.ts, server/services/library-smart-search.ts (duplicatesOf).
 Revisit trigger: before go-live, against M Moser's real servers and database.
+
+Decision ID and title: FD-95 Search by meaning counts in the ranking, not only after it
+Status: proposed
+Decision date: 2026-11-04
+Decision owner/reviewer: Vincent (built); Alina Pak (raised it, 4 Nov check-in)
+Context and evidence: At the 4 Nov check-in, regular search and "Search with AI" gave the same or similar results. Tracing the code: slides close in meaning (pgvector, FD-55) were only added after every keyword match, and only when there were fewer than the limit (100). Keyword search matches any of the words, so most searches already returned 100 and meaning results never showed, in either mode. With the AI on, the model's reading changed only the keywords and labels; the same ranking followed, so when the rules already read a request well the two modes matched.
+Options considered: (a) merge the word ranking and the meaning ranking by reciprocal rank fusion, inside the search's filters; (b) replace keyword search with meaning search; (c) keep meaning results after the word matches.
+Chosen outcome: (a). On every submitted search, the closest slides in meaning (similarity at least SV_MEANING_MIN_SIMILARITY, default 0.55) are merged with the word matches: each slide scores 1 / (20 + its place) in the word list plus 0.8 / (20 + its place) in the meaning list (server/services/hybrid-rank.ts, blendByMeaning). A slide high in both leads; the best meaning match lands in the first results even when its words differ. Meaning-only slides must pass the search's filters (client, years, category, Best of the Best) and are never hidden or internal-only slides. A search that names something that must be on every result (FD-56), asks for a deck section (FD-57) or asks for a look ("map", "org chart", FD-86) keeps the word order, with meaning only added after, and a slide known to look otherwise never comes in by meaning. "Why it fits" says "Close in meaning to your search too" or "Close in meaning to your search, even where the words differ". With the AI on, its one-line reading of the request joins the typed words for the meaning match, so the two modes differ in meaning too, not only in labels.
+Consequences for scope, cost, security and integration: No database change. One embedding of the request per submitted search (local model, no tokens), as before. Rankings change for every search (with FD-89, every search is a submitted one). The order a request asks for ("most recent", FD-87) still comes last and wins.
+Acceptance evidence / affected PR criteria: test:smart-search (8 new checks: the closest meaning match lands in the first results; a word match also close in meaning moves up; too-far or filtered-out slides stay out; why it fits says so; strict searches keep the word order; the limit holds; filters; no change without meaning matches). Typecheck and lint pass. To do before the 11th: re-run the 15 client searches on the real library.
+Documents/contracts changed: server/services/hybrid-rank.ts (new), app/api/slide-vault/v1/smart-search/route.ts, scripts/test-smart-search.mts.
+Revisit trigger: the client searches show meaning matches crowding out good word matches (raise K or lower the weight), or the reverse.
+
+Decision ID and title: FD-96 "Why it fits" names the word as the slide has it, once
+Status: proposed
+Decision date: 2026-11-07
+Decision owner/reviewer: Vincent (built); Khushali (spotted it)
+Context and evidence: Searching "offices" showed "Mentions “offices” and “offic”": the rules also search a word stem ("offic" finds office, offices, officer), and "Why it fits" printed the stem as if it were a word on the slide.
+Chosen outcome: whyItFits (server/ai/search-plan.ts) shows the word found on the slide for each search word ("offic" shows as "office"), and lists close words once ("office" and "offices" from one search are one). What is searched does not change.
+Consequences for scope, cost, security and integration: Wording only.
+Acceptance evidence / affected PR criteria: test:smart-search (2 new checks: a stem shows as the slide's word; one word found by two search words is listed once).
+Documents/contracts changed: server/ai/search-plan.ts, scripts/test-smart-search.mts.
+Revisit trigger: none expected.
 ```

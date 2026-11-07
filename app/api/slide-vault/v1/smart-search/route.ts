@@ -4,6 +4,9 @@ import { roleOf } from '@/features/slide-vault/server/ai/roles';
 import { asPerson } from '@/features/slide-vault/server/ai/usage';
 import { userOf } from '@/features/slide-vault/server/principal';
 import { meaningSearch } from '@/features/slide-vault/server/meaning-search';
+import { blendByMeaning } from '@/features/slide-vault/server/services/hybrid-rank';
+import { isSectionSearch } from '@/features/slide-vault/server/services/sections';
+import { searchIntent } from '@/features/slide-vault/server/services/slide-intent';
 import { withPacks } from '@/features/slide-vault/server/packs';
 import { hasMmoserConfig } from '@/features/slide-vault/server/config';
 import { getSlideSummariesPg, isInternalOnly } from '@/features/slide-vault/server/pg-repository';
@@ -44,20 +47,25 @@ export async function GET(request: Request) {
     // Hidden-in-source slides (usually internal notes) only when asked for (FD-50).
     // ...and so are slides the team marked "internal - never show" (FD-53).
     if (url.searchParams.get('hidden') !== 'include') result.items = result.items.filter((i) => !i.slide.hiddenInSource && !isInternalOnly(i.slide));
-    // Meaning search (FD-55): when the person submits a search, slides close in meaning are added
-    // after the keyword results, so it never finds less than before. Off when it isn't set up.
-    if (url.searchParams.get('read') === '1' && result.items.length < limit) {
-      const minSimilarity = Number(process.env.SV_MEANING_MIN_SIMILARITY || 0.55);
-      const meaning = await meaningSearch(query, limit);
-      const have = new Set(result.items.map((i) => i.slide.id));
-      // Close in meaning, but not what was asked to look like ("maps": never a table that talks about locations, FD-86).
-      const wrongLook = await looksWrongFor(query);
-      for (const hit of meaning?.items ?? []) {
-        if (result.items.length >= limit) break;
-        if (have.has(hit.slide.id) || hit.similarity < minSimilarity || wrongLook(hit.slide.id)) continue;
-        if (url.searchParams.get('hidden') !== 'include' && (hit.slide.hiddenInSource || isInternalOnly(hit.slide))) continue;
-        result.items.push({ slide: hit.slide, why: 'Close in meaning to your search, even where the words differ.', matched: [] });
-        have.add(hit.slide.id);
+    // Meaning search (FD-55, FD-95): when the person submits a search, the slides closest in meaning are
+    // merged into the ranking with the word matches (reciprocal rank fusion), inside the search's filters.
+    // A named thing ("Toronto"), a section, or a look ("map", "org chart", FD-86) keeps the word order, with
+    // meaning only added after, and never a slide known to look otherwise.
+    if (url.searchParams.get('read') === '1') {
+      // When the AI read the request, its one-line reading of what is wanted joins the typed words, so the
+      // meaning match follows what the person meant, not only how they put it (FD-95).
+      const summary = result.reader === 'model' ? result.plan.summary?.trim() : '';
+      const meaning = await meaningSearch(summary ? `${query}. ${summary}` : query, limit);
+      if (meaning?.items.length) {
+        const hide = url.searchParams.get('hidden') !== 'include';
+        const wrongLook = await looksWrongFor(query);
+        result.items = blendByMeaning(result.items, meaning.items, {
+          limit,
+          minSimilarity: Number(process.env.SV_MEANING_MIN_SIMILARITY || 0.55),
+          filters: result.relaxed ? {} : result.plan,
+          strict: (result.plan.named?.length ?? 0) > 0 || isSectionSearch(query) || searchIntent(query).looks.length > 0,
+          keep: (s) => !wrongLook(s.id) && (!hide || (!s.hiddenInSource && !isInternalOnly(s))),
+        });
       }
     }
     // People's own tags lead (FD-58): "Priya" finds the page someone tagged Priya. Off without a database.
