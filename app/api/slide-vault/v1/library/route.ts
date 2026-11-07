@@ -1,4 +1,5 @@
 import { buildLibrary, fail, fixtureLibrary, listLibraryPg, loadLibraryIndex, ok } from '@/features/slide-vault/server';
+import { loadSlideReadings } from '@/features/slide-vault/server/slide-knowledge';
 
 // GET /library: every ready deck and slide (uploaded decks first, then fixture decks), with
 // duplicate groups marked. For screens that browse and filter in the browser, like the V3
@@ -15,7 +16,9 @@ export async function GET(request: Request) {
     console.error('Postgres library unavailable, showing fixture decks only', e);
   }
 
-  const data = buildLibrary([uploaded, fixtureLibrary(index)]);
+  // Each deck's client sector from its reviewed slides, so "hospitality decks" can be found (FD-87).
+  const readings = onlyUploads ? null : await loadSlideReadings();
+  const data = buildLibrary([uploaded, fixtureLibrary(index, (id) => readings?.get(id)?.clientSector)]);
   if (data.slides.length === 0) return fail(503, 'LIBRARY_NOT_READY', 'The library is empty. Upload a deck or run `npm run ingest`.', true);
   return ok(data);
 }

@@ -1,4 +1,7 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
+import { checkUploadFile, checkUploadSize } from '@/features/slide-vault/server/upload-guard';
+import { asPerson } from '@/features/slide-vault/server/ai/usage';
+import { userOf } from '@/features/slide-vault/server/principal';
 import type { DeckFactsReader } from '@/features/slide-vault/server/ai/deck-facts';
 import { configuredDeckFactsReader, configuredDeckTagsReader, suggestUploadFacts, suggestUploadTags } from '@/features/slide-vault/server/services/library-smart-search';
 
@@ -10,8 +13,11 @@ import { configuredDeckFactsReader, configuredDeckTagsReader, suggestUploadFacts
 // tags=true (with read=true) also has the AI read the slides for tags: up to 5 for the deck and 2 per slide,
 // as { tags: { deck: [{ tag, from: 'ai', score }], slides: { '3': [...] } } } (FD-85). Left out when it can't.
 export async function POST(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.uploadSuggest);
+  const limited = await rateLimit(request, RATE_POLICIES.uploadSuggest);
   if (limited) return limited;
+  // Too big is turned away before the upload is read (FD-93).
+  const oversized = checkUploadSize(request);
+  if (oversized) return oversized;
   let form: FormData;
   try {
     form = await request.formData();
@@ -20,7 +26,9 @@ export async function POST(request: Request) {
   }
   const file = form.get('file');
   if (!(file instanceof File)) return fail(400, 'BAD_REQUEST', 'Attach a .pptx file as "file".');
-  if (!file.name.toLowerCase().endsWith('.pptx')) return fail(415, 'UNSUPPORTED_FILE_TYPE', 'Only .pptx files are accepted.');
+  // Named .pptx, within the size limit, and a real PowerPoint file inside (FD-93).
+  const badFile = await checkUploadFile(file);
+  if (badFile) return badFile;
 
   let reader: DeckFactsReader | null;
   try {
@@ -34,9 +42,9 @@ export async function POST(request: Request) {
     const bytes = new Uint8Array(await file.arrayBuffer());
     const folderPath = (form.get('folderPath') as string | null)?.trim() || null;
     const read = form.get('read') === 'true';
-    const facts = await suggestUploadFacts(file.name, bytes, { reader, read, folderPath });
+    const facts = await asPerson(userOf(request), () => suggestUploadFacts(file.name, bytes, { reader, read, folderPath }));
     // Tags are a second, bigger AI job, only when asked for; the details above never wait on it failing.
-    const tags = read && form.get('tags') === 'true' ? await suggestUploadTags(file.name, bytes, { reader: configuredDeckTagsReader(), clientName: facts.suggestions.client?.value ?? null }) : null;
+    const tags = read && form.get('tags') === 'true' ? await asPerson(userOf(request), () => suggestUploadTags(file.name, bytes, { reader: configuredDeckTagsReader(), clientName: facts.suggestions.client?.value ?? null })) : null;
     return ok(tags && (tags.deck.length || Object.keys(tags.slides).length) ? { ...facts, tags } : facts);
   } catch (e) {
     console.error('Deck suggestions failed', e);
@@ -48,7 +56,7 @@ export async function POST(request: Request) {
 // upload form only offers "Fill the rest with AI" when it can work (FD-23, FD-82). A misconfigured AI
 // counts as not available here; POST still reports the setup error.
 export async function GET(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.search);
+  const limited = await rateLimit(request, RATE_POLICIES.search);
   if (limited) return limited;
   let aiAvailable = false;
   try {

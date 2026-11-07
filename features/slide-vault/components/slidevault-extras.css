@@ -1312,3 +1312,20 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .ai-ask-words { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .slidevault .ai-ask-text { margin: 0; font-size: 14px; line-height: 1.55; color: var(--sv-text-secondary); }
 .slidevault .ai-ask-foot { justify-content: center; border-top: 0; padding-top: 4px; }
+
+/* Tablets held upright get the phone's bottom bar too (Schiffon, 6 Nov: "we just want bottom rows", as in the
+   nav-bottom mockups). The draft deck already opens as the same side sheet on both, so the bar's fifth item
+   opens it; the top tabs and the black pill step aside, as on a phone. */
+.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .sv-bottombar { display: block; position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--sv-surface); border-top: 1px solid var(--sv-border); box-shadow: 0 -8px 20px -14px rgba(20, 20, 20, 0.35); }
+.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .sv-top, .slidevault .sv-app[data-size="medium"][data-nav="bottom"] .cart-pill { display: none; }
+.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .sv-main { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts.lift { bottom: calc(76px + env(safe-area-inset-bottom)); }
+/* A tablet has room for a centred bar: five items no wider than a thumb's reach each. */
+.slidevault .sv-app[data-size="medium"] .sv-bottombar ul { max-width: 640px; margin: 0 auto; }
+
+/* Phones: the hidden-slides eye sits beside the search bar, not on a line of its own; the "I'm looking for"
+   label keeps the row above. */
+.slidevault .sv-app[data-size="compact"] .home-hero-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; row-gap: 8px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-search > :not(.home-hero-field):not(.hid-wrap) { grid-column: 1 / -1; }
+.slidevault .sv-app[data-size="compact"] .home-hero-search .hid-wrap { width: 52px; height: 52px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-field { padding-top: 3px; padding-bottom: 3px; }

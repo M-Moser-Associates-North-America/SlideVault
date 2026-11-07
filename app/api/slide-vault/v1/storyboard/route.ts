@@ -1,4 +1,6 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
+import { asPerson } from '@/features/slide-vault/server/ai/usage';
+import { userOf } from '@/features/slide-vault/server/principal';
 import type { StoryReader } from '@/features/slide-vault/server/ai/storyboard';
 import { roleOf } from '@/features/slide-vault/server/ai/roles';
 import { configuredStoryReader, storyboardLibrary } from '@/features/slide-vault/server/services/library-smart-search';
@@ -9,7 +11,7 @@ import { configuredStoryReader, storyboardLibrary } from '@/features/slide-vault
 // read: true lets the configured AI read the situation; otherwise the standard story order is used.
 // A request that names an existing deck opens it as saved, or retells it (mode forces either).
 export async function POST(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.smartSearch);
+  const limited = await rateLimit(request, RATE_POLICIES.smartSearch);
   if (limited) return limited;
   let body: { situation?: unknown; answers?: unknown; read?: unknown; role?: unknown; mode?: unknown };
   try {
@@ -33,7 +35,8 @@ export async function POST(request: Request) {
 
   try {
     const mode = body.mode === 'retrieve' || body.mode === 'reimagine' || body.mode === 'build' ? body.mode : undefined;
-    return ok(await storyboardLibrary(situation, { reader, read: body.read === true, answers, role: roleOf(body.role), mode }));
+    // AI calls inside are logged against this person (FD-91).
+    return ok(await asPerson(userOf(request), () => storyboardLibrary(situation, { reader, read: body.read === true, answers, role: roleOf(body.role), mode })));
   } catch (e) {
     console.error('Storyboard failed', e);
     return fail(503, 'LIBRARY_NOT_READY', 'The storyboard is unavailable right now. Please try again.', true);

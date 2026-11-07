@@ -1,6 +1,7 @@
 import { after } from 'next/server';
 import type { UploadDeckMeta } from '@/features/slide-vault/contracts/dto';
 import { fail, ok, RATE_POLICIES, rateLimit, ServiceError, toResponse } from '@/features/slide-vault/server';
+import { checkUploadFile, checkUploadSize } from '@/features/slide-vault/server/upload-guard';
 import { userOf } from '@/features/slide-vault/server/principal';
 import { processUpload } from '@/features/slide-vault/server/services/upload';
 import { embedDeckQuietly } from '@/features/slide-vault/server/slide-embeddings';
@@ -11,8 +12,11 @@ import { addUploadTags } from '@/features/slide-vault/server/tags';
 // fingerprints are made right after the response (FD-82), so the deck joins meaning search and tag
 // suggestions without anyone running embed:slides; the upload never waits on or fails because of them.
 export async function POST(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.upload);
+  const limited = await rateLimit(request, RATE_POLICIES.upload);
   if (limited) return limited;
+  // Too big is turned away before the upload is read (FD-93).
+  const oversized = checkUploadSize(request);
+  if (oversized) return oversized;
   let form: FormData;
   try {
     form = await request.formData();
@@ -22,6 +26,9 @@ export async function POST(request: Request) {
 
   const file = form.get('file');
   if (!(file instanceof File)) return fail(400, 'BAD_REQUEST', 'Attach a .pptx file as "file".');
+  // Named .pptx, within the size limit, and a real PowerPoint file inside (FD-93).
+  const badFile = await checkUploadFile(file);
+  if (badFile) return badFile;
 
   const deckYearRaw = form.get('deckYear') as string | null;
   const meta: UploadDeckMeta = {

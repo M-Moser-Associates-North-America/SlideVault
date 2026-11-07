@@ -1,6 +1,7 @@
 import type { SlideSummary } from '../../contracts/dto';
 import type { PlanReader } from '../ai/reader';
-import { chipsFor, groundFilters, hasFilters, isBasicQuery, literalWords, relevantClients, typedCodes, MAX_KEYWORDS, standInPlan, whyItFits, withoutFilters, type Chip, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
+import { isLookWord, lookWordsIn } from './slide-intent';
+import { chipsFor, groundFilters, hasFilters, isBasicQuery, literalWords, readAsk, relevantClients, typedCodes, MAX_KEYWORDS, standInPlan, whyItFits, withoutFilters, type Chip, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
 
 /**
  * Quick AI search (docs/DECISIONS.md FD-16, FD-17). The route wires in the configured reader (or
@@ -92,7 +93,8 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
       plan = { ...plan, keywords: [...new Set([...plan.keywords, ...typedCodes(query)])].slice(0, MAX_KEYWORDS) };
     } catch (e) {
       deps.log?.(`AI reader ${deps.reader.name} unavailable, using the stand-in: ${(e as Error).message}`);
-      readerNote = 'AI reading is unavailable right now, so this search used simpler rules.';
+      // Too many AI calls at once (FD-92): quick results now beat a slow queue.
+      readerNote = (e as Error).name === 'AiBusyError' ? 'AI is busy right now, so quick results are shown.' : 'AI reading is unavailable right now, so this search used simpler rules.';
       plan = standInPlan(query, ctx);
     }
   } else {
@@ -109,11 +111,16 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
   // library knows it; "slides that show our value proposition" doesn't require "proposition".
   const sentence = !isBasicQuery(query);
   const looksLikeName = (w: string) => /[A-Z]/.test(w) || /[/&]/.test(w) || !!deps.isKnownName?.(w.toLowerCase());
+  // A look asked for ("the map", "a photo") is matched by what the slide looks like, not by the word printed on it (FD-86).
+  const inLooks = lookWordsIn(query);
   const named = (standInPlan(query, ctx).named ?? []).filter((w) => {
+    if (isLookWord(w) || inLooks.has(w.toLowerCase())) return false;
     const share = deps.howCommon?.(w.toLowerCase()) ?? 1;
     return share > 0 && share <= RARE_SHARE && (!sentence || looksLikeName(w));
   });
   plan = { ...plan, named, keywords: [...new Set([...named.map((w) => w.toLowerCase()), ...plan.keywords])].slice(0, MAX_KEYWORDS) };
+  // Slides or decks, the order and one-or-all come from the typed words too, whoever read the rest (FD-87).
+  plan = { ...plan, ask: readAsk(query) };
   // Nothing at all to search for means no results, never the whole library.
   if (!plan.keywords.length && !hasFilters(plan)) return { query, reader, readerNote, ...(aiSkipped ? { aiSkipped } : {}), plan, chips: chipsFor(plan), relaxed: false, items: [] };
 

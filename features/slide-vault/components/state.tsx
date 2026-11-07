@@ -109,7 +109,12 @@ type Workspace = {
   /** Confirm a suggested pack, or move a confirmed one back to suggested. Anyone signed in can (MVP). */
   setPackStatus: (pack: Pack, status: 'suggested' | 'confirmed') => Promise<void>;
   query: string;
+  /** Put words in the search and run it now: a chip, a tag, a spoken request (searches, like Enter). */
   setQuery: (q: string) => void;
+  /** What the person is typing: changes the box only; nothing is searched until Enter (Alina, 4 Nov; FD-89). */
+  typeQuery: (q: string) => void;
+  /** The search that was last run, which the results show (what's typed may have moved on). */
+  searched: string;
   /** Enter or the Search button: lets the AI read the current request (once; repeats are cached) */
   /** Runs the search for what is typed, or for `text` when a chip or tag was clicked. Asks first when the AI choice applies (FD-79). */
   submitSearch: (text?: string) => void;
@@ -285,7 +290,17 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const setQuery = useCallback((q: string) => {
     setAiAsk(null);
     setQueryRaw(q);
+    setSubmitted(q.trim());
     setSearch(q.trim() ? { status: 'loading' } : { status: 'idle' });
+    setSearchTry((n) => n + 1);
+  }, []);
+  /* Typing sends nothing (FD-89): no request, no rate-limit count, no tokens until Enter. Emptying the box goes back home. */
+  const typeQuery = useCallback((q: string) => {
+    setQueryRaw(q);
+    if (!q.trim()) {
+      setSubmitted('');
+      setSearch({ status: 'idle' });
+    }
   }, []);
   /* Turning it on with words already typed reads them now; turning it off shows the plain results again. */
   const setDeeperAi = useCallback(
@@ -299,7 +314,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
       }
       setAiAsk(null);
       if (query.trim()) {
-        if (on) setSubmitted(query.trim());
+        setSubmitted(query.trim());
         setSearch({ status: 'loading' });
         setSearchTry((n) => n + 1);
       }
@@ -339,12 +354,13 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     setSearch({ status: 'loading' });
     setSearchTry((n) => n + 1);
   }, []);
+  /* Only a submitted search runs (FD-89), so the AI may read it when the person has ticked "Search with AI". */
   useEffect(() => {
-    const q = query.trim();
+    const q = submitted;
     if (!q) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      smartSearch(transport, q, q === submitted, controller.signal, { includeHidden, role: currentStoryRole(), ai: aiOn && declineAiFor !== q ? undefined : false, forceAi: aiOn && forceAiFor === q })
+      smartSearch(transport, q, true, controller.signal, { includeHidden, role: currentStoryRole(), ai: aiOn && declineAiFor !== q ? undefined : false, forceAi: aiOn && forceAiFor === q })
         .then((result) => {
           if (typeof result.aiAvailable === 'boolean') setAiAvailable(result.aiAvailable);
           setSearch({ status: 'ready', result: demoTitles.size ? { ...result, items: result.items.map((i) => ({ ...i, slide: withDemoTitle(i.slide) })) } : result });
@@ -355,7 +371,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
       clearTimeout(timer);
       controller.abort();
     };
-  }, [transport, query, submitted, searchTry, includeHidden, aiOn, forceAiFor, declineAiFor]);
+  }, [transport, submitted, searchTry, includeHidden, aiOn, forceAiFor, declineAiFor]);
 
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   /* "bank case studies section" turns the Section filter on by itself, the way "2024" lights Year (FD-80). Taking it off
@@ -682,6 +698,8 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     answerAiAsk,
     query,
     setQuery,
+    typeQuery,
+    searched: submitted,
     submitSearch,
     retrySearch,
     search: aiAsk ? ({ status: 'loading' } as SearchState) : search,

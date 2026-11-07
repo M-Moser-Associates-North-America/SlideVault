@@ -10,7 +10,7 @@ import { rateLimit, RATE_POLICIES } from './rate-limit';
  * becomes a plain "try again" message, never the error itself.
  */
 export async function withUser(request: Request, handle: (user: string) => Promise<Response>, signedOut = 'Sign in to keep saved slides, decks and activity.'): Promise<Response> {
-  const limited = rateLimit(request, RATE_POLICIES.userData);
+  const limited = await rateLimit(request, RATE_POLICIES.userData);
   if (limited) return limited;
   const user = userOf(request);
   // 400, not 401, on purpose: the app treats any 401 as "session expired" and reloads, and this

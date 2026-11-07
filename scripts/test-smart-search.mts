@@ -7,16 +7,17 @@
 import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import { openAiCompatibleReader, parsePlan } from '../features/slide-vault/server/ai/openai-compatible';
 import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../features/slide-vault/server/ai/reader';
-import { hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/rate-limit';
-import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, typedCodes, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
+import { ADDRESS_FACTOR, callerOf, hit, rateLimit, resetRateLimits } from '../features/slide-vault/server/rate-limit';
+import { anyOfQuery, chipsFor, cleanPlan, groundFilters, isBasicQuery, readAsk, typedCodes, relevantClients, standInPlan, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../features/slide-vault/server/ai/search-plan';
 import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures } from '../features/slide-vault/server/services/fixture-smart-search';
 import { mentionsWord, smartSearch } from '../features/slide-vault/server/services/smart-search';
 import { asksForCover, deckSections, isSectionSearch, sectionKind, sectionKinds, sectionMembers } from '../features/slide-vault/server/services/sections';
 import { taggedFirst, typedTags, type TagHit } from '../features/slide-vault/server/services/tagged-first';
 import { cleanSearchFeedback, learnedForSearch, learnedScore, searchWords, sinks } from '../features/slide-vault/server/search-feedback';
-import { answersIntent, intentScore, intentWhy, searchIntent } from '../features/slide-vault/server/services/slide-intent';
+import { answersIntent, intentScore, intentWhy, lookWordsIn, searchIntent } from '../features/slide-vault/server/services/slide-intent';
 import { cleanLabels, hasLabels, labelMenu, labelName, mergeLabels } from '../features/slide-vault/server/ai/label-menu';
-import { byLearning, readerForSearch } from '../features/slide-vault/server/services/library-smart-search';
+import { byLearning, inAskedOrder, limitFor, readerForSearch } from '../features/slide-vault/server/services/library-smart-search';
+import { likedTotals } from '../features/slide-vault/server/search-feedback';
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -328,10 +329,21 @@ for (const [env, label] of [
   resetRateLimits();
   const req = new Request('http://x/api', { headers: { 'x-forwarded-for': '10.0.0.9, 10.0.0.1' } });
   const tight = { name: 'tight', limit: 1, windowMs: 60_000 };
-  const first = rateLimit(req, tight);
-  const second = rateLimit(req, tight);
+  const first = await rateLimit(req, tight);
+  const second = await rateLimit(req, tight);
   const body = second ? ((await second.json()) as { error: { code: string; retryable: boolean } }) : null;
   check(first === null && second?.status === 429 && Boolean(second.headers.get('retry-after')) && body?.error.code === 'RATE_LIMITED' && body.error.retryable, 'rate: over the limit returns 429 RATE_LIMITED with Retry-After');
+  resetRateLimits();
+  // Per person (FD-90): two people behind one office address each get their own limit...
+  const as = (user: string) => new Request('http://x/api', { headers: { 'x-forwarded-for': '10.0.0.9', 'x-slidevault-user': user } });
+  check(callerOf(as('Priya')) === 'user:priya' && callerOf(req) === 'ip:10.0.0.9', 'rate: a signed-in person is counted by name, anyone else by address');
+  const a1 = await rateLimit(as('Priya'), tight), b1 = await rateLimit(as('Sam'), tight), a2 = await rateLimit(as('Priya'), tight);
+  check(a1 === null && b1 === null && a2?.status === 429, 'rate: two people at one address each get their own limit');
+  // ...but one address can't dodge the limit by sending a new name each time (until real sign-in, FD-90).
+  resetRateLimits();
+  const results: (Response | null)[] = [];
+  for (let n = 0; n < ADDRESS_FACTOR + 1; n++) results.push(await rateLimit(as(`name${n}`), tight));
+  check(results.slice(0, ADDRESS_FACTOR).every((r) => r === null) && results[ADDRESS_FACTOR]?.status === 429, 'rate: a new name every request still hits the address ceiling');
   resetRateLimits();
 }
 
@@ -340,7 +352,7 @@ for (const [env, label] of [
   const team = searchIntent('team slide for a healthcare client');
   check(team.types[0] === 'team_structure' && team.sectors.includes('healthcare'), 'intent: "team slide for a healthcare client" asks for a team slide and a healthcare client', team);
   check(searchIntent('design lead résumé from Acme').types[0] === 'team_resume', 'intent: "résumé" with accents is read as a résumé');
-  check(JSON.stringify(searchIntent('sustainability slides for a bank')) === JSON.stringify({ types: [], sectors: ['financial services'], themes: ['sustainability / net zero'] }), 'intent: a theme and a sector, no kind');
+  check(JSON.stringify(searchIntent('sustainability slides for a bank')) === JSON.stringify({ types: [], sectors: ['financial services'], themes: ['sustainability / net zero'], looks: [] }), 'intent: a theme and a sector, no kind');
   // 3 Nov: the 9 slide types and 8 curated themes the rules didn't know, without catching sector words.
   check(searchIntent('cover letter for a bank').types[0] === 'cover_letter' && searchIntent('our awards').types.includes('awards') && searchIntent('scope and assumptions').types.includes('scope_assumptions') && searchIntent('design concept mood boards').types.includes('design_concept') && searchIntent('our understanding of the client').types.includes('client_understanding'), 'intent: the new slide types are read');
   check(searchIntent('DEI and belonging').themes.includes('inclusion & DEI') && searchIntent('feature stair').themes.includes('interconnecting stair / vertical connection') && searchIntent('BIM and VDC').themes.includes('VDC / 3D process') && searchIntent('masterplan for the portfolio').themes.includes('masterplanning & portfolio strategy') && searchIntent('AI in the workplace').themes.includes('AI'), 'intent: the new themes are read');
@@ -515,6 +527,38 @@ for (const [env, label] of [
   check(readerForSearch(fake, 'off') === null, 'deeper AI off: ai=off skips the AI reader');
   check(readerForSearch(fake, null) === fake && readerForSearch(fake, 'on') === fake, 'deeper AI on: without ai=off the configured reader is used');
   check(readerForSearch(null, 'on') === null, 'deeper AI: ai=on never turns on a reader the server does not have');
+}
+
+{
+  // How a request asks, beyond what about (FD-87): Alina's 4 Nov requests and Schiffon's "most recent, least favorite, most favorite".
+  const a = readAsk('what is our most recent hospitality deck');
+  check(a.want === 'decks' && a.order === 'newest' && !a.all, 'ask: "most recent hospitality deck" is decks, newest first', a);
+  check(readAsk('map with all our offices').all && readAsk('map with all our offices').want === 'slides', 'ask: "all our offices" is all of them, as slides');
+  check(readAsk('slides from the hospitality deck').want === 'slides', 'ask: slides from a deck are slides');
+  check(readAsk('our most liked case studies').order === 'most-liked' && readAsk('least favorite résumés').order === 'least-liked', 'ask: most and least liked');
+  check(readAsk('most used fee slides').order === 'most-used' && readAsk('popular team pages').order === 'most-used', 'ask: most used and popular are downloads');
+  check(readAsk('oldest proposals').order === 'oldest' && readAsk('the org chart').order === null, 'ask: oldest, and no order when none is asked');
+  {
+    const wf = searchIntent('the slide that looks like a waterfall');
+    const conf = intentScore(wf, { looks: ['waterfall', 'process diagram'] }), plain = intentScore(wf, { looks: ['process diagram'] });
+    check(wf.looks.join(',') === 'waterfall,process diagram' && conf > plain && plain > 0, 'look: a confirmed waterfall leads, other process diagrams still count', { looks: wf.looks, conf, plain });
+  }
+  check([...lookWordsIn('the org chart for Toronto')].join(',') === 'org,chart', 'look words: the words of a look phrase, not the place', [...lookWordsIn('the org chart for Toronto')]);
+  check(limitFor('every map', 24) === 100 && limitFor('maps', 24) === 24, 'ask: "every" lifts the result cap, otherwise the screen\'s limit stands');
+
+  const s = (id: string, deckYear: number | null, downloads = 0) => ({ slide: { id, downloads, provenance: { deckYear } } as unknown as SlideSummary });
+  const items = [s('a', 2023, 1), s('b', null, 9), s('c', 2026, 0), s('d', 2023, 4)];
+  const ids = (xs: { slide: SlideSummary }[]) => xs.map((x) => x.slide.id).join('');
+  check(ids(inAskedOrder(items, 'newest', new Map())) === 'cadb', 'order: newest by deck year, ties keep the search order, no year last', ids(inAskedOrder(items, 'newest', new Map())));
+  check(ids(inAskedOrder(items, 'oldest', new Map())) === 'adcb', 'order: oldest first');
+  check(ids(inAskedOrder(items, 'most-used', new Map())) === 'bdac', 'order: most used by downloads');
+  const likes = likedTotals([
+    { slideId: 'c', verdict: 'useful', words: [], at: '' }, { slideId: 'c', verdict: 'useful', words: [], at: '' },
+    { slideId: 'a', verdict: 'not-relevant', words: [], at: '' }, { slideId: 'd', verdict: 'useful', words: [], at: '' },
+  ]);
+  check(ids(inAskedOrder(items, 'most-liked', likes)) === 'cdab', 'order: most liked by Useful minus Not relevant, unrated last', ids(inAskedOrder(items, 'most-liked', likes)));
+  check(ids(inAskedOrder(items, 'least-liked', likes)) === 'adcb', 'order: least liked first, unrated last');
+  check(ids(inAskedOrder(items, null, likes)) === 'abcd', 'order: none asked keeps the search order');
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll smart search checks passed');

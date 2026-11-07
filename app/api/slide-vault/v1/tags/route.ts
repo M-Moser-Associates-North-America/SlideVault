@@ -5,7 +5,7 @@ import { jsonBody, withUser } from '@/features/slide-vault/server/user-route';
 
 // GET /tags: every free-form tag in use, most used first: [{ tag, slides, decks }] (FD-53).
 export async function GET(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.search);
+  const limited = await rateLimit(request, RATE_POLICIES.search);
   if (limited) return limited;
   if (!hasMmoserConfig()) return ok([]);
   try {

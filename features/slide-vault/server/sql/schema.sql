@@ -116,6 +116,29 @@ alter table story_feedback add column if not exists by_role text;
 
 -- Useful / Not relevant on a search result (docs/DECISIONS.md FD-59): the slide, the verdict and the
 -- search's words, never the search itself or a name. Only from people who opted in (FD-37).
+-- Who used the AI and how much (docs/DECISIONS.md FD-91): one row per AI call. Never the request text or the answer.
+create table if not exists ai_usage (
+  id bigint generated always as identity primary key,
+  user_name text,
+  feature text not null,
+  model text not null,
+  prompt_tokens integer not null default 0,
+  completion_tokens integer not null default 0,
+  ms integer not null default 0,
+  ok boolean not null,
+  at timestamptz not null default now()
+);
+create index if not exists ai_usage_user_at_idx on ai_usage (user_name, at);
+
+-- Per-person rate limits shared by every app server (docs/DECISIONS.md FD-90): one row per caller, policy and
+-- one-minute window; rows older than an hour are cleared by the app.
+create table if not exists rate_limit_windows (
+  key text not null,
+  window_start timestamptz not null,
+  count integer not null default 0,
+  primary key (key, window_start)
+);
+
 create table if not exists search_feedback (
   id bigint generated always as identity primary key,
   slide_id text not null,

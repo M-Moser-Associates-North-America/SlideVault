@@ -40,7 +40,11 @@
     "deck:details": "tsx scripts/deck-details.mts",
     "slides:spacing": "tsx --conditions=react-server scripts/fix-slide-spacing.mts",
     "db:vector": "tsx scripts/db-vector.mts",
-    "embed:slides": "tsx scripts/embed-slides.mts"
+    "embed:slides": "tsx scripts/embed-slides.mts",
+    "ai-usage": "tsx --conditions=react-server scripts/ai-usage-report.mts",
+    "test:ai-usage": "tsx --conditions=react-server scripts/test-ai-usage.mts",
+    "test:security": "tsx --conditions=react-server scripts/test-security.mts",
+    "load-test": "tsx scripts/load-test.mts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

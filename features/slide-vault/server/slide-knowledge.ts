@@ -12,6 +12,9 @@ import { readConfig } from './config';
  * - slide-metadata.json (FD-28): reviewed metadata for the slides it covers: slide type, story
  *   role, reuse status, flags (such as a leftover client name), themes, sectors and projects.
  *
+ * - look-sort.json, file-clues.json and visual-scan.json (FD-86): what each slide looks like (map, org chart,
+ *   table...), from the offline picture sorter, the deck file's own structure, and the local describing model.
+ *
  * Where both exist the reviewed metadata wins on role, and its themes, sectors and projects join
  * the topics. The storyboard uses this to place slides by what they do, not only by their words.
  */
@@ -38,16 +41,28 @@ export type SlideReading = {
   clientSector?: string;
   /** Slides that only work together share a pack (reviewed metadata), e.g. a team intro and its people */
   pack?: string;
+  /** What the slide looks like ("map", "org chart", "portrait photo"), read from its image by the local vision model (visual-scan.json) */
+  looks?: string[];
 };
 
 type ScanRow = { role?: unknown; topics?: unknown; shows?: unknown; convinces?: unknown; confidence?: unknown };
 type MetaRow = { role?: unknown; type?: unknown; reuse?: unknown; flags?: unknown; themes?: unknown; proofSectors?: unknown; projects?: unknown; clientSector?: unknown; pack?: unknown };
+type VisualRow = { look?: unknown; description?: unknown; people?: unknown };
+type LookRow = { look?: unknown };
 
 const SCAN = 'discover-scan.json';
 /** The same reading for PDF pages, keyed by the page IDs ingest gives them. */
 const PDF_SCAN = 'discover-scan-pdf.json';
 const META = 'slide-metadata.json';
-let cache: { key: string; map: Map<string, SlideReading> } | null = null;
+/** What each slide looks like, read from its preview image by the local vision model (tools/visual_scan.py). */
+const VISUAL = 'visual-scan.json';
+/** What kind of picture each slide is, from the offline picture sorter (tools/sort_looks.py): minutes for the whole library. */
+const SORTED = 'look-sort.json';
+/** Looks the deck file itself gives away, no AI (tools/file_clues.py): real tables, diagram layouts, the office-map legend. */
+const CLUES = 'file-clues.json';
+/** Which diagram slides are waterfalls, one yes/no question each to the local vision model (tools/waterfall_check.py). */
+const WATERFALL = 'waterfall-check.json';
+let cache: { key: string; dir: string; map: Map<string, SlideReading>; looks: Map<string, string[]> } | null = null;
 
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((t): t is string => typeof t === 'string') : []);
 
@@ -60,11 +75,45 @@ async function readJson<T>(file: string): Promise<{ mtimeMs: number; data: Recor
   }
 }
 
+const FILES = [SCAN, PDF_SCAN, META, VISUAL, SORTED, CLUES, WATERFALL];
+/** How often the files' dates are checked for changes, at most (FD-94): a search never re-reads unchanged files. */
+const CHECK_EVERY_MS = 5000;
+let checkedAt = 0;
+let loading: Promise<Map<string, SlideReading>> | null = null;
+
+/**
+ * What the local model and the team know about each slide, read from the data folder. Read once and kept: the
+ * files' dates are checked at most every few seconds, a file is only read again when it changed, and searches
+ * that arrive together share one read (the 6 Nov load test: fifty searches at once each re-read all seven files).
+ */
 export async function loadSlideReadings(dataDir = readConfig().dataDir): Promise<Map<string, SlideReading>> {
-  const [pptxScan, pdfScan, meta] = await Promise.all([readJson<ScanRow>(path.join(dataDir, SCAN)), readJson<ScanRow>(path.join(dataDir, PDF_SCAN)), readJson<MetaRow>(path.join(dataDir, META))]);
-  const key = `${pptxScan?.mtimeMs ?? 0}:${pdfScan?.mtimeMs ?? 0}:${meta?.mtimeMs ?? 0}`;
+  if (cache && cache.dir === dataDir && Date.now() - checkedAt < CHECK_EVERY_MS) return cache.map;
+  if (loading) return loading;
+  loading = (async () => {
+    try {
+      const dates = await Promise.all(FILES.map((f) => stat(path.join(dataDir, f)).then((x) => x.mtimeMs, () => 0)));
+      checkedAt = Date.now();
+      const key = `${dataDir}|${dates.join(':')}`;
+      if (cache?.key === key) return cache.map;
+      return await readAll(dataDir, key);
+    } finally {
+      loading = null;
+    }
+  })();
+  return loading;
+}
+
+async function readAll(dataDir: string, key: string): Promise<Map<string, SlideReading>> {
+  const [pptxScan, pdfScan, meta, visual, sorted, clues, waterfall] = await Promise.all([
+    readJson<ScanRow>(path.join(dataDir, SCAN)),
+    readJson<ScanRow>(path.join(dataDir, PDF_SCAN)),
+    readJson<MetaRow>(path.join(dataDir, META)),
+    readJson<VisualRow>(path.join(dataDir, VISUAL)),
+    readJson<LookRow>(path.join(dataDir, SORTED)),
+    readJson<LookRow>(path.join(dataDir, CLUES)),
+    readJson<{ waterfall?: unknown }>(path.join(dataDir, WATERFALL)),
+  ]);
   const scan = { data: { ...(pptxScan?.data ?? {}), ...(pdfScan?.data ?? {}) } };
-  if (cache?.key === key) return cache.map;
 
   // Neither file yet: the storyboard works from the words on the slides alone.
   const map = new Map<string, SlideReading>();
@@ -94,6 +143,29 @@ export async function loadSlideReadings(dataDir = readConfig().dataDir): Promise
       pack: typeof m.pack === 'string' && m.pack ? m.pack : undefined,
     });
   }
-  cache = { key, map };
+  // What a slide looks like, cheapest first, each later source overriding: the picture sorter, then the deck file's own
+  // structure (a real table is a table, whatever the picture looks like), then the describing model where it has run.
+  // Kept apart from the readings: a slide with only a look has no role, and the storyboard reads an empty role as known.
+  const looks = new Map<string, string[]>();
+  for (const src of [sorted, clues, visual]) for (const [id, v] of Object.entries(src?.data ?? {})) if (strings(v?.look).length) looks.set(id, strings(v?.look));
+  // A diagram the model confirmed is a waterfall says so first (Alina, 4 Nov: "the slide that looks like a waterfall").
+  for (const [id, v] of Object.entries(waterfall?.data ?? {})) if (v?.waterfall === true) looks.set(id, ['waterfall', ...(looks.get(id) ?? []).filter((l) => l !== 'waterfall')]);
+  for (const [id, l] of looks) { const base = map.get(id); if (base) base.looks = l; }
+  // What a slide looks like joins what it says: "world map with office dots" makes a map findable when no word on it says map.
+  for (const [id, v] of Object.entries(visual?.data ?? {})) {
+    const description = typeof v?.description === 'string' ? v.description.trim() : '';
+    const people = strings(v?.people);
+    const base = map.get(id);
+    if (!base || !description) continue;
+    const seen = [description, people.length ? `Pictured: ${people.join(', ')}.` : ''].filter(Boolean).join(' ');
+    base.about = [seen, base.about].filter(Boolean).join(' ').slice(0, 800);
+  }
+  cache = { key, dir: dataDir, map, looks };
   return map;
+}
+
+/** What every slide looks like ("map", "org chart", "table"), including slides with no reading: for search, not stories. */
+export async function loadSlideLooks(dataDir = readConfig().dataDir): Promise<Map<string, string[]>> {
+  await loadSlideReadings(dataDir);
+  return cache?.looks ?? new Map();
 }

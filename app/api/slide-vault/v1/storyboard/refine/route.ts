@@ -1,4 +1,6 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
+import { asPerson } from '@/features/slide-vault/server/ai/usage';
+import { userOf } from '@/features/slide-vault/server/principal';
 import type { StoryRefineRequest } from '@/features/slide-vault/contracts/dto';
 import { STORY_ROLES, type StoryReader } from '@/features/slide-vault/server/ai/storyboard';
 import { roleOf } from '@/features/slide-vault/server/ai/roles';
@@ -11,7 +13,7 @@ const MAX_BEATS = 60;
 const MAX_SLIDES = 200;
 
 export async function POST(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.smartSearch);
+  const limited = await rateLimit(request, RATE_POLICIES.smartSearch);
   if (limited) return limited;
   let body: Partial<StoryRefineRequest>;
   try {
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
     return fail(500, 'LIBRARY_NOT_READY', 'The storyboard is not set up correctly on the server.');
   }
   try {
-    return ok(await refineStoryboard({ situation, message, beats, pinned, role: roleOf(body.role) }, { reader, read: true }));
+    return ok(await asPerson(userOf(request), () => refineStoryboard({ situation, message, beats, pinned, role: roleOf(body.role) }, { reader, read: true })));
   } catch (e) {
     console.error('Storyboard refine failed', e);
     return fail(503, 'LIBRARY_NOT_READY', "Couldn't change the story right now. Please try again.", true);

@@ -206,9 +206,9 @@ function useTypewriter(phrases: string[], active: boolean): string {
 
 /** The "Try" example searches, shown under the search and filter card. */
 function HomeTry() {
-  const { query, setQuery, submitSearch, runtime } = useWorkspace();
+  const { query, typeQuery, submitSearch, runtime } = useWorkspace();
   const search = (q: string) => {
-    setQuery(q);
+    typeQuery(q);
     submitSearch(q);
     if (runtime.location.view !== 'pages') runtime.navigate({ view: 'pages' });
   };
@@ -235,7 +235,7 @@ function HomeTry() {
 let heroTouched = false;
 
 function HomeHeader() {
-  const { query, setQuery, submitSearch, runtime } = useWorkspace();
+  const { query, setQuery, typeQuery, submitSearch, runtime } = useWorkspace();
   const [touched, setTouched] = useState(heroTouched);
   const showHint = query === '' && !touched;
   const tw = useTypewriter(TYPEWRITER_PHRASES, showHint);
@@ -303,7 +303,7 @@ function HomeHeader() {
           )}
           <input id="sv-hero-q" type="search" autoComplete="off" enterKeyHint="search" value={query}
             onChange={(e) => {
-              setQuery(e.target.value);
+              typeQuery(e.target.value);
               /* Typing on a page that can't show results (a client or year list) takes you to Home's results. */
               if (e.target.value && runtime.location.view !== 'pages') runtime.navigate({ view: 'pages' });
             }} placeholder={touched ? 'Slides, clients or topics' : undefined} onFocus={() => {
@@ -325,7 +325,7 @@ function HomeHeader() {
           </button>
           <MicButton className="home-hero-mic" showWhenOff onText={(t) => {
             spoken.current = true;
-            setQuery(t);
+            typeQuery(t);
           }} />
           <button type="submit" className="home-hero-btn" aria-label="Search">
             <Icon name="search" />
@@ -350,8 +350,9 @@ function SearchHeader() {
 }
 
 export function HomeView() {
-  const { query, filters } = useWorkspace();
-  const searching = query.trim() !== '';
+  const { searched, filters } = useWorkspace();
+  /* Results show once a search has run (Enter), not while the words are being typed (FD-89). */
+  const searching = searched !== '';
   return (
     <>
       {!searching && (
@@ -609,9 +610,10 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 /* --------------------------------------------------------------- Search */
 
 export function ResultsView() {
-  const { query, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch, dismissAutoSection } = useWorkspace();
+  const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch, dismissAutoSection } = useWorkspace();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
-  const q = query.trim();
+  /* The results are for the search that ran, not the words still being typed (FD-89). */
+  const q = searched;
   /* The "your search is short for the AI" note, put away for this search only. */
 
   /* Real search (FD-16, FD-17): the server reads the request, finds slides and says why each fits.

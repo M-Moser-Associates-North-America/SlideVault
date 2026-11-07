@@ -23,9 +23,10 @@ async function openResults(page: Page, text = 'services') {
   await searchFor(page, text);
 }
 
-/** Type a word and wait for results. The draft deck keeps its slides between searches. */
+/** Type a word, press Enter (typing alone searches nothing, FD-89) and wait for results. The draft deck keeps its slides between searches. */
 async function searchFor(page: Page, text: string) {
   await page.getByLabel('Search slides').fill(text);
+  await page.getByLabel('Search slides').press('Enter');
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
 }
 
@@ -36,7 +37,7 @@ async function axe(page: Page) {
   return violations.map((v) => `${v.id} (${v.impact}): ${v.help} — ${v.nodes.length} element(s)`);
 }
 
-// The API rate-limits per caller (FD-17: 60 searches a minute, keyed on X-Forwarded-For). The whole
+// The API rate-limits per caller (FD-17, FD-90: per signed-in person, else per X-Forwarded-For address). The whole
 // suite runs from one address in under a minute, so give each test its own documentation-range
 // address and its own limit; otherwise the last tests see "Too many requests" instead of the app.
 let caller = 0;
@@ -44,6 +45,13 @@ let caller = 0;
 test.beforeEach(async ({ page }) => {
   caller += 1;
   await page.context().setExtraHTTPHeaders({ 'x-forwarded-for': `198.51.100.${(caller % 250) + 1}` });
+  // Limits are now counted per signed-in person (FD-90), and every test signs in the same demo profile, so each
+  // test's API calls also go under a name of their own; otherwise the whole suite shares one person's 20 a minute.
+  const person = encodeURIComponent(`Avery Walsh ${caller}`);
+  await page.route('**/api/slide-vault/v1/**', (route) => {
+    const headers = route.request().headers();
+    return route.fallback(headers['x-slidevault-user'] ? { headers: { ...headers, 'x-slidevault-user': person } } : undefined);
+  });
   await page.goto('/slide-vault/pages');
   await page.evaluate(() => {
     localStorage.clear();
@@ -109,6 +117,7 @@ test('no violations in the preview and download dialogs, empty results and the d
   await page.keyboard.press('Escape');
 
   await page.getByLabel('Search slides').fill('zzqq');
+  await page.getByLabel('Search slides').press('Enter');
   await expect(page.getByText(/No slides found matching/)).toBeVisible();
   expect(await axe(page)).toEqual([]);
   await page.getByRole('button', { name: 'Clear search' }).first().click();
@@ -117,6 +126,7 @@ test('no violations in the preview and download dialogs, empty results and the d
     route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'EXPORT_FAILED', message: 'The export could not be built. Please try again.', retryable: true }, requestId: 't' }) }),
   );
   await page.getByLabel('Search slides').fill('services');
+  await page.getByLabel('Search slides').press('Enter');
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
   await page.getByLabel('Add to draft deck: Services').check({ force: true });
   await page.getByRole('button', { name: 'Download as pptx' }).click();
@@ -170,6 +180,7 @@ test('primary workflow works with the keyboard alone', async ({ page }) => {
   // Search, then tick three slides with Space. Each is found with its own search; the draft deck keeps them.
   await page.getByLabel('Search slides').focus();
   await page.keyboard.type('northwind');
+  await page.keyboard.press('Enter');
   await expect(page.getByText(/^\d+ slides? from \d+ decks?/)).toBeVisible();
   for (const [word, title] of [['northwind', 'Northwind Studio'], ['services', 'Services'], ['leadership', 'Leadership team']]) {
     await searchFor(page, word);
@@ -429,6 +440,7 @@ test('sections: type a section, open it, see it framed in the deck strip, add it
 
   // Typing a section name shows its card by itself, no pill needed.
   await page.getByLabel('Search slides').fill('case studies');
+  await page.getByLabel('Search slides').press('Enter');
   const sectionCard = page.locator('.seccard');
   await expect(sectionCard).toHaveCount(1);
   await expect(sectionCard).toContainText('3 slides in this section');
@@ -553,6 +565,7 @@ test('Home search: the clear cross is there as soon as there is text, without ho
   // The slim search that stays after scrolling has its own cross too.
   await page.setViewportSize({ width: 1280, height: 520 });
   await box.fill('services');
+  await box.press('Enter');
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
   await page.mouse.move(400, 400); // over the results, so the wheel scrolls them
   await page.mouse.wheel(0, 900);
@@ -631,9 +644,10 @@ test('Search with AI: hidden when the server has no AI; off every session; a car
   await expect(toggle).toBeVisible();
   await expect(toggle).not.toBeChecked();
 
-  // Off, short search: no card, a regular search that keeps the AI out.
+  // Off, short search: typing sends nothing (FD-89); Enter runs a regular search that keeps the AI out, with no card.
   await search.fill('services');
-  await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
+  await page.waitForTimeout(600);
+  expect(asked.length).toBe(0);
   await search.press('Enter');
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
   await expect(card).toHaveCount(0);

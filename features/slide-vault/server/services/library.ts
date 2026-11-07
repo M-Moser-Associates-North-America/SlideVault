@@ -7,14 +7,24 @@ import { deckFacts } from './search';
 type SlideWithoutGroup = Omit<LibrarySlide, 'duplicateGroupId'>;
 
 /** Library-folder decks in the same shape as uploaded ones, with what their catalog entry, folder and file name say. */
-export function fixtureLibrary(index: LibraryIndex | null): { decks: LibraryDeck[]; slides: SlideWithoutGroup[] } {
+/**
+ * A deck's client sector: the one most of its slides were reviewed as (FD-87), so "hospitality decks" finds
+ * decks for hospitality clients even though no slide says "hospitality". Null when none of its slides say.
+ */
+export function deckSector(slideIds: string[], sectorOfSlide: (id: string) => string | undefined): string | null {
+  const counts = new Map<string, number>();
+  for (const id of slideIds) { const s = sectorOfSlide(id); if (s) counts.set(s, (counts.get(s) ?? 0) + 1); }
+  return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
+
+export function fixtureLibrary(index: LibraryIndex | null, sectorOfSlide: (id: string) => string | undefined = () => undefined): { decks: LibraryDeck[]; slides: SlideWithoutGroup[] } {
   const sources = index?.sources ?? [];
   return {
     decks: sources.map((s) => {
       // The same deck facts as every slide summary, so browsing and search agree (FD-31).
       const f = deckFacts(s);
       return {
-        id: s.id, title: f.title, client: f.clientName, year: f.deckYear, category: f.category, bestOfTheBest: f.bestOfTheBest, location: f.location,
+        id: s.id, title: f.title, client: f.clientName, year: f.deckYear, category: f.category, bestOfTheBest: f.bestOfTheBest, location: f.location, sector: deckSector(s.slides.map((sl) => sl.id), sectorOfSlide),
         slideSize: null, versionId: s.versionId, uploadedAt: null, source: 'fixture' as const,
       };
     }),

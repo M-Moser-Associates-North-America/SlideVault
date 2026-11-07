@@ -29,7 +29,7 @@ const norm = (s: string) => s.toLowerCase().replace(/[’']/g, '');
 
 /** The search box. On Home it sits at the top of the left column; on deck and slide pages it sits above the content. */
 export function SearchForm({ onSubmit }: { onSubmit: () => void }) {
-  const { query, setQuery, submitSearch } = useWorkspace();
+  const { query, setQuery, typeQuery, submitSearch } = useWorkspace();
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (query.trim()) submitSearch();
@@ -50,10 +50,7 @@ export function SearchForm({ onSubmit }: { onSubmit: () => void }) {
           autoComplete="off"
           enterKeyHint="search"
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            if (e.target.value.trim()) onSubmit();
-          }}
+          onChange={(e) => typeQuery(e.target.value)}
         />
         <button type="button" className="sclear" aria-label="Clear search" hidden={!query} onClick={() => setQuery('')}>
           <Icon name="x" />
@@ -74,7 +71,7 @@ export function SearchForm({ onSubmit }: { onSubmit: () => void }) {
 }
 
 export function TryAsking() {
-  const { query, setQuery, submitSearch } = useWorkspace();
+  const { query, typeQuery, submitSearch } = useWorkspace();
   return (
     <section className="rail-try" aria-labelledby="try-h">
       <h2 id="try-h" className="try-h">
@@ -84,7 +81,7 @@ export function TryAsking() {
       <ul className="try-list">
         {TRY_QUERIES.map((q) => (
           <li key={q}>
-            <button type="button" className="try-chip" aria-current={query.trim() === q ? 'true' : undefined} onClick={() => { setQuery(q); submitSearch(q); }}>
+            <button type="button" className="try-chip" aria-current={query.trim() === q ? 'true' : undefined} onClick={() => { typeQuery(q); submitSearch(q); }}>
               {q}
             </button>
           </li>

@@ -23,7 +23,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.speech);
+  const limited = await rateLimit(request, RATE_POLICIES.speech);
   if (limited) return limited;
   let transcriber: Transcriber | null;
   try {

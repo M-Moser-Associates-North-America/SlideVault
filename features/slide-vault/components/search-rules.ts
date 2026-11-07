@@ -47,6 +47,29 @@ const CONCEPTS: Concept[] = [
     tags: ['about us', 'services'],
   },
   {
+    // Alina, 4 Nov: "the IDD slide with a table showing our different options". IDD is M Moser's integrated
+    // design-and-build offer; its slides say "Design & Build", never "IDD".
+    id: 'design-build',
+    label: 'Design & Build',
+    words: ['idd', 'integrated design and delivery', 'integrated design', 'design build', 'design and build', 'design-build', 'turnkey', 'single point of responsibility'],
+    tags: [],
+  },
+  {
+    // M Moser's founder (Alina, 4 Nov: "slide with Moira's photo"; server/ai/firm-facts.ts): "our founder" finds her pages.
+    id: 'founder',
+    label: 'Moira Moser',
+    words: ['moira moser', 'moira', 'founder', 'our founder'],
+    tags: ['about us'],
+  },
+  {
+    // M Moser's own words for where it is (Alina's office maps, 4 Nov): the slides say "studios", "global
+    // locations", "physical presence in 30 cities", rarely "offices", so asking for one finds the others.
+    id: 'offices',
+    label: 'Our offices',
+    words: ['offices', 'office locations', 'our offices', 'studios', 'global locations', 'locations', 'global network', 'global presence', 'physical presence', 'footprint', 'worldwide', 'where we are'],
+    tags: ['about us'],
+  },
+  {
     id: 'services',
     label: 'Services',
     words: ['services', 'service', 'offer', 'offering'],
@@ -151,7 +174,7 @@ const CONCEPTS: Concept[] = [
 ];
 
 const STOP = new Set(
-  'intro a an the for to of and or show me find need needs want looking look slide slides deck decks about from our we with in on that this is are any some please give get something one into by at my us i can you what which how do does work works have has had was were it its be using use large introduce pitch project recent latest newest newer updated current whats most greatest best add include could would there where should'.split(
+  'intro a an the for to of and or show me find need needs want looking look slide slides deck decks about from our we with in on that this is are any some please give get something one into by at my us i can you what which how do does work works have has had was were it its be using use large introduce pitch project recent latest newest newer updated current whats most greatest best add include could would there where should all every each everything least liked favorite favourite favorites favourites popular oldest earliest downloaded rated'.split(
     ' ',
   ),
 );
