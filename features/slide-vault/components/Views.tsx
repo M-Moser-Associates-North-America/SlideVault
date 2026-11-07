@@ -206,9 +206,10 @@ function useTypewriter(phrases: string[], active: boolean): string {
 
 /** The "Try" example searches, shown under the search and filter card. */
 function HomeTry() {
-  const { query, setQuery, runtime } = useWorkspace();
+  const { query, typeQuery, submitSearch, runtime } = useWorkspace();
   const search = (q: string) => {
-    setQuery(q);
+    typeQuery(q);
+    submitSearch(q);
     if (runtime.location.view !== 'pages') runtime.navigate({ view: 'pages' });
   };
   return (
@@ -324,7 +325,7 @@ function HomeHeader() {
           </button>
           <MicButton className="home-hero-mic" showWhenOff onText={(t) => {
             spoken.current = true;
-            setQuery(t);
+            typeQuery(t);
           }} />
           <button type="submit" className="home-hero-btn" aria-label="Search">
             <Icon name="search" />
@@ -609,16 +610,17 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 /* --------------------------------------------------------------- Search */
 
 export function ResultsView() {
-  const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, askAiAnyway, autoSection, sectionsFromSearch, dismissAutoSection } = useWorkspace();
+  const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch, dismissAutoSection } = useWorkspace();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
   /* The results are for the search that ran, not the words still being typed (FD-89). */
   const q = searched;
   /* The "your search is short for the AI" note, put away for this search only. */
-  const [dismissedShort, setDismissedShort] = useState('');
 
   /* Real search (FD-16, FD-17): the server reads the request, finds slides and says why each fits.
      The filter row narrows the results further here; sorting is a view choice. */
-  const result = search.status === 'ready' ? search.result : null;
+  /* While the card asks whether to use the AI, nothing is shown as found: the slide cards wait, loading, for the answer. */
+  const waitingForAi = !!aiAsk;
+  const result = !waitingForAi && search.status === 'ready' ? search.result : null;
   /* Premade decks the request names (FD-31): "Barlow's proposal 2025", "all proposals from 2025".
      Found from the library's own deck facts, at once, before and beside the slide search. */
   const lib = useReadyLibrary();
@@ -692,36 +694,24 @@ export function ResultsView() {
           ))}
         </Row>
       )}
-      {search.status === 'error' && (
+      {!waitingForAi && search.status === 'error' && (
         <StateBlock error icon="alert" title="Search did not work" text={search.message}>
           <button type="button" className="btn" onClick={retrySearch}>
             Try again
           </button>
         </StateBlock>
       )}
-      {(search.status === 'loading' || search.status === 'idle') && (
+      {(waitingForAi || search.status === 'loading' || search.status === 'idle') && (
         <div role="status" aria-live="polite">
           <p className="thinking">
             <Icon name="spinner" className="spin" />
-            Reading your request, matching slides, checking why each one fits…
+            {waitingForAi ? 'Waiting for your choice…' : 'Reading your request, matching slides, checking why each one fits…'}
           </p>
           <SkeletonGrid count={4} />
         </div>
       )}
       {result && (
         <>
-          {result.aiSkipped === 'short' && dismissedShort !== q && (
-            <div className="ai-note" role="status">
-              <Icon name="alert" className="ic-sm" />
-              <span>This is a short search, and a regular search usually handles those well. Do you still want the AI to read it?</span>
-              <button type="button" className="btn" onClick={askAiAnyway}>
-                Yes, use AI
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={() => setDismissedShort(q)}>
-                No, keep these results
-              </button>
-            </div>
-          )}
           {result.reader === 'model' && !result.readerNote && (
             <p className="meta">
               <Icon name="sparkle" className="ic-sm" /> Read by AI.

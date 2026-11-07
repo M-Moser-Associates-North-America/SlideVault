@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { isBasicQuery } from './search-rules';
 import { archiveDeck as archiveDeckApi, fetchAiAvailable, createPack as createPackApi, deletePack as deletePackApi, getMySettings, listLibrary, renamePack as renamePackApi, renameSlide as renameSlideApi, setMyRole, setPackStatus as setPackStatusApi, smartSearch } from '../client/api';
 import { withDemoDetails } from '../client/demo-details';
 import { useLocalPacks } from '../client/pack-store';
@@ -75,8 +76,12 @@ type Workspace = {
   /** "Deeper AI search" is ticked: submitted sentences and questions are read by the AI. Off until the person turns it on; remembered on this device. */
   deeperAi: boolean;
   setDeeperAi: (on: boolean) => void;
-  /** The person chose the AI for this short search too: re-reads it with the AI (FD-79) */
-  askAiAnyway: () => void;
+  /** The short search waiting for a yes or no before anything is searched with the AI (FD-79); null when none is waiting */
+  aiAsk: string | null;
+  /** 'short': the box is ticked and the search is short. 'long': the box is off and the search looks like it needs the AI. */
+  aiAskKind: 'short' | 'long';
+  /** Yes: the AI reads this short search. No: the regular search reads it. Either way the search runs now. */
+  answerAiAsk: (useAi: boolean) => void;
   /** Archived decks are left out of every list unless this is on (FD-50) */
   includeArchived: boolean;
   setIncludeArchived: (on: boolean) => void;
@@ -111,7 +116,8 @@ type Workspace = {
   /** The search that was last run, which the results show (what's typed may have moved on). */
   searched: string;
   /** Enter or the Search button: lets the AI read the current request (once; repeats are cached) */
-  submitSearch: () => void;
+  /** Runs the search for what is typed, or for `text` when a chip or tag was clicked. Asks first when the AI choice applies (FD-79). */
+  submitSearch: (text?: string) => void;
   retrySearch: () => void;
   search: SearchState;
   filters: Filters;
@@ -186,8 +192,6 @@ export function useWorkspace(): Workspace {
 }
 
 const SEARCH_DELAY_MS = 250;
-/** Where "Deeper AI search" being on is remembered, on this device only (FD-79). */
-const DEEPER_AI_KEY = 'slidevault:deeper-ai';
 const TOAST_MS = 5000;
 
 /** A pretend-data switch turned on by ?name=1 in the address and kept for the browser tab. Off unless asked for. */
@@ -230,16 +234,9 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const demoDetails = useDemoFlag('demodetails');
   /* Off by default: slides hidden in the original deck stay out. The switch beside the search bar turns them on. */
   const [includeHidden, setIncludeHidden] = useState(false);
-  /* "Deeper AI search" (FD-79): off until the person turns it on, then remembered on this device. */
+  /* "Deeper AI search" (FD-79): off on every reload and every new session; the person turns it on when they want it. Never remembered. */
   const [aiAvailable, setAiAvailable] = useState(false);
   const [deeperAi, setDeeperAiRaw] = useState(false);
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(DEEPER_AI_KEY) === 'on') setDeeperAiRaw(true);
-    } catch {
-      /* storage blocked: it just starts off each visit */
-    }
-  }, []);
   useEffect(() => {
     const controller = new AbortController();
     fetchAiAvailable(transport, controller.signal).then((on) => !controller.signal.aborted && setAiAvailable(on));
@@ -268,12 +265,30 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const [searchTry, setSearchTry] = useState(0);
   /* The request the person submitted. Only that one may be read by the AI; typing uses the rules. */
   const [submitted, setSubmitted] = useState('');
-  const submitSearch = useCallback(() => {
-    setSubmitted(query.trim());
+  const [aiAsk, setAiAsk] = useState<string | null>(null);
+  const [aiAskKind, setAiAskKind] = useState<'short' | 'long'>('short');
+  const aiOnRef = useRef(false);
+  const aiAvailableRef = useRef(false);
+  const submitSearch = useCallback((text?: string) => {
+    const q = (text ?? query).trim();
+    /* A short search with "Search with AI" ticked asks first, in a card, and only searches once answered (FD-79). */
+    if (aiOnRef.current && isBasicQuery(q)) {
+      setAiAskKind('short');
+      setAiAsk(q);
+      return;
+    }
+    /* A long sentence or question with the box off, when the AI is set up: offer the AI in the same kind of card. Asked every time. */
+    if (!aiOnRef.current && aiAvailableRef.current && q && !isBasicQuery(q)) {
+      setAiAskKind('long');
+      setAiAsk(q);
+      return;
+    }
+    setSubmitted(q);
     setSearch({ status: 'loading' });
     setSearchTry((n) => n + 1);
   }, [query]);
   const setQuery = useCallback((q: string) => {
+    setAiAsk(null);
     setQueryRaw(q);
     setSubmitted(q.trim());
     setSearch(q.trim() ? { status: 'loading' } : { status: 'idle' });
@@ -291,11 +306,13 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const setDeeperAi = useCallback(
     (on: boolean) => {
       setDeeperAiRaw(on);
-      try {
-        localStorage.setItem(DEEPER_AI_KEY, on ? 'on' : 'off');
-      } catch {
-        /* not remembered */
+      /* Ticking it with a short search already typed asks first, the same card as pressing Enter. */
+      if (on && query.trim() && isBasicQuery(query.trim())) {
+        setAiAskKind('short');
+        setAiAsk(query.trim());
+        return;
       }
+      setAiAsk(null);
       if (query.trim()) {
         setSubmitted(query.trim());
         setSearch({ status: 'loading' });
@@ -305,16 +322,34 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     [query],
   );
   const aiOn = aiAvailable && deeperAi;
-  /* A short search is left to the rules unless the person says "use AI anyway", and only for that search. */
+  aiOnRef.current = aiOn;
+  aiAvailableRef.current = aiAvailable;
+  /* A short search is left to the rules unless the person says yes in the card, and only for that search.
+     "No" is remembered for that search so it reads with the rules. It asks again every time, on every short search. */
   const [forceAiFor, setForceAiFor] = useState('');
-  const askAiAnyway = useCallback(() => {
-    const q = query.trim();
-    if (!q) return;
-    setForceAiFor(q);
-    setSubmitted(q);
-    setSearch({ status: 'loading' });
-    setSearchTry((n) => n + 1);
-  }, [query]);
+  const [declineAiFor, setDeclineAiFor] = useState('');
+  const answerAiAsk = useCallback(
+    (useAi: boolean) => {
+      const q = aiAsk;
+      setAiAsk(null);
+      if (!q) return;
+      if (aiAskKind === 'long') {
+        /* Yes ticks the box and reads the sentence with the AI; No leaves the box off and runs the regular search. */
+        if (useAi) setDeeperAiRaw(true);
+        setForceAiFor('');
+        setDeclineAiFor('');
+      } else {
+        setForceAiFor(useAi ? q : '');
+        setDeclineAiFor(useAi ? '' : q);
+        /* No also unticks "Search with AI": the person said they do not want it, so the regular search runs and the box shows it. */
+        if (!useAi) setDeeperAiRaw(false);
+      }
+      setSubmitted(q);
+      setSearch({ status: 'loading' });
+      setSearchTry((n) => n + 1);
+    },
+    [aiAsk, aiAskKind],
+  );
   const retrySearch = useCallback(() => {
     setSearch({ status: 'loading' });
     setSearchTry((n) => n + 1);
@@ -325,7 +360,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     if (!q) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      smartSearch(transport, q, true, controller.signal, { includeHidden, role: currentStoryRole(), ai: aiOn ? undefined : false, forceAi: aiOn && forceAiFor === q })
+      smartSearch(transport, q, true, controller.signal, { includeHidden, role: currentStoryRole(), ai: aiOn && declineAiFor !== q ? undefined : false, forceAi: aiOn && forceAiFor === q })
         .then((result) => {
           if (typeof result.aiAvailable === 'boolean') setAiAvailable(result.aiAvailable);
           setSearch({ status: 'ready', result: demoTitles.size ? { ...result, items: result.items.map((i) => ({ ...i, slide: withDemoTitle(i.slide) })) } : result });
@@ -336,18 +371,18 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
       clearTimeout(timer);
       controller.abort();
     };
-  }, [transport, submitted, searchTry, includeHidden, aiOn, forceAiFor]);
+  }, [transport, submitted, searchTry, includeHidden, aiOn, forceAiFor, declineAiFor]);
 
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   /* "bank case studies section" turns the Section filter on by itself, the way "2024" lights Year (FD-80). Taking it off
      lasts for that search only, so the next search that asks for a section turns it on again. */
   const [sectionOffFor, setSectionOffFor] = useState('');
   const sectionsFromSearch = useMemo(() => {
-    if (!query.trim() || sectionOffFor === query.trim() || search.status !== 'ready') return [];
+    if (aiAsk || !query.trim() || sectionOffFor === query.trim() || search.status !== 'ready') return [];
     const { sections = [], items } = search.result;
     // Only a section this search has slides in: an automatic filter must never hide every result (decks with no sections found).
     return sections.filter((kind) => items.some((i) => i.slide.section?.kind === kind));
-  }, [query, sectionOffFor, search]);
+  }, [aiAsk, query, sectionOffFor, search]);
   const autoSection = filters.section.length === 0 && sectionsFromSearch.length === 1 ? sectionsFromSearch[0] : null;
   const dismissAutoSection = useCallback(() => setSectionOffFor(query.trim()), [query]);
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);
@@ -658,14 +693,16 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     aiAvailable,
     deeperAi,
     setDeeperAi,
-    askAiAnyway,
+    aiAsk,
+    aiAskKind,
+    answerAiAsk,
     query,
     setQuery,
     typeQuery,
     searched: submitted,
     submitSearch,
     retrySearch,
-    search,
+    search: aiAsk ? ({ status: 'loading' } as SearchState) : search,
     filters,
     patchFilters,
     clearFilters,

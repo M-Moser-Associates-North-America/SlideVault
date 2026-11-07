@@ -77,10 +77,11 @@ function useSeed(slide: SlideSummary, loaded?: FreeTag[]): FreeTag[] | undefined
 }
 
 function useTagSearch(onNavigate?: () => void) {
-  const { runtime, setQuery } = useWorkspace();
+  const { runtime, typeQuery, submitSearch } = useWorkspace();
   return (tag: string) => {
     onNavigate?.();
-    setQuery(tag);
+    typeQuery(tag);
+    submitSearch(tag);
     runtime.navigate({ view: 'pages' });
   };
 }

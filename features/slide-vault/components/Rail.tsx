@@ -71,7 +71,7 @@ export function SearchForm({ onSubmit }: { onSubmit: () => void }) {
 }
 
 export function TryAsking() {
-  const { query, setQuery } = useWorkspace();
+  const { query, typeQuery, submitSearch } = useWorkspace();
   return (
     <section className="rail-try" aria-labelledby="try-h">
       <h2 id="try-h" className="try-h">
@@ -81,7 +81,7 @@ export function TryAsking() {
       <ul className="try-list">
         {TRY_QUERIES.map((q) => (
           <li key={q}>
-            <button type="button" className="try-chip" aria-current={query.trim() === q ? 'true' : undefined} onClick={() => setQuery(q)}>
+            <button type="button" className="try-chip" aria-current={query.trim() === q ? 'true' : undefined} onClick={() => { typeQuery(q); submitSearch(q); }}>
               {q}
             </button>
           </li>
