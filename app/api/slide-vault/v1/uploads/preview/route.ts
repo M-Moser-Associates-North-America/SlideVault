@@ -6,7 +6,7 @@ import { previewUpload } from '@/features/slide-vault/server/services/upload-pre
 // stored. Nothing is saved to the database or the bucket. Returns
 // { token, fileName, slideCount, alreadyUploadedAs, slides: [{ number, title, hiddenInSource, previewPath }] }.
 export async function POST(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.uploadSuggest);
+  const limited = await rateLimit(request, RATE_POLICIES.uploadSuggest);
   if (limited) return limited;
   let form: FormData;
   try {

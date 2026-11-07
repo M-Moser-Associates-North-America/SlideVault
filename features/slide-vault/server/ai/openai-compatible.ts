@@ -1,4 +1,6 @@
 import 'server-only';
+import { firmFactsInstructions } from './firm-facts';
+import { recordAiUse, withAiSlot } from './usage';
 import { cleanPlan, MAX_KEYWORDS, type PlanContext, type SearchPlan } from './search-plan';
 import type { PlanReader } from './reader';
 import type { LabelMenu, RawLabels } from './label-menu';
@@ -52,6 +54,7 @@ export function planInstructions(ctx: PlanContext): string {
     'Read the request and reply with a search plan. Only use a filter when the request clearly asks for it.',
     `This year is ${ctx.thisYear}. "Recent" means the last two years.`,
     'Category names: IDD = Integrated Design Delivery, MSA = Master Service Agreement, SME = Subject Matter Experts, QA/QC = Quality Assurance / Quality Control.',
+    ...firmFactsInstructions(),
     `Clients named in the request: ${ctx.clients.length ? ctx.clients.join('; ') : '(none)'}.`,
     `Categories in the library: ${ctx.categories.length ? ctx.categories.join('; ') : '(none yet)'}.`,
     ...(ctx.labels ? labelInstructions(ctx.labels) : []),
@@ -68,6 +71,23 @@ type ChatConfig = { baseUrl: string; apiKey: string | null; model: string; timeo
  * caller can fall back to its rules-only path. Never logs the key or the request text.
  */
 export async function chatJson(config: ChatConfig, fetchFn: FetchLike, job: { system: string; user: string; name: string; schema: object }): Promise<Record<string, unknown>> {
+  // At most SV_AI_MAX_CONCURRENT calls at once (FD-92); past that it throws at once and the caller uses its rules.
+  return withAiSlot(async () => {
+    const started = Date.now();
+    let usage: { prompt_tokens?: number; completion_tokens?: number } | undefined;
+    let ok = false;
+    try {
+      const out = await chatJsonOnce(config, fetchFn, job, (u) => (usage = u));
+      ok = true;
+      return out;
+    } finally {
+      // Who, which feature, which model, the tokens the provider reported (FD-91). Never the text.
+      void recordAiUse({ feature: job.name, model: config.model, promptTokens: Number(usage?.prompt_tokens ?? 0), completionTokens: Number(usage?.completion_tokens ?? 0), ms: Date.now() - started, ok });
+    }
+  });
+}
+
+async function chatJsonOnce(config: ChatConfig, fetchFn: FetchLike, job: { system: string; user: string; name: string; schema: object }, onUsage: (u: { prompt_tokens?: number; completion_tokens?: number } | undefined) => void): Promise<Record<string, unknown>> {
   const res = await fetchFn(`${config.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...(config.apiKey ? { authorization: `Bearer ${config.apiKey}` } : {}) },
@@ -89,7 +109,8 @@ export async function chatJson(config: ChatConfig, fetchFn: FetchLike, job: { sy
     const kind = body?.error?.type ?? body?.error?.code;
     throw new Error(`AI reader request failed (${res.status}${kind ? `, ${kind}` : ''})`);
   }
-  const body = (await res.json()) as { choices?: { message?: { content?: string | null; refusal?: string | null } }[] };
+  const body = (await res.json()) as { choices?: { message?: { content?: string | null; refusal?: string | null } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } };
+  onUsage(body.usage);
   const message = body.choices?.[0]?.message;
   if (message?.refusal) throw new Error('AI reader declined the request');
   return parsePlan(message?.content) as Record<string, unknown>;

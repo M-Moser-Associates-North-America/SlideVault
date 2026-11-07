@@ -6,7 +6,7 @@ import { tagSuggestions } from '@/features/slide-vault/server/slide-embeddings';
 // { suggestions: [{ tag, from: 'people' | 'reading', score }] }. Read-only; nothing is saved until a
 // person adds one. An empty list when meaning search isn't set up or the slide has no fingerprint yet.
 export async function GET(request: Request, ctx: RouteContext<'/api/slide-vault/v1/slides/[slideId]/tag-suggestions'>) {
-  const limited = rateLimit(request, RATE_POLICIES.smartSearch);
+  const limited = await rateLimit(request, RATE_POLICIES.smartSearch);
   if (limited) return limited;
   const { slideId } = await ctx.params;
   return ok({ suggestions: await tagSuggestions(slideId) });

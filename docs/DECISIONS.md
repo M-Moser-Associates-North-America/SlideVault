@@ -918,4 +918,110 @@ Consequences for scope, cost, security and integration: More goes to the AI than
 Acceptance evidence / affected PR criteria: typecheck and lint pass; live check against the connected copy with Claude on the made-up Harbor Bank file. Tests deferred to the end of the session (the reader's checking in cleanDeckTags, the route, and the form's adding of tags).
 Documents/contracts changed: server/ai/deck-tags.ts (new), server/services/library-smart-search.ts, app/api/slide-vault/v1/uploads/suggest/route.ts, client/api.ts, components/UploadView.tsx, components/TagBits.tsx, docs/DATA_AND_API.md.
 Revisit trigger: Alina limits what slide text may go to the AI; people find the AI's tags noisy (then fewer, or only the team's themes and sectors); a very large deck exceeds the time limit.
+
+Decision ID and title: FD-86 Search knows what a slide looks like: a look asked for ("map", "org chart", "photo", "table", "waterfall") decides whether a slide qualifies; the subject only ranks
+Status: proposed (Schiffon decided 2026-11-05; Alina Pak to confirm under the code freeze)
+Decision date: 2026-11-05
+Decision owner/reviewer: Schiffon Wise (decision, built); Alina Pak (freeze; sending images to a hosted AI)
+Context and evidence: Alina's 9 requests (4 Nov) included "the map with all our offices", "the slide that looks like a waterfall", "Moira's photo", "the IDD slide with a table" and "the org chart with multiple locations". Neither of her map slides says "map", the waterfall is shapes, and pasted pictures are named "Picture 5" with no alt text, so no word on the slide can find them. Baseline: 2 of 9 pass with the rules, 3 of 9 with the local AI.
+Options considered: (a) more synonyms only; (b) tag her answer slides by hand; (c) learn each slide's look once, and score look and subject separately.
+Chosen outcome: (c), local only (Alina has not agreed to images going to OpenAI). Three readers, cheapest first, outside the repo in the data folder's tools: the deck file's own structure (real tables, diagram layouts, the office-map legend; file-clues.json), an offline picture sorter over every preview (look-sort.json, about a minute for 1,485 slides), and the local describing model for slides the sorter isn't sure of (visual-scan.json). server/slide-knowledge.ts loads them (loadSlideLooks). In search (services/slide-intent.ts, LOOKS) a look asked for gates: a slide known to look otherwise is left out, a slide not yet read is kept, a matching look leads (+10). A look word is never a "Mentions" name. M Moser's own words for its offices ("studios", "global locations", "physical presence", "footprint") are one concept, and IDD means Design & Build.
+Consequences for scope, cost, security and integration: No hosted AI and no image leaves the laptop. The look files live in the data folder, not Supabase: they must ship with the app or be loaded into the database (Vince), or look searches fall back to words. New uploads get no look until the tools are run.
+Acceptance evidence / affected PR criteria: Alina's 9 (data folder tools/alina-queries.mts, rules only): 2 of 9 to 7 of 9; the other 2 are files not in the library (North America Overview PDF, a hospitality deck). test:smart-search passes.
+Documents/contracts changed: server/slide-knowledge.ts, server/services/slide-intent.ts, server/services/library-smart-search.ts, components/search-rules.ts, scripts/test-smart-search.mts.
+Revisit trigger: Alina agrees to images going to OpenAI (then the describing step can run there, and at upload); looks moved into the database.
+
+Decision ID and title: FD-87 Search reads how a request asks: slides or decks, the order ("most recent", "most liked", "most used", "oldest"), and all; decks found by the client's sector; firm facts for the AI
+Status: proposed (Schiffon decided 2026-11-05; Alina Pak to confirm under the code freeze)
+Decision date: 2026-11-06
+Decision owner/reviewer: Schiffon Wise (decision, built); Vincent (database copy); Alina Pak (freeze)
+Context and evidence: Alina, 4 Nov: "what is our most recent hospitality deck", "the map with all our offices", "Moira's photo". Schiffon, 5 Nov: "it needs to understand hospitality deck as hospitality deck, and it also needs to understand the action, most recent, least favorite, most favorite"; "for 45 years of files, it should know that Moira Moser is the head of M Moser"; "maps with all our offices… is asking for more than one map". The plan only read keywords, topics, client, year and category: "deck" and "most" were thrown away, and every search was cut to the screen's 24.
+Options considered: (a) leave the order to the sort menu; (b) let the AI read the order; (c) the rules read it from the typed words, for every search, AI or not.
+Chosen outcome: (c). readAsk (server/ai/search-plan.ts) gives { want: slides | decks, order: newest | oldest | most-liked | least-liked | most-used | null, all }, kept on the plan as `ask`. Acted on: results are put in that order (inAskedOrder: deck year, Useful minus Not relevant clicks across all searches, downloads; ties keep the search's order, unknowns last), also over meaning and tag results in the route; "all", "every", "each" lift the cap to 100 (limitFor), and "every map" keeps only the slides known to be maps. The order and "all" words are no longer searched for. Decks: each deck carries its client's sector (the one most of its reviewed slides record, LibraryDeck.sector), and the deck finder finds "hospitality decks", "most recent financial services deck", "oldest technology proposals", newest first unless the oldest are asked for; a sector with no deck stays a slide search, never a missing deck (so "hospital proposal" still builds a story). Hospitality is a new sector; "studios" no longer means a media client. Firm facts (server/ai/firm-facts.ts: Moira Moser is the founder, the offices are "studios", the office cities, IDD) go to the AI with every search; the rules learn "founder" as Moira Moser. The storyboard reads a brief the way search reads a request (Schiffon, 6 Nov: "whatever we're doing on the basic search side applies to the storyboard side"): the brief's kind of slide, client sector, themes and looks reorder what each part's search finds (cover, thank-you, contents and other framing pages are never lifted, and are left out of a new story), slide looks are known to it, and its AI gets the same firm facts. Checked on the real library: a technology brief now gets technology case studies instead of bank ones, "show them our studios worldwide" brings a world map of the offices into why us, and a financial brief's why us is a financial client's firm page, not a retailer's.
+Consequences for scope, cost, security and integration: Rules only, no extra AI calls. Sectors come from the reviewed slides in the data folder: 14 of 47 decks have one, uploaded decks none yet (Vince: a deck sector column, or the reviewed metadata in the database). Firm facts are one plain list M Moser can edit.
+Acceptance evidence / affected PR criteria: test:smart-search (12 new checks: the ask, the orders, the cap), test:deck-finder (7 new: sector decks, newest and oldest, a year, a two-sector deck, sector named outright, no deck is not missing), test:storyboard, test:story-learning, test:reasoning-map, test:combine, typecheck and lint pass. Alina's 9 hold at 7 of 9 on the real library; "every map" returns the 24 known maps; "map" and "maps" now find the same 22; on the screen's 100 results, "maps" is the 24 maps (it was 24 maps and 68 slides that only shared a deck with one), and "org chart" finds 42 (it was 1: "org" was being required as a name).
+Documents/contracts changed: server/ai/search-plan.ts, server/ai/firm-facts.ts (new), server/ai/openai-compatible.ts, server/services/smart-search.ts, server/services/library-smart-search.ts, server/services/library.ts, server/search-feedback.ts, server/services/storyboard.ts, server/ai/storyboard.ts, components/sectors.ts (new), components/deck-finder.ts, components/search-rules.ts, contracts/dto.ts (LibraryDeck.sector), app/api/slide-vault/v1/smart-search/route.ts, app/api/slide-vault/v1/library/route.ts.
+Revisit trigger: a hospitality deck is loaded (request 8); sectors stored in the database; the screen shows the order read ("newest first") as a chip (Khushali).
+
+Decision ID and title: FD-88 Tablets held upright use the bottom bar, as phones do; the phone search row keeps the hidden-slides eye beside the bar
+Status: proposed (Schiffon decided 2026-11-06; Khushali to review, the screens are hers)
+Decision date: 2026-11-06
+Decision owner/reviewer: Schiffon Wise (decision, built); Khushali (UX and Product Development Design, review)
+Context and evidence: The nav-bottom mockups put the main tabs in a bar along the bottom. Only phones had it; a tablet held upright (820 x 1180) got the top tabs and the black Draft deck pill, while its draft deck already opened as the phone's side sheet. On a phone the hidden-slides eye fell onto a line of its own under the search bar. Schiffon, 6 Nov: "we just want bottom rows".
+Options considered: (a) bottom bar on phones only (as was); (b) phones and upright tablets; (c) every size, desktop included, as the desktop mockup shows.
+Chosen outcome: (b), CSS only (components/slidevault-extras.css): the medium size shows the bottom bar, hides the top tabs and the pill, and keeps the bar's five items centred within 640px. On phones the search row is a grid: the "I'm looking for" label above, the bar and the eye side by side. A tablet on its side and desktop keep the top tabs and the side draft deck column, which they have room for.
+Consequences for scope, cost, security and integration: No logic change; the Draft deck item already toggles the same sheet.
+Acceptance evidence / affected PR criteria: screenshots at 390 x 844 and 820 x 1180 of Home, results, Create, Upload, My decks and the open draft deck (local check). Not run: the accessibility suite, 360px and 1180 x 820 screenshots, a person clicking through on a real phone and tablet.
+Documents/contracts changed: components/slidevault-extras.css.
+Revisit trigger: the team wants the bottom bar on desktop too (option c).
+
+Decision ID and title: FD-89 Typing searches nothing; Enter, a chip or a tag runs the search
+Status: proposed (Alina asked 2026-11-04; Schiffon decided 2026-11-05)
+Decision date: 2026-11-06
+Decision owner/reviewer: Schiffon Wise (decision, built); Khushali (screens, review)
+Context and evidence: Every pause in typing (250 ms) sent a search. Those were rules-only, so no tokens, but each counted against the 20-a-minute limit: four quick searches and a person was told to wait (Alina, 4 Nov, "wait 10 seconds"). Alina asked for nothing on keystroke; Schiffon, 5 Nov: "after they finish their field query and they press enter".
+Options considered: (a) a longer typing delay; (b) search only on Enter, a suggestion chip, a tag or a filter chip.
+Chosen outcome: (b). components/state.tsx: `typeQuery` (the three search boxes) changes the words only; `setQuery` (chips, tags, a spoken request) and Enter run the search. The results show the search that ran (`searched`), not the words still being typed; emptying the box goes back to Home. Every search that runs is a submitted one, so the AI may read it when "Search with AI" is ticked.
+Consequences for scope, cost, security and integration: Far fewer requests per person; the rate limit now counts searches people meant. tests/e2e/accessibility.spec.ts presses Enter after typing.
+Acceptance evidence / affected PR criteria: typecheck, lint, all suites. Not yet run: the accessibility suite and a person typing on a phone (dress rehearsal, 7 Nov).
+Documents/contracts changed: components/state.tsx, Views.tsx, Rail.tsx, StickySearch.tsx, SlideVaultWorkspace.tsx, tests/e2e/accessibility.spec.ts.
+Revisit trigger: people miss results appearing as they type (then suggestions as they type, from the rules, never the AI).
+
+Decision ID and title: FD-90 Rate limits per person, counted in the database, with a ceiling per address
+Status: proposed (Schiffon decided 2026-11-05)
+Decision date: 2026-11-06
+Decision owner/reviewer: Schiffon Wise (decision, built); Vincent (database: run db:setup for the new table)
+Context and evidence: Limits were counted per network address in each server's memory: one office behind one address was one bucket for everyone in it, and with several servers each counted on its own.
+Options considered: (a) keep memory per address; (b) per person, in Postgres; (c) the host's gateway limits.
+Chosen outcome: (b). server/rate-limit.ts counts per signed-in person (principal.ts), else per address, in table rate_limit_windows (one row per caller, policy and minute; old rows cleared by the app). Because the sign-in header is a stand-in anyone can set, each address also has a ceiling of 10 times the limit, so a new name on every request can't dodge it. Without a database, or if it fails, counting falls back to memory: limits stay on and search never stops because the counter is down. rateLimit is now async; every route awaits it.
+Consequences for scope, cost, security and integration: New table in sql/schema.sql (npm run db:setup). When M Moser's sign-in replaces the header, the per-person count becomes trustworthy with no change here.
+Acceptance evidence / affected PR criteria: test:smart-search (3 new checks: counted by name or address, two people at one address, a new name each time still hits the ceiling). Not run against the database here (no test database on this laptop).
+Documents/contracts changed: server/rate-limit.ts, server/user-route.ts, every route that rate-limits, sql/schema.sql.
+Revisit trigger: M Moser's gateway limits by user (then this can step aside).
+
+Decision ID and title: FD-91 Every AI call is logged: who, when, which feature, which model, tokens
+Status: proposed (Schiffon decided 2026-11-05)
+Decision date: 2026-11-06
+Decision owner/reviewer: Schiffon Wise (decision, built); Vincent (database); Alina Pak (who may see everyone's totals)
+Context and evidence: Schiffon, 5 Nov: "a way that we can help them track who's using what token". Nothing recorded AI use; the "Search with AI" box only decided whether one search used it.
+Options considered: (a) the provider's own usage page (per key, not per person); (b) log every call in M Moser's database.
+Chosen outcome: (b). server/ai/usage.ts: chatJson (the one place every AI call goes through) records the person (set by each AI route with asPerson), the feature (search_plan, storyboard, story, weave, deck facts, deck tags), the model, the prompt and answer tokens the provider reports, the time taken and whether it worked. Never the request text or the answer. Table ai_usage, or the data folder's ai-usage.jsonl without a database. GET /me/ai-usage shows a person their own use; `npm run ai-usage` lists everyone's, most tokens first, for whoever runs the servers.
+Consequences for scope, cost, security and integration: One small write per AI call, never blocking it. An everyone's-totals screen waits on real sign-in and roles (who counts as an admin is M Moser's call).
+Acceptance evidence / affected PR criteria: test:ai-usage (who, feature, model and tokens recorded; never the text; failed calls counted; per-person totals).
+Documents/contracts changed: server/ai/usage.ts (new), server/ai/openai-compatible.ts, the smart-search, storyboard, refine and upload-suggest routes, app/api/slide-vault/v1/me/ai-usage (new), scripts/ai-usage-report.mts (new), sql/schema.sql, docs/DATA_AND_API.md.
+Revisit trigger: M Moser wants budgets per person or team (the log already has what that needs).
+
+Decision ID and title: FD-92 At most N AI calls at once; past that, quick results straight away
+Status: proposed (Schiffon decided 2026-11-05)
+Decision date: 2026-11-06
+Decision owner/reviewer: Schiffon Wise (decision, built)
+Context and evidence: Each AI call already had a time limit and fell back to the rules, but fifty people asking at once meant fifty AI calls at once, each slow, and a provider rate limit for everyone.
+Options considered: (a) queue them; (b) refuse past a cap and answer with the rules at once.
+Chosen outcome: (b). withAiSlot in server/ai/usage.ts: at most SV_AI_MAX_CONCURRENT calls per server (default 4). The next is refused at once (AiBusyError); search says "AI is busy right now, so quick results are shown." and the storyboard follows the standard story order.
+Consequences for scope, cost, security and integration: Per server: several servers each allow N. Cost has a ceiling.
+Acceptance evidence / affected PR criteria: test:ai-usage: past the cap a call is refused at once; 50 at once with a cap of 4, 4 reach the AI and 46 get quick results; the search note says why.
+Documents/contracts changed: server/ai/usage.ts, server/ai/openai-compatible.ts, server/services/smart-search.ts, server/services/storyboard.ts, env.example.
+Revisit trigger: the chosen provider's own limits (set the cap to match).
+
+Decision ID and title: FD-93 Upload size cap and real-file check; browser security headers
+Status: proposed (Schiffon decided 2026-11-05)
+Decision date: 2026-11-06
+Decision owner/reviewer: Schiffon Wise (decision, built); Alina Pak (embedding in M Moser's internal system)
+Context and evidence: The code check on 5 Nov found no upload size cap, no check that a ".pptx" is one, and no security headers. The AI prompts already treat slide text as content, never instructions (all five checked).
+Chosen outcome: server/upload-guard.ts, on both upload routes: a request over SV_UPLOAD_MAX_MB (default 1024; the largest real deck is about 910 MB) is refused (413 FILE_TOO_LARGE) before it is read, and a file must be named .pptx and start with the zip signature every .pptx has (else 415). next.config.ts sets, on every response: nosniff, strict referrers, HTTPS-only, the microphone for this site only (talk to search) and no camera or location, no plugins, and only this site (or SV_FRAME_ANCESTORS) may embed it. No script policy: Next's inline scripts need one with nonces, which is the host app's job at integration.
+Consequences for scope, cost, security and integration: New error code FILE_TOO_LARGE in contracts/dto.ts. SV_FRAME_ANCESTORS must list M Moser's internal system if it shows SlideVault in a frame.
+Acceptance evidence / affected PR criteria: test:security (11 checks).
+Documents/contracts changed: server/upload-guard.ts (new), the two upload routes, next.config.ts, contracts/dto.ts, env.example.
+Revisit trigger: a script policy at integration; virus scanning if M Moser requires it.
+
+Decision ID and title: FD-94 A load test: fifty people searching at once
+Status: proposed (Schiffon asked 2026-11-05)
+Decision date: 2026-11-06
+Decision owner/reviewer: Schiffon Wise (built)
+Context and evidence: Schiffon, 5 Nov: "set it up so that they can put a ton of people on this system. It will work. It won't break."
+Chosen outcome: scripts/load-test.mts (`npm run load-test -- <url> 50 4`): fifty pretend people, each signed in under their own name, run four real searches from the client meetings at the same moment; it prints results, waits (429), errors, AI busy, and median, p95 and slowest times. Fails if any search errors or gets no answer.
+Acceptance evidence / affected PR criteria: run on 7 Nov against a production build of this branch on one laptop (one app process, the local model also running), 50 people x 4 searches at the same moment. First run: 158 of 200 answered, 42 got no answer, median 66 s. Two causes found and fixed: every search re-read and re-parsed the seven slide-data files (server/slide-knowledge.ts now checks file dates at most every 5 s, re-reads only what changed, and searches arriving together share one read), and near-identical slides were re-grouped on every search, 0.21 of 0.28 s (now worked out once per set of slides; a search takes 0.07 s inside the app). Second run: 199 of 200 answered, 0 errors, 0 without an answer, 32 got quick results while the AI was busy, median 6.6 s, p95 17.8 s, all 200 in 45 s. The one 429 is the per-address ceiling (FD-90): every pretend person shared this laptop's address.
+Consequences: one app process serves searches one after another, so M Moser should run at least two app servers; the database search on their side replaces the local-file search used here. Repeat the test there before go-live.
+Documents/contracts changed: scripts/load-test.mts (new), package.json, server/slide-knowledge.ts, server/services/library-smart-search.ts (duplicatesOf).
+Revisit trigger: before go-live, against M Moser's real servers and database.
 ```

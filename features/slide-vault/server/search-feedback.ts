@@ -164,6 +164,20 @@ export function learnedForSearch(rows: Row[], words: string[], by: StoryUserRole
   return out;
 }
 
+/**
+ * How liked each slide is across every search (FD-87, "most liked", "least favorite"): Useful clicks minus
+ * Not relevant clicks, whatever was searched. Only slides someone has rated are in the map.
+ */
+export function likedTotals(rows: Row[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const r of rows) out.set(r.slideId, (out.get(r.slideId) ?? 0) + (r.verdict === 'useful' ? 1 : -1));
+  return out;
+}
+
+export async function slideLikes(): Promise<Map<string, number>> {
+  return likedTotals(await allRows());
+}
+
 export async function searchLearning(query: string, by: StoryUserRole | null = null, match: 'similar' | 'any' = 'similar'): Promise<Map<string, SearchLearned>> {
   return learnedForSearch(await allRows(), searchWords(query), by, match);
 }

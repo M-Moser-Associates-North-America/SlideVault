@@ -10,7 +10,7 @@ import { useWorkspace } from './state';
  * out of sight. Same query as the big bar; Enter lets the AI read it, as there.
  */
 export function StickySearch() {
-  const { query, setQuery, submitSearch } = useWorkspace();
+  const { query, setQuery, typeQuery, submitSearch } = useWorkspace();
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (query.trim()) submitSearch();
@@ -22,7 +22,7 @@ export function StickySearch() {
           Search slides
         </label>
         <Icon name="search" />
-        <input id="sv-fb-q" type="search" autoComplete="off" enterKeyHint="search" placeholder="Search slides, clients or topics" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <input id="sv-fb-q" type="search" autoComplete="off" enterKeyHint="search" placeholder="Search slides, clients or topics" value={query} onChange={(e) => typeQuery(e.target.value)} />
         <button type="button" className="fb-clear" aria-label="Clear search" hidden={!query} onClick={() => { setQuery(''); document.getElementById('sv-fb-q')?.focus(); }}>
           <Icon name="x" />
         </button>

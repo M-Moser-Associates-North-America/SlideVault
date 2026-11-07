@@ -80,6 +80,7 @@ Every route below exists under `/api/slide-vault/v1` (one `route.ts` per path in
 | `GET /me/saved`, `PATCH /me/saved` | Saved slides | FD-18 |
 | `GET/POST /me/drafts`, `DELETE /me/drafts/:id` | Saved decks under My decks | FD-18 |
 | `GET /me/suggested` | Suggested for you by role (no screen yet) | FD-71 |
+| `GET /me/ai-usage?days=30` | The signed-in person's own AI calls and tokens, by feature; everyone's totals: `npm run ai-usage` | FD-91 |
 | `GET /speech`, `POST /speech` | Whether talking instead of typing is set up; turn speech into text | |
 
 **Where the build differs from the design below (known, for the next phase):**

@@ -9,7 +9,7 @@ import { withTags } from '@/features/slide-vault/server/tags';
 // { available, model, items: [{ slide, similarity }] }; available is false when meaning search
 // isn't set up or can't run right now, and keyword search should be used instead.
 export async function GET(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.smartSearch);
+  const limited = await rateLimit(request, RATE_POLICIES.smartSearch);
   if (limited) return limited;
   const url = new URL(request.url);
   const q = (url.searchParams.get('q') ?? '').trim();

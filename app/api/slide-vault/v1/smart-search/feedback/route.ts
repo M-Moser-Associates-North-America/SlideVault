@@ -9,7 +9,7 @@ import { activityOptedIn } from '@/features/slide-vault/server/user-data';
 // (never the search itself or a name), and used to rank the next search with those words, only from
 // people who turned on "learn from my activity" (FD-37): otherwise { saved: false, reason: 'opted-out' }.
 export async function POST(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.searchFeedback);
+  const limited = await rateLimit(request, RATE_POLICIES.searchFeedback);
   if (limited) return limited;
   let raw: unknown;
   try {

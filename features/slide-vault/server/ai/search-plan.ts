@@ -37,7 +37,40 @@ export type SearchPlan = {
    * (FD-83). Only read by the AI, only from the menu in PlanContext; added to the rules' own reading.
    */
   labels?: PlanLabels;
+  /** How the person asked, beyond what about (FD-87): slides or whole decks, in what order, one or all. Read by the rules from the typed words. */
+  ask?: Ask;
 };
+
+/**
+ * The parts of a request that aren't its subject (FD-87; Schiffon, 5 Nov: "it needs to understand hospitality
+ * deck as hospitality deck, and it also needs to understand the action, most recent, least favorite, most
+ * favorite"). "Most recent hospitality deck" is decks + newest; "map with all our offices" is all.
+ */
+export type AskOrder = 'newest' | 'oldest' | 'most-liked' | 'least-liked' | 'most-used';
+export type Ask = { want: 'slides' | 'decks'; order: AskOrder | null; all: boolean };
+
+const DECKS_ASKED = /\b(decks?|proposals?|presentations?|pitch(es)?|rfps?|msas?|submissions?)\b/;
+const SLIDES_ASKED = /\b(slides?|pages?)\b/;
+const ORDERS: [AskOrder, RegExp][] = [
+  ['least-liked', /\b(least (liked|useful|favou?rite|popular))\b/],
+  ['most-liked', /\b(most (liked|useful|favou?rite[ds]?)|favou?rites?|best (rated|liked)|top rated|highest rated)\b/],
+  ['most-used', /\b(most (used|downloaded|popular|reused|common)|popular|frequently used|go-?to|used the most|used most)\b/],
+  ['oldest', /\b(oldest|earliest|first ever)\b/],
+  ['newest', /\b(most (recent|updated|current)|latest|newest|recent|up to date|up-to-date)\b/],
+];
+const ALL_ASKED = /\b(all|every|each|everything|any and all)\b/;
+
+export function readAsk(query: string): Ask {
+  const q = query.toLowerCase().replace(/[^a-z0-9 -]/g, ' ');
+  return {
+    // "slides from the hospitality deck" is slides; "the most recent hospitality deck" is a deck.
+    want: DECKS_ASKED.test(q) && !SLIDES_ASKED.test(q) ? 'decks' : 'slides',
+    order: ORDERS.find(([, re]) => re.test(q))?.[0] ?? null,
+    all: ALL_ASKED.test(q),
+  };
+}
+
+export const ORDER_NAME: Record<AskOrder, string> = { newest: 'newest first', oldest: 'oldest first', 'most-liked': 'most liked first', 'least-liked': 'least liked first', 'most-used': 'most used first' };
 
 /** What the reader is allowed to pick from, so filters always match real values. */
 export type PlanContext = { clients: string[]; categories: string[]; thisYear: number; /** the labels the AI may pick from (FD-83); absent when none are offered */ labels?: LabelMenu };

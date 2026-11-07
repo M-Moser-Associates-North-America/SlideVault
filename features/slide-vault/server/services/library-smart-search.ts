@@ -1,7 +1,7 @@
 import 'server-only';
 import { cachedReader, readAiConfig, readerFromConfig, type PlanReader } from '../ai/reader';
 import { aiPicks, labelMenu, mergeLabels } from '../ai/label-menu';
-import type { SearchPlan } from '../ai/search-plan';
+import { readAsk, type AskOrder, type SearchPlan } from '../ai/search-plan';
 import { openAiCompatibleDeckFactsReader, type DeckFactsReader } from '../ai/deck-facts';
 import { cleanDeckTags, openAiCompatibleDeckTagsReader, slidesForTags, type DeckTagsReader, type UploadTagSuggestions } from '../ai/deck-tags';
 import { extractSlides } from '../../../../workers/slide-vault/processors/extract-text';
@@ -15,8 +15,8 @@ import { typedTags } from './tagged-first';
 import { withDownloadCounts } from '../user-data';
 import { fixtureSlideTexts, withDuplicateBadges } from './duplicate-badges';
 import { fixtureFilterValues, fixtureRowsWhere, smartSearchFixtures, type SearchKnowledge } from './fixture-smart-search';
-import { answersIntent, asksForAnything, intentScore, intentWhy, knownFromStory, searchIntent } from './slide-intent';
-import { loadSlideReadings } from '../slide-knowledge';
+import { answersIntent, asksForAnything, intentScore, intentWhy, knownFromStory, looksRight, searchIntent } from './slide-intent';
+import { loadSlideLooks, loadSlideReadings } from '../slide-knowledge';
 import { mentionsWord, smartSearch, type SmartSearchResponse } from './smart-search';
 import { buildStoryboard, clientSectors, keptOutOfStories, SECTOR_NAMES, type StoryboardResponse } from './storyboard';
 import { deckFacts } from './search';
@@ -29,7 +29,7 @@ import { refineStory } from './story-refine';
 import type { StoryBeat, StoryRefineRequest, StoryRefineResult, StoryboardSlide } from '../../contracts/dto';
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
-import { learnedScore, searchLearning, sinks, type SearchLearned } from '../search-feedback';
+import { learnedScore, searchLearning, sinks, slideLikes, type SearchLearned } from '../search-feedback';
 import { isInternalOnly, listDeckSlidesPg, type DeckSlidesPg } from '../pg-repository';
 import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
 
@@ -171,6 +171,50 @@ function sectionsOf(index: Awaited<ReturnType<typeof loadLibraryIndex>>, reading
   });
 }
 
+/**
+ * "Every map", "all our offices" (FD-87): a request for all of something isn't cut to the first screenful.
+ * Still capped, at the most one search may return.
+ */
+export const ALL_LIMIT = 100;
+export const limitFor = (query: string, limit: number): number => (readAsk(query).all ? Math.max(limit, ALL_LIMIT) : limit);
+
+/**
+ * Results in the order the request asked for (FD-87): newest or oldest by the deck's year, most or least
+ * liked by Useful clicks, most used by downloads. Ties keep the search's own order, so the best match
+ * still leads among equals; slides with no year or no clicks go after those that have them.
+ */
+export function inAskedOrder<T extends { slide: SlideSummary }>(items: T[], order: AskOrder | null, likes: Map<string, number>): T[] {
+  if (!order) return items;
+  const key = (s: SlideSummary): number | null => {
+    if (order === 'newest' || order === 'oldest') return s.provenance.deckYear ?? null;
+    if (order === 'most-used') return s.downloads ?? 0;
+    return likes.get(s.id) ?? null;
+  };
+  const up = order === 'oldest' || order === 'least-liked';
+  return items
+    .map((item, i) => ({ item, i, k: key(item.slide) }))
+    .sort((a, b) => (a.k === null ? (b.k === null ? a.i - b.i : 1) : b.k === null ? -1 : (up ? a.k - b.k : b.k - a.k) || a.i - b.i))
+    .map((x) => x.item);
+}
+
+/**
+ * Slides known to look other than the request asks ("maps": a slide the sorter saw as a table), for results that
+ * come from outside the search, such as meaning search's top-up (FD-86). Nothing is ruled out when no look is asked.
+ */
+export async function looksWrongFor(query: string): Promise<(id: string) => boolean> {
+  const intent = searchIntent(query);
+  if (!intent.looks.length) return () => false;
+  const [readings, looks] = await Promise.all([loadSlideReadings(), loadSlideLooks()]);
+  return (id) => looksRight(intent, { looks: readings.get(id)?.looks?.length ? readings.get(id)!.looks : looks.get(id) }) === false;
+}
+
+/** inAskedOrder for a request's own words, reading the likes only when they're needed. */
+export async function askedOrder<T extends { slide: SlideSummary }>(query: string, items: T[]): Promise<T[]> {
+  const { order } = readAsk(query);
+  if (!order) return items;
+  return inAskedOrder(items, order, order === 'most-liked' || order === 'least-liked' ? await slideLikes() : new Map());
+}
+
 export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean; force?: boolean; by?: StoryUserRole | null; includeHidden?: boolean }): Promise<SmartSearchResponse> {
   const index = await loadLibraryIndex();
   // What colleagues marked useful or not relevant for searches with these words (FD-59).
@@ -178,6 +222,9 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   // What the search asks for beyond its words (FD-33): a kind of slide, a sector, a theme, matched
   // against the reviewed metadata and the local model's reading of each slide.
   const readings = await loadSlideReadings();
+  const looks = await loadSlideLooks();
+  // What search knows of a slide: its reading, plus the picture sorter's or the file's look when the describing model hasn't read it.
+  const known = (id: string) => { const k = readings.get(id); const l = looks.get(id); return l && !k?.looks?.length ? { ...(k ?? { role: '', topics: [], about: '' }), looks: l } : k; };
   const intent = searchIntent(query);
   // The deck sections a search asks for (FD-57, "page breakers"): "resumes" finds each deck's résumé
   // section, "banner slides in case studies" each case-study section's cover.
@@ -198,11 +245,13 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   let wanted = intent;
   const knownFor = (it: typeof intent): SearchKnowledge => ({
     about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; },
-    boost: (id) => intentScore(it, readings.get(id)) + sectionScore(id) + learnedScore(learned.get(id)) + roleLean(opts.by ?? null, readings.get(id)),
-    answers: (id) => (asksForAnything(it) && answersIntent(it, readings.get(id))) || inAsked(id),
+    boost: (id) => intentScore(it, known(id)) + sectionScore(id) + learnedScore(learned.get(id)) + roleLean(opts.by ?? null, readings.get(id)),
+    answers: (id) => (asksForAnything(it) && answersIntent(it, known(id))) || inAsked(id),
     // Hidden-in-source and internal-only slides are left out before the limit (FD-50, FD-53): a deck
     // that opens with hidden notes (Ferrous MSA) otherwise fills "ferrous msa" with slides the app then drops.
-    skip: (s) => !opts.includeHidden && (s.hiddenInSource || isInternalOnly(s)),
+    // A look asked for gates (FD-86): "maps" leaves out a slide the vision model saw as something else ("PROJECT ROAD MAP"),
+    // and keeps a slide it hasn't read yet. Office words then only order the maps.
+    skip: (s) => (!opts.includeHidden && (s.hiddenInSource || isInternalOnly(s))) || looksRight(it, known(s.id)) === false,
   });
   const result = await smartSearch(
     query,
@@ -262,12 +311,21 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     result.items = [...order, ...result.items.filter((i) => !first.has(i.slide.id))];
   }
 
+  // "Every map" (FD-87): all the slides known to look that way, not the slides nothing has looked at yet. Those
+  // still fill in when no slide is known to match, and below a request that didn't ask for all.
+  // Any look asked for, with slides known to match: a slide nothing has looked at yet stays only when its own words
+  // matched ("maps" asked of the screen's 100 results was 24 maps and 68 slides that only shared a deck with one).
+  if (intent.looks.length && result.items.some((i) => looksRight(intent, known(i.slide.id)) === true)) {
+    const all = readAsk(query).all;
+    result.items = result.items.filter((i) => looksRight(intent, known(i.slide.id)) === true || (!all && i.matched.length > 0));
+  }
+
   // Marked not relevant for searches like this more often than useful: shown last (Alina: "I didn't want to see… a director's interview").
   if (learned.size) result.items = [...result.items.filter((i) => !notRelevant(i.slide.id)), ...result.items.filter((i) => notRelevant(i.slide.id))];
 
   const texts: SlideText[] = [...fixtureSlideTexts(index), ...(await orWithoutDb('slide text', listSlideTextsPg, [] as SlideText[]))];
   const slideDeck = new Map(texts.map((t) => [t.id, t.sourceId]));
-  const badged = withDuplicateBadges(result.items.map((i) => i.slide), groupDuplicates(texts), slideDeck);
+  const badged = withDuplicateBadges(result.items.map((i) => i.slide), duplicatesOf(texts), slideDeck);
   // Real "Most downloaded" counts (FD-18); left off when there's no database.
   const counted = await withDownloadCounts(badged, (e) => console.error('Download counts unavailable', e));
   const byId = new Map(result.items.map((i) => [i.slide.id, i]));
@@ -279,7 +337,20 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     return [where, kind, why].filter(Boolean).join(' ').trim();
   };
   const sectionOf = (id: string) => { const sec = sections.get(id); return sec ? { name: sec.name, kind: sec.kind, divider: sec.divider, dividerId: sec.dividerId } : null; };
-  return { ...result, sections: asksForSections(query) ? asked : undefined, items: counted.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
+  // The order asked for ("most recent", "most liked", "most used"), after downloads are counted (FD-87).
+  const ordered = (await askedOrder(query, counted.map((slide) => ({ slide })))).map((x) => x.slide);
+  return { ...result, sections: asksForSections(query) ? asked : undefined, items: ordered.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
+}
+
+/**
+ * Near-identical slides across the library, worked out once per set of slides (FD-94): grouping takes about 0.2 s
+ * for the whole library and only changes when a deck is added or taken away or a slide renamed, not on every search.
+ */
+let duplicateCache: { key: string; groups: ReturnType<typeof groupDuplicates> } | null = null;
+function duplicatesOf(texts: SlideText[]): ReturnType<typeof groupDuplicates> {
+  const key = `${texts.length}:${texts.map((t) => `${t.id}=${t.title}`).join('|')}`;
+  if (duplicateCache?.key !== key) duplicateCache = { key, groups: groupDuplicates(texts) };
+  return duplicateCache.groups;
 }
 
 /** Slide summaries by id for sample-deck and uploaded-deck slides alike (the database's are read in one go). */
@@ -430,16 +501,29 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   const context = asked.mode === 'build' && theirIds.size ? { decks: asked.context.map((d) => ({ id: d.id, title: d.title })), rows: fixtureRowsWhere(index, (id) => theirIds.has(id), theirIds.size) } : undefined;
   // What the local model read on each slide (FD-26), when the scan has been run on this library.
   const readings = await loadSlideReadings();
+  const looks = await loadSlideLooks();
+  // What search knows of a slide, looks included (FD-86), so a brief reads slides the way search does.
+  const known = (id: string) => { const k = readings.get(id); const l = looks.get(id); return l && !k?.looks?.length ? { ...(k ?? { role: '', topics: [], about: '' }), looks: l } : k; };
+  // What the brief asks for beyond its words, read as search reads a request (FD-33, FD-87): the kind of slide,
+  // the client's sector, themes and looks ("a hospitality client", "show our office map"). It only reorders
+  // what each part's search found; the story's parts still decide what goes where.
+  const wanted = searchIntent(situation);
+  // A page that frames a deck (cover, thank-you, divider, contents) proves nothing about a sector: never lifted.
+  const FRAMING = new Set(['cover', 'closing', 'section_divider', 'table_of_contents', 'cover_letter', 'blank_or_placeholder', 'legal_admin', 'rfp_worksheet']);
+  const storyBoost = (id: string) => (FRAMING.has(readings.get(id)?.type ?? '') ? 0 : intentScore(wanted, known(id)));
   // The brief's words are searched in what was read on each slide too, as home search does (FD-33):
   // a slide that says "builders" can answer a brief about the people who built an app.
-  const readText: SearchKnowledge | undefined = readings.size
-    ? { about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; }, boost: () => 0, answers: () => false }
+  const readText: SearchKnowledge | undefined = readings.size || looks.size
+    ? { about: (id) => { const k = readings.get(id); return k ? `${k.about} ${k.topics.join(' ')}` : ''; }, boost: storyBoost, answers: () => false }
     : undefined;
+  // A new story is told with slides that say something; a cover or a thank-you page from another deck never is (a retold
+  // deck keeps its own, through `source`, not this search).
+  const saysSomething = (id: string) => !FRAMING.has(readings.get(id)?.type ?? '') || readings.get(id)?.type === 'section_divider';
   const search = async (plan: SearchPlan, max: number) =>
-    [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max, readText)].slice(0, max);
+    [...(await orWithoutDb('search', () => smartSearchPg(plan, max), [])), ...smartSearchFixtures(index, plan, max, readText)].filter((r) => saysSomething(r.summary.id)).slice(0, max);
   const knowledge = readings.size
     ? { of: (id: string) => readings.get(id), forPart: async (role: string, limit: number, first?: (id: string) => boolean) => {
-          const inPart = (id: string) => readings.get(id)?.role === role;
+          const inPart = (id: string) => readings.get(id)?.role === role && saysSomething(id);
           const lead = first ? fixtureRowsWhere(index, (id) => inPart(id) && first(id), limit) : [];
           return [...lead, ...fixtureRowsWhere(index, (id) => inPart(id) && !lead.some((r) => r.summary.id === id), limit - lead.length)];
         } }

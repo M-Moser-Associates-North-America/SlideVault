@@ -1302,3 +1302,20 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .btn-ai:hover:not(:disabled) { background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); }
 .slidevault .tagchip.is-auto, .slidevault .tag.is-auto { gap: 4px; } /* a tag filled in for the person: a small orange sparkle before it, to check and remove if wrong */
 .slidevault .tagchip.is-auto .ic, .slidevault .tag.is-auto .ic { color: var(--sv-brand-strong); width: 12px; height: 12px; flex: none; }
+
+/* Tablets held upright get the phone's bottom bar too (Schiffon, 6 Nov: "we just want bottom rows", as in the
+   nav-bottom mockups). The draft deck already opens as the same side sheet on both, so the bar's fifth item
+   opens it; the top tabs and the black pill step aside, as on a phone. */
+.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .sv-bottombar { display: block; position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--sv-surface); border-top: 1px solid var(--sv-border); box-shadow: 0 -8px 20px -14px rgba(20, 20, 20, 0.35); }
+.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .sv-top, .slidevault .sv-app[data-size="medium"][data-nav="bottom"] .cart-pill { display: none; }
+.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .sv-main { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts.lift { bottom: calc(76px + env(safe-area-inset-bottom)); }
+/* A tablet has room for a centred bar: five items no wider than a thumb's reach each. */
+.slidevault .sv-app[data-size="medium"] .sv-bottombar ul { max-width: 640px; margin: 0 auto; }
+
+/* Phones: the hidden-slides eye sits beside the search bar, not on a line of its own; the "I'm looking for"
+   label keeps the row above. */
+.slidevault .sv-app[data-size="compact"] .home-hero-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; row-gap: 8px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-search > :not(.home-hero-field):not(.hid-wrap) { grid-column: 1 / -1; }
+.slidevault .sv-app[data-size="compact"] .home-hero-search .hid-wrap { width: 52px; height: 52px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-field { padding-top: 3px; padding-bottom: 3px; }

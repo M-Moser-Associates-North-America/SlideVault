@@ -8,7 +8,7 @@ import { activityOptedIn } from '@/features/slide-vault/server/user-data';
 // part fits. Saved without a name or the brief, and used to rank the next storyboard for a similar brief,
 // only from people who turned on "learn from my activity" (FD-37): otherwise { saved: false, reason: 'opted-out' }.
 export async function POST(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.storyFeedback);
+  const limited = await rateLimit(request, RATE_POLICIES.storyFeedback);
   if (limited) return limited;
   let raw: unknown;
   try {

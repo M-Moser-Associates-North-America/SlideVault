@@ -9,6 +9,8 @@
  * client in their text (on Barlow's it is a logo), but every deck has a client.
  */
 
+import { clientSectors, inSectors, sectorsNamed } from './sectors';
+
 export type FindableDeck = {
   id: string;
   title: string;
@@ -20,6 +22,8 @@ export type FindableDeck = {
   location?: string | null;
   /** The same file copied into the library twice shares a version: shown once. */
   versionId?: string;
+  /** The client's sector, from the deck's reviewed slides (FD-87) */
+  sector?: string | null;
 };
 
 export type DeckFind<D extends FindableDeck> = {
@@ -31,6 +35,8 @@ export type DeckFind<D extends FindableDeck> = {
   yearMissing: boolean;
   /** The places the request named that decks are from ("proposals in Vancouver") */
   places: string[];
+  /** The client sectors the request named ("hospitality decks", FD-87) */
+  sectors?: string[];
   /**
    * Honest misses (FD-34): a name asked for as a deck that no deck goes by ("Google proposal"), and
    * years asked for that the library has no decks from ("proposals from 2019"). Never guessed at.
@@ -126,12 +132,20 @@ export function findDecks<D extends FindableDeck>(query: string, decks: D[], thi
   const byClient = unique.filter((d) => deckNames(d).some((n) => namedIn(q, n)));
   const kind = /\bmsas?\b/.test(q) ? 'MSA' : /\brfps?\b/.test(q) ? 'RFP' : null;
   const ofKind = (list: D[]) => (kind && list.some((d) => d.category === kind) ? list.filter((d) => d.category === kind) : list);
-  const newestFirst = (list: D[]) => [...list].sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || a.title.localeCompare(b.title));
+  // Newest first, unless the oldest were asked for (FD-87).
+  const oldest = /\b(oldest|earliest)\b/.test(q);
+  const newestFirst = (list: D[]) => [...list].sort((a, b) => (oldest ? (a.year ?? 9999) - (b.year ?? 9999) : (b.year ?? 0) - (a.year ?? 0)) || a.title.localeCompare(b.title));
   if (byClient.length) {
     const inYear = years.length ? byClient.filter((d) => d.year !== null && years.includes(d.year)) : byClient;
     const clients = [...new Set(byClient.map((d) => d.clientName).filter((c): c is string => !!c))];
     return { ...none, decks: newestFirst(ofKind(inYear.length ? inYear : byClient)), clients, years, yearMissing: years.length > 0 && inYear.length === 0 };
   }
+  // No client named, but a kind of client with deck words: "most recent hospitality deck" is the decks made for
+  // hospitality clients, newest first (FD-87). With no deck of that sector it stays a slide search: "hospital
+  // proposal" is also how a storyboard brief starts, so it is never reported as a missing deck.
+  const sectors = DECK_WORDS.test(q) ? [...new Set([...clientSectors(q), ...sectorsNamed(q)])] : [];
+  const ofSector = sectors.length ? unique.filter((d) => inSectors(d.sector, sectors) && (!years.length || (d.year !== null && years.includes(d.year)))) : [];
+  if (ofSector.length) return { ...none, decks: newestFirst(ofKind(ofSector)), years, sectors };
   // No client named: a year with deck words ("all proposals from 2025"), or a year on its own.
   const onlyYear = q.replace(/\b(19|20)\d\d\b/g, '').replace(/\b(show|me|all|our|the|from|in|of|every|list|find|give|pull|up|last|this|year)\b/g, '').trim();
   // A place the decks are from ("proposals in Vancouver"), when no client is named: the client always

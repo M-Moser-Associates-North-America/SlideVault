@@ -71,7 +71,7 @@ const TABS: {
 ];
 
 function Workspace({ header }: { header?: ReactNode }) {
-  const { runtime, library, query, cartMin, selection, toasts, dismissToast, announcement, announce, profile, setCartMin, preview } = useWorkspace();
+  const { runtime, library, searched, cartMin, selection, toasts, dismissToast, announcement, announce, profile, setCartMin, preview } = useWorkspace();
   const appRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const root = useMemo(() => ({ app: appRef, scroll: scrollRef }), []);
@@ -153,7 +153,7 @@ function Workspace({ header }: { header?: ReactNode }) {
         { label: slide ? `Slide ${slide.provenance.slideNumber}` : 'Slide' },
       );
   }
-  const showBack = deep && query.trim() !== '';
+  const showBack = deep && searched !== '';
 
 
   if (!profile) return <LoginView />;

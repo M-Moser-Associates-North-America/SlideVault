@@ -7,7 +7,7 @@ import { withTags } from '@/features/slide-vault/server/tags';
 // dividerId is the one every search result carries in slide.section.dividerId. Returns { name, kind, slides }.
 // Read-only. Hidden-in-source and internal-only slides are left out unless hidden=include, as in search.
 export async function GET(request: Request, ctx: RouteContext<'/api/slide-vault/v1/sections/[dividerId]'>) {
-  const limited = rateLimit(request, RATE_POLICIES.search);
+  const limited = await rateLimit(request, RATE_POLICIES.search);
   if (limited) return limited;
   const { dividerId } = await ctx.params;
   if (!dividerId || dividerId.length > 200) return fail(400, 'BAD_REQUEST', 'That is not a section.');

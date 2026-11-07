@@ -94,6 +94,25 @@ check(!deckNames(DECKS[0]).includes('moser'), 'the firm\'s own name is never a c
   check(deckRequest("Tell me the story of Kestrel's", DECKS).mode === 'reimagine', 'the story of one deck is still a retelling');
 }
 
+// A kind of client asked for as decks (FD-87; Alina, 4 Nov: "what is our most recent hospitality deck").
+{
+  const SECTORED = [
+    { ...deck('inn-24', 'Proposals/M Moser_Harbour Inn_2024.pptx', 'Harbour Inn', 2024, 'RFP'), sector: 'hospitality' },
+    { ...deck('inn-26', 'Proposals/M Moser_Lakeside Hotels_2026.pptx', 'Lakeside Hotels', 2026, 'RFP'), sector: 'hospitality' },
+    { ...deck('bank-25', 'Proposals/M Moser_Northgate_2025.pptx', 'Northgate', 2025, 'RFP'), sector: 'financial services / media' },
+    ...DECKS,
+  ];
+  const sec = (q: string) => findDecks(q, SECTORED, 2026).decks.map((d) => d.id);
+  check(JSON.stringify(sec('what is our most recent hospitality deck')) === '["inn-26","inn-24"]', 'a sector asked for as decks finds its decks, newest first', sec('what is our most recent hospitality deck'));
+  check(JSON.stringify(sec('oldest hotel proposals')) === '["inn-24","inn-26"]', '"oldest" puts the oldest first, and "hotel" means hospitality');
+  check(JSON.stringify(sec('hospitality deck 2024')) === '["inn-24"]', 'a year narrows the sector to that year');
+  check(JSON.stringify(sec('banking proposals')) === '["bank-25"]', 'a deck of two sectors counts under each');
+  check(JSON.stringify(sec('financial proposals')) === '["bank-25"]' && sec('media decks').includes('bank-25'), 'a sector named outright counts where decks are asked for');
+  check(sec('hospitality case studies').length === 0, 'a sector without deck words is a slide search');
+  const none = findDecks('hospital proposal', SECTORED, 2026);
+  check(none.decks.length === 0 && none.missing.name === null, 'no deck of the sector is a slide search, not a missing deck', none);
+}
+
 if (failures) {
   console.error(`\n${failures} deck finder check(s) failed`);
   process.exit(1);

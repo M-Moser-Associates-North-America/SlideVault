@@ -17,6 +17,8 @@ export type ApiErrorCode =
   | 'EXPORT_FAILED'
   | 'LIBRARY_NOT_READY'
   | 'UNSUPPORTED_FILE_TYPE'
+  /** An upload over SV_UPLOAD_MAX_MB (FD-93) */
+  | 'FILE_TOO_LARGE'
   | 'DUPLICATE_DECK'
   | 'UPLOAD_FAILED'
   /** Too many requests from this caller; retry after the Retry-After header (seconds) */
@@ -241,6 +243,8 @@ export type LibraryDeck = {
   bestOfTheBest: boolean;
   /** Where the deck's client is (FD-35); null when unknown */
   location?: string | null;
+  /** The client's sector, as most of the deck's reviewed slides record it ("hospitality", "financial services / media", FD-87); absent when unknown */
+  sector?: string | null;
   /** "16:9", "4:3" or null when unknown */
   slideSize: string | null;
   /** Same value as provenance.sourceVersionId, needed to download */

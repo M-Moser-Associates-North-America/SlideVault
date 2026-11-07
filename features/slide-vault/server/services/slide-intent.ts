@@ -1,5 +1,5 @@
 import 'server-only';
-import { clientSectors } from './storyboard';
+import { clientSectors } from '../../components/sectors';
 
 /**
  * What a search asks for beyond its words (docs/DECISIONS.md FD-33): a kind of slide ("team slide",
@@ -12,6 +12,8 @@ import { clientSectors } from './storyboard';
 const KINDS: { asks: RegExp; types: string[] }[] = [
   { asks: /\b(resumes?|cvs?|bios?)\b/, types: ['team_resume'] },
   { asks: /\b(team|people|org ?chart|staffing|who we are sending)\b/, types: ['team_structure', 'team_time_allocation', 'team_resume'] },
+  // "the roles and responsibility slide" (Alina, 4 Nov): who does what on the project, a team structure page.
+  { asks: /\b(roles? (and|&) responsibilit\w*|responsibilit(y|ies)|who does what|account structure|account leadership)\b/, types: ['team_structure', 'team_time_allocation'] },
   { asks: /\b(case stud(y|ies)|past (work|projects?)|done (this|it) before|portfolio|similar projects?)\b/, types: ['case_study_detail', 'case_study_hero', 'image_gallery', 'client_references'] },
   { asks: /\b(approach|process|methodology|how we (work|deliver))\b/, types: ['approach_process', 'process_technology', 'planning_testfit', 'risk_governance'] },
   { asks: /\b(fees?|pricing|commercials?|cost proposal)\b/, types: ['fees_commercial'] },
@@ -54,13 +56,47 @@ const THEMES: { asks: RegExp; theme: string }[] = [
   { asks: /\b(global(-| )local|global delivery|multi-?country|global footprint)\b/, theme: 'global-local delivery' },
   { asks: /\b(vdc|bim|3d|digital twin|virtual design)\b/, theme: 'VDC / 3D process' },
   { asks: /\b(interconnecting stairs?|feature stairs?|staircases?|vertical connection)\b/, theme: 'interconnecting stair / vertical connection' },
-  { asks: /\b(design ?(&|and) ?build|design-build|turnkey)\b/, theme: 'design & build delivery' },
+  { asks: /\b(design ?(&|and) ?build|design-build|turnkey|idd|integrated design)\b/, theme: 'design & build delivery' },
   { asks: /\b(ai|artificial intelligence|machine learning)\b/, theme: 'AI' },
   { asks: /\b(heritage|adaptive reuse|historic building|listed building)\b/, theme: 'heritage / adaptive reuse' },
 ];
 
-export type SearchIntent = { types: string[]; sectors: string[]; themes: string[] };
-export type KnownForSearch = { type?: string; sectors?: string[]; themes?: string[]; reuse?: string; flags?: string[]; clientSector?: string } | undefined;
+/**
+ * How a slide LOOKS, as people ask for it ("the map with all our offices", "the slide that looks like a
+ * waterfall", "Moira's photo"), matched against what the local vision model saw on each slide
+ * (visual-scan.json). Words on a slide rarely say "map" or "photo"; the picture does. A "road map" is
+ * a plan, not a map, and an "org chart" is not a chart.
+ */
+const LOOKS: { asks: RegExp; looks: string[] }[] = [
+  { asks: /\b(?<!road\s)(world )?maps?\b/, looks: ['map'] },
+  { asks: /\b(org(ani[sz]ation(al)?)? ?charts?|organograms?|reporting (lines?|structure)|account structure)\b/, looks: ['org chart'] },
+  { asks: /\b(photos?|pictures?|portraits?|headshots?|images? of)\b/, looks: ['portrait photo', 'people grid', 'project photo'] },
+  { asks: /\b(tables?|matri(x|ces)|grids?)\b/, looks: ['table'] },
+  // A waterfall is a kind of process diagram: confirmed waterfalls lead, other diagrams still qualify (waterfall-check.json).
+  { asks: /\b(waterfalls?|cascad\w*)\b/, looks: ['waterfall', 'process diagram'] },
+  { asks: /\b(flow ?(chart|diagram)s?|process diagrams?|step diagrams?|diagrams?)\b/, looks: ['process diagram'] },
+  { asks: /\b(timelines?|gantt)\b/, looks: ['timeline'] },
+  { asks: /\b(?<!org )(?<!organi[sz]ation )(?<!organi[sz]ational )(charts?|graphs?|pie charts?|bar charts?)\b/, looks: ['chart or graph'] },
+  { asks: /\b(floor ?plans?|plans? drawings?|test ?fits?)\b/, looks: ['floor plan'] },
+  { asks: /\b(logo walls?|client logos?)\b/, looks: ['logo wall'] },
+];
+
+/** A word that asks for a look ("map", "org chart", "photo"), never a name the results must print (FD-86). */
+export const isLookWord = (word: string): boolean => LOOKS.some((l) => l.asks.test(word.toLowerCase()));
+
+/** The words of the look phrases in a request ("org chart" gives org and chart), so none of them is required as a name. */
+export function lookWordsIn(query: string): Set<string> {
+  const q = query.toLowerCase();
+  const out = new Set<string>();
+  for (const l of LOOKS) {
+    const m = new RegExp(l.asks.source, 'g');
+    for (const hit of q.matchAll(m)) hit[0].split(/[^a-z]+/).filter(Boolean).forEach((w) => out.add(w));
+  }
+  return out;
+}
+
+export type SearchIntent = { types: string[]; sectors: string[]; themes: string[]; looks: string[] };
+export type KnownForSearch = { type?: string; sectors?: string[]; themes?: string[]; reuse?: string; flags?: string[]; clientSector?: string; looks?: string[] } | undefined;
 
 export function searchIntent(query: string): SearchIntent {
   // Accents off, so "résumé" reads as "resume" (a regex word boundary doesn't see é as a letter).
@@ -71,10 +107,15 @@ export function searchIntent(query: string): SearchIntent {
     types: [...new Set(kinds.flatMap((k) => k.types))],
     sectors: clientSectors(query),
     themes: THEMES.filter((t) => t.asks.test(q)).map((t) => t.theme),
+    looks: [...new Set(LOOKS.filter((l) => l.asks.test(q)).flatMap((l) => l.looks))],
   };
 }
 
-export const asksForAnything = (i: SearchIntent) => i.types.length + i.sectors.length + i.themes.length > 0;
+export const asksForAnything = (i: SearchIntent) => i.types.length + i.sectors.length + i.themes.length + i.looks.length > 0;
+
+/** Does the slide look like what was asked for? Unknown (no visual reading yet) is not a no. */
+export const looksRight = (i: SearchIntent, k: KnownForSearch): boolean | null =>
+  !i.looks.length ? true : k?.looks?.length ? k.looks.some((l) => i.looks.includes(l)) : null;
 
 /** Proof for a client in that sector, or any slide from a deck made for one ("a team slide for a healthcare client") */
 const inSector = (i: SearchIntent, k: KnownForSearch) =>
@@ -89,7 +130,10 @@ export function intentScore(i: SearchIntent, k: KnownForSearch): number {
   // A résumé that only mentions a word in someone's bio isn't what a search for that word wants
   // (Alina, 28 Oct: "he just happened to mention hospitality in his interview"), unless it asks for people.
   const passingBio = k.type === 'team_resume' && !i.types.includes('team_resume') ? 4 : 0;
-  return (at < 0 ? 0 : 6 - Math.min(at, 2)) + (inSector(i, k) ? 3 : 0) + (k.themes?.some((t) => i.themes.includes(t)) ? 2 : 0) - (doubtful ? 6 : 0) - passingBio;
+  // The look asked for outranks everything else: "the map with all our offices" wants maps, and office words only order them.
+  // The look asked for first is the most specific ("waterfall" before "process diagram"): a slide that has it leads.
+  const look = looksRight(i, k) === true && i.looks.length ? 10 + (i.looks.length > 1 && k.looks?.includes(i.looks[0]) ? 4 : 0) : 0;
+  return (at < 0 ? 0 : 6 - Math.min(at, 2)) + (inSector(i, k) ? 3 : 0) + (k.themes?.some((t) => i.themes.includes(t)) ? 2 : 0) + look - (doubtful ? 6 : 0) - passingBio;
 }
 
 /** Does a slide answer what the search asks for at all (its kind, sector or theme)? */
@@ -98,7 +142,9 @@ export function answersIntent(i: SearchIntent, k: KnownForSearch): boolean {
   const kindOk = !i.types.length || (!!k.type && i.types.includes(k.type));
   const sectorOk = !i.sectors.length || inSector(i, k);
   const themeOk = !i.themes.length || !!k.themes?.some((t) => i.themes.includes(t));
-  return kindOk && sectorOk && themeOk;
+  // A slide of the right look answers on its own ("maps" finds a map that only lists city names).
+  if (i.looks.length && looksRight(i, k) === true) return sectorOk;
+  return kindOk && sectorOk && themeOk && looksRight(i, k) !== false;
 }
 
 const KIND_SAID: Record<string, string> = {
@@ -145,6 +191,7 @@ export function intentWhy(i: SearchIntent, k: KnownForSearch): string | null {
   const kind = k.type && i.types.includes(k.type) ? KIND_SAID[k.type] : null;
   const sector = inSector(i, k) ? 'for the same kind of client' : null;
   const theme = k.themes?.find((t) => i.themes.includes(t));
-  if (!kind && !sector && !theme) return null;
-  return `${[kind ?? 'A slide', sector].filter(Boolean).join(' ')}${theme ? `, on ${theme}` : ''}.`;
+  const look = k.looks?.find((l) => i.looks.includes(l));
+  if (!kind && !sector && !theme && !look) return null;
+  return `${[kind ?? (look ? `Looks like: ${look}` : 'A slide'), sector].filter(Boolean).join(' ')}${theme ? `, on ${theme}` : ''}.`;
 }

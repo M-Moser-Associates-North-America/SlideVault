@@ -234,7 +234,7 @@ function HomeTry() {
 let heroTouched = false;
 
 function HomeHeader() {
-  const { query, setQuery, submitSearch, runtime } = useWorkspace();
+  const { query, setQuery, typeQuery, submitSearch, runtime } = useWorkspace();
   const [touched, setTouched] = useState(heroTouched);
   const showHint = query === '' && !touched;
   const tw = useTypewriter(TYPEWRITER_PHRASES, showHint);
@@ -302,7 +302,7 @@ function HomeHeader() {
           )}
           <input id="sv-hero-q" type="search" autoComplete="off" enterKeyHint="search" value={query}
             onChange={(e) => {
-              setQuery(e.target.value);
+              typeQuery(e.target.value);
               /* Typing on a page that can't show results (a client or year list) takes you to Home's results. */
               if (e.target.value && runtime.location.view !== 'pages') runtime.navigate({ view: 'pages' });
             }} placeholder={touched ? 'Slides, clients or topics' : undefined} onFocus={() => {
@@ -349,8 +349,9 @@ function SearchHeader() {
 }
 
 export function HomeView() {
-  const { query, filters } = useWorkspace();
-  const searching = query.trim() !== '';
+  const { searched, filters } = useWorkspace();
+  /* Results show once a search has run (Enter), not while the words are being typed (FD-89). */
+  const searching = searched !== '';
   return (
     <>
       {!searching && (
@@ -608,9 +609,10 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 /* --------------------------------------------------------------- Search */
 
 export function ResultsView() {
-  const { query, search, filters, patchFilters, clearFilters, retrySearch, setQuery, askAiAnyway, autoSection, sectionsFromSearch, dismissAutoSection } = useWorkspace();
+  const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, askAiAnyway, autoSection, sectionsFromSearch, dismissAutoSection } = useWorkspace();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
-  const q = query.trim();
+  /* The results are for the search that ran, not the words still being typed (FD-89). */
+  const q = searched;
   /* The "your search is short for the AI" note, put away for this search only. */
   const [dismissedShort, setDismissedShort] = useState('');
 

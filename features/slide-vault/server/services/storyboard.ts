@@ -1,6 +1,7 @@
 import type { SlideSummary, StoryboardResult, StoryboardSection, StoryboardSlide } from '../../contracts/dto';
 import { cleanPlan, MAX_KEYWORDS, whyItFits, type PlanContext, type SearchPlan, type SlideFacts } from '../ai/search-plan';
 import { isStopWord } from '../../components/search-rules';
+import { clientSectors, SECTOR_WORDS } from '../../components/sectors';
 import { missingContext, STORY_ARC, standInStory, type StoryPlan, type StoryReader } from '../ai/storyboard';
 import { DEFAULT_SLIDES_PER_PART, ROLE_TUNING } from '../ai/roles';
 import { composeStory, weaveDeck } from './story-beats';
@@ -145,24 +146,6 @@ export function situationTopics(text: string): string[] {
   return out.slice(0, MAX_TOPICS);
 }
 
-/**
- * The client's sector, read from plain words in the situation, so proof from the same kind of client
- * leads ("hospital" -> healthcare). Matched against the sectors on reviewed slides (FD-28), which
- * start with these names ("healthcare / life sciences"). Rules only, no model.
- */
-const SECTOR_WORDS: [string, RegExp][] = [
-  ['healthcare', /\b(hospitals?|clinics?|clinical|patients?|health ?care|healthcare|medical|pharma\w*|biotech|life sciences|medtech|nurses?|doctors?)\b/],
-  ['financial services', /\b(banks?|banking|financial|insurers?|insurance|asset manag\w+|investment|fintech|wealth)\b/],
-  ['legal', /\b(law firms?|legal|lawyers?|attorneys?)\b/],
-  // \"Smart building technology\" is a theme, not a sector: only a tech client counts.
-  ['technology', /\b((tech|technology) (company|companies|firm|client|group)|software|saas|semiconductors?)\b/],
-  ['media', /\b(media|broadcast\w*|publish\w*|newsroom|studios?)\b/],
-  ['retail', /\b(retail\w*|consumer brands?|fashion|apparel)\b/],
-  ['gaming', /\b(gaming|games|game studio)\b/],
-  ['professional services', /\b(consult\w+|accounting|professional services)\b/],
-  ['resources', /\b(mining|energy|oil|gas|resources)\b/],
-];
-
 /** The sector names the rules know, for the AI's label menu (FD-83). */
 export const SECTOR_NAMES = SECTOR_WORDS.map(([name]) => name);
 
@@ -201,10 +184,7 @@ function needsMet(needs: string[], text: string): string[] {
 /** The same slide copied into several decks: same title and opening words. */
 const sameSlideKey = (f: SlideFacts) => `${f.title} ${f.text}`.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 160);
 
-export function clientSectors(text: string): string[] {
-  const t = text.toLowerCase();
-  return SECTOR_WORDS.filter(([, re]) => re.test(t)).map(([name]) => name);
-}
+export { clientSectors };
 
 /** No client or category filters in a storyboard: the story decides what each part needs. */
 const NO_FILTERS: PlanContext = { clients: [], categories: [], thisYear: new Date().getFullYear() };
@@ -225,7 +205,7 @@ export async function buildStoryboard(situation: string, deps: StoryboardDeps, o
       reader = 'model';
     } catch (e) {
       deps.log?.(`Story reader ${deps.reader.name} unavailable, using the standard story: ${(e as Error).message}`);
-      readerNote = 'AI reading is unavailable right now, so this storyboard follows the standard story order.';
+      readerNote = (e as Error).name === 'AiBusyError' ? 'AI is busy right now, so this storyboard follows the standard story order.' : 'AI reading is unavailable right now, so this storyboard follows the standard story order.';
       plan = standInStory(text);
     }
   } else {

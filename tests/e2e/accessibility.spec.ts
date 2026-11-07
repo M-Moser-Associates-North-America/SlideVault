@@ -23,9 +23,10 @@ async function openResults(page: Page, text = 'services') {
   await searchFor(page, text);
 }
 
-/** Type a word and wait for results. The draft deck keeps its slides between searches. */
+/** Type a word, press Enter (typing alone searches nothing, FD-89) and wait for results. The draft deck keeps its slides between searches. */
 async function searchFor(page: Page, text: string) {
   await page.getByLabel('Search slides').fill(text);
+  await page.getByLabel('Search slides').press('Enter');
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
 }
 
@@ -109,6 +110,7 @@ test('no violations in the preview and download dialogs, empty results and the d
   await page.keyboard.press('Escape');
 
   await page.getByLabel('Search slides').fill('zzqq');
+  await page.getByLabel('Search slides').press('Enter');
   await expect(page.getByText(/No slides found matching/)).toBeVisible();
   expect(await axe(page)).toEqual([]);
   await page.getByRole('button', { name: 'Clear search' }).first().click();
@@ -117,6 +119,7 @@ test('no violations in the preview and download dialogs, empty results and the d
     route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'EXPORT_FAILED', message: 'The export could not be built. Please try again.', retryable: true }, requestId: 't' }) }),
   );
   await page.getByLabel('Search slides').fill('services');
+  await page.getByLabel('Search slides').press('Enter');
   await expect(page.getByText(/^\d+ slides? from/)).toBeVisible();
   await page.getByLabel('Add to draft deck: Services').check({ force: true });
   await page.getByRole('button', { name: 'Download as pptx' }).click();
@@ -170,6 +173,7 @@ test('primary workflow works with the keyboard alone', async ({ page }) => {
   // Search, then tick three slides with Space. Each is found with its own search; the draft deck keeps them.
   await page.getByLabel('Search slides').focus();
   await page.keyboard.type('northwind');
+  await page.keyboard.press('Enter');
   await expect(page.getByText(/^\d+ slides? from \d+ decks?/)).toBeVisible();
   for (const [word, title] of [['northwind', 'Northwind Studio'], ['services', 'Services'], ['leadership', 'Leadership team']]) {
     await searchFor(page, word);

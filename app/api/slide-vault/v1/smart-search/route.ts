@@ -1,13 +1,15 @@
 import { fail, ok, RATE_POLICIES, rateLimit } from '@/features/slide-vault/server';
 import type { PlanReader } from '@/features/slide-vault/server/ai/reader';
 import { roleOf } from '@/features/slide-vault/server/ai/roles';
+import { asPerson } from '@/features/slide-vault/server/ai/usage';
+import { userOf } from '@/features/slide-vault/server/principal';
 import { meaningSearch } from '@/features/slide-vault/server/meaning-search';
 import { withPacks } from '@/features/slide-vault/server/packs';
 import { hasMmoserConfig } from '@/features/slide-vault/server/config';
 import { getSlideSummariesPg, isInternalOnly } from '@/features/slide-vault/server/pg-repository';
 import { tagsInQuery, withTags } from '@/features/slide-vault/server/tags';
 import { taggedFirst } from '@/features/slide-vault/server/services/tagged-first';
-import { configuredReader, readerForSearch, searchLibrary } from '@/features/slide-vault/server/services/library-smart-search';
+import { askedOrder, configuredReader, limitFor, looksWrongFor, readerForSearch, searchLibrary } from '@/features/slide-vault/server/services/library-smart-search';
 
 // GET /smart-search?q=&limit=&read=1&ai=off&role= (docs/DECISIONS.md FD-16, FD-17, FD-59, FD-79)
 // One search over sample and uploaded decks. read=1 (sent when the person submits the search)
@@ -16,14 +18,16 @@ import { configuredReader, readerForSearch, searchLibrary } from '@/features/sli
 // search; aiAvailable tells the screen whether to offer the checkbox at all. Each result says why it fits; near-identical slides are grouped.
 // Response: { query, reader, readerNote, plan, chips, relaxed, items: [{ slide, why, matched }] }
 export async function GET(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.smartSearch);
+  const limited = await rateLimit(request, RATE_POLICIES.smartSearch);
   if (limited) return limited;
   const url = new URL(request.url);
   const query = (url.searchParams.get('q') ?? '').trim();
   if (!query) return fail(400, 'BAD_REQUEST', 'Type what you are looking for in q.');
   if (query.length > 500) return fail(400, 'BAD_REQUEST', 'Keep the search under 500 characters.');
-  const limit = Number(url.searchParams.get('limit') ?? 24);
-  if (!Number.isInteger(limit) || limit < 1 || limit > 100) return fail(400, 'BAD_REQUEST', 'limit must be a whole number from 1 to 100.');
+  const asked = Number(url.searchParams.get('limit') ?? 24);
+  if (!Number.isInteger(asked) || asked < 1 || asked > 100) return fail(400, 'BAD_REQUEST', 'limit must be a whole number from 1 to 100.');
+  // "Every map", "all our offices": a request for all of something gets every match, up to the cap (FD-87).
+  const limit = limitFor(query, asked);
 
   // A provider that is named but misconfigured is a setup error, not a reason to quietly use another.
   let reader: PlanReader | null;
@@ -35,7 +39,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await searchLibrary(query, limit, { reader: readerForSearch(reader, url.searchParams.get('ai')), read: url.searchParams.get('read') === '1', force: url.searchParams.get('ai') === 'always', by: roleOf(url.searchParams.get('role')), includeHidden: url.searchParams.get('hidden') === 'include' });
+    // AI calls inside are logged against this person (FD-91).
+    const result = await asPerson(userOf(request), () => searchLibrary(query, limit, { reader: readerForSearch(reader, url.searchParams.get('ai')), read: url.searchParams.get('read') === '1', force: url.searchParams.get('ai') === 'always', by: roleOf(url.searchParams.get('role')), includeHidden: url.searchParams.get('hidden') === 'include' }));
     // Hidden-in-source slides (usually internal notes) only when asked for (FD-50).
     // ...and so are slides the team marked "internal - never show" (FD-53).
     if (url.searchParams.get('hidden') !== 'include') result.items = result.items.filter((i) => !i.slide.hiddenInSource && !isInternalOnly(i.slide));
@@ -45,9 +50,11 @@ export async function GET(request: Request) {
       const minSimilarity = Number(process.env.SV_MEANING_MIN_SIMILARITY || 0.55);
       const meaning = await meaningSearch(query, limit);
       const have = new Set(result.items.map((i) => i.slide.id));
+      // Close in meaning, but not what was asked to look like ("maps": never a table that talks about locations, FD-86).
+      const wrongLook = await looksWrongFor(query);
       for (const hit of meaning?.items ?? []) {
         if (result.items.length >= limit) break;
-        if (have.has(hit.slide.id) || hit.similarity < minSimilarity) continue;
+        if (have.has(hit.slide.id) || hit.similarity < minSimilarity || wrongLook(hit.slide.id)) continue;
         if (url.searchParams.get('hidden') !== 'include' && (hit.slide.hiddenInSource || isInternalOnly(hit.slide))) continue;
         result.items.push({ slide: hit.slide, why: 'Close in meaning to your search, even where the words differ.', matched: [] });
         have.add(hit.slide.id);
@@ -59,6 +66,8 @@ export async function GET(request: Request) {
       const hide = url.searchParams.get('hidden') !== 'include';
       result.items = (await taggedFirst(query, result.items, hits, getSlideSummariesPg)).filter((i) => !hide || (!i.slide.hiddenInSource && !isInternalOnly(i.slide))).slice(0, limit);
     }
+    // The order the request asked for holds over meaning and tag results too ("most recent", "most liked", FD-87).
+    result.items = await askedOrder(query, result.items);
     // Each slide in a pack carries the whole pack (FD-38, FD-52).
     const packed = await withTags(await withPacks(result.items.map((i) => i.slide)));
     result.items = result.items.map((i, n) => ({ ...i, slide: packed[n] }));

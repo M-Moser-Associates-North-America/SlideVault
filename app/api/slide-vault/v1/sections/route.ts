@@ -7,7 +7,7 @@ import { sectionList } from '@/features/slide-vault/server/services/library-smar
 const KINDS = ['firm', 'case-studies', 'approach', 'team', 'fees', 'understanding', 'appendix'];
 
 export async function GET(request: Request) {
-  const limited = rateLimit(request, RATE_POLICIES.search);
+  const limited = await rateLimit(request, RATE_POLICIES.search);
   if (limited) return limited;
   const url = new URL(request.url);
   const kind = url.searchParams.get('kind') ?? '';
