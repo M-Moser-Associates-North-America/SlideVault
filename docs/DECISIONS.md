@@ -1060,4 +1060,16 @@ Consequences for scope, cost, security and integration: No database change, no A
 Acceptance evidence / affected PR criteria: test:meaning (1 new check, which fails without the change: a tag on a slide in the same deck is not suggested), test:smart-search (2 new checks for the search topics). Typecheck and lint pass. To check on the real library: open a result of the belonging search and see "Inclusion & DEI" and "health & wellbeing" first.
 Documents/contracts changed: server/slide-embeddings.ts, client/api.ts, components/TagBits.tsx, scripts/test-meaning-search.mts, scripts/test-smart-search.mts.
 Revisit trigger: suggestions from other decks are too far off for most slides (then option b).
+
+Decision ID and title: FD-98 "Why it fits": a star only when the AI read the slide; a shaded box with no left bar
+Status: proposed
+Decision date: 2026-11-08
+Decision owner/reviewer: Khushali (asked for it)
+Context and evidence: Every result card showed a star and an orange left bar on "Why it fits", whether the sentence came from the AI's reading of the slide or from a plain word match, and the box sat tight against the tags and the Useful / Not useful row.
+Options considered: five looks were compared on a static page (plain line, shaded box, highlighted words, pill label, footer line); the owner chose the shaded box, with the star only for AI.
+Chosen outcome: the result item carries `aiRead` (true when the AI's stored reading of the slide shaped the sentence, from library-smart-search.ts). The card shows the star only then. Both kinds use the same shaded box with no left bar, with more padding and space above and below. The Storyboard's "Why this slide" is unchanged.
+Consequences for scope, cost, security and integration: Additive optional field on the smart-search item; no database change, no AI calls. A library with no stored readings shows no stars.
+Acceptance evidence / affected PR criteria: typecheck, lint and test:smart-search pass. Not yet checked on screen in light and dark, or on a long sentence at 6-across and tablet width.
+Documents/contracts changed: contracts/dto.ts (SmartSearchItem.aiRead), server/services/library-smart-search.ts, components/parts.tsx, components/Views.tsx, components/slidevault.css.
+Revisit trigger: the star and no-star boxes look too alike to tell apart, or most results show no star.
 ```

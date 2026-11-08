@@ -558,7 +558,8 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .interp .meta .ic, .slidevault .matched .ic { color: var(--sv-brand-strong); }
 .slidevault .chip-x { background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); border-color: color-mix(in srgb, var(--sv-brand) 40%, transparent); }
 .slidevault .chip-x:hover { background: color-mix(in srgb, var(--sv-brand) 16%, var(--sv-surface)); }
-.slidevault .matched { background: color-mix(in srgb, var(--sv-brand) 8%, var(--sv-surface)); border-left: 3px solid var(--sv-brand); border-radius: 4px 8px 8px 4px; }
+.slidevault .matched { background: color-mix(in srgb, var(--sv-brand) 8%, var(--sv-surface)); border-radius: 8px; padding: 9px 11px; margin: 6px 0; line-height: 1.45; }
+.slidevault .matched b { margin-bottom: 4px; }
 .slidevault .fchip input:checked + span, .slidevault .pchip[aria-pressed="true"], .slidevault .pchip[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); border-color: var(--sv-brand); color: var(--sv-text); }
 .slidevault .fchip input:checked + span::before, .slidevault .pchip[aria-pressed="true"]::before { content: ""; width: 5px; height: 9px; border: solid var(--sv-brand-strong); border-width: 0 2px 2px 0; transform: rotate(45deg); margin: -3px 8px 0 0; display: inline-block; }
 .slidevault .cart-col { border-top: 3px solid var(--sv-brand); }

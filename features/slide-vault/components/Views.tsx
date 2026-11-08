@@ -808,7 +808,7 @@ export function ResultsView() {
               )}
               <div className="grid">
                 {visible.map((i) => (
-                  <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} note={sort === 'popular' ? downloadedNote(i.slide) : undefined} />
+                  <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} aiRead={i.aiRead} note={sort === 'popular' ? downloadedNote(i.slide) : undefined} />
                 ))}
               </div>
             </>

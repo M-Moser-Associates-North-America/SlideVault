@@ -201,7 +201,7 @@ export function useSavedToggle() {
 }
 
 /** Slide card: preview, tick-to-add, where it came from, "also in N other decks". */
-export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; list: SlideSummary[]; why?: string; note?: string }) {
+export function SlideCard({ slide, list, why, aiRead, note }: { slide: SlideSummary; list: SlideSummary[]; why?: string; aiRead?: boolean; note?: string }) {
   const { openPreview, openAlso } = useWorkspace();
   const { isSelected, set } = useCartToggle();
   const { packs } = useWorkspace();
@@ -301,7 +301,7 @@ export function SlideCard({ slide, list, why, note }: { slide: SlideSummary; lis
         {why && (
           <div className="matched">
             <b>
-              <Icon name="sparkle" className="ic-sm" />
+              {aiRead && <Icon name="sparkle" className="ic-sm" />}
               Why it fits
             </b>
             {why}
