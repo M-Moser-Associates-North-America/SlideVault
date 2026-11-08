@@ -72,6 +72,18 @@ check(standInPlan('best of the best hybrid work', ctx).bestOfTheBest === true, '
 check(anyOfQuery(['team', 'meet the team', 'a"b']) === 'team or "meet the team" or "a b"', 'any-of query: phrases quoted, stray quotes removed', anyOfQuery(['team', 'meet the team', 'a"b']));
 check(JSON.stringify(chipsFor(cleanPlan({ topics: ['Team'], yearFrom: 2024, category: 'SME' }, ctx))) === JSON.stringify([{ kind: 'Topic', label: 'Team' }, { kind: 'Year', label: '2024 or later' }, { kind: 'Category', label: 'SME' }]), 'chips: topic, year range, category');
 
+// ---- Tags offered from the search that found a slide (FD-97)
+{
+  const { searchTagSuggestions } = await import('../features/slide-vault/client/api');
+  const res = {
+    items: [{ slide: { id: 's1' } }],
+    chips: [{ kind: 'Topic', label: 'inclusion & DEI' }, { kind: 'Topic', label: 'health & wellbeing' }, { kind: 'Label', label: 'Design concept' }, { kind: 'Label', label: 'Inclusion & DEI' }, { kind: 'Client', label: 'Acme' }],
+  } as unknown as Parameters<typeof searchTagSuggestions>[0];
+  const got = searchTagSuggestions(res, 's1').map((x) => `${x.tag}|${x.from}`).join(',');
+  check(got === 'Inclusion & DEI|search,health & wellbeing|search', 'search tags: the topics the search was read as, in the team label spelling; no slide kinds or clients', got);
+  check(searchTagSuggestions(res, 'other').length === 0 && searchTagSuggestions(null, 's1').length === 0, 'search tags: only for a slide that search found');
+}
+
 // ---- Why it fits
 const facts = (o: Partial<SlideFacts> = {}): SlideFacts => ({ title: 'Your team for Kestrel Law', text: 'Meet the people who will lead the workplace strategy.', client: 'Kestrel Law', year: 2024, category: 'SME', bestOfTheBest: true, ...o });
 {

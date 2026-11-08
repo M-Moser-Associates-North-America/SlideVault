@@ -603,6 +603,8 @@ test("the team's labels: a card shows the two most relevant and +N for the rest;
   await first.locator('.thumb').first().click();
   const labels = page.getByRole('dialog').getByRole('group', { name: 'Labels from the team' });
   await expect(labels.locator('.tag-team')).toHaveCount(5);
+  // The preview scrolls; with suggested tags above them (FD-97) the labels can sit below its lower edge, so scroll to them.
+  await labels.evaluate((el) => { const body = el.closest('.dlg-body'); body?.scrollTo(0, body.scrollHeight); });
   // Share in the preview is a small icon beside the close button, not a row of its own.
   await expect(page.getByRole('dialog').getByRole('button', { name: /^Share: copy a link/ })).toBeVisible();
   expect(await axe(page)).toEqual([]);

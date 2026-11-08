@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactElement, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { getSlide, listTags, tagSuggestions, type TagSuggestionItem } from '../client/api';
+import { getSlide, listTags, searchTagSuggestions, tagSuggestions, type TagSuggestionItem } from '../client/api';
 import { demoTagsOn, ranked, TagsUnavailable, useTags, type TagsApi } from '../client/tag-store';
 import type { FreeTag, SlideDetail, SlideStory, SlideSummary, TagRemoval } from '../contracts/dto';
 import { Icon } from './icons';
@@ -466,7 +466,7 @@ export function SuggestedTagChips({ suggestions, have, disabled, onAdd, label = 
           className="tag-add tag-suggest"
           disabled={disabled}
           aria-label={`Add suggested tag ${s.tag}`}
-          data-tip={s.from === 'people' ? 'Colleagues tagged similar slides with this' : s.from === 'ai' ? 'Read from your slides by the AI' : 'From slides similar to this one'}
+          data-tip={s.from === 'people' ? 'Colleagues tagged similar slides with this' : s.from === 'ai' ? 'Read from your slides by the AI' : s.from === 'search' ? 'What your search was read as' : 'From slides similar to this one'}
           onClick={() => onAdd(s.tag)}
         >
           <Icon name="plus" className="ic-sm" />
@@ -479,7 +479,7 @@ export function SuggestedTagChips({ suggestions, have, disabled, onAdd, label = 
 
 /** The suggestions for one saved slide; empty while loading, for sample decks, or when meaning search isn't set up. */
 function useSlideTagSuggestions(slideId: string | undefined): TagSuggestionItem[] {
-  const { runtime } = useWorkspace();
+  const { runtime, search } = useWorkspace();
   /* Kept with the slide they belong to, so moving to another slide never shows the last one's suggestions. */
   const [got, setGot] = useState<{ id: string; list: TagSuggestionItem[] } | null>(null);
   useEffect(() => {
@@ -491,7 +491,10 @@ function useSlideTagSuggestions(slideId: string | undefined): TagSuggestionItem[
     );
     return () => ctrl.abort();
   }, [runtime, slideId]);
-  return slideId && got?.id === slideId ? got.list : [];
+  const similar = slideId && got?.id === slideId ? got.list : [];
+  /* What the search that found this slide was read as comes first (FD-97); then tags from similar slides in other decks. */
+  const fromSearch = searchTagSuggestions(search.status === 'ready' ? search.result : null, slideId);
+  return [...fromSearch, ...similar.filter((s) => !fromSearch.some((f) => f.tag.toLowerCase() === s.tag.toLowerCase()))].slice(0, 6);
 }
 
 /**

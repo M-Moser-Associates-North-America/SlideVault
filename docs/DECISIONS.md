@@ -1048,4 +1048,16 @@ Consequences for scope, cost, security and integration: Wording only.
 Acceptance evidence / affected PR criteria: test:smart-search (2 new checks: a stem shows as the slide's word; one word found by two search words is listed once).
 Documents/contracts changed: server/ai/search-plan.ts, scripts/test-smart-search.mts.
 Revisit trigger: none expected.
+
+Decision ID and title: FD-97 Suggested tags fit the slide: neighbours from other decks only, and the search that found it
+Status: proposed
+Decision date: 2026-11-08
+Decision owner/reviewer: Vincent (built)
+Context and evidence: On the belonging search (8 Nov), a slide about scaling a client's culture and community suggested "location new york", "financial client", "newly constructed tower" and "sustainability at scale". Suggestions came from the slide's 12 closest slides in meaning (FD-82), and a slide's fingerprint carries its deck title and client, so its closest slides were mostly its own deck's: they suggested facts about the deck, not the slide. Nothing used the search the person ran, so the label the search was read as ("Inclusion & DEI") was never offered.
+Options considered: (a) other decks' neighbours only, plus the topics of the search that found the slide; (b) fingerprints without the deck title and client (re-embedding the whole library); (c) the AI reads each slide to suggest tags (tokens on every open).
+Chosen outcome: (a). server/slide-embeddings.ts: tag suggestions leave out slides from the same deck. client/api.ts searchTagSuggestions and components/TagBits.tsx: on a slide in the current results, the topics the search was read as come first (at most 3, in the team label's spelling; slide kinds such as "Design concept" and clients are not offered), marked "What your search was read as", then up to 3 from similar slides in other decks. Still suggestions: nothing is added until a person clicks.
+Consequences for scope, cost, security and integration: No database change, no AI calls. A slide whose only close slides are in its own deck gets fewer suggestions, or none from similar slides.
+Acceptance evidence / affected PR criteria: test:meaning (1 new check, which fails without the change: a tag on a slide in the same deck is not suggested), test:smart-search (2 new checks for the search topics). Typecheck and lint pass. To check on the real library: open a result of the belonging search and see "Inclusion & DEI" and "health & wellbeing" first.
+Documents/contracts changed: server/slide-embeddings.ts, client/api.ts, components/TagBits.tsx, scripts/test-meaning-search.mts, scripts/test-smart-search.mts.
+Revisit trigger: suggestions from other decks are too far off for most slides (then option b).
 ```

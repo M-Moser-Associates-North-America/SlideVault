@@ -129,6 +129,12 @@ check(res.status === 200 && body.data.available && body.data.items[0]?.slide.tit
   check(!tags.includes('Removed tag'), 'tag suggestions: removed tags are never suggested');
   await sql(`insert into free_tags (target_kind, target_id, tag, added_by) values ('slide', $1, 'leadership', 'tester')`, [team]);
   check(!(await tagSuggestions(team)).some((x) => x.tag.toLowerCase() === 'leadership'), 'tag suggestions: a tag the slide already has is left out');
+  {
+    // Only other decks count (FD-97): c1's "Leadership" tag is offered to a slide in another deck, never to c1's deck mate.
+    const [{ id: c2 }] = await sql<{ id: string }>(`select id from slides where deck_id = $1 and slide_number = 2`, [deckC]);
+    const mate = (await tagSuggestions(c2)).map((x) => x.tag);
+    check(!mate.includes('Leadership') && !mate.includes('team culture'), 'tag suggestions: slides from the same deck are not used (they suggest facts about the deck, not the slide)', mate);
+  }
   check((await tagSuggestions('not-a-slide-id')).length === 0, 'tag suggestions: an unknown or sample-deck slide gets an empty list, not an error');
   const tsRoute = await import('../app/api/slide-vault/v1/slides/[slideId]/tag-suggestions/route');
   resetRateLimits();
