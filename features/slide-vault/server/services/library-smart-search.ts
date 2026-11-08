@@ -339,7 +339,9 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   const sectionOf = (id: string) => { const sec = sections.get(id); return sec ? { name: sec.name, kind: sec.kind, divider: sec.divider, dividerId: sec.dividerId } : null; };
   // The order asked for ("most recent", "most liked", "most used"), after downloads are counted (FD-87).
   const ordered = (await askedOrder(query, counted.map((slide) => ({ slide })))).map((x) => x.slide);
-  return { ...result, sections: asksForSections(query) ? asked : undefined, items: ordered.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why) }; }) };
+  // The star on "Why it fits" only when the AI's stored reading of the slide shaped the sentence, not when it is a plain word match.
+  const aiRead = (id: string) => { const r = readings.get(id); return !!r && !!intentWhy(wanted, r); };
+  return { ...result, sections: asksForSections(query) ? asked : undefined, items: ordered.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why), aiRead: aiRead(slide.id) }; }) };
 }
 
 /**

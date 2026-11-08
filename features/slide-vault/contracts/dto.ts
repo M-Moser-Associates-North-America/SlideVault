@@ -274,6 +274,8 @@ export type SmartSearchItem = {
   slide: SlideSummary;
   /** Plain "why it fits" line, built only from what the slide and its deck contain */
   why: string;
+  /** True when part of `why` comes from the AI's stored reading of the slide (shows the star); false for a plain word match */
+  aiRead?: boolean;
   /** The search words found on the slide */
   matched: string[];
 };
