@@ -391,7 +391,30 @@ export async function setMyRole(runtime: Transport, role: StoryUserRole | null):
 }
 
 /** Tags worth adding to a slide, from the slides closest to it in meaning (FD-82). Empty when that isn't set up. */
-export type TagSuggestionItem = { tag: string; from: 'people' | 'reading' | 'ai'; score: number };
+export type TagSuggestionItem = { tag: string; from: 'people' | 'reading' | 'ai' | 'search'; score: number };
+
+/**
+ * The team's labels the current search was read as ("Inclusion & DEI", "health & wellbeing"), offered as tags
+ * on a slide that search found (FD-97): the person searched for it and found this slide, so those labels are
+ * the likeliest tags worth adding. Only for a slide in the results; at most 3; a suggestion until clicked.
+ */
+export function searchTagSuggestions(result: SmartSearchResult | null, slideId: string | undefined, max = 3): TagSuggestionItem[] {
+  if (!result || !slideId || !result.items.some((i) => i.slide.id === slideId)) return [];
+  // Topics are what the search is about; a Label with the same name gives the team's own spelling. Labels that
+  // are only a kind of slide ("Design concept", "Approach process") are not offered: they describe the slide's
+  // format, which the search didn't find it for.
+  const labels = new Map(result.chips.filter((c) => c.kind === 'Label').map((c) => [c.label.trim().toLowerCase(), c.label.trim()]));
+  const seen = new Set<string>();
+  const out: TagSuggestionItem[] = [];
+  for (const c of result.chips) {
+    const key = c.label.trim().toLowerCase();
+    if (c.kind !== 'Topic' || !key || key.length > 60 || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ tag: labels.get(key) ?? c.label.trim(), from: 'search', score: 1 });
+  }
+  return out.slice(0, max);
+}
+
 export async function tagSuggestions(runtime: Transport, slideId: string, signal?: AbortSignal): Promise<TagSuggestionItem[]> {
   const res = await runtime.request({ path: `/slides/${encodeURIComponent(slideId)}/tag-suggestions`, method: 'GET', signal }).catch(() => null);
   if (!res?.ok) return [];

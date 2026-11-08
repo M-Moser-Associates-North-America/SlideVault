@@ -59,7 +59,9 @@ export async function embedDeckQuietly(deckId: string): Promise<void> {
  * the neighbour is, so a word several close slides share ranks first. The reading's themes are written
  * per slide rather than from a fixed list (21 different themes and none shared among one real slide's
  * closest 12, 3 Nov), so one close slide is enough; only tag-like ones (tagLike) are offered, plus the
- * close slides' deck sector. Tags the slide already has are left out. Nothing is saved: a person clicks a suggestion to add it (Alina: AI
+ * close slides' deck sector. Only slides from other decks count (FD-97): a slide's fingerprint carries its deck
+ * title and client, so its closest slides were mostly its own deck's, and they suggested facts about that deck
+ * ("location new york", "financial client") instead of the slide's topic. Tags the slide already has are left out. Nothing is saved: a person clicks a suggestion to add it (Alina: AI
  * suggestions stay suggestions until a person confirms). Empty, never an error, when it can't run.
  */
 export type TagSuggestion = { tag: string; from: 'people' | 'reading'; score: number };
@@ -139,6 +141,7 @@ export async function tagSuggestions(slideId: string, limit = 5): Promise<TagSug
          from slide_embeddings e cross join me
          join slides s on s.id = e.slide_id join decks d on d.id = s.deck_id
          where e.model = me.model and e.slide_id <> $1::uuid and d.status = 'ready' and d.archived_at is null
+           and s.deck_id <> (select deck_id from slides where id = $1::uuid)
          order by e.embedding <=> me.embedding limit $2
        )
        select near.slide_id::text as slide_id, near.similarity, s.themes, s.proof_sectors, d.client_sector,
