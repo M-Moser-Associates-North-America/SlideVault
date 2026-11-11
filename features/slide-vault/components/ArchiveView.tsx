@@ -50,7 +50,7 @@ export function ArchiveView() {
           <h1 className="h1" tabIndex={-1}>
             Archived decks
           </h1>
-          <p className="lede">Hidden from the library, search and AI. Nothing is deleted. Restore a deck to bring it back for everyone.</p>
+          <p className="lede">Hidden from the library and search. Nothing is deleted. Restore a deck to bring it back.</p>
         </div>
       </div>
 

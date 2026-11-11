@@ -77,7 +77,7 @@ export function SlideTitle({ slide, loaded }: { slide: SlideSummary; loaded?: Sl
         {slide.title}
       </h1>
       {canEdit && (
-        <button ref={pencil} type="button" className="title-edit" aria-label="Rename this slide" data-tip="Rename this slide" onClick={start}>
+        <button ref={pencil} type="button" className="title-edit" aria-label="Rename this slide" data-tip="Rename this slide" data-tip-pos="end" onClick={start}>
           <Icon name="pencil" />
         </button>
       )}

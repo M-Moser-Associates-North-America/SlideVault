@@ -432,7 +432,7 @@ export function Cart() {
               <div>
                 <h2 id={`${nameId}-t`}>{origin ? 'Save your draft deck' : 'Save as a draft'}</h2>
                 <p className="meta">
-                  {origin ? (unchanged ? `Started from “${origin.name}”. Nothing has changed since you saved it.` : `Started from “${origin.name}”. Since then: ${changes}.`) : 'It will appear under Working drafts in My decks.'}
+                  {origin ? (unchanged ? `Started from “${origin.name}”. Nothing has changed since you saved it.` : `Started from “${origin.name}”. Since then: ${changes}.`) : 'Saved under Working drafts in My decks.'}
                 </p>
               </div>
               <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closeSave}>
@@ -460,7 +460,7 @@ export function Cart() {
                 <input id={nameId} type="text" value={draftName} onChange={(e) => setTypedName(e.target.value)} maxLength={80} placeholder="For example, Harbor Bank pitch" autoFocus={!origin} autoComplete="off" />
               </label>
               <p className="meta" style={{ marginTop: 10 }}>
-                {plural(n, 'slide')} will be saved. Your draft deck stays as it is.
+                {plural(n, 'slide')} will be saved.
               </p>
             </div>
             <div className="dlg-foot">

@@ -79,43 +79,43 @@ export function Tour() {
     welcome: {
       target: 'body',
       title: 'Welcome to SlideVault',
-      content: 'Find slides from past proposals, then collect the ones you like into a draft deck you can download as an editable PowerPoint.',
+      content: 'Find slides from past proposals, collect them in a draft deck, and download an editable PowerPoint.',
       placement: 'center',
       before: toTop,
     },
     search: {
       target: '.home-hero-field',
       title: 'Search in plain words',
-      content: 'Type what you are looking for, like “team intro for a law firm pitch”. SlideVault finds matching slides from past proposals.',
+      content: 'Type what you want, like “team intro for a law firm pitch”.',
       placement: 'bottom',
       before: toTop,
     },
     story: {
-      target: '.sb-launch-btn',
+      target: compact ? '.fb-tools .sb-launch-btn' : '.sb-launch-btn',
       title: 'Build a story with Storyboard',
-      content: 'Describe a client’s situation and Storyboard lines up slides from past proposals into a story, part by part, with a note on why each slide fits.',
+      content: 'Describe a client’s situation and Storyboard lines up slides into a story.',
       placement: compact ? 'bottom' : 'bottom-end',
       before: toTop,
     },
     filters: {
       target: '.fbar-row',
       title: 'Narrow it down',
-      content: 'Use Year, Client, Project type and Slide type to cut the list down. The numbers show how many slides match.',
+      content: compact ? 'Use Filters, Year and Client to cut the list down.' : 'Use Year, Client, Project type and Slide type to cut the list down.',
       placement: 'bottom',
       before: toTop,
     },
     pick: {
       target: '.sv-main .vcard',
       title: 'Pick the slides you want',
-      content: 'Tick the corner box on a slide to add it to your draft deck. Click the slide to preview it, and use the heart to save it for later. (Slides marked “Pack” belong together, so you can add the whole pack.)',
+      content: `${compact ? 'Tap' : 'Tick'} the corner box to add a slide to your draft deck. ${compact ? 'Tap' : 'Click'} the slide to preview it, the heart to save it.`,
       placement: 'auto',
     },
     deck: {
       // On a phone the panel fills the right side, so the note goes under its header instead of beside it.
       target: compact ? '.cart-col .cart-head' : '.cart-col',
       title: 'Your draft deck',
-      content: 'Ticked slides collect here. Name your deck, drag slides into order, then download them together or save the set as a draft. Picked slides from different decks? Tick “Combine into one deck” to download them as a single PowerPoint.',
-      placement: compact ? 'bottom' : 'left',
+      content: 'Ticked slides collect here. Name your deck, put the slides in order, then download or save it as a draft.',
+      placement: compact ? 'top' : 'left',
       before: async () => {
         setCartMin(false);
         await nextFrame();
@@ -127,7 +127,7 @@ export function Tour() {
       // Only the My decks tab is lit, not the whole row of tabs.
       target: bottomTabs ? '.sv-bottombar a[href$="/profile"]' : '.sv-nav a[href$="/profile"]',
       title: 'Find your saved work',
-      content: 'My decks keeps your saved slides and drafts. You can replay this tour any time with the ? button at the top of the page.',
+      content: 'Your saved slides and drafts are here. Replay this tour any time with the ? button.',
       placement: bottomTabs ? 'top' : 'bottom',
       before: async () => {
         // Where the draft deck covers the page (phone, upright tablet), put it away so the tabs show.
@@ -201,6 +201,8 @@ export function Tour() {
       }
       /* Pausing also reports the step as finished (status "paused"); only a real Next or Back moves on. */
       if (data.type === EVENTS.STEP_AFTER && data.status === STATUS.RUNNING) {
+        /* Moving on: no note is on screen for a moment, so putting the draft deck away for the next step is not "closing it". */
+        if (data.action === ACTIONS.NEXT || data.action === ACTIONS.PREV) setShown(null);
         if (data.action === ACTIONS.NEXT) {
           if (data.index + 1 >= STEP_IDS.length) close();
           else setIndex(data.index + 1);

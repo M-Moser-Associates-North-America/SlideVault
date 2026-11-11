@@ -397,6 +397,7 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .sclear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-text); display: grid; place-items: center; cursor: pointer; padding: 0; }
 .slidevault .sclear[hidden] { display: none; }
 .slidevault .sclear .ic { width: 15px; height: 15px; }
+.slidevault .top-search .sbox .sclear .ic { position: static; transform: none; width: 15px; height: 15px; color: inherit; }
 .slidevault .sclear:hover { background: var(--sv-surface-muted); }
 
 .slidevault .filters > summary, .slidevault .f-head { display: flex; align-items: center; justify-content: space-between; }

@@ -11,6 +11,10 @@ import { rowReading, withoutChip } from './search-reading';
 import { SLIDE_TYPES, hasSlideType } from './search-rules';
 import { useHeroOut } from '../client/hero-visibility';
 import { StickySearch } from './StickySearch';
+import { HiddenToggle } from './HiddenToggle';
+import { StoryLauncher } from './StoryLauncher';
+import { useEdgeFade } from './edge-fade';
+import { useResultsSummary } from '../client/results-summary';
 import { useRoot } from './root';
 import { useWorkspaceCompact } from './size';
 import { useWorkspace } from './state';
@@ -122,7 +126,7 @@ function NotYet({ label }: { label: string }) {
 }
 
 export function FilterBar() {
-  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search, includeArchived, setIncludeArchived, autoSection, dismissAutoSection } = useWorkspace();
+  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search, includeArchived, setIncludeArchived, autoSection, dismissAutoSection, searched } = useWorkspace();
   const [open, setOpen] = useState<Key | null>(null);
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
   const compact = useWorkspaceCompact();
@@ -132,11 +136,15 @@ export function FilterBar() {
   useDialogOpen(sheetRef, sheet !== null);
   const wrap = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
+  const chipsRef = useRef<HTMLUListElement>(null);
+  useEdgeFade(rowRef);
+  useEdgeFade(chipsRef);
   const [rowOut, setRowOut] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
   const top = useTopOffset();
   const heroOut = useHeroOut();
+  const summary = useResultsSummary();
   const nowYear = new Date().getFullYear();
 
   const slides = useMemo(() => (library.status === 'ready' ? library.slides : []), [library]);
@@ -420,8 +428,14 @@ export function FilterBar() {
     <div ref={sentinel} className="fbar-sentinel" aria-hidden="true" />
     <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}${heroOut && !compact ? ' has-search' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
       {heroOut && !compact && <StickySearch />}
+      {compact && searched === '' && (
+        <div className="fb-tools">
+          <StoryLauncher part="button" />
+        </div>
+      )}
       <div className="fbar-row" ref={rowRef} role="toolbar" aria-label="Filter slides">
         <DeeperAiToggle />
+        {compact && <HiddenToggle />}
         <button type="button" className={`fb-btn fb-all${activeTotal ? ' on' : ''}`} aria-haspopup="dialog" onClick={() => setSheet('all')}>
           <Icon name="sliders" />
           <span className="fb-lbl">Filters</span>
@@ -455,7 +469,7 @@ export function FilterBar() {
         )}
       </div>
       {chips.length > 0 && (
-        <ul className="fb-chips" aria-label="Filters on">
+        <ul className="fb-chips" aria-label="Filters on" ref={chipsRef}>
           {chips.map((c) => (
             <li key={c.id}>
               <button
@@ -474,11 +488,29 @@ export function FilterBar() {
         </ul>
       )}
       {compact && rowOut && sheet === null && (
-        <button type="button" className="fb-pin" onClick={() => setSheet('all')}>
-          <Icon name="sliders" />
-          <span>Filters</span>
-          {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
-        </button>
+        <div className="fb-pin-bar">
+          {summary ? (
+            <span className="pin-sum">
+              <strong>{summary.count} slides</strong>
+              <span aria-hidden="true"> · </span>
+              <label className="pin-sort">
+                <span className="sr-only">Sort</span>
+                <select value={summary.sort} onChange={(e) => summary.setSort(e.target.value as 'best' | 'popular' | 'newest')}>
+                  <option value="best">Best match</option>
+                  <option value="popular">Most downloaded</option>
+                  <option value="newest">Newest first</option>
+                </select>
+              </label>
+            </span>
+          ) : (
+            <DeeperAiToggle />
+          )}
+          <button type="button" className="fb-pin" onClick={() => setSheet('all')}>
+            <Icon name="sliders" />
+            <span>Filters</span>
+            {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
+          </button>
+        </div>
       )}
       <dialog
         ref={sheetRef}

@@ -1,8 +1,9 @@
 'use client';
 
 import { CardVotes } from './SlideActions';
+import { useWorkspaceCompact } from './size';
 import { CompactTags } from './TagBits';
-import type { MouseEvent, ReactNode } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import type { SlideSummary } from '../contracts/dto';
 import type { Location } from '../contracts/runtime';
 import { packPosition, type Pack } from '../client/packs';
@@ -103,9 +104,17 @@ export function SkeletonRows({ rows = 2 }: { rows?: number }) {
 
 export function Thumb({ slide }: { slide: SlideSummary }) {
   const { runtime } = useWorkspace();
+  /* A soft shimmer shows until the picture has arrived, then it fades in (a picture already in the cache shows at once). */
+  const [loaded, setLoaded] = useState(false);
   // eslint-disable-next-line @next/next/no-img-element -- previews come from the injected API, not next/image
   return (
     <img
+      ref={(el) => {
+        if (el && el.complete && el.naturalWidth > 0) setLoaded(true);
+      }}
+      className={loaded ? 'is-loaded' : undefined}
+      onLoad={() => setLoaded(true)}
+      onError={() => setLoaded(true)}
       src={runtime.assetUrl(slide.previewPath)}
       alt=""
       loading="lazy"
@@ -151,10 +160,19 @@ export function useAddSection() {
  * whole pack, removing offers to take the whole pack out. `setOne` skips the question.
  */
 export function useCartToggle() {
-  const { selection, updateSelection, announce, toast, packs, openPackDialog } = useWorkspace();
+  const { selection, updateSelection, announce, toast, packs, openPackDialog, setCartMin } = useWorkspace();
+  const compact = useWorkspaceCompact();
   const isSelected = (id: string) => selection.some((s) => s.id === id);
   const setOne = (slide: SlideSummary, on: boolean) => {
-    if (on && !selection.some((s) => s.id === slide.id)) toast(`Added. ${plural(selection.length + 1, 'slide')} ready`);
+    if (on && !selection.some((s) => s.id === slide.id)) {
+      /* Phone: "Added · 3 in draft deck", with View (opens the draft deck) and Undo. Elsewhere the draft deck is already on screen. */
+      if (compact) {
+        toast(`Added · ${selection.length + 1} in draft deck`, [
+          { label: 'View', run: () => setCartMin(false) },
+          { label: 'Undo', run: () => updateSelection((cur) => cur.filter((x) => x.id !== slide.id)) },
+        ]);
+      } else toast(`Added. ${plural(selection.length + 1, 'slide')} ready`);
+    }
     updateSelection((cur) => {
       const has = cur.some((s) => s.id === slide.id);
       if (on && !has) return [...cur, slide];
@@ -200,8 +218,43 @@ export function useSavedToggle() {
   return { isSaved, toggle };
 }
 
+/** "Why it fits": on a phone two lines, and a small arrow opens the rest. */
+function WhyBox({ why, aiRead }: { why: string; aiRead?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [over, setOver] = useState(false);
+  const text = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = text.current;
+    if (!el || open) return;
+    const measure = () => setOver(el.scrollHeight > el.clientHeight + 1);
+    const frame = requestAnimationFrame(measure);
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    return () => {
+      cancelAnimationFrame(frame);
+      watch.disconnect();
+    };
+  }, [why, open]);
+  return (
+    <div className="matched">
+      <b>
+        {aiRead && <Icon name="sparkle" className="ic-sm" />}
+        Why it fits
+      </b>
+      <span ref={text} className={`why-text${open ? ' is-open' : ''}`}>
+        {why}
+      </span>
+      {(over || open) && (
+        <button type="button" className="why-more" aria-expanded={open} aria-label={open ? 'Show less of why it fits' : 'Read more of why it fits'} onClick={() => setOpen((o) => !o)}>
+          <Icon name="down" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** Slide card: preview, tick-to-add, where it came from, "also in N other decks". */
-export function SlideCard({ slide, list, why, aiRead, note }: { slide: SlideSummary; list: SlideSummary[]; why?: string; aiRead?: boolean; note?: string }) {
+export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: SlideSummary; list: SlideSummary[]; why?: string; aiRead?: boolean; note?: string; /** the slide's place in the deck page (1, 2, 3...) */ num?: number }) {
   const { openPreview, openAlso } = useWorkspace();
   const { isSelected, set } = useCartToggle();
   const { packs } = useWorkspace();
@@ -242,6 +295,11 @@ export function SlideCard({ slide, list, why, aiRead, note }: { slide: SlideSumm
             {sel ? 'Remove from draft deck' : 'Add to draft deck'}
           </span>
         </label>
+        {num !== undefined && (
+          <span className="slide-num" aria-hidden="true">
+            {num}
+          </span>
+        )}
         {pack && <PackBadge pack={pack} slideId={slide.id} />}
         {(slide.hiddenInSource || p.archived) && (
           <span className="thumb-badge">
@@ -264,10 +322,13 @@ export function SlideCard({ slide, list, why, aiRead, note }: { slide: SlideSumm
         <Link className="card-title" to={{ view: 'slide', id: slide.id }} title={slide.title}>
           {slide.title}
         </Link>
+        {/* On the deck page every slide is from the same deck, so the client, year and type line is left out. */}
+        {(num === undefined || slide.alsoIn) && (
         <div className="meta-row">
           {/* Hover: the whole line when it is cut off ("Next Level Games · 2025 · Design Consultancy"), else where the slide is from. */}
           <span
             className="meta-wrap"
+            hidden={num !== undefined}
             data-tip-pos="start"
             onMouseEnter={(e) => {
               const w = e.currentTarget;
@@ -291,6 +352,7 @@ export function SlideCard({ slide, list, why, aiRead, note }: { slide: SlideSumm
             </button>
           )}
         </div>
+        )}
         <CompactTags slide={slide} />
         {note && (
           <div className="card-note">
@@ -298,18 +360,12 @@ export function SlideCard({ slide, list, why, aiRead, note }: { slide: SlideSumm
             {note}
           </div>
         )}
-        {why && (
-          <div className="matched">
-            <b>
-              {aiRead && <Icon name="sparkle" className="ic-sm" />}
-              Why it fits
-            </b>
-            {why}
+        {why && <WhyBox why={why} aiRead={aiRead} />}
+        {num === undefined && (
+          <div className="card-foot">
+            <CardVotes slide={slide} />
           </div>
         )}
-        <div className="card-foot">
-          <CardVotes slide={slide} />
-        </div>
       </div>
     </article>
   );

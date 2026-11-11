@@ -4,6 +4,7 @@ export { CONTRACT_VERSION } from './contracts/runtime';
 export type { Capability, Location, RuntimeRequest, SlideVaultRuntime, SlideVaultWorkspaceProps, View } from './contracts/runtime';
 export type { ApiError, ApiErrorCode, ApiOk, ApiPage, ExportRequest, Provenance, Session, SlideDetail, SlideSummary } from './contracts/dto';
 export { useProfile } from './client/profile-store';
+export { firstNameOf } from './client/first-name';
 export { useRoleLabel } from './client/role-store';
 export { startTour } from './client/tour-store';
 export { askBeforeLeavingUpload } from './client/upload-draft-store';

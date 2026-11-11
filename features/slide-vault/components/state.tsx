@@ -41,7 +41,8 @@ export type LibraryState = { status: 'loading' } | { status: 'ready'; slides: Sl
 
 export type SearchState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; result: SmartSearchResult } | { status: 'error'; message: string };
 
-export type Toast = { id: number; message: string; action?: { label: string; run: () => void } };
+export type ToastAction = { label: string; run: () => void };
+export type Toast = { id: number; message: string; action?: ToastAction | ToastAction[] };
 
 export type ArchiveDialogState = { deck: { id: string; title: string; slideCount: number }; restore: boolean; /** Opened from a slide's page: say so, and leave the page when the deck is gone */ fromSlide?: string };
 
@@ -136,7 +137,7 @@ type Workspace = {
   combine: boolean;
   setCombine: (on: boolean) => void;
   toasts: Toast[];
-  toast: (message: string, action?: { label: string; run: () => void }) => void;
+  toast: (message: string, action?: ToastAction | ToastAction[]) => void;
   dismissToast: (id: number) => void;
   announcement: string;
   announce: (message: string) => void;
@@ -398,7 +399,9 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     (fn: (cur: SlideSummary[]) => SlideSummary[]) =>
       updateSelectionRaw((cur) => {
         const next = fn(cur);
-        if (cur.length === 0 && next.length > 0 && !tourIsOpen()) setCartMin(false);
+        /* On a phone the first slide doesn't slide the draft deck over the page; the "Added" message says it landed. */
+        const phone = typeof document !== 'undefined' && document.querySelector('.sv-app')?.getAttribute('data-size') === 'compact';
+        if (cur.length === 0 && next.length > 0 && !tourIsOpen() && !phone) setCartMin(false);
         return next;
       }),
     [updateSelectionRaw],
@@ -419,7 +422,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const nextToast = useRef(1);
   const dismissToast = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
   const toast = useCallback(
-    (message: string, action?: { label: string; run: () => void }) => {
+    (message: string, action?: ToastAction | ToastAction[]) => {
       const id = nextToast.current++;
       setToasts((t) => [...t, { id, message, action }]);
       setTimeout(() => dismissToast(id), TOAST_MS);

@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { firstNameOf } from '../client/first-name';
 import { Icon } from './icons';
 import { timeAgo } from './library';
 import { SlideCard } from './parts';
+import { ConfirmDialog } from './TagBits';
 import { useWorkspace } from './state';
 
 /**
@@ -29,7 +31,7 @@ export function ProfileView() {
           <h1 className="h1" tabIndex={-1}>
             My decks
           </h1>
-          <p className="lede">Your saved slides and working drafts. Signed in as {profile}.</p>
+          <p className="lede">Signed in as {firstNameOf(profile) || profile}.</p>
         </div>
       </div>
 
@@ -38,7 +40,7 @@ export function ProfileView() {
           <h2 className="h2">Saved</h2>
         </div>
         {saved.length === 0 ? (
-          <p className="meta">Nothing saved yet. Tap the heart on any slide to keep it here for later.</p>
+          <p className="meta">Nothing saved yet. Tap the heart on a slide.</p>
         ) : (
           <ul className="row-scroller">
             {saved.map((s) => (
@@ -55,62 +57,97 @@ export function ProfileView() {
           <h2 className="h2">Working drafts</h2>
         </div>
         {drafts.length === 0 ? (
-          <p className="meta">No drafts yet. In your draft deck, choose Save as draft to keep a set of slides here.</p>
+          <p className="meta">No drafts yet.</p>
         ) : (
           <ul className="draft-list">
             {drafts.map((d) => (
-              <li key={d.id} className="draft-item">
-                <span className="draft-ic" aria-hidden="true">
-                  <Icon name="folder" />
-                </span>
-                <div className="draft-txt">
-                  <strong>{d.name}</strong>
-                  <span className="meta">
-                    {d.slideIds.length === 1 ? '1 slide' : `${d.slideIds.length} slides`} · saved {timeAgo(d.savedAt)}
-                  </span>
-                </div>
-                {confirmDelete === d.id ? (
-                  <div className="cart-confirm" role="group" aria-label={`Confirm deleting ${d.name}`}>
-                    <span className="cc-q">Are you sure?</span>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-icon cc-yes"
-                      aria-label={`Yes, delete ${d.name}`}
-                      onClick={() => {
-                        deleteDraft(d.id);
-                        setConfirmDelete(null);
-                        toast(`Deleted “${d.name}”`);
-                      }}
-                    >
-                      <Icon name="check" />
-                    </button>
-                    <button type="button" className="btn btn-sm btn-icon" aria-label="No, keep it" onClick={() => setConfirmDelete(null)}>
-                      <Icon name="x" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="draft-acts">
-                    <button
-                      type="button"
-                      className="btn btn-sm"
-                      title={selection.length ? 'Replaces what is in your draft deck now' : undefined}
-                      onClick={() => {
-                        const found = loadDraft(d);
-                        toast(found === d.slideIds.length ? `Opened “${d.name}” in your draft deck` : `Opened “${d.name}”. ${d.slideIds.length - found} slide(s) are no longer in the library.`);
-                      }}
-                    >
-                      Open in draft deck
-                    </button>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(d.id)}>
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </li>
+              <DraftRow
+                key={d.id}
+                name={d.name}
+                meta={`${d.slideIds.length === 1 ? '1 slide' : `${d.slideIds.length} slides`} · saved ${timeAgo(d.savedAt)}`}
+                title={selection.length ? 'Replaces what is in your draft deck now' : undefined}
+                onOpen={() => {
+                  const found = loadDraft(d);
+                  toast(found === d.slideIds.length ? `Opened “${d.name}” in your draft deck` : `Opened “${d.name}”. ${d.slideIds.length - found} slide(s) are no longer in the library.`);
+                }}
+                onAskDelete={() => setConfirmDelete(d.id)}
+              />
             ))}
           </ul>
         )}
       </section>
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete this draft?"
+        kind="Working draft"
+        subject={drafts.find((d) => d.id === confirmDelete)?.name ?? ''}
+        lead="It will be removed from My decks. The slides themselves stay in the library."
+        confirmLabel="Delete draft"
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          const d = drafts.find((x) => x.id === confirmDelete);
+          if (d) {
+            deleteDraft(d.id);
+            toast(`Deleted “${d.name}”`);
+          }
+          setConfirmDelete(null);
+        }}
+      />
     </div>
+  );
+}
+
+/** One working draft. On a phone, swiping it to the left asks to delete it (the Delete button does the same). */
+function DraftRow({ name, meta, title, onOpen, onAskDelete }: { name: string; meta: string; title?: string; onOpen: () => void; onAskDelete: () => void }) {
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const [dx, setDx] = useState(0);
+  const LIMIT = 96;
+  return (
+    <li
+      className="draft-item"
+      data-swiping={dx < 0 ? 'true' : undefined}
+      style={dx ? { transform: `translateX(${dx}px)`, transition: 'none' } : undefined}
+      onTouchStart={(e) => {
+        start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }}
+      onTouchMove={(e) => {
+        const s = start.current;
+        if (!s) return;
+        const mx = e.touches[0].clientX - s.x;
+        const my = e.touches[0].clientY - s.y;
+        if (Math.abs(my) > Math.abs(mx) + 6) {
+          start.current = null; /* a scroll, not a swipe */
+          setDx(0);
+          return;
+        }
+        setDx(Math.max(-140, Math.min(0, mx)));
+      }}
+      onTouchEnd={() => {
+        const passed = dx <= -LIMIT;
+        start.current = null;
+        setDx(0);
+        if (passed) onAskDelete();
+      }}
+      onTouchCancel={() => {
+        start.current = null;
+        setDx(0);
+      }}
+    >
+      <span className="draft-ic" aria-hidden="true">
+        <Icon name="folder" />
+      </span>
+      <div className="draft-txt">
+        <strong>{name}</strong>
+        <span className="meta">{meta}</span>
+      </div>
+      <div className="draft-acts">
+        <button type="button" className="btn btn-sm" title={title} onClick={onOpen}>
+          Open in draft deck
+        </button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onAskDelete}>
+          Delete
+        </button>
+      </div>
+    </li>
   );
 }

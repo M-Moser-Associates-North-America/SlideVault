@@ -1073,3 +1073,40 @@ Acceptance evidence / affected PR criteria: typecheck, lint and test:smart-searc
 Documents/contracts changed: contracts/dto.ts (SmartSearchItem.aiRead), server/services/library-smart-search.ts, components/parts.tsx, components/Views.tsx, components/slidevault.css.
 Revisit trigger: the star and no-star boxes look too alike to tell apart, or most results show no star.
 ```
+
+Decision ID and title: FD-101 Phone pass 1: tooltip, feedback buttons, Filters button, landscape
+Status: proposed
+Decision date: 2026-11-10
+Decision owner/reviewer: Khushali (asked for it)
+Context and evidence: A look at the phone layout (393 wide, portrait and landscape) found: the (i) tip under "Best of the Best" ran off the right edge and said "Row names TBD."; "Not useful" broke across two lines on narrow Saved cards; the floating Filters button sat on top of card text; a phone turned sideways showed a tagline and a large gap above the search, and the slide preview was a thin strip.
+Options considered: for the Filters button, a faded strip versus a plain solid strip; chose the plain strip so no slide shows behind or beside it.
+Chosen outcome: the tip opens at the row's left edge and is never wider than the row; copy is "Hand-picked slides."; Useful / Not useful keep each label on one line and the pair wraps on narrow cards; the Filters button sits on a plain strip with a thin bottom line; on a landscape phone the tagline is hidden, the gap above the search is smaller and the preview shows the slide on the left and its details on the right; the preview has a soft edge that shows it scrolls.
+Consequences for scope, cost, security and integration: CSS and markup only; no data or API change.
+Acceptance evidence / affected PR criteria: typecheck and lint pass; checked in Chrome at 393x852 and 852x393. Not checked on a real phone, in dark mode or on tablet.
+Documents/contracts changed: components/FilterBar.tsx, components/Views.tsx, components/slidevault-extras.css, app/slide-vault/shell.module.css.
+Revisit trigger: on a real phone the strip hides too much, or landscape results still start below the fold.
+
+Decision ID and title: FD-102 Phone pass 2: scrolling card tags, a calmer top, a bigger preview
+Status: proposed
+Decision date: 2026-11-10
+Decision owner/reviewer: Khushali (asked for it)
+Context and evidence: On a phone, card tags and the client line were cut to a few letters, the Storyboard button was as large as the search bar, rows that scroll sideways gave no sign of it, the slide preview was small with arrows on the picture, and an orange ring circled the Draft deck tab.
+Options considered: "+N tap to expand" on phone cards versus letting the tag row scroll; chose the scroll, because every tag is then readable in full and nothing needs opening.
+Chosen outcome: phone cards show all tags in one sideways-scrolling row and the client line wraps to two lines; the search bar has its own row, with the AI tick, the eye and a small Storyboard button under it; rows that scroll sideways fade on the hidden side; the search text ends in an ellipsis; the preview has result arrows beside the title (title clamps to two lines, tap to open), deck arrows under the picture, tap the slide to see it full screen (pinch, double-tap, drag, plus + and - buttons), one scrolling line of suggested tags, a Save heart on phones, and "Also in N other decks"; the orange ring on the phone Draft deck tab is replaced by a single pop of its count; sideways-scroll arrows are hidden on touch screens; the Save heart on cards is 4px larger on touch screens. Desktop and tablet card tags are unchanged ("+N").
+Consequences for scope, cost, security and integration: CSS and client markup only; no data or API change. The ring still shows on the desktop and tablet Draft deck pill.
+Acceptance evidence / affected PR criteria: typecheck and lint pass; checked in Chrome at 393x852, with a sanity look at 1280 and 820 wide. The two-finger pinch and the browser tests (which need a production build) were not run; not checked on a real phone or in dark mode.
+Documents/contracts changed: components/TagBits.tsx, FilterBar.tsx, Views.tsx, StoryLauncher.tsx, Dialogs.tsx, SlideVaultWorkspace.tsx, Tour.tsx, edge-fade.ts (new), slidevault-extras.css.
+Revisit trigger: users miss the "+N" on phone cards, or the full-screen viewer's pinch feels off on a real phone.
+
+Decision ID and title: FD-103 Phone passes 3 to 14: preview, slide page, deck page, results, draft deck, Upload, tour
+Status: proposed
+Decision date: 2026-11-11
+Decision owner/reviewer: Khushali (asked for each change)
+Context and evidence: A senior-designer look at the phone layout (393x852, portrait and landscape) found crowded screens, cut-off text and tooltips, tiny tap targets and wordy copy. Changes were made screen by screen, checked in Chrome at phone size after each.
+Options considered: automatic drag-to-select versus hold-and-drag (chosen for later, not built: automatic drag fights scrolling); "+N" tap-to-expand tags versus a sideways-scrolling tag row (chose scrolling on phones); a side draft deck versus a bottom sheet (chose a bottom sheet on phones).
+Chosen outcome: Preview: fixed height, typeable result and deck numbers, header icons (heart, share, close, also-in count), title opens the slide page, full-screen pinch-zoom viewer, compact Add / Download bar at the bottom. Slide page: edge-to-edge slide with corner buttons, swipe between slides, folding About / Details / Slide text cards. Deck page: shorter header, one-row actions with a "⋯" menu, numbered cards, sticky "Go to slide" bar, add a range, one or two across (remembered). Results: quieter top (no Try pills, AI tick and eye in the filter row, Storyboard hidden, count in the heading), one column toggle used everywhere, "Add all" removed from results, sticky count and sort bar, Why it fits clamped on phones. Draft deck: bottom sheet, count always on the tab, "Added · View · Undo" message. My decks: swipe a draft to delete, with a confirm card; first name from the sign-in. Upload: shorter copy, "auto" marks, form shown after a file is chosen. Tour: shorter, fixed a pause after the draft deck step. Back from a slide or deck returns to the same scroll position.
+Consequences for scope, cost, security and integration: client markup and CSS, with small client-only stores (results summary, scroll memory, remembered layout). No data, API or database change.
+Acceptance evidence / affected PR criteria: typecheck and lint pass; each screen checked in Chrome at 393 wide. Not run: browser tests (need a production build), dark mode, a real phone, tablet after the later passes.
+Documents/contracts changed: components under features/slide-vault/components, client/ (first-name, results-summary), app/slide-vault (header, shell css).
+Revisit trigger: real-phone testing shows tap targets, the bottom sheet or swipe gestures need changes; hold-and-drag select is built.
+

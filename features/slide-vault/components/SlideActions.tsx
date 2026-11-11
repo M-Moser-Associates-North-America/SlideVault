@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from 'react';
 import { sendSearchFeedback } from '../client/api';
 import { EngageUnavailable, useEngagement, type EngageApi } from '../client/engage-store';
 import { currentStoryRole } from '../client/role-store';
@@ -151,11 +151,11 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
   /* The Storyboard's Useful / Not useful row (same classes): ticks and crosses, small capitals, one on each side of a card. */
   return (
     <div className={`sb-verdict fb-verdict${small ? ' is-small' : ''}`} role="group" aria-label="Is this slide useful for your search?">
-      <button type="button" className="sb-icon-btn" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Useful: ranks this slide higher in similar searches." data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(1)}>
+      <button type="button" className="sb-icon-btn" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Ranks this higher in similar searches." data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(1)}>
         <Icon name="check" className="ic-sm" />
         Useful
       </button>
-      <button type="button" className="sb-icon-btn" aria-pressed={shown === -1} aria-label="Not useful for this search" data-tip="Not useful: ranks this slide lower in similar searches." data-tip-pos={small ? 'up end' : undefined} onClick={() => cast(-1)}>
+      <button type="button" className="sb-icon-btn" aria-pressed={shown === -1} aria-label="Not useful for this search" data-tip="Ranks this lower in similar searches." data-tip-pos={small ? 'up end' : undefined} onClick={() => cast(-1)}>
         <Icon name="x" className="ic-sm" />
         Not useful
       </button>
@@ -190,7 +190,7 @@ export function ShareIconButton({ slideId }: { slideId: string }) {
 }
 
 /** The full bar: vote pill, comments, Share (the slide page has Share in its Use this slide card instead: noShare). */
-export function SlideActions({ slide, commentsOpen, onComments, noShare }: { slide: SlideSummary; commentsOpen?: boolean; onComments: () => void; noShare?: boolean }) {
+export function SlideActions({ slide, commentsOpen, onComments, noShare, trailing }: { slide: SlideSummary; commentsOpen?: boolean; onComments: () => void; noShare?: boolean; /** something at the far end of the bar (the slide page's "also in other decks" icon) */ trailing?: ReactNode }) {
   const { runtime } = useWorkspace();
   const engage = useEngagement(runtime, slide);
   const share = useShareSlide(slide.id);
@@ -210,17 +210,18 @@ export function SlideActions({ slide, commentsOpen, onComments, noShare }: { sli
           <span>Share</span>
         </button>
       )}
+      {trailing}
     </div>
   );
 }
 
 /** The slide page: the bar, and the comments opening under it. */
-export function SlideEngagement({ slide, loaded }: { slide: SlideSummary; loaded?: SlideDetail | null }) {
+export function SlideEngagement({ slide, loaded, trailing }: { slide: SlideSummary; loaded?: SlideDetail | null; trailing?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const merged = loaded ? { ...slide, votes: loaded.votes ?? slide.votes, commentCount: loaded.commentCount ?? slide.commentCount } : slide;
   return (
     <>
-      <SlideActions slide={merged} commentsOpen={open} onComments={() => setOpen((o) => !o)} noShare />
+      <SlideActions slide={merged} commentsOpen={open} onComments={() => setOpen((o) => !o)} noShare trailing={trailing} />
       {open && <CommentsSection slide={merged} />}
     </>
   );
@@ -311,7 +312,7 @@ function CommentsSection({ slide }: { slide: SlideSummary }) {
         {list === undefined ? (
           <li className="meta">Loading comments…</li>
         ) : list.length === 0 ? (
-          <li className="meta">No comments yet. Say how you used this slide, or what to watch for.</li>
+          <li className="meta">No comments yet.</li>
         ) : (
           list.map((c) => (
             <li key={c.id} className="comment">

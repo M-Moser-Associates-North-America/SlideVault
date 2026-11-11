@@ -1329,3 +1329,446 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="compact"] .home-hero-search > :not(.home-hero-field):not(.hid-wrap) { grid-column: 1 / -1; }
 .slidevault .sv-app[data-size="compact"] .home-hero-search .hid-wrap { width: 52px; height: 52px; }
 .slidevault .sv-app[data-size="compact"] .home-hero-field { padding-top: 3px; padding-bottom: 3px; }
+
+/* ---- Phone pass 1 (FD-99) ---- */
+/* The (i) tip under a row title opens at the row's left edge and is never wider than the row, so it can't run off the screen. */
+.slidevault .sv-app[data-size="compact"] .row-head { position: relative; }
+.slidevault .sv-app[data-size="compact"] .row-title, .slidevault .sv-app[data-size="compact"] .row-info { position: static; }
+.slidevault .sv-app[data-size="compact"] .row-info[data-tip]::after { left: 0; right: auto; transform: none; width: max-content; max-width: min(280px, 100%); }
+/* Useful / Not useful on a narrow card: each label stays on one line; the pair wraps to a second line if it must. */
+.slidevault .fb-verdict .sb-icon-btn { white-space: nowrap; }
+/* The Filters button that stays on a phone once the row has scrolled away sits on its own plain strip, so slides never show behind or beside it. */
+.slidevault .fb-pin-bar { display: none; }
+.slidevault .sv-app[data-size="compact"] .fb-pin-bar { display: flex; justify-content: flex-end; position: absolute; top: 0; left: 0; right: 0; z-index: 45; padding: 8px 16px; background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); }
+.slidevault .sv-app[data-size="compact"] .fb-pin-bar .fb-pin { position: static; box-shadow: none; }
+/* The preview window scrolls: a soft edge at the bottom shows there is more below. */
+@media (max-width: 700px) {
+  .slidevault dialog.sv-dialog.wide .dlg-body {
+    background:
+      linear-gradient(var(--sv-surface) 30%, transparent) top / 100% 24px no-repeat local,
+      linear-gradient(transparent, var(--sv-surface) 70%) bottom / 100% 24px no-repeat local,
+      radial-gradient(farthest-side at 50% 0, color-mix(in srgb, var(--sv-text) 16%, transparent), transparent) top / 100% 8px no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, color-mix(in srgb, var(--sv-text) 16%, transparent), transparent) bottom / 100% 8px no-repeat scroll;
+  }
+}
+/* A phone turned sideways: the slide on the left, everything about it on the right, and no tagline or big gap above the search. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .slidevault .home-hero { padding-top: 14px; }
+  dialog.slidevault.sv-dialog.wide { width: min(calc(var(--sv-w, 852px) - 24px), 920px); }
+  .slidevault dialog.sv-dialog.wide .dlg-body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); column-gap: 18px; align-content: start; background: none; }
+  .slidevault dialog.sv-dialog.wide .dlg-body > * { grid-column: 2; }
+  .slidevault dialog.sv-dialog.wide .dlg-body > .lb-row { grid-column: 1; grid-row: 1 / span 30; position: sticky; top: 0; align-self: start; }
+  .slidevault dialog.sv-dialog.wide .lb-stage { max-height: calc(var(--sv-h, 393px) - 110px); }
+  .slidevault dialog.sv-dialog.wide .lb-deck { display: none; }
+  .slidevault dialog.sv-dialog.wide .lb-caption { position: static; }
+}
+
+/* ---- Phone pass 2 (FD-100) ---- */
+/* A row that scrolls sideways fades on the side where more is hidden (edge-fade.ts sets data-fade). */
+.slidevault [data-fade~="end"]:not([data-fade~="start"]) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.slidevault [data-fade~="start"]:not([data-fade~="end"]) { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
+.slidevault [data-fade="start end"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
+/* The search text ends in an ellipsis instead of being cut mid-letter. */
+.slidevault .home-hero-field input, .slidevault .fb-search input { text-overflow: ellipsis; }
+
+/* Card tags on a phone: all of them, in one row that scrolls sideways, each in full. */
+.slidevault .vcard .tags-compact.is-scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }
+.slidevault .vcard .tags-compact.is-scroll::-webkit-scrollbar { display: none; }
+.slidevault .vcard .tags-compact.is-scroll .tag { flex: none; max-width: none; }
+/* Client, year and project type: up to two lines instead of one cut-off line. */
+.slidevault .sv-app[data-size="compact"] .card-body .meta.clip { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+/* Phone: the search bar has its own full row; under it the AI tick, the eye and a small Storyboard button share one row. */
+.slidevault .sv-app[data-size="compact"] .home-hero-search { grid-template-columns: minmax(0, 1fr); }
+.slidevault .fb-tools { position: relative; display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+.slidevault .fb-tools .hid-wrap { position: static; }
+.slidevault .fb-tools .hid-tip { left: 0; right: auto; width: min(280px, 100%); }
+.slidevault .fb-tools .hid-toggle { width: 40px; height: 40px; box-shadow: none; }
+.slidevault .fb-tools .sb-launch { width: auto; z-index: auto; }
+.slidevault .fb-tools .btn.sb-launch-btn { height: 36px; padding: 0 14px 0 12px; font-size: 13px; font-weight: 600; width: auto; box-shadow: none; }
+.slidevault .fb-tools .sb-launch-btn .sb-new { top: -3px; right: -3px; width: 10px; height: 10px; padding: 0; overflow: hidden; font-size: 0; color: transparent; background: var(--sv-brand); border: 2px solid var(--sv-bg); }
+
+/* Phone: the Draft deck count pops once when it changes (replaces the orange ring on the bottom tab). */
+@media (prefers-reduced-motion: no-preference) {
+  .slidevault .sv-bottombar .bb-n { animation: bbBump 0.24s ease-out; }
+}
+@keyframes bbBump { 0% { transform: scale(0.6); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+/* Touch screens: the sideways-scroll arrows are not needed (swipe), and the Save heart is a little bigger. */
+@media (hover: none) and (pointer: coarse) {
+  .slidevault .row-head .acts .btn-icon { display: none; }
+  .slidevault .fb-verdict .sb-icon-btn[data-tip]::after { display: none; }
+  .slidevault .save-tg { width: 32px; height: 32px; }
+  .slidevault .save-tg .ic { width: 17px; height: 17px; }
+}
+
+/* The slide preview on a phone. */
+.slidevault .lb-zoom, .slidevault .lb-rnav, .slidevault .lb-save { display: none; }
+.slidevault .lb-save.is-saved { color: var(--sv-brand); }
+.slidevault .lb-save.is-saved .ic { fill: currentColor; }
+.slidevault .lb-also { margin-top: 10px; }
+@media (max-width: 700px) {
+  .slidevault .lb-save, .slidevault .lb-rnav { display: inline-grid; }
+  .slidevault .lb-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "tools tools tools" "prev title next"; align-items: center; gap: 0 4px; padding: 8px 12px 6px; }
+  .slidevault .lb-head .dlg-head-tools { grid-area: tools; justify-self: end; }
+  .slidevault .lb-head > .lb-rnav:first-child { grid-area: prev; }
+  .slidevault .lb-head > .lb-rnav:not(:first-child) { grid-area: next; }
+  .slidevault .lb-title { grid-area: title; min-width: 0; }
+  .slidevault .lb-title h2 { font-size: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .slidevault .lb-title .meta { font-size: 12px; margin: 2px 0 0; white-space: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .slidevault .lb-title .meta::-webkit-scrollbar { display: none; }
+  /* Result by result moves to the arrows beside the title; the bar keeps only the count. */
+  .slidevault .lb-results .btn { display: none; }
+  .slidevault .lb-results { margin-bottom: 6px; }
+  .slidevault .lb-results .counter { margin: 0 auto 0 0; }
+  /* Tap the slide to see it full screen. */
+  .slidevault .lb-zoom { display: block; position: absolute; inset: 0; z-index: 1; border: 0; padding: 0; background: transparent; cursor: zoom-in; }
+  /* Deck arrows leave the picture and sit in a bar under it. */
+  .slidevault .lb-row { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "stage stage stage" "prev . next"; row-gap: 8px; align-items: center; }
+  .slidevault .lb-row > .lb-stage { grid-area: stage; }
+  .slidevault .lb-row > .lb-prev, .slidevault .lb-row > .lb-next { position: static; transform: none; width: 44px; height: 36px; border-radius: 999px; box-shadow: none; border: 1px solid var(--sv-border-strong); }
+  .slidevault .lb-row > .lb-prev { grid-area: prev; justify-self: start; }
+  .slidevault .lb-row > .lb-next { grid-area: next; justify-self: end; }
+  /* Suggested tags: one line, scrolling sideways. */
+  .slidevault .tag-suggested { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .slidevault .tag-suggested::-webkit-scrollbar { display: none; }
+  .slidevault .tag-suggested > * { flex: none; }
+}
+/* The full-screen slide. */
+dialog.slidevault.sv-zoom { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: #000; color: #fff; overflow: hidden; }
+dialog.slidevault.sv-zoom::backdrop { background: #000; }
+.slidevault .sv-zoom-stage { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; touch-action: none; user-select: none; }
+.slidevault .sv-zoom-stage img { width: 100%; height: 100%; object-fit: contain; transform-origin: center; will-change: transform; }
+.slidevault .sv-zoom-bar { position: absolute; top: 12px; right: 12px; z-index: 2; display: flex; gap: 8px; }
+.slidevault .sv-zoom-bar .btn { background: rgba(255, 255, 255, 0.92); color: #111; border-color: transparent; width: 44px; height: 44px; }
+.slidevault .sv-zoom-bar .btn:disabled { opacity: 0.45; }
+.slidevault .sv-zoom-hint { position: absolute; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; font-size: 13px; color: rgba(255, 255, 255, 0.75); pointer-events: none; }
+
+/* ---- Phone pass 3 ---- */
+.slidevault .fb-pin-bar { align-items: center; gap: 8px; }
+.slidevault .sv-app[data-size="compact"] .fb-pin-bar .fb-pin { margin-left: auto; }
+.slidevault .fb-pin-bar .hid-tip { display: none; }
+.slidevault .tag-addrow { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; min-width: 0; }
+.slidevault .tag-addrow > .tag-suggested { flex: 1 1 0; min-width: 0; margin-top: 0; }
+.slidevault .tag-addrow > :first-child:not(.tag-suggested) { flex: none; }
+.slidevault .tag-addrow > .tag-suggested > .meta { white-space: nowrap; }
+.slidevault .lb-where { display: none; }
+@media (max-width: 700px) {
+  .slidevault .lb-row { grid-template-areas: "stage stage stage" "prev where next"; }
+  .slidevault .lb-where { display: block; grid-area: where; justify-self: center; font-size: 13px; font-weight: 600; color: var(--sv-text-secondary); white-space: nowrap; }
+  .slidevault .lb-caption .counter.is-dup { display: none; }
+  .slidevault .lb-head { row-gap: 14px; }
+  .slidevault .tag-addrow { align-items: center; }
+}
+
+/* ---- Phone pass 4: the slide page ---- */
+.slidevault .step-short, .slidevault .step-hidden-below { display: none; }
+.slidevault .sv-app[data-size="compact"] .slide-stepper { flex-wrap: nowrap; justify-content: space-between !important; gap: 8px !important; }
+.slidevault .sv-app[data-size="compact"] .slide-stepper-text { text-align: center; }
+.slidevault .sv-app[data-size="compact"] .step-long, .slidevault .sv-app[data-size="compact"] .step-hidden-inline { display: none; }
+.slidevault .sv-app[data-size="compact"] .step-short { display: inline; font-weight: 600; }
+.slidevault .sv-app[data-size="compact"] .step-hidden-below { display: block; margin: 8px 0 0; text-align: center; }
+/* The breadcrumb wraps onto a second line instead of running under the text beside it. */
+.slidevault .sv-app[data-size="compact"] .navgroup .crumbs { overflow: visible; }
+.slidevault .sv-app[data-size="compact"] .navgroup .crumbs ol { flex-wrap: wrap; overflow: visible; }
+.slidevault .sv-app[data-size="compact"] .navgroup .crumbs li { white-space: normal; overflow-wrap: anywhere; }
+.slidevault .sv-app[data-size="compact"] .navgroup .crumbs [aria-current] { display: inline; max-width: none; overflow: visible; text-overflow: clip; white-space: normal; }
+.slidevault .sv-app[data-size="compact"] .navgroup { flex-wrap: nowrap; align-items: flex-start; }
+.slidevault .sv-app[data-size="compact"] .navgroup .crumbs { flex: 1 1 0; }
+.slidevault .sv-app[data-size="compact"] .navgroup .back-results { padding-top: 1px; }
+
+/* ---- Phone pass 5: the preview ---- */
+.slidevault .tag-line { display: grid; gap: 10px; min-width: 0; }
+@media (max-width: 700px) {
+  /* All the tags in one row that scrolls sideways. */
+  .slidevault .tag-line { display: flex; align-items: center; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }
+  .slidevault .tag-line::-webkit-scrollbar { display: none; }
+  .slidevault .tag-line .tagrows, .slidevault .tag-line .tags-compact { display: contents; }
+  .slidevault .tag-line .tagrow, .slidevault .tag-line .tag { flex: none; max-width: none; }
+  .slidevault .tag-line .tag-t { max-width: none; }
+  /* The window is the same height for every slide; the buttons stay at the bottom and the details scroll. */
+  dialog.slidevault.sv-dialog.wide { height: min(calc(var(--sv-h, 100%) - 32px), 612px); }
+  .slidevault dialog.sv-dialog.wide .dlg-body { padding-inline: 16px; }
+}
+
+/* ---- Phone pass 6: the title opens the slide page; the buttons stay at the bottom ---- */
+.slidevault .lb-title-link { color: inherit; text-decoration: none; }
+.slidevault .lb-title-link:hover { text-decoration: underline; text-decoration-color: var(--sv-brand); text-underline-offset: 3px; }
+.slidevault .lbl-short { display: none; }
+@media (max-width: 700px) {
+  .slidevault .lb-title-link { text-decoration: underline; text-decoration-color: var(--sv-border-strong); text-underline-offset: 3px; }
+  .slidevault .lbl-long { display: none; }
+  .slidevault .lbl-short { display: inline; }
+  .slidevault .lb-caption .row-flex { display: flex; flex-wrap: nowrap; gap: 8px; width: 100%; }
+  .slidevault .lb-caption .row-flex > .btn { flex: 1 1 0; min-width: 0; justify-content: center; padding-inline: 10px; }
+  .slidevault .lb-caption .row-flex > .lb-open-deck { flex: none; width: 44px; padding-inline: 0; }
+  .slidevault .lb-caption .lb-open-page { display: none; }
+}
+/* Same bar, same place, for every slide: Add, Download, and a small Open deck button. */
+@media (max-width: 700px) and (orientation: portrait) {
+  .slidevault dialog.sv-dialog.wide[open] { display: flex; flex-direction: column; }
+  .slidevault dialog.sv-dialog.wide .dlg-head { flex: none; }
+  .slidevault dialog.sv-dialog.wide .dlg-body { flex: 1 1 auto; display: flex; flex-direction: column; padding-bottom: 0; }
+  .slidevault dialog.sv-dialog.wide .dlg-body > * { flex: none; }
+  .slidevault dialog.sv-dialog.wide .lb-caption { margin-top: auto; bottom: 0; padding: 10px 0 calc(12px + env(safe-area-inset-bottom)); }
+}
+/* With an extra "Pack" or "Section" button the row is tight, so the icons go and the words stay. */
+@media (max-width: 700px) {
+  .slidevault .lb-caption .row-flex:has(> .lb-pack, > .lb-section) > .btn:not(.lb-open-deck) .ic { display: none; }
+}
+
+/* ---- Phone pass 7: the preview header ---- */
+.slidevault .lb-also-chip { display: none; }
+@media (max-width: 700px) {
+  .slidevault .lb-also-chip { display: inline-flex; align-items: center; gap: 4px; min-width: 36px; padding: 0 8px; font-weight: 600; }
+  .slidevault .lb-also-chip .ic { width: 18px; height: 18px; }
+  .slidevault .lb-also { display: none; }
+  .slidevault .lb-results { justify-content: center; }
+  .slidevault .lb-results .counter { margin: 0 auto; text-align: center; }
+}
+
+/* ---- Phone pass 8: more room around the thumbnail ---- */
+@media (max-width: 700px) {
+  .slidevault .lb-results { margin: 6px 0 14px; }
+  .slidevault .lb-row { margin-bottom: 12px; }
+  .slidevault .fb-verdict { margin-top: 4px; }
+  .slidevault .lb-tags { margin-top: 14px; gap: 12px; }
+}
+
+/* ---- Phone pass 9: the slide page ---- */
+.slidevault .slide-actions .lb-also-chip { margin-left: auto; }
+.slidevault .sv-app[data-size="compact"] .slide-detail { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+.slidevault .sv-app[data-size="compact"] .slide-detail > div, .slidevault .sv-app[data-size="compact"] .stack-panels { display: contents; }
+.slidevault .sv-app[data-size="compact"] .slide-detail .big-preview { margin-top: 18px; }
+/* Cards below the slide, in this order: Use this slide, About this slide, Details, Text on the slide. */
+.slidevault .sv-app[data-size="compact"] .stack-panels > * { order: 1; margin-top: 16px; }
+.slidevault .sv-app[data-size="compact"] .stack-panels > .panel-about { order: 2; }
+.slidevault .sv-app[data-size="compact"] .stack-panels > .panel-details { order: 3; }
+.slidevault .sv-app[data-size="compact"] .slide-text-panel { order: 4; }
+.slidevault .sv-app[data-size="compact"] .slide-detail .lb-tags { margin-top: 14px; }
+
+/* ---- Phone pass 10: results, Useful / Not useful ---- */
+.slidevault .tag-suggested > .meta { font-style: italic; }
+/* No example searches above the results, on any screen. */
+.slidevault .home-try.in-results { display: none; }
+/* Useful / Not useful: tips open above the pair, as wide as the pair, so no card or window cuts them off. */
+.slidevault .fb-verdict { position: relative; }
+.slidevault .fb-verdict .sb-icon-btn[data-tip] { position: static; white-space: nowrap; }
+.slidevault .fb-verdict .sb-icon-btn[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; width: max-content; max-width: 100%; text-align: left; white-space: normal; }
+/* Wider screens: the pair sits in the middle with room between, away from the card's edges. */
+@media (min-width: 701px) {
+  .slidevault .fb-verdict, .slidevault .fb-verdict.is-small { justify-content: center; gap: 4px 32px; }
+}
+/* Phone: Useful at one side, Not useful at the other. */
+@media (max-width: 700px) {
+  .slidevault .fb-verdict, .slidevault .fb-verdict.is-small { flex-wrap: nowrap; justify-content: space-between; gap: 0 8px; }
+  .slidevault .fb-verdict.is-small .sb-icon-btn { font-size: 10.5px; letter-spacing: 0.05em; gap: 3px; }
+  .slidevault .fb-verdict.is-small .sb-icon-btn .ic-sm { width: 12px; height: 12px; }
+  /* By section pills scroll sideways. */
+  .slidevault .sec-pills { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .slidevault .sec-pills::-webkit-scrollbar { display: none; }
+  .slidevault .sec-pills > * { flex: none; }
+  /* Sort and "Add all" share one row. */
+  .slidevault .refine { flex-wrap: nowrap; gap: 8px; }
+  .slidevault .refine .spacer { display: none; }
+  .slidevault .refine > label { flex: none; }
+  .slidevault .refine > .btn { margin-left: auto; flex: none; }
+}
+@media (min-width: 701px) {
+  .slidevault .fb-verdict .sb-icon-btn[data-tip]::after { left: 50%; transform: translateX(-50%); max-width: min(100%, 320px); text-align: center; }
+}
+/* A narrow card (two across on a phone): the ticks and crosses go and the words stay, so both words fit on one line. */
+@media (max-width: 700px) { .slidevault .fb-verdict { flex: 1 1 0; min-width: 0; } }
+@container (max-width: 190px) { .slidevault .fb-verdict .sb-icon-btn .ic-sm { display: none; } }
+/* With the example searches gone, the results heading needs its own room under the filter row. */
+.slidevault .sv-app .sv-wrap > .page-head { margin-top: 22px; }
+
+/* The number you can type in, in "Result [1] of 95" and "Slide [68] of 75 in this deck". */
+.slidevault .num-jump { box-sizing: content-box; height: 24px; padding: 0 4px; margin: 0 2px; border: 1px solid var(--sv-border-strong); border-radius: 6px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; vertical-align: baseline; }
+.slidevault .num-jump:hover { border-color: var(--sv-text-secondary); }
+.slidevault .num-jump:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 1px; border-color: var(--sv-brand); }
+.slidevault .lb-where .num-jump { margin: 0 2px 0 0; }
+
+/* ---- Phone pass 11: the deck page ---- */
+.slidevault .more-menu { position: relative; }
+.slidevault .more-menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 230px; padding: 6px; display: grid; gap: 2px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: 12px; box-shadow: var(--sv-shadow-panel); }
+.slidevault .more-menu-item { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+.slidevault .more-menu-item:hover, .slidevault .more-menu-item:focus-visible { background: var(--sv-surface-sunken); }
+.slidevault .more-menu-item .ic { color: var(--sv-text-secondary); }
+.slidevault .deck-sticky { position: fixed; top: 0; left: 0; right: 0; z-index: 45; display: flex; align-items: center; gap: 10px; padding: 8px 16px; padding-top: calc(8px + env(safe-area-inset-top)); background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .deck-sticky .deck-jump-go { flex: 1; }
+.slidevault .slide-num { position: absolute; left: 8px; bottom: 8px; z-index: 2; min-width: 28px; padding: 3px 9px; border-radius: 999px; background: rgba(0, 0, 0, 0.62); color: #fff; font-size: 12px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; pointer-events: none; }
+.slidevault .deck-jump { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .deck-jump-view { display: inline-flex; gap: 6px; }
+.slidevault .deck-jump-view .btn[aria-pressed="true"] { background: var(--sv-surface-sunken); border-color: var(--sv-text); }
+.slidevault .sv-app[data-size="compact"] .deck-head h1 { font-size: 24px; line-height: 1.2; overflow-wrap: anywhere; }
+.slidevault .sv-app[data-size="compact"] .deck-badges { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin-top: 12px; }
+.slidevault .sv-app[data-size="compact"] .deck-badges::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="compact"] .deck-badges > * { flex: none; }
+.slidevault .sv-app[data-size="compact"] .deck-head .lede { margin-top: 10px; }
+.slidevault .sv-app[data-size="compact"] .deck-who { margin-top: 6px; flex-direction: column; gap: 2px; font-size: 13px; }
+.slidevault .sv-app[data-size="compact"] .deck-actions { margin-top: 14px; flex-wrap: nowrap; gap: 8px; }
+.slidevault .sv-app[data-size="compact"] .deck-actions > .btn:not(.btn-icon) { flex: 1 1 0; min-width: 0; justify-content: center; }
+.slidevault .sv-app[data-size="compact"] .deck-actions .more-menu { flex: none; }
+.slidevault .sv-app[data-size="compact"] .deck-tags { margin-top: 16px; }
+.slidevault .sv-app[data-size="compact"] .grid.is-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.slidevault .sv-app[data-size="compact"] .grid > [data-card] { scroll-margin-top: 12px; }
+.slidevault .sv-app[data-size="compact"] .deck-head > div { min-width: 0; max-width: 100%; }
+.slidevault .sv-app[data-size="compact"] .deck-head h1 { overflow-wrap: anywhere; word-break: break-word; }
+.slidevault .thumbwrap .slide-num ~ .pack-badge { left: 46px; }
+.slidevault .range-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface); font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .range-add .num-jump { width: 52px; height: 32px; }
+/* Pictures show a soft shimmer until they arrive, then fade in. */
+.slidevault .thumb img { opacity: 0; transition: opacity 0.25s ease-out, transform var(--sv-duration) var(--sv-ease-out); }
+.slidevault .thumb img.is-loaded { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .slidevault .thumb:has(> img:not(.is-loaded))::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sv-surface) 55%, transparent), transparent); transform: translateX(-100%); animation: sv-shimmer 1.4s ease-in-out infinite; pointer-events: none; }
+}
+.slidevault .meta-wrap[hidden] { display: none; }
+
+/* ---- Phone pass 12: the slide page ---- */
+.slidevault .sv-app[data-size="compact"][data-view="slide"] .deep-search { display: none; }
+.slidevault .sv-app[data-size="compact"] .hero-wrap { position: relative; margin: 14px -16px 0; }
+.slidevault .sv-app[data-size="compact"] .hero-wrap .big-preview { margin-top: 0; }
+.slidevault .sv-app[data-size="compact"] .hero-wrap .slide-stage { border-radius: 0; border-left: 0; border-right: 0; }
+.slidevault .hero-btn { position: absolute; z-index: 3; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 2px solid #fff; border-radius: 10px; background: rgba(0, 0, 0, 0.55); color: #fff; cursor: pointer; }
+.slidevault .hero-btn .ic { width: 18px; height: 18px; }
+.slidevault .hero-btn[aria-pressed="true"] { background: var(--sv-brand); border-color: var(--sv-brand); }
+.slidevault .hero-btn.is-saved .ic { fill: currentColor; }
+.slidevault .hero-add { top: 10px; left: 26px; }
+.slidevault .hero-corner { position: absolute; z-index: 3; top: 10px; right: 26px; display: flex; gap: 8px; }
+.slidevault .hero-corner .hero-btn { position: static; }
+.slidevault .hero-zoom { position: absolute; z-index: 3; right: 26px; bottom: 10px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: rgba(0, 0, 0, 0.55); color: #fff; pointer-events: none; }
+.slidevault .hero-zoom .ic { width: 16px; height: 16px; }
+/* Cards that open and close (About, Details, Slide text). */
+.slidevault .fold { padding: 0; }
+.slidevault .fold > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 12px 18px; cursor: pointer; list-style: none; }
+.slidevault .fold > summary::-webkit-details-marker { display: none; }
+.slidevault .fold-text { display: grid; gap: 2px; min-width: 0; }
+.slidevault .fold-title { font-size: 17px; font-weight: 700; }
+.slidevault .fold-hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sv-text-secondary); font-size: var(--sv-text-small); }
+.slidevault .fold-chev { flex: none; transition: transform 0.15s; color: var(--sv-text-secondary); }
+.slidevault .fold[open] .fold-chev { transform: rotate(180deg); }
+.slidevault .fold[open] .fold-hint { display: none; }
+.slidevault .fold-body { padding: 0 18px 18px; }
+.slidevault .more-det { margin-top: 10px; }
+.slidevault .more-det > summary { cursor: pointer; font-weight: 600; font-size: var(--sv-text-small); color: var(--sv-text-secondary); min-height: 32px; display: flex; align-items: center; }
+.slidevault .sv-app[data-size="compact"] .slide-text-panel { margin-top: 16px; }
+
+/* The small "auto" mark on a field that was filled in from the file. */
+.slidevault .auto-tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--sv-brand-tint); color: var(--sv-brand-strong); font-size: 11px; font-weight: 700; letter-spacing: 0.03em; vertical-align: 1px; }
+
+/* ---- Phone pass 13: Home and results ---- */
+/* Only Filters, Year and Client sit in the row; the rest are in the Filters sheet. */
+.slidevault .sv-app[data-size="compact"] .fb-item:has([data-key="category"]), .slidevault .sv-app[data-size="compact"] .fb-item:has([data-key="slideType"]), .slidevault .sv-app[data-size="compact"] .fb-item:has([data-key="section"]) { display: none; }
+.slidevault .mic-soon { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; padding: 6px 12px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12.5px; font-weight: 500; white-space: nowrap; pointer-events: none; }
+.slidevault .pin-sum { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font-size: var(--sv-text-small); }
+.slidevault .pin-sort select { max-width: 150px; height: 34px; padding: 0 8px; border: 1px solid var(--sv-border); border-radius: 8px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-weight: 600; }
+.slidevault .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.slidevault .summary-row .summary { margin: 0; }
+.slidevault .why-more { display: none; }
+@media (max-width: 700px) {
+  .slidevault .matched { position: relative; }
+  .slidevault .matched .why-text { display: block; }
+  .slidevault .matched .why-text:not(.is-open) { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .slidevault .matched .why-more { display: grid; place-items: center; position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: none; color: var(--sv-text-secondary); cursor: pointer; }
+  .slidevault .matched .why-more .ic { width: 18px; height: 18px; transition: transform 0.15s; }
+  .slidevault .matched .why-more[aria-expanded="true"] .ic { transform: rotate(180deg); }
+}
+
+/* ---- Phone pass 13: the draft deck is a bottom sheet, half the screen ---- */
+.slidevault .sv-bottombar .bb-n.is-zero { background: var(--sv-surface-sunken); color: var(--sv-text-secondary); box-shadow: inset 0 0 0 1px var(--sv-border-strong); }
+@media (max-width: 700px) {
+  .slidevault .sv-app[data-size="compact"] .cart-col, .slidevault .sv-app[data-size="compact"] .cart-col:has(.cart-empty) {
+    top: auto; left: 0; right: 0; bottom: 0; width: 100%; height: min(62%, 560px);
+    border-left: 0; border-top: 1px solid var(--sv-brand); border-radius: 20px 20px 0 0;
+    box-shadow: 0 -12px 32px -12px rgba(10, 10, 12, 0.45);
+    transition: bottom 0.22s var(--sv-ease-out), visibility 0.22s;
+  }
+  .slidevault .sv-app[data-size="compact"] .cart-min .cart-col, .slidevault .sv-app[data-size="compact"] .cart-min .cart-col:has(.cart-empty) {
+    right: 0; bottom: -110%; visibility: hidden; box-shadow: none;
+  }
+  .slidevault .sv-app[data-size="compact"] .cart-head { padding-top: 16px; }
+}
+
+/* ---- Phone pass 13: working drafts swipe to delete; tap areas; viewer loading ---- */
+.slidevault .draft-list { overflow-x: clip; }
+.slidevault .draft-item { position: relative; touch-action: pan-y; }
+.slidevault .draft-item[data-swiping]::after { content: "Delete"; position: absolute; left: calc(100% + 8px); top: 0; bottom: 0; width: 120px; display: grid; place-items: center; border-radius: 14px; background: #b42318; color: #fff; font-weight: 700; font-size: 14px; }
+@media (pointer: coarse) {
+  .slidevault .save-tg::after { content: ""; position: absolute; inset: -6px; }
+  .slidevault .row-info, .slidevault .helpdot, .slidevault .also, .slidevault .tag { position: relative; }
+  .slidevault .row-info::before, .slidevault .helpdot::before, .slidevault .also::before { content: ""; position: absolute; inset: -6px; }
+  .slidevault .tag::before { content: ""; position: absolute; inset: -6px -3px; }
+}
+.slidevault .sv-zoom-stage img { opacity: 0; transition: opacity 0.25s ease-out; }
+.slidevault .sv-zoom-stage img.is-loaded { opacity: 1; }
+.slidevault .sv-zoom-wait { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+
+/* Results on a phone: the count sits right under "Add all", and the rows have room between them. */
+@media (max-width: 700px) {
+  .slidevault .refine { margin: 14px 0 8px; }
+  .slidevault .summary-row { flex-direction: row-reverse; align-items: flex-start; margin: 0 0 20px; }
+  .slidevault .summary-row .summary { text-align: right; }
+  .slidevault .sec-pills { margin-top: 0; }
+}
+@media (max-width: 700px) {
+  .slidevault .refine { flex-wrap: nowrap; gap: 8px; }
+  .slidevault .refine .refine-lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .slidevault .refine .select { max-width: 130px; }
+  .slidevault .refine > .deck-jump-view { flex: none; margin-left: auto; }
+  .slidevault .refine > .deck-jump-view + .btn { margin-left: 0; }
+  .slidevault .summary-row { justify-content: flex-end; flex-direction: row; margin-top: 8px; }
+}
+
+/* ---- Results page on a phone: a calmer top ---- */
+@media (max-width: 700px) {
+  .slidevault .sv-app[data-size="compact"] .sv-wrap.res-wrap > .page-head { margin-top: 10px; }
+  .slidevault .res-title { font-size: 18px; line-height: 1.3; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .slidevault .sv-main:has(.res-wrap) .fb-tools { margin-bottom: 6px; }
+  .slidevault .sv-main:has(.res-wrap) .fbar { padding-top: 6px; }
+  .slidevault .sv-main:has(.res-wrap) .fb-chips { margin-top: 6px; }
+  .slidevault .res-wrap .refine { margin-top: 10px; }
+  .slidevault .res-wrap .summary-row { margin: 6px 0 10px; }
+  .slidevault .res-wrap .sec-pills > .meta { display: none; }
+  .slidevault .res-wrap .sec-pills { margin: 0 0 12px; }
+}
+/* The count and its (i) sit left-aligned right under the heading; the Best match row comes after. */
+@media (max-width: 700px) {
+  .slidevault .sv-app[data-size="compact"] .res-wrap { display: flex; flex-direction: column; }
+  .slidevault .res-wrap > .page-head { order: -2; }
+  .slidevault .res-wrap > .summary-row { order: -1; justify-content: flex-start; margin: 4px 0 0; }
+  .slidevault .res-wrap > .summary-row .summary { text-align: left; }
+  .slidevault .res-wrap .refine { margin-top: 12px; }
+}
+
+/* ---- Phone pass 14: results, simpler ---- */
+.slidevault .cols-toggle { flex: none; }
+@media (max-width: 700px) {
+  /* The words "I'm looking for" go once there are results. */
+  .slidevault .home-hero.has-results .home-hero-prefix { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .slidevault .home-hero.has-results { padding-top: 14px; }
+  /* The AI tick and the eye live in the filter row. */
+  .slidevault .fbar-row .hid-wrap { flex: none; }
+  .slidevault .fbar-row .hid-toggle { width: 34px; height: 34px; box-shadow: none; }
+  .slidevault .fbar-row .hid-toggle .ic { width: 16px; height: 16px; }
+  .slidevault .fbar-row .hid-tip { display: none; }
+  /* Heading with the slide count; the old count line stays for screen readers only. */
+  .slidevault .res-title { display: flex; align-items: baseline; gap: 0; }
+  .slidevault .res-title .res-q { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slidevault .res-title .res-n { flex: none; white-space: pre; color: var(--sv-text-secondary); font-weight: 500; }
+  .slidevault .res-wrap > .summary-row { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  /* "Add all" is a plain link. */
+  .slidevault .res-wrap .refine > .btn:not(.cols-toggle) { border: 0; background: none; box-shadow: none; padding: 0 2px; min-height: 36px; color: var(--sv-brand-strong); text-decoration: underline; text-underline-offset: 3px; }
+  .slidevault .res-wrap .refine > .btn:not(.cols-toggle) .ic { display: none; }
+  /* Why it fits: one line in two-across cards; the arrow opens the rest. */
+  .slidevault .grid.is-dense .matched .why-text:not(.is-open) { -webkit-line-clamp: 1; }
+}
+/* One look for "on": the filter orange. Section pills rest neutral. */
+.slidevault .sec-pills .chip-x { background: var(--sv-surface); border-color: var(--sv-border-strong); color: var(--sv-text); }
+.slidevault .sec-pills .chip-x[aria-pressed="true"] { background: var(--sv-brand-tint); border-color: var(--sv-brand); font-weight: 600; }
+.slidevault .deck-sections .chip-x[aria-current="true"] { background: var(--sv-brand-tint); border-color: var(--sv-brand); }
+.slidevault .cols-toggle[aria-pressed] { background: var(--sv-surface); }
+
+/* The column button sits at the far right of the Best match row. */
+@media (max-width: 700px) { .slidevault .res-wrap .refine > .cols-toggle { margin-left: auto; } }

@@ -9,6 +9,7 @@ import type { DeckSummary, UploadDeckMeta, UploadPreview } from '../contracts/dt
 import { Icon } from './icons';
 import { plural } from './library';
 import { Link } from './parts';
+import { useWorkspaceCompact } from './size';
 import { useWorkspace } from './state';
 import { SuggestedTagChips } from './TagBits';
 import { TagField, type TagSuggestion } from './TagField';
@@ -53,6 +54,7 @@ function Bar({ label, done, total }: { label: string; done?: number; total?: num
  */
 export function UploadView() {
   const { runtime, reloadLibrary, announce } = useWorkspace();
+  const compact = useWorkspaceCompact();
   const [file, setFile] = useState<File | null>(null);
   const [reading, setReading] = useState<Reading>({ kind: 'none' });
   const [clientName, setClientName] = useState('');
@@ -278,7 +280,7 @@ export function UploadView() {
   /* Only what is still there: a tag the person removed is no longer "filled in". */
   const autoDeck = filledTags ? filledTags.deck.filter((t) => tags.some((x) => x.toLowerCase() === t.toLowerCase())) : [];
   const autoSlideN = filledTags ? Object.entries(filledTags.slides).reduce((n, [k, list]) => n + list.filter((t) => (slideTags[Number(k)] ?? []).some((x) => x.toLowerCase() === t.toLowerCase())).length, 0) : 0;
-  const autoSaid = filledTags?.source === 'ai' ? 'Filled in from the AI (please check).' : 'Filled in from similar slides (please check).';
+  const autoSaid = filledTags?.source === 'ai' ? 'AI suggested these.' : 'Suggested from similar slides.';
   useEffect(() => {
     lastTags.current = { deck: deckTags, slides: slideTags };
   });
@@ -368,7 +370,7 @@ export function UploadView() {
     setTimeout(() => otherBtnRef.current?.focus(), 0);
   };
   const hintFor = (key: DetailKey) =>
-    auto[key] ? `Filled in from ${auto[key]}. Check it and change it if it's wrong.` : looked.includes(key) ? `We couldn't find this in the file. Please add it yourself.` : null;
+    auto[key] ? null : looked.includes(key) ? 'Not found in the file. Please add it.' : null;
   const filled = (Object.keys(auto) as DetailKey[]).map((k) => DETAIL_LABEL[k].toLowerCase());
   const notFound = looked.filter((k) => !(k in auto)).map((k) => DETAIL_LABEL[k].toLowerCase());
 
@@ -460,7 +462,7 @@ export function UploadView() {
         Upload a deck
       </h1>
       <p className="lede muted" style={{ marginTop: 4 }}>
-        A .pptx goes in unchanged, gets split into slides with thumbnails, and shows up in the library.
+        Add a .pptx to the library.
       </p>
 
       <form onSubmit={submit} noValidate style={{ marginTop: 14 }}>
@@ -480,7 +482,7 @@ export function UploadView() {
         >
           <Icon name="upload" className="ic-big" />
           <p style={{ margin: '8px 0 12px' }}>
-            <strong>{file ? file.name : 'Drop a .pptx here, or choose one'}</strong>
+            <strong>{file ? file.name : compact ? 'Choose a .pptx' : 'Drop a .pptx here, or choose one'}</strong>
           </p>
           <label htmlFor={`${fieldId}-file`} className="btn btn-sm">
             {file ? 'Choose a different file' : 'Choose file'}
@@ -503,8 +505,9 @@ export function UploadView() {
             <div className="notice info" style={{ marginTop: 14 }}>
               <Icon name="info" />
               <span className={notFound.length > 0 ? 'up-todo' : 'up-ok'}>
-                {filled.length > 0 && `We filled in ${list(filled)} from your file. Please check ${filled.length > 1 ? 'them' : 'it'}; you can change anything. `}
-                {notFound.length > 0 && (filled.length || notFound.length < 3 ? `We couldn't find ${list(notFound)}: please add ${notFound.length > 1 ? 'those' : 'that'} yourself.` : `We couldn't read the client, year or category from this file, so the details below are incomplete. Please fill them in yourself.`)}
+                {filled.length > 0 && `Filled from your file: ${list(filled)}. Please check.`}
+                {filled.length > 0 && notFound.length > 0 && ' '}
+                {notFound.length > 0 && (filled.length || notFound.length < 3 ? `Please add: ${list(notFound)}.` : `Couldn't read the client, year or category. Please fill them in.`)}
               </span>
             </div>
           )}
@@ -523,13 +526,13 @@ export function UploadView() {
           </div>
         )}
 
-        <p className="field-hint" style={{ marginTop: 14 }}>
-          <span className="req" aria-hidden="true">*</span> Required
-        </p>
-        <div className="form-grid" style={{ marginTop: 8 }}>
+        {(!compact || file) && (
+        <>
+        <div className="form-grid" style={{ marginTop: 14 }}>
           <div className="field">
             <label htmlFor={`${fieldId}-client`}>
               Client <span className="req" aria-hidden="true">*</span>
+              {auto.client && <span className="auto-tag">auto</span>}
             </label>
             <input id={`${fieldId}-client`} type="text" className="input" value={clientName} onChange={(e) => edit('client', setClientName, e.target.value)} placeholder="e.g. Harbor Bank" required aria-required="true" aria-invalid={clientError ? true : undefined} aria-describedby={clientError || hintFor('client') ? `${fieldId}-client-hint` : undefined} />
             {(clientError || hintFor('client')) && <p id={`${fieldId}-client-hint`} className={`field-hint${clientError || !auto.client ? ' is-missing' : ' is-auto'}`}>{clientError ?? hintFor('client')}</p>}
@@ -537,6 +540,7 @@ export function UploadView() {
           <div className="field">
             <label htmlFor={`${fieldId}-year`}>
               Year <span className="req" aria-hidden="true">*</span>
+              {auto.year && <span className="auto-tag">auto</span>}
             </label>
             <input id={`${fieldId}-year`} type="text" inputMode="numeric" autoComplete="off" maxLength={4} className="input" value={deckYear} onChange={(e) => edit('year', setDeckYear, e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026" required aria-required="true" aria-invalid={yearError ? true : undefined} aria-describedby={yearError || hintFor('year') ? `${fieldId}-year-hint` : undefined} />
             {(yearError || hintFor('year')) && <p id={`${fieldId}-year-hint`} className={`field-hint${yearError || !auto.year ? ' is-missing' : ' is-auto'}`}>{yearError ?? hintFor('year')}</p>}
@@ -595,10 +599,10 @@ export function UploadView() {
                 </button>
               </div>
             )}
-            <p className="field-hint">Pick all that apply. The first one you pick is the main category; any others are saved as deck tags so they&rsquo;re still searchable.</p>
+            <p className="field-hint">Pick the main one first. Others become tags.</p>
             {hintFor('category') && <p className={`field-hint${auto.category ? ' is-auto' : ' is-missing'}`}>{hintFor('category')}</p>}
           </div>
-          <TagField label="Deck tags" hint="Words people might search for, they apply to every slide in the deck." value={tags} onChange={setTags} suggestions={known} disabled={busy} auto={autoDeck} />
+          <TagField label="Deck tags" hint="Search words for the whole deck." value={tags} onChange={setTags} suggestions={known} disabled={busy} auto={autoDeck} />
           {autoDeck.length > 0 && <p className="field-hint is-auto full">{autoSaid} Remove any that don&rsquo;t fit.</p>}
           {sugg.deck.length > 0 && (
             <div className="full">
@@ -613,16 +617,19 @@ export function UploadView() {
           </div>
         </div>
 
+        </>
+        )}
+
         {pics.kind === 'ready' && pics.data.alreadyUploadedAs && (
           <div className="notice info" style={{ marginTop: 14 }}>
             <Icon name="info" />
-            <span>This exact file is already in the library as &ldquo;{pics.data.alreadyUploadedAs}&rdquo;. Uploading it again won&rsquo;t add a copy.</span>
+            <span>Already in the library as &ldquo;{pics.data.alreadyUploadedAs}&rdquo;. Uploading it again adds no copy.</span>
           </div>
         )}
-        {preview && autoSlideN > 0 && <p className="field-hint is-auto">{autoSaid} They are marked with a sparkle on the slides.</p>}
+        {preview && autoSlideN > 0 && <p className="field-hint is-auto">{autoSaid} <Icon name="sparkle" className="ic-sm" /> marks them.</p>}
         {preview && <UploadSlideGrid autoTags={filledTags?.slides} deckTags={deckTags} pictures={pics.kind === 'ready' ? Object.fromEntries(pics.data.slides.map((x) => [x.number, runtime.assetUrl(x.previewPath)])) : undefined} drawing={pics.kind === 'drawing'} slides={preview.slides} tags={slideTags} onTags={setSlideTags} suggestions={known} suggested={sugg.slides} disabled={busy} />}
 
-        <div className="upsubmit">
+        <div className="upsubmit" hidden={compact && !file}>
           {busy ? (
             <Bar label={state.step} done={state.done} total={state.total} />
           ) : (
@@ -640,9 +647,13 @@ export function UploadView() {
           <div className="notice info" style={{ marginTop: 14 }}>
             <Icon name="info" />
             <span>
-              {state.deck.alreadyUploaded ? `“${state.deck.title}” was already in the library` : `“${state.deck.title}” uploaded`}, {state.deck.slideCount} {state.deck.slideCount === 1 ? 'slide' : 'slides'} ready.
-              {state.deck.addedDetails?.length ? ` Added: ${state.deck.addedDetails.join(', ')}.` : ''}
-              {state.tagNote ? ` ${state.tagNote}` : ''} <Link to={{ view: 'deck', id: state.deck.id }}>Open the deck</Link>
+              {state.deck.alreadyUploaded ? `“${state.deck.title}” was already in the library` : `“${state.deck.title}” uploaded`} · {plural(state.deck.slideCount, 'slide')}.
+              {state.tagNote ? ` ${state.tagNote}` : ''}{' '}
+              <Link to={{ view: 'deck', id: state.deck.id }}>Open the deck</Link>
+              {' · '}
+              <button type="button" className="btn-link" onClick={() => document.getElementById(`${fieldId}-file`)?.click()}>
+                Upload another
+              </button>
             </span>
           </div>
         )}

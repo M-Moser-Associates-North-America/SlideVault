@@ -345,3 +345,11 @@
     font-style: italic;
   }
 }
+
+/* A phone turned sideways has little height: drop the tagline so results start higher. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .tagline {
+    display: none;
+  }
+}
+

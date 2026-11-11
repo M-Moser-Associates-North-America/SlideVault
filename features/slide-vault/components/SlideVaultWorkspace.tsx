@@ -1,7 +1,6 @@
 'use client';
 
-import { startNudges, stopNudge, useNudge } from '../client/draft-nudge';
-import { useTourOpen } from '../client/tour-store';
+import { startNudges, stopNudge } from '../client/draft-nudge';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
 import { Cart, CartPill, focusDraftOpener } from './Cart';
@@ -116,6 +115,24 @@ function Workspace({ header }: { header?: ReactNode }) {
     if (latestToast) announce(latestToast.message);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latestToastId]);
+  /* Where each page was scrolled to, so going back can return there. */
+  const scrollMemory = useRef(new Map<string, number>());
+  const memoryKey = useRef(key);
+  const keyChangedAt = useRef(0);
+  useEffect(() => {
+    memoryKey.current = key;
+    keyChangedAt.current = performance.now();
+  }, [key]);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const on = () => {
+      /* Right after a page change the browser may nudge the scroll position; that isn't the person scrolling. */
+      if (performance.now() - keyChangedAt.current > 300) scrollMemory.current.set(memoryKey.current, el.scrollTop);
+    };
+    el.addEventListener('scroll', on, { passive: true });
+    return () => el.removeEventListener('scroll', on);
+  }, [scrollRef, profile]);
   if (view === 'upload' && !uploadSeen) setUploadSeen(true);
   useEffect(() => {
     const was = previousView.current;
@@ -128,7 +145,18 @@ function Workspace({ header }: { header?: ReactNode }) {
     }
     /* Stepping through a deck slide by slide keeps the page where it is; the slide itself slides. */
     if (was === 'slide' && view === 'slide') return;
-    scrollRef.current?.scrollTo(0, 0);
+    /* Going back up (a slide to its deck or to the results, a deck to the results): the page goes back to where it was.
+       The content may still be loading, so it is tried a few times. */
+    const rank = (v: string) => (v === 'slide' ? 2 : v === 'deck' ? 1 : 0);
+    const saved = scrollMemory.current.get(key) ?? 0;
+    if (saved > 0 && rank(view) < rank(was)) {
+      [0, 150, 400, 800].forEach((ms) =>
+        setTimeout(() => {
+          const el = scrollRef.current;
+          if (el && Math.abs(el.scrollTop - saved) > 2 && el.scrollHeight >= saved) el.scrollTo(0, saved);
+        }, ms),
+      );
+    } else scrollRef.current?.scrollTo(0, 0);
     /* The first heading that is showing: a hidden, kept-alive Upload page has one too. */
     Array.from(mainRef.current?.querySelectorAll<HTMLElement>('h1') ?? [])
       .find((h) => !h.closest('[hidden]'))
@@ -161,7 +189,7 @@ function Workspace({ header }: { header?: ReactNode }) {
 
   return (
     <RootContext.Provider value={root}>
-    <div className="sv-app" ref={appRef} data-nav="bottom">
+    <div className="sv-app" ref={appRef} data-nav="bottom" data-view={view}>
       <div className="sv-scroll" ref={scrollRef}>
       {header}
       <div className="sv-top">
@@ -215,7 +243,8 @@ function Workspace({ header }: { header?: ReactNode }) {
                 {showBack && (
                   <Link className="back-results btn-link" to={{ view: 'pages' }}>
                     <Icon name="back" className="ic-sm" />
-                    Back to results
+                    <span className="lbl-long">Back to results</span>
+                    <span className="lbl-short" aria-label="Back to results">Results</span>
                   </Link>
                 )}
               </div>
@@ -262,18 +291,20 @@ function Workspace({ header }: { header?: ReactNode }) {
         {toasts.map((t) => (
           <div key={t.id} className="toast">
             <span className="msg">{t.message}</span>
-            {t.action && (
-              <button
-                type="button"
-                className="btn-link toast-act"
-                onClick={() => {
-                  t.action?.run();
-                  dismissToast(t.id);
-                }}
-              >
-                {t.action.label}
-              </button>
-            )}
+            {t.action &&
+              (Array.isArray(t.action) ? t.action : [t.action]).map((a) => (
+                <button
+                  key={a.label}
+                  type="button"
+                  className="btn-link toast-act"
+                  onClick={() => {
+                    a.run();
+                    dismissToast(t.id);
+                  }}
+                >
+                  {a.label}
+                </button>
+              ))}
             <button type="button" className="x" aria-label="Dismiss message" onClick={() => dismissToast(t.id)}>
               <Icon name="x" />
             </button>
@@ -304,8 +335,6 @@ function Workspace({ header }: { header?: ReactNode }) {
  */
 function BottomBar({ view, deep }: { view: string; deep: boolean }) {
   const { runtime, selection, cartMin, setCartMin } = useWorkspace();
-  const touring = useTourOpen();
-  const nudge = useNudge('draft') && !touring;
   const n = selection.length;
   return (
     <nav className="sv-bottombar" aria-label="Main">
@@ -330,7 +359,7 @@ function BottomBar({ view, deep }: { view: string; deep: boolean }) {
         <li>
           <button
             type="button"
-            className={`bb-deck${nudge ? ' is-nudge' : ''}`}
+            className="bb-deck"
             aria-expanded={!cartMin}
             aria-label={n ? `Draft deck, ${n} ${n === 1 ? 'slide' : 'slides'}` : 'Draft deck'}
             onClick={() => {
@@ -342,11 +371,9 @@ function BottomBar({ view, deep }: { view: string; deep: boolean }) {
           >
             <Icon name="layers" />
             <span>Draft deck</span>
-            {n > 0 && (
-              <span className="bb-n" aria-hidden="true">
-                {n}
-              </span>
-            )}
+            <span className={`bb-n${n === 0 ? ' is-zero' : ''}`} key={n} aria-hidden="true">
+              {n}
+            </span>
           </button>
         </li>
       </ul>

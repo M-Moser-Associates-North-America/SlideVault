@@ -7,7 +7,7 @@ import { DeckTags, SlideLabelsPanel, SlideTagsPanel } from './TagBits';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { getSlide } from '../client/api';
 import type { SlideDetail, SlideSummary } from '../contracts/dto';
-import { Icon } from './icons';
+import { Icon, type IconName } from './icons';
 import {
   browseSlides,
   browseTitle,
@@ -31,11 +31,18 @@ import {
 } from './library';
 import { findDecks } from './deck-finder';
 import { GroupTool, PackPanel } from './Packs';
-import { DeckCard, Link, SkeletonGrid, SkeletonRows, SlideCard, StateBlock, Thumb, useCartToggle } from './parts';
+import { DeckCard, Link, SkeletonGrid, SkeletonRows, SlideCard, StateBlock, Thumb, useCartToggle, useSavedToggle } from './parts';
+import { FoldPanel } from './fold-panel';
 import { MicButton } from './MicButton';
 import { TRY_QUERIES } from './Rail';
 import { FilterBar } from './FilterBar';
 import { setHeroOut } from '../client/hero-visibility';
+import { setResultsSummary } from '../client/results-summary';
+import { useEdgeFade } from './edge-fade';
+import { ScrollRow } from './scroll-row';
+import { PreviewTags } from './TagBits';
+import { NumberJump } from './Dialogs';
+import { useWorkspaceCompact } from './size';
 import { useTipSeen } from '../client/tip-store';
 import { HiddenToggle } from './HiddenToggle';
 import { shownInFilterRow, withoutChip } from './search-reading';
@@ -206,17 +213,19 @@ function useTypewriter(phrases: string[], active: boolean): string {
 
 /** The "Try" example searches, shown under the search and filter card. */
 function HomeTry() {
-  const { query, typeQuery, submitSearch, runtime } = useWorkspace();
+  const { query, typeQuery, submitSearch, runtime, searched } = useWorkspace();
   const search = (q: string) => {
     typeQuery(q);
     submitSearch(q);
     if (runtime.location.view !== 'pages') runtime.navigate({ view: 'pages' });
   };
+  const tryRef = useRef<HTMLUListElement>(null);
+  useEdgeFade(tryRef);
   return (
-    <div className="home-try">
+    <div className={`home-try${searched !== '' ? ' in-results' : ''}`}>
       <div className="home-hero-try">
         <span>Try</span>
-        <ul>
+        <ul ref={tryRef}>
           {TRY_QUERIES.map((q) => (
             <li key={q}>
               <button type="button" className="try-chip" aria-current={query.trim() === q ? 'true' : undefined} onClick={() => search(q)}>
@@ -235,7 +244,8 @@ function HomeTry() {
 let heroTouched = false;
 
 function HomeHeader() {
-  const { query, setQuery, typeQuery, submitSearch, runtime } = useWorkspace();
+  const { query, setQuery, typeQuery, submitSearch, runtime, searched } = useWorkspace();
+  const compact = useWorkspaceCompact();
   const [touched, setTouched] = useState(heroTouched);
   const showHint = query === '' && !touched;
   const tw = useTypewriter(TYPEWRITER_PHRASES, showHint);
@@ -288,7 +298,7 @@ function HomeHeader() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
   return (
-    <div className="home-hero">
+    <div className={`home-hero${searched !== '' ? ' has-results' : ''}`}>
       <form className="home-hero-search" role="search" onSubmit={submit} ref={formRef}>
         <label htmlFor="sv-hero-q" className="home-hero-prefix">
           I&rsquo;m looking for
@@ -331,9 +341,10 @@ function HomeHeader() {
             <Icon name="search" />
           </button>
         </span>
-        <HiddenToggle />
+        {!compact && <HiddenToggle />}
       </form>
-      <StoryLauncher />
+      {/* On a phone the eye and the Storyboard button sit in the row under the search bar (FilterBar); only the brief hint stays here. */}
+      <StoryLauncher part={compact ? 'hint' : 'all'} />
     </div>
   );
 }
@@ -432,7 +443,7 @@ function LibraryView() {
       ) : (
         <>
           {best.length > 0 && (
-            <Row id="best" title="Best of the Best" sub="Hand-picked slides. Row names TBD." seeAll="best" total={best.length}>
+            <Row id="best" title="Best of the Best" sub="Hand-picked slides." seeAll="best" total={best.length}>
               {best.slice(0, ROW_LIMIT).map((s) => (
                 <li key={s.id}>
                   <SlideCard slide={s} list={best.slice(0, ROW_LIMIT)} />
@@ -562,9 +573,10 @@ function SelectAll({ slides }: { slides: SlideSummary[] }) {
     announce(all ? 'Removed from draft deck' : `${plural(slides.length, 'slide')} added to draft deck`);
   };
   return (
-    <button type="button" className="btn btn-sm" onClick={click}>
+    <button type="button" className="btn btn-sm" onClick={click} aria-label={all ? 'Remove all from draft deck' : `Add all ${slides.length} to draft deck`}>
       <Icon name="check" />
-      <span>{all ? 'Remove all from draft deck' : `Add all ${slides.length} to draft deck`}</span>
+      <span className="lbl-long" aria-hidden="true">{all ? 'Remove all from draft deck' : `Add all ${slides.length} to draft deck`}</span>
+      <span className="lbl-short" aria-hidden="true">{all ? 'Remove all' : `Add all ${slides.length}`}</span>
     </button>
   );
 }
@@ -612,6 +624,23 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 export function ResultsView() {
   const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch, dismissAutoSection } = useWorkspace();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
+  const compact = useWorkspaceCompact();
+  /* Two slides across or one, remembered on this device (phone only). */
+  const [dense, setDenseState] = useState(() => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage.getItem('sv-results-dense') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setDense = (d: boolean) => {
+    setDenseState(d);
+    try {
+      window.localStorage.setItem('sv-results-dense', d ? '1' : '0');
+    } catch {
+      /* the choice just isn't kept */
+    }
+  };
   /* The results are for the search that ran, not the words still being typed (FD-89). */
   const q = searched;
   /* The "your search is short for the AI" note, put away for this search only. */
@@ -656,17 +685,21 @@ export function ResultsView() {
   const visible = pickedSection ? shown.filter((i) => i.slide.section?.kind === pickedSection) : shown;
   const slides = visible.map((i) => i.slide);
   const deckCount = new Set(slides.map((s) => s.provenance.sourceId)).size;
-  const grouped = shown.filter((i) => i.slide.alsoIn).length;
+  useEffect(() => {
+    setResultsSummary({ count: slides.length, sort, setSort });
+    return () => setResultsSummary(null);
+  }, [slides.length, sort]);
   const sectionMode = !!pickedSection || sectionsFromSearch.length > 0;
   /* Client, year and slide type already light up in the filter row above. */
   const extraChips = result ? result.chips.filter((c) => !shownInFilterRow(c)) : [];
 
   return (
-    <div className="sv-wrap">
+    <div className="sv-wrap res-wrap">
       <div className="page-head">
-        <h1 className="h1" tabIndex={-1}>
-          Results for “{q}”
-        </h1>
+        <h1 className="h1 res-title" tabIndex={-1}>
+          <span className="res-q">Results for “{q}”</span>
+          {compact && result && shown.length > 0 && <span className="res-n"> · {plural(visible.length, 'slide')}</span>}
+</h1>
       </div>
       {/* Honest misses (FD-34): a name or year asked for that no deck goes by */}
       {found && !found.decks.length && (found.missing.name || found.missing.years.length > 0) && (
@@ -705,7 +738,7 @@ export function ResultsView() {
         <div role="status" aria-live="polite">
           <p className="thinking">
             <Icon name="spinner" className="spin" />
-            {waitingForAi ? 'Waiting for your choice…' : 'Reading your request, matching slides, checking why each one fits…'}
+            {waitingForAi ? 'Waiting for your choice…' : 'Searching…'}
           </p>
           <SkeletonGrid count={4} />
         </div>
@@ -748,7 +781,7 @@ export function ResultsView() {
           {shown.length > 0 && (sectionMode || (found && found.decks.length > 0)) && <h2 className="h2 res-h">Slides</h2>}
           <div className="refine">
             <label>
-              Sort
+              <span className="refine-lbl">Sort</span>
               <select className="select select-sm" value={sort} onChange={(e) => setSort(e.target.value as 'best' | 'popular' | 'newest')}>
                 <option value="best">Best match</option>
                 <option value="popular">Most downloaded</option>
@@ -756,7 +789,7 @@ export function ResultsView() {
               </select>
             </label>
             <span className="spacer" />
-            {slides.length > 0 && <SelectAll slides={slides} />}
+        {compact && <ColumnsToggle dense={dense} setDense={setDense} />}
           </div>
           {shown.length === 0 && found && found.decks.length > 0 && filterCount(filters) === 0 ? null : shown.length === 0 ? (
             <StateBlock
@@ -779,12 +812,11 @@ export function ResultsView() {
             </StateBlock>
           ) : (
             <>
-              <p className="summary" aria-live="polite">
+              <div className="summary-row">
+                <p className="summary" aria-live="polite">
                 <strong>{plural(visible.length, 'slide')}</strong> from {plural(deckCount, 'deck')}
-                <span className="helpdot" tabIndex={0} role="img" aria-label={`Best matches first.${grouped > 0 ? ' Near-identical copies are grouped under “Also in…”.' : ''}`} data-tip={`Best matches first.${grouped > 0 ? ' Near-identical copies are grouped under “Also in…”.' : ''}`}>
-                  <Icon name="info" />
-                </span>
               </p>
+              </div>
               {pickedSection && shown.length - visible.length > 0 && (
                 <p className="meta sec-hidden-note">
                   {shown.length - visible.length} more matching {shown.length - visible.length === 1 ? 'slide is' : 'slides are'} outside this section.{' '}
@@ -794,7 +826,7 @@ export function ResultsView() {
                 </p>
               )}
               {sectionCounts.length > 1 && (
-                <div className="sec-pills" role="group" aria-label="Narrow to one section">
+                <ScrollRow className="sec-pills" role="group" aria-label="Narrow to one section">
                   <span className="meta">By section:</span>
                   <button type="button" className="chip-x" aria-pressed={!pickedSection} onClick={clearSection}>
                     All <span className="n">{shown.length}</span>
@@ -804,9 +836,9 @@ export function ResultsView() {
                       {SECTION_LABEL[kind]} <span className="n">{n}</span>
                     </button>
                   ))}
-                </div>
+                </ScrollRow>
               )}
-              <div className="grid">
+              <div className={`grid${dense ? ' is-dense' : ''}`}>
                 {visible.map((i) => (
                   <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} aiRead={i.aiRead} note={sort === 'popular' ? downloadedNote(i.slide) : undefined} />
                 ))}
@@ -816,9 +848,9 @@ export function ResultsView() {
           <details className="how">
             <summary>How does this search work?</summary>
             <ol>
-              <li>Short searches like “team” or “Kestrel Law 2024” are read by simple rules, instantly.</li>
-              <li>When you press Enter on a question or a sentence, an AI model reads it once and turns it into search words and filters. Filters you didn’t ask for are dropped.</li>
-              <li>Slides are matched on those words and filters, best match first, and each result says why it fits from what is actually on the slide. Near-identical slides are grouped, never deleted.</li>
+              <li>Short searches, like “team”, are read by simple rules.</li>
+              <li>A longer question or sentence can be read once by an AI model and turned into search words and filters.</li>
+              <li>Best matches come first, each with why it fits. Near-identical slides are grouped, never deleted.</li>
             </ol>
           </details>
         </>
@@ -832,9 +864,188 @@ export function ResultsView() {
 /** Where "File created by" comes from, so nobody reads it as the person who made the pitch. */
 const FILE_CREATED_TIP = "From the PowerPoint file's own details. For a deck made from a template this can be the template's author and date.";
 
+/** One button that flips between one and two slides across; the icon shows what a tap will switch to. Used wherever slides are in a grid on a phone. */
+function ColumnsToggle({ dense, setDense }: { dense: boolean; setDense: (d: boolean) => void }) {
+  return (
+    <button type="button" className="btn btn-sm btn-icon cols-toggle" aria-label={dense ? 'Show one slide across' : 'Show two slides across'} onClick={() => setDense(!dense)}>
+      <Icon name={dense ? 'expand' : 'columns'} />
+    </button>
+  );
+}
+
+/** A "⋯" button that opens a small list of less-used actions. Closes on a tap outside, on Escape, and after a choice. */
+function MoreMenu({ label, items }: { label: string; items: { label: string; icon: IconName; onClick: () => void }[] }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: Event) => !wrap.current?.contains(e.target as Node) && setOpen(false);
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        wrap.current?.querySelector<HTMLElement>('button')?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', key);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', key);
+    };
+  }, [open]);
+  return (
+    <div className="more-menu" ref={wrap}>
+      <button type="button" className="btn btn-sm btn-icon" aria-haspopup="menu" aria-expanded={open} aria-label={label} onClick={() => setOpen((o) => !o)}>
+        <Icon name="more" />
+      </button>
+      {open && (
+        <div className="more-menu-list" role="menu">
+          {items.map((it) => (
+            <button
+              key={it.label}
+              type="button"
+              role="menuitem"
+              className="more-menu-item"
+              onClick={() => {
+                setOpen(false);
+                it.onClick();
+              }}
+            >
+              <Icon name={it.icon} />
+              {it.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** "Add slides [10] to [20]": a stretch of the deck into the draft deck at once. */
+function RangeAdd({ slides, onDone }: { slides: SlideSummary[]; onDone: () => void }) {
+  const { updateSelection, toast, announce } = useWorkspace();
+  const [from, setFrom] = useState('1');
+  const [to, setTo] = useState(String(slides.length));
+  const a = Math.min(slides.length, Math.max(1, Math.round(Number(from)) || 1));
+  const b = Math.min(slides.length, Math.max(1, Math.round(Number(to)) || slides.length));
+  const lo = Math.min(a, b);
+  const hi = Math.max(a, b);
+  const add = () => {
+    const picked = slides.slice(lo - 1, hi);
+    updateSelection((cur) => [...cur, ...picked.filter((s) => !cur.some((c) => c.id === s.id))]);
+    toast(`Added slides ${lo} to ${hi}`);
+    announce(`${plural(picked.length, 'slide')} added to draft deck`);
+    onDone();
+  };
+  return (
+    <form
+      className="range-add"
+      onSubmit={(e) => {
+        e.preventDefault();
+        add();
+      }}
+    >
+      <span>Add slides</span>
+      <input className="num-jump" inputMode="numeric" aria-label="From slide" value={from} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setFrom(e.target.value.replace(/[^0-9]/g, ''))} />
+      <span>to</span>
+      <input className="num-jump" inputMode="numeric" aria-label="To slide" value={to} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setTo(e.target.value.replace(/[^0-9]/g, ''))} />
+      <button type="submit" className="btn btn-sm btn-primary">
+        Add {hi - lo + 1}
+      </button>
+      <button type="button" className="btn btn-sm btn-ghost" onClick={onDone}>
+        Cancel
+      </button>
+    </form>
+  );
+}
+
+/**
+ * Phone deck page: "Go to slide [n] of N" and the one / two across choice. Once you scroll past it, the same
+ * thing stays at the top of the screen with the number following the slide you are looking at, and a button
+ * that takes you back to the top.
+ */
+function DeckJump({ slides, dense, setDense }: { slides: SlideSummary[]; dense: boolean; setDense: (d: boolean) => void }) {
+  const { scroll } = useRoot();
+  const row = useRef<HTMLDivElement>(null);
+  const [at, setAt] = useState(1);
+  const [stuck, setStuck] = useState(false);
+  const go = (index: number) => {
+    setAt(index + 1);
+    const card = [...document.querySelectorAll<HTMLElement>('[data-card]')].find((c) => c.getAttribute('data-card') === slides[index]?.id);
+    card?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  /* Which slide is at the top of the screen, and whether the row has scrolled out of sight. */
+  useEffect(() => {
+    const el = scroll.current;
+    if (!el) return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      setStuck((row.current?.getBoundingClientRect().bottom ?? 1) < 0);
+      const cards = document.querySelectorAll<HTMLElement>('.grid > [data-card]');
+      for (let k = 0; k < cards.length; k++) {
+        if (cards[k].getBoundingClientRect().bottom > 72) {
+          setAt(k + 1);
+          break;
+        }
+      }
+    };
+    const on = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
+    el.addEventListener('scroll', on, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', on);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [scroll]);
+  const goBox = <NumberJump value={at} max={slides.length} label="Go to a slide in this deck" onGo={go} always />;
+  const toggle = <ColumnsToggle dense={dense} setDense={setDense} />;
+  return (
+    <>
+      <div className="deck-jump" ref={row}>
+        <span className="deck-jump-go">
+          Go to slide {!stuck && goBox} of {slides.length}
+        </span>
+        {toggle}
+      </div>
+      {stuck && (
+        <div className="deck-sticky">
+          <button type="button" className="btn btn-sm btn-icon" aria-label="Back to the top" onClick={() => scroll.current?.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <Icon name="up" />
+          </button>
+          <span className="deck-jump-go">
+            Slide {goBox} of {slides.length}
+          </span>
+          {toggle}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function DeckView({ id }: { id: string }) {
   const { library, openDownload, openArchiveDialog, setIncludeHidden } = useWorkspace();
+  const compact = useWorkspaceCompact();
   const [grouping, setGrouping] = useState(false);
+  /* One or two across is remembered on this device. */
+  const [dense, setDenseState] = useState(() => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage.getItem('sv-deck-dense') === '1';
+    } catch {
+      return false; /* storage can be off; the choice just isn't kept */
+    }
+  });
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const setDense = (d: boolean) => {
+    setDenseState(d);
+    try {
+      window.localStorage.setItem('sv-deck-dense', d ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  };
   const lib = useReadyLibrary();
   const deck = library.status === 'ready' ? library.decks.find((d) => d.id === id) : undefined;
   if ('blocker' in lib) return <div className="sv-wrap">{lib.blocker}</div>;
@@ -851,12 +1062,21 @@ export function DeckView({ id }: { id: string }) {
   }
   return (
     <div className="sv-wrap">
-      <div className="page-head">
+      <div className="page-head deck-head">
         <div>
           <h1 className="h1" tabIndex={-1}>
-            {deck.title}
+            {deck.title.split('_').map((part, k, all) => (
+              <span key={k}>
+                {part}
+                {k < all.length - 1 && (
+                  <>
+                    _<wbr />
+                  </>
+                )}
+              </span>
+            ))}
           </h1>
-          <div className="badges" style={{ marginTop: 8 }}>
+          <ScrollRow className="badges deck-badges">
             {deck.archived && <span className="badge badge-archived">Archived</span>}
             {deck.category && <span className="badge">{deck.category}</span>}
             {deck.year && <span className="badge">{deck.year}</span>}
@@ -864,49 +1084,78 @@ export function DeckView({ id }: { id: string }) {
               <Icon name="folder" />
               {folderLabel(deck)}
             </span>
-          </div>
+          </ScrollRow>
           <p className="lede">
-            {plural(deck.slides.length, 'slide')} in this deck.
-            {hiddenGap(deck.slides) > 0 && (
-              <>
-                {' '}
-                {plural(hiddenGap(deck.slides), 'hidden slide')} not shown.{' '}
-                <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
-                  Show {hiddenGap(deck.slides) === 1 ? 'it' : 'them'}
-                </button>
-              </>
-            )}
+            {compact ? plural(deck.slides.length, 'slide') : `${plural(deck.slides.length, 'slide')} in this deck.`}
+            {hiddenGap(deck.slides) > 0 &&
+              (compact ? (
+                <>
+                  {' · '}
+                  {hiddenGap(deck.slides)} hidden{' '}
+                  <button type="button" className="btn-link" aria-label={`Show ${plural(hiddenGap(deck.slides), 'hidden slide')}`} onClick={() => setIncludeHidden(true)}>
+                    Show
+                  </button>
+                </>
+              ) : (
+                <>
+                  {' '}
+                  {plural(hiddenGap(deck.slides), 'hidden slide')} not shown.{' '}
+                  <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
+                    Show {hiddenGap(deck.slides) === 1 ? 'it' : 'them'}
+                  </button>
+                </>
+              ))}
           </p>
           {(deck.createdBy || deck.uploadedBy) && (
             <p className="meta deck-who">
-              {deck.createdBy && <span title={FILE_CREATED_TIP}>File created by {deck.createdBy}{dateLabel(deck.createdAt) ? ` · ${dateLabel(deck.createdAt)}` : ''}</span>}
+              {deck.createdBy && <span title={FILE_CREATED_TIP}>{compact ? 'Created' : 'File created'} by {deck.createdBy}{dateLabel(deck.createdAt) ? ` · ${dateLabel(deck.createdAt)}` : ''}</span>}
               {deck.uploadedBy && <span>Uploaded by {deck.uploadedBy}{dateLabel(deck.uploadedAt) ? ` · ${dateLabel(deck.uploadedAt)}` : ''}</span>}
             </p>
           )}
         </div>
-        <div className="row-flex">
-          <SelectAll slides={deck.slides} />
-          <button type="button" className="btn btn-sm" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}>
-            <Icon name="archive" />
-            <span>{deck.archived ? 'Restore deck' : 'Archive deck'}</span>
-          </button>
-          <button type="button" className="btn btn-sm" aria-pressed={grouping} onClick={() => setGrouping((g) => !g)}>
-            <Icon name="layers" />
-            <span>{grouping ? 'Stop grouping' : 'Group slides into a pack'}</span>
-          </button>
-          <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload(deck.slides)}>
-            <Icon name="download" />
-            <span>Download whole deck</span>
-          </button>
-        </div>
+        {compact ? (
+          <div className="row-flex deck-actions">
+            <SelectAll slides={deck.slides} />
+            <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload(deck.slides)} aria-label="Download whole deck">
+              <Icon name="download" />
+              <span>Download</span>
+            </button>
+            <MoreMenu
+              label="More deck actions"
+              items={[
+                { label: 'Add a range of slides', icon: 'plus', onClick: () => setRangeOpen(true) },
+                { label: deck.archived ? 'Restore deck' : 'Archive deck', icon: 'archive', onClick: () => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived }) },
+                { label: grouping ? 'Stop grouping' : 'Group slides into a pack', icon: 'layers', onClick: () => setGrouping((g) => !g) },
+              ]}
+            />
+          </div>
+        ) : (
+          <div className="row-flex">
+            <SelectAll slides={deck.slides} />
+            <button type="button" className="btn btn-sm" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}>
+              <Icon name="archive" />
+              <span>{deck.archived ? 'Restore deck' : 'Archive deck'}</span>
+            </button>
+            <button type="button" className="btn btn-sm" aria-pressed={grouping} onClick={() => setGrouping((g) => !g)}>
+              <Icon name="layers" />
+              <span>{grouping ? 'Stop grouping' : 'Group slides into a pack'}</span>
+            </button>
+            <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload(deck.slides)}>
+              <Icon name="download" />
+              <span>Download whole deck</span>
+            </button>
+          </div>
+        )}
       </div>
+      {compact && rangeOpen && <RangeAdd slides={deck.slides} onDone={() => setRangeOpen(false)} />}
       <DeckTags deck={deck} />
+      {compact && !grouping && <DeckJump slides={deck.slides} dense={dense} setDense={setDense} />}
       {grouping ? (
         <GroupTool deckSlides={deck.slides} onDone={() => setGrouping(false)} />
       ) : (
-        <div className="grid" style={{ marginTop: 16 }}>
-          {deck.slides.map((s) => (
-            <SlideCard key={s.id} slide={s} list={deck.slides} />
+        <div className={`grid${dense ? ' is-dense' : ''}`} style={{ marginTop: 16 }}>
+          {deck.slides.map((s, k) => (
+            <SlideCard key={s.id} slide={s} list={deck.slides} num={k + 1} />
           ))}
         </div>
       )}
@@ -930,8 +1179,11 @@ function FromFolder() {
 }
 
 export function SlideView({ id }: { id: string }) {
-  const { runtime, library, openPreview, openDownload, logActivity, packs, selection, addPackToDraft, openArchiveDialog, setIncludeHidden } = useWorkspace();
+  const { runtime, library, openPreview, openDownload, logActivity, packs, selection, addPackToDraft, openArchiveDialog, setIncludeHidden, openAlso } = useWorkspace();
+  const compact = useWorkspaceCompact();
   const shareSlide = useShareSlide(id);
+  const { isSaved, toggle: toggleSave } = useSavedToggle();
+  const touch = useRef<{ x: number; y: number } | null>(null);
   const { isSelected, setOne } = useCartToggle();
   const lib = useReadyLibrary();
   const slide = library.status === 'ready' ? library.slides.find((s) => s.id === id) : undefined;
@@ -986,11 +1238,42 @@ export function SlideView({ id }: { id: string }) {
     .filter((s) => s.id !== id && s.provenance.sourceId !== p.sourceId && clientOf(s) === clientOf(slide) && clientOf(s) !== UNKNOWN_CLIENT)
     .slice(0, 10);
 
+  const textBody = (
+    <>
+      {text === undefined && !textError && <div className="skel" style={{ height: 64 }} aria-hidden="true" />}
+      {textError && (
+        <p className="err" role="alert">
+          {textError}
+        </p>
+      )}
+      {text !== undefined && text !== null && <p className="slide-text">{text || 'This slide has no text.'}</p>}
+      <p className="meta" style={{ marginTop: 8 }}>
+        Search reads this.
+      </p>
+    </>
+  );
   return (
     <div className="sv-wrap">
       <div className="slide-detail">
         <div>
           <SlideTitle slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />
+          <div
+            className={compact ? 'hero-wrap' : undefined}
+            onTouchStart={(e) => {
+              if (compact) touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }}
+            onTouchEnd={(e) => {
+              const t = touch.current;
+              touch.current = null;
+              if (!compact || !t) return;
+              const dx = e.changedTouches[0].clientX - t.x;
+              const dy = e.changedTouches[0].clientY - t.y;
+              if (Math.abs(dx) > 50 && Math.abs(dy) < 40) {
+                const to = sibs[i + (dx < 0 ? 1 : -1)];
+                if (to) runtime.navigate({ view: 'slide', id: to.id });
+              }
+            }}
+          >
           <button
             type="button"
             className="big-preview"
@@ -1015,7 +1298,26 @@ export function SlideView({ id }: { id: string }) {
               </div>
             </div>
           </button>
-          <div className="row-flex" style={{ marginTop: 12, justifyContent: 'center', gap: 14 }}>
+          {compact && (
+            <>
+              <button type="button" className="hero-btn hero-add" aria-pressed={sel} aria-label={sel ? 'Remove from draft deck' : 'Add to draft deck'} onClick={() => setOne(slide, !sel)}>
+                <Icon name="check" />
+              </button>
+              <span className="hero-corner">
+                <button type="button" className={`hero-btn${isSaved(id) ? ' is-saved' : ''}`} aria-pressed={isSaved(id)} aria-label={isSaved(id) ? 'Remove from saved' : 'Save'} onClick={() => toggleSave(slide)}>
+                  <Icon name="heart" />
+                </button>
+                <button type="button" className="hero-btn" aria-label="Share: copy a link to this slide" onClick={() => void shareSlide()}>
+                  <Icon name="share" />
+                </button>
+              </span>
+              <span className="hero-zoom" aria-hidden="true">
+                <Icon name="expand" />
+              </span>
+            </>
+          )}
+          </div>
+          <div className="row-flex slide-stepper" style={{ marginTop: 12, justifyContent: 'center', gap: 14 }}>
             {i > 0 ? (
               <Link className="btn btn-sm btn-icon" to={{ view: 'slide', id: sibs[i - 1].id }} aria-label="Previous slide in this deck" title="Previous slide">
                 <Icon name="left" />
@@ -1023,15 +1325,32 @@ export function SlideView({ id }: { id: string }) {
             ) : (
               <span className="btn-icon" style={{ width: 36 }} />
             )}
-            <span className="meta">
-              Slide {p.slideNumber} of {sibs.length + hiddenGap(sibs)} in this deck
-              {hiddenGap(sibs) > 0 && (
+            <span className="meta slide-stepper-text">
+              {compact ? (
                 <>
-                  {' · '}
-                  {plural(hiddenGap(sibs), 'hidden slide')} not shown.{' '}
-                  <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
-                    Show {hiddenGap(sibs) === 1 ? 'it' : 'them'}
-                  </button>
+                  <NumberJump value={i + 1} max={sibs.length} label="Go to a slide in this deck" onGo={(k) => runtime.navigate({ view: 'slide', id: sibs[k].id })} />/{sibs.length}
+                  {hiddenGap(sibs) > 0 && (
+                    <>
+                      {' · '}
+                      {hiddenGap(sibs)} hidden{' '}
+                      <button type="button" className="btn-link" aria-label={`Show ${plural(hiddenGap(sibs), 'hidden slide')}`} onClick={() => setIncludeHidden(true)}>
+                        Show
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="step-long">Slide {p.slideNumber} of {sibs.length + hiddenGap(sibs)} in this deck</span>
+                  {hiddenGap(sibs) > 0 && (
+                    <span className="step-hidden-inline">
+                      {' · '}
+                      {plural(hiddenGap(sibs), 'hidden slide')} not shown.{' '}
+                      <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
+                        Show {hiddenGap(sibs) === 1 ? 'it' : 'them'}
+                      </button>
+                    </span>
+                  )}
                 </>
               )}
             </span>
@@ -1043,23 +1362,42 @@ export function SlideView({ id }: { id: string }) {
               <span className="btn-icon" style={{ width: 36 }} />
             )}
           </div>
-          <SlideEngagement key={slide.id} slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />
-          <section className="panel" style={{ marginTop: 16 }}>
-            <h2>Text found on the slide</h2>
-            {text === undefined && !textError && <div className="skel" style={{ height: 64 }} aria-hidden="true" />}
-            {textError && (
-              <p className="err" role="alert">
-                {textError}
-              </p>
-            )}
-            {text !== undefined && text !== null && <p className="slide-text">{text || 'This slide has no text.'}</p>}
-            <p className="meta" style={{ marginTop: 8 }}>
-              Search reads this text.
+          {!compact && hiddenGap(sibs) > 0 && (
+            <p className="meta step-hidden-below">
+              {plural(hiddenGap(sibs), 'hidden slide')} not shown.{' '}
+              <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
+                Show {hiddenGap(sibs) === 1 ? 'it' : 'them'}
+              </button>
             </p>
-          </section>
+          )}
+          {/* Phone: the tags are a scrolling row of pills here, in place of the Tags card (the Add tag pill and the suggestions in a second row). */}
+          {compact && <PreviewTags slide={slide} onNavigate={() => undefined} />}
+          <SlideEngagement
+            key={slide.id}
+            slide={slide}
+            loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null}
+            trailing={
+              compact && slide.alsoIn ? (
+                <button type="button" className="btn btn-ghost btn-sm lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
+                  <Icon name="folders" />
+                  <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
+                </button>
+              ) : undefined
+            }
+          />
+          {compact ? (
+            <FoldPanel className="slide-text-panel" title="Slide text" hint={text ? text.slice(0, 70) : text === null ? undefined : text === '' ? 'No text' : undefined}>
+              {textBody}
+            </FoldPanel>
+          ) : (
+            <section className="panel slide-text-panel" style={{ marginTop: 16 }}>
+              <h2>Text found on the slide</h2>
+              {textBody}
+            </section>
+          )}
         </div>
         <div className="stack-panels">
-          <section className="panel">
+          <section className="panel panel-use">
             <h2>Use this slide</h2>
             <div className="row-flex">
               <button type="button" className="btn btn-sm" aria-pressed={sel} onClick={() => setOne(slide, !sel)}>
@@ -1087,9 +1425,69 @@ export function SlideView({ id }: { id: string }) {
             </div>
           </section>
           {slidePack && <PackPanel slide={slide} pack={slidePack} />}
-          <SlideTagsPanel slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />
-          <SlideLabelsPanel story={(detail && detail.id === id && 'slide' in detail ? detail.slide.story : undefined) ?? slide.story} />
-          <section className="panel">
+          {!compact && <SlideTagsPanel slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />}
+          <SlideLabelsPanel fold={compact} story={(detail && detail.id === id && 'slide' in detail ? detail.slide.story : undefined) ?? slide.story} />
+          {compact ? (
+            <FoldPanel className="panel-details" title="Details" hint={p.sourceTitle}>
+              <dl className="trust">
+
+              <dt>Deck</dt>
+              <dd>
+                {p.sourceTitle}
+                <button type="button" className="btn-link arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
+                  <Icon name="archive" className="ic-sm" />
+                  {deck.archived ? `Restore this deck (${deck.slides.length} slides)` : `Archive this deck (${deck.slides.length} slides)`}
+                </button>
+              </dd>
+              <dt>File</dt>
+              <dd>{p.sourceFileName}</dd>
+              </dl>
+              <details className="more-det">
+                <summary>More</summary>
+                <dl className="trust">
+              {p.createdBy && (
+                <>
+                  <dt title={FILE_CREATED_TIP}>File created by</dt>
+                  <dd>
+                    {p.createdBy}
+                    {dateLabel(p.createdAt) ? ` · ${dateLabel(p.createdAt)}` : ''}
+                  </dd>
+                </>
+              )}
+              {p.uploadedBy && (
+                <>
+                  <dt>Uploaded by</dt>
+                  <dd>
+                    {p.uploadedBy}
+                    {dateLabel(p.uploadedAt) ? ` · ${dateLabel(p.uploadedAt)}` : ''}
+                  </dd>
+                </>
+              )}
+              <dt>Client</dt>
+              <dd>
+                {p.clientName ?? <Unknown />}
+                {p.clientName && <FromFolder />}
+              </dd>
+              <dt>Year</dt>
+              <dd>
+                {p.deckYear ?? <Unknown />}
+                {p.deckYear && <FromFolder />}
+              </dd>
+              <dt>Category</dt>
+              <dd>
+                {p.category ?? <Unknown />}
+                {p.category && <FromFolder />}
+              </dd>
+              <dt>Position</dt>
+              <dd>
+                Slide {p.slideNumber}
+                {slide.hiddenInSource ? ', hidden in the source deck' : ''}
+              </dd>
+                            </dl>
+              </details>
+            </FoldPanel>
+          ) : (
+          <section className="panel panel-details">
             <h2>Details</h2>
             <dl className="trust">
               <dt>Deck</dt>
@@ -1142,7 +1540,8 @@ export function SlideView({ id }: { id: string }) {
               </dd>
             </dl>
           </section>
-          {slide.alsoIn && (
+          )}
+          {slide.alsoIn && !compact && (
             <section className="panel">
               <h2>Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</h2>
               <p className="meta">{slide.alsoIn.match === 'near' ? 'Nearly identical slides' : 'The same slide'} appear in other decks. Nothing is deleted.</p>

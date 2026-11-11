@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTipSeen } from '../client/tip-store';
 import { useTourOpen } from '../client/tour-store';
 import { backdropClose, useDialogOpen } from './Dialogs';
@@ -125,6 +125,13 @@ export function ActivityOptInAsk() {
   const { seen: asked, dismiss } = useTipSeen('activity-ask');
   const { seen: toured } = useTipSeen('tour');
   const touring = useTourOpen();
-  const show = !!profile && activityOptedIn === false && !asked && toured && !touring;
-  return <ActivityOptInDialog mode={show ? 'first' : null} onClose={dismiss} />;
+  const eligible = !!profile && activityOptedIn === false && !asked && toured && !touring;
+  /* Not at the same moment as the tour ends: a short pause first. */
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (!eligible) return;
+    const t = setTimeout(() => setReady(true), 3000);
+    return () => clearTimeout(t);
+  }, [eligible]);
+  return <ActivityOptInDialog mode={eligible && ready ? 'first' : null} onClose={dismiss} />;
 }
