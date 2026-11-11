@@ -120,6 +120,37 @@ check(lakeWhere === 'Toronto', 'an upload keeps where the deck was made from its
 check((await search('slides from Toronto'))[0] === 'Workplace for an investment firm', '"slides from Toronto" finds the Toronto deck, though no slide prints the word');
 const fin = (await get('Financial Services clients in Toronto')).data.items.map((i) => i.slide.title);
 check(fin.includes('Workplace for an investment firm') && fin.includes('Team'), '"Financial Services clients in Toronto": the Toronto deck and the financial services client both come back', fin);
+
+// FD-99: what a slide looks like, kept in the database. A look asked for qualifies a slide whatever its words say and
+// leads; a slide known to look otherwise is left out; a slide nobody has looked at is still found by its words.
+{
+  const { listSlideLooksPg } = await import('../features/slide-vault/server/pg-repository');
+  check((await listSlideLooksPg()).size === 0, 'looks: none until they are loaded');
+  const L = await deck('Gamma Works', 2026, null, [
+    { title: 'Global locations', text: 'Forty studios across four continents' },
+    { title: 'Project road map', text: 'A map of the phases ahead' },
+    { title: 'Where we work', text: 'A map of our studios' },
+    { title: 'How a project runs', text: 'Discover, design, deliver' },
+    { title: 'Stages of delivery', text: 'Each stage hands over to the next' },
+  ]);
+  const setLooks = (n: number, looks: string[]) => sql(`update slides set looks = $3 where deck_id = $1 and slide_number = $2`, [L, n, looks]);
+  await setLooks(1, ['map']);
+  await setLooks(2, ['timeline']);
+  await setLooks(4, ['process diagram']);
+  await setLooks(5, ['waterfall', 'process diagram']);
+  const ctx = { clients: ['Acme Hotels', 'Beta Health', 'Gamma Bank', 'Gamma Works'], categories: [], thisYear: 2026 };
+  const byLook = async (q: string) => (await smartSearchPg(groundFilters(standInPlan(q, ctx), q), 20, searchIntent(q))).map((r) => r.summary.title);
+  const maps = await byLook('maps');
+  check(maps[0] === 'Global locations', 'looks: "maps" leads with the slide that is a map, though it never says the word', maps);
+  check(!maps.includes('Project road map'), 'looks: a slide known to look like something else is left out, though it says "map"', maps);
+  check(maps.includes('Where we work'), 'looks: a slide nobody has looked at yet is still found by its words', maps);
+  const falls = await byLook('the slide that looks like a waterfall');
+  check(falls[0] === 'Stages of delivery' && falls[1] === 'How a project runs', 'looks: a confirmed waterfall first, then other process diagrams', falls);
+  const noLooks = (await smartSearchPg(groundFilters(standInPlan('maps', ctx), 'maps'), 20, { ...searchIntent('maps'), looks: [] })).map((r) => r.summary.title);
+  check(noLooks.includes('Project road map') && !noLooks.includes('Global locations'), 'looks: with no looks passed, the search is by words as before', noLooks);
+  check((await listSlideLooksPg()).size === 4, 'looks: the slides that have been looked at, by id');
+  await sql('delete from decks where id = $1', [L]);
+}
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll search-in-context checks passed');
 await sql('drop table if exists search_feedback, free_tags, slide_pack_members, slide_packs, story_feedback, activity_events, user_settings, drafts, saved_slides, slide_downloads, slides, decks cascade');
 process.exit(failures ? 1 : 0);

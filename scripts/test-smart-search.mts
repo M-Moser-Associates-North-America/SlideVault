@@ -16,8 +16,9 @@ import { taggedFirst, typedTags, type TagHit } from '../features/slide-vault/ser
 import { cleanSearchFeedback, learnedForSearch, learnedScore, searchWords, sinks } from '../features/slide-vault/server/search-feedback';
 import { answersIntent, intentScore, intentWhy, lookWordsIn, searchIntent } from '../features/slide-vault/server/services/slide-intent';
 import { cleanLabels, hasLabels, labelMenu, labelName, mergeLabels } from '../features/slide-vault/server/ai/label-menu';
-import { byLearning, inAskedOrder, limitFor, readerForSearch } from '../features/slide-vault/server/services/library-smart-search';
+import { byLearning, inAskedOrder, keptForLook, limitFor, readerForSearch } from '../features/slide-vault/server/services/library-smart-search';
 import { likedTotals } from '../features/slide-vault/server/search-feedback';
+import { fileSlideId, looksFromFiles } from '../features/slide-vault/server/look-files';
 
 let failures = 0;
 function check(ok: boolean, label: string, detail: unknown = '') {
@@ -562,6 +563,24 @@ for (const [env, label] of [
     check(wf.looks.join(',') === 'waterfall,process diagram' && conf > plain && plain > 0, 'look: a confirmed waterfall leads, other process diagrams still count', { looks: wf.looks, conf, plain });
   }
   check([...lookWordsIn('the org chart for Toronto')].join(',') === 'org,chart', 'look words: the words of a look phrase, not the place', [...lookWordsIn('the org chart for Toronto')]);
+  {
+    // FD-99: the look files' slide id is made from the deck file's fingerprint and the slide number, so a look reaches its database row exactly.
+    check(fileSlideId('ab'.repeat(32), 3) === 'sld_246fd399665f21eb' && fileSlideId('AB'.repeat(32), 3) === fileSlideId('ab'.repeat(32), 3) && fileSlideId('ab'.repeat(32), 4) !== fileSlideId('ab'.repeat(32), 3), 'look files: a slide id from the file fingerprint and slide number, whatever the letter case');
+    const looks = looksFromFiles({
+      sorted: { a: { look: ['project photo'] }, b: { look: ['process diagram'] }, c: { look: ['big statement'] }, e: { look: [] } },
+      clues: { a: { look: ['table'] } },
+      visual: { c: { look: ['map'] }, d: { look: 'map' } },
+      waterfall: { b: { waterfall: true }, c: { waterfall: false } },
+    });
+    const it = (id: string, matched: string[] = []) => ({ slide: { id }, matched });
+    const found = [it('word', ['map']), it('map1'), it('unscanned', ['offices']), it('neighbour'), it('map2', ['map']), it('unsure', ['map'])];
+    const right = (id: string) => (id.startsWith('map') ? true : null);
+    const ids = (all: boolean) => keptForLook(found, { looksRight: right, all, inUnscannedDeck: (id) => id === 'unscanned' }).map((x) => x.slide.id).join();
+    check(ids(false) === 'map1,map2,word,unscanned,unsure', 'look results: slides known to look right lead; a slide nobody has looked at stays only when its words matched', ids(false));
+    check(ids(true) === 'map1,map2,unscanned', 'look results: "every map" keeps an unseen slide only from a deck nobody has scanned', ids(true));
+    check(keptForLook(found, { looksRight: () => null, all: true, inUnscannedDeck: () => false }).length === found.length, 'look results: untouched when nothing is known to match');
+    check(looks.get('a')?.join() === 'table' && looks.get('c')?.join() === 'map' && looks.get('b')?.join() === 'waterfall,process diagram' && !looks.has('d') && !looks.has('e'), 'look files: the file\'s own structure beats the sorter, the describing model beats both, a confirmed waterfall says so first', [...looks]);
+  }
   check(limitFor('every map', 24) === 100 && limitFor('maps', 24) === 24, 'ask: "every" lifts the result cap, otherwise the screen\'s limit stands');
 
   const s = (id: string, deckYear: number | null, downloads = 0) => ({ slide: { id, downloads, provenance: { deckYear } } as unknown as SlideSummary });

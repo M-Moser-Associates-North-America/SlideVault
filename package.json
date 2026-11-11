@@ -36,6 +36,7 @@
     "db:check": "tsx scripts/check-mmoser-db.mts",
     "deck:archive": "tsx scripts/archive-deck.mts",
     "story:import": "tsx scripts/import-story-data.mts",
+    "looks:import": "tsx scripts/import-looks.mts",
     "deck:unstick": "tsx scripts/unstick-deck.mts",
     "deck:details": "tsx scripts/deck-details.mts",
     "slides:spacing": "tsx --conditions=react-server scripts/fix-slide-spacing.mts",

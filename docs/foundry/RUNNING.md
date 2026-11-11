@@ -64,6 +64,7 @@ npm run deck:unstick -- "part of the title"               # a deck stuck at "pro
 npm run deck:archive -- "part of the title"               # hide a test or wrong deck (--yes to do it, --undo --yes to bring it back)
 npm run deck:details -- <folder of the deck files>        # who created each deck and when, read from the files
 npm run story:import -- --export <folder> --data <folder> --csv <file>   # the team's story tags and readings (FD-51)
+npm run looks:import -- --data <folder> --yes            # what each slide looks like, from the team's look files (FD-99); without --yes it only reports
 npm run slides:spacing -- <folder of the deck files>      # puts back spaces lost at line breaks in decks uploaded before 31 Oct
 npm run embed:slides -- --yes                             # meaning fingerprints for new or changed slides
 ```

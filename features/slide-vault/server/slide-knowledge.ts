@@ -2,6 +2,7 @@ import 'server-only';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { readConfig } from './config';
+import { looksFromFiles } from './look-files';
 
 /**
  * What SlideVault knows about each slide beyond its words, from two files in the data dir (never
@@ -146,10 +147,8 @@ async function readAll(dataDir: string, key: string): Promise<Map<string, SlideR
   // What a slide looks like, cheapest first, each later source overriding: the picture sorter, then the deck file's own
   // structure (a real table is a table, whatever the picture looks like), then the describing model where it has run.
   // Kept apart from the readings: a slide with only a look has no role, and the storyboard reads an empty role as known.
-  const looks = new Map<string, string[]>();
-  for (const src of [sorted, clues, visual]) for (const [id, v] of Object.entries(src?.data ?? {})) if (strings(v?.look).length) looks.set(id, strings(v?.look));
   // A diagram the model confirmed is a waterfall says so first (Alina, 4 Nov: "the slide that looks like a waterfall").
-  for (const [id, v] of Object.entries(waterfall?.data ?? {})) if (v?.waterfall === true) looks.set(id, ['waterfall', ...(looks.get(id) ?? []).filter((l) => l !== 'waterfall')]);
+  const looks = looksFromFiles({ sorted: sorted?.data, clues: clues?.data, visual: visual?.data, waterfall: waterfall?.data });
   for (const [id, l] of looks) { const base = map.get(id); if (base) base.looks = l; }
   // What a slide looks like joins what it says: "world map with office dots" makes a map findable when no word on it says map.
   for (const [id, v] of Object.entries(visual?.data ?? {})) {
