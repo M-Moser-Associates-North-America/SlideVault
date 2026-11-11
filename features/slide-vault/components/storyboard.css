@@ -1,12 +1,24 @@
+/*
+ * One orange for every place the Storyboard uses orange as text or behind white text, meeting WCAG 1.4.3 (4.5:1)
+ * on every background it sits on (docs/foundry/ACCESSIBILITY.md, A3 to A9). #c22d07 is the brand orange, darker:
+ * 5.20:1 on the page, 5.72:1 on white, 4.79:1 on the light orange tint, and white text on it 5.72:1. In dark mode
+ * orange text already passes (#ff7048: 7.14:1 on the page, 5.37:1 on the tint), but white on the lighter dark-mode
+ * oranges does not (2.74 to 3.11:1), so white-on-orange uses #c22d07 in both themes. Lines, outlines, the progress
+ * bar and icons keep the brand orange: they need 3:1, which it meets.
+ */
+.slidevault { --sb-orange-text: #c22d07; --sb-orange-fill: #c22d07; }
+.dark .slidevault:not([data-theme="light"]),
+.slidevault[data-theme="dark"] { --sb-orange-text: var(--sv-brand-strong); --sb-orange-fill: #c22d07; }
+
 /* Storyboard (FD-22, FD-24, FD-30; Schiffon's design, 23 Oct). Uses the app's own tokens so it sits
    in Khushali's system: one calm column that reads like the deck it will become, uppercase labels,
    thin rules, orange only as the accent. */
 .slidevault .sb { padding-bottom: 64px; container-type: inline-size; }
-.slidevault .sb-eyebrow, .slidevault .sb-label { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-brand-strong); margin: 0; }
+.slidevault .sb-eyebrow, .slidevault .sb-label { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sb-orange-text); margin: 0; }
 .slidevault .sb-title { margin: 6px 0 8px; }
 .slidevault .sb-lede { max-width: 64ch; margin: 0 0 20px; }
-.slidevault .sb-accent { color: var(--sv-brand-strong); }
-.slidevault .sb-n { font-weight: 700; color: var(--sv-brand); font-variant-numeric: tabular-nums; }
+.slidevault .sb-accent { color: var(--sb-orange-text); }
+.slidevault .sb-n { font-weight: 700; color: var(--sb-orange-text); font-variant-numeric: tabular-nums; }
 .slidevault .sb-text-btn { font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sv-text-secondary); background: none; border: 0; padding: 6px 4px; cursor: pointer; }
 .slidevault .sb-text-btn:hover { color: var(--sv-text); }
 .slidevault .sb-text-btn:focus-visible, .slidevault .sb-pull:focus-visible, .slidevault .sb-add:focus-visible, .slidevault .sb-icon-btn:focus-visible, .slidevault .sb-beat-pic:focus-visible, .slidevault .sb-set-pic:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
@@ -17,13 +29,13 @@
 .slidevault .sb-compose textarea:focus-visible, .slidevault .sb-sharpen textarea:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 1px; }
 .slidevault .sb-compose-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
 .slidevault .sb-compose-row .sb-role-line { margin: 0; }
-.slidevault .sb-mic.is-on { border-color: var(--sv-brand); color: var(--sv-brand-strong); background: var(--sv-brand-tint); }
+.slidevault .sb-mic.is-on { border-color: var(--sv-brand); color: var(--sb-orange-text); background: var(--sv-brand-tint); }
 .slidevault .sb-board-title { margin: 8px 0 12px; font-size: clamp(30px, 4vw, 46px); line-height: 1.02; font-weight: 300; text-transform: uppercase; letter-spacing: -0.01em; color: var(--sv-text); }
 .slidevault .sb-board-title b { font-weight: 700; }
 .slidevault .sb-board-title:focus { outline: none; }
 /* "Pull the story": the orange pill from the Home page's launch button, at the end of the brief's row */
 .slidevault .sb-pull { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 1px solid var(--sv-text-secondary); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-card); font: inherit; font-size: var(--sv-text-small); font-weight: 600; white-space: nowrap; cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
-.slidevault .sb-pull:is(:hover, :focus-visible, :active) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .sb-pull:is(:hover, :focus-visible, :active) { background: var(--sb-orange-fill); border-color: var(--sb-orange-fill); color: #fff; }
 /* The label slides from Pull the story to Start planning story; the wider label sets the size, so nothing jumps. */
 .slidevault .sb-pull-swap { display: inline-grid; overflow: hidden; }
 .slidevault .sb-pull-1, .slidevault .sb-pull-2 { grid-area: 1 / 1; transition: transform var(--sv-duration-fast) var(--sv-ease-out), opacity var(--sv-duration-fast) var(--sv-ease-out); }
@@ -37,9 +49,9 @@
 .slidevault .sb-composing-title { margin: 24px 0 32px; font-size: clamp(28px, 4vw, 40px); font-weight: 300; line-height: 1.15; color: var(--sv-text-secondary); }
 .slidevault .sb-steps { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--sv-border); }
 .slidevault .sb-steps li { display: grid; grid-template-columns: 36px 1fr auto; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--sv-border); color: var(--sv-text-secondary); transition: color 0.3s; }
-.slidevault .sb-steps li.is-todo { opacity: 0.55; }
+.slidevault .sb-steps li.is-todo { color: var(--sv-text-secondary); }
 .slidevault .sb-steps li.is-done { color: var(--sv-text); }
-.slidevault .sb-steps li.is-active .sb-step-label { color: var(--sv-brand-strong); }
+.slidevault .sb-steps li.is-active .sb-step-label { color: var(--sb-orange-text); }
 .slidevault .sb-step-n { font-size: 11px; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
 .slidevault .sb-step-state { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
 .slidevault .sb-progress { height: 2px; margin-top: 28px; background: var(--sv-border); }
@@ -60,7 +72,7 @@
 .slidevault .sb-thesis { color: var(--sv-text); }
 .slidevault .sb-close { max-width: 760px; margin: 36px auto 0; padding: 18px 0 0; border-top: 2px solid var(--sv-brand); font-size: clamp(18px, 2.2vw, 21px); line-height: 1.5; color: var(--sv-text); }
 .slidevault .sb-kind { margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
-.slidevault .is-suggested .sb-kind { color: var(--sv-brand-strong); }
+.slidevault .is-suggested .sb-kind { color: var(--sb-orange-text); }
 .slidevault .is-suggested .sb-beat-pic { outline: 2px dashed var(--sv-brand); outline-offset: 3px; }
 .slidevault .sb-beat-title { display: flex; gap: 14px; align-items: baseline; margin: 0 0 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text); }
 .slidevault .sb-beat-title .sb-n { font-size: 12px; }
@@ -68,7 +80,7 @@
 .slidevault .sb-beat-pic { display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); cursor: zoom-in; overflow: hidden; }
 .slidevault .sb-beat-pic img, .slidevault .sb-set-pic img { width: 100%; height: 100%; object-fit: contain; background: #fff; display: block; }
 .slidevault .sb-beat-more { position: absolute; right: 10px; bottom: 10px; min-width: 44px; min-height: 32px; padding: 4px 12px; border: 0; border-radius: 999px; background: color-mix(in srgb, var(--sv-text) 78%, transparent); color: #fff; font: inherit; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
-.slidevault .sb-beat-more:hover, .slidevault .sb-beat-more[aria-expanded='true'] { background: var(--sv-brand-strong); }
+.slidevault .sb-beat-more:hover, .slidevault .sb-beat-more[aria-expanded='true'] { background: var(--sb-orange-fill); }
 .slidevault .sb-beat-more:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
 .slidevault .sb-verdict { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; }
 .slidevault .sb-verdict.is-small .sb-icon-btn { font-size: 11px; padding: 4px 2px; }
@@ -81,7 +93,7 @@
 .slidevault .sb-beat-why b { font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; }
 .slidevault .sb-icon-btn { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sv-text-secondary); background: none; border: 0; padding: 6px 2px; cursor: pointer; }
 .slidevault .sb-icon-btn:hover:not(:disabled) { color: var(--sv-text); }
-.slidevault .sb-icon-btn[aria-pressed='true'] { color: var(--sv-brand-strong); }
+.slidevault .sb-icon-btn[aria-pressed='true'] { color: var(--sb-orange-text); }
 .slidevault .sb-icon-btn:disabled { cursor: default; }
 .slidevault .sb-icon-btn:disabled:not([aria-pressed='true']) { opacity: 0.45; }
 .slidevault .sb-sharpen { margin-top: 40px; }
