@@ -140,6 +140,24 @@ export async function insertSlides(deckId: string, slides: NewSlideInput[]): Pro
   );
 }
 
+/**
+ * What the deck file says each slide looks like, saved at upload (FD-100). Fills only slides with no look yet, so a
+ * look from the team's scans or looks:import (FD-99) is never overwritten. Returns how many slides got one.
+ */
+export async function fillEmptySlideLooks(deckId: string, looks: Map<number, string[]>): Promise<number> {
+  if (looks.size === 0) return 0;
+  const rows = [...looks];
+  // Each slide's looks as one JSON array, since Postgres can't unnest an array of arrays into rows of arrays.
+  const updated = await sql<{ id: string }>(
+    `update slides s set looks = array(select jsonb_array_elements_text(v.looks))
+     from unnest($2::int[], $3::jsonb[]) as v(slide_number, looks)
+     where s.deck_id = $1 and s.slide_number = v.slide_number and cardinality(s.looks) = 0
+     returning s.id`,
+    [deckId, rows.map(([n]) => n), rows.map(([, l]) => JSON.stringify(l))],
+  );
+  return updated.length;
+}
+
 export async function markDeckReady(deckId: string, slideCount: number): Promise<void> {
   await sql(`update decks set status = 'ready', slide_count = $2, error = null where id = $1`, [deckId, slideCount]);
 }

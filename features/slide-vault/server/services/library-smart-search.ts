@@ -32,6 +32,7 @@ import { learnedForTopics } from '../story-feedback';
 import { learnedScore, searchLearning, sinks, slideLikes, type SearchLearned } from '../search-feedback';
 import { isInternalOnly, listDeckSlidesPg, listSlideLooksPg, type DeckSlidesPg } from '../pg-repository';
 import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
+import { FILE_CLUE_LOOKS } from '../../../../workers/slide-vault/processors/file-clues';
 
 /**
  * Quick AI search over the whole library (docs/DECISIONS.md FD-16, FD-17): uploaded decks in
@@ -368,7 +369,8 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     for (const src of [...(index?.sources ?? []), ...currentUploads().sources]) {
       for (const sl of src.slides) {
         deckOf.set(sl.id, src.id);
-        if (known(sl.id)?.looks?.length) scanned.add(src.id);
+        // Scanned means its pictures were read: looks from the file alone (saved at upload, FD-100) don't count.
+        if (known(sl.id)?.looks?.some((l) => !FILE_CLUE_LOOKS.has(l))) scanned.add(src.id);
       }
     }
     result.items = keptForLook(result.items, {

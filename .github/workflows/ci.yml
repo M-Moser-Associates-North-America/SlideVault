@@ -27,6 +27,8 @@ jobs:
         run: npm run lint
       - name: Export acceptance checks
         run: npm run test:export
+      - name: Looks from the deck file (FD-100)
+        run: npm run test:file-clues
       - name: Production build
         run: npm run build
 
