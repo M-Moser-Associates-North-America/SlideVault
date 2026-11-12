@@ -399,21 +399,16 @@ test('phones: tabs along the bottom, the draft deck opens from the last tab, not
 
   await page.getByLabel('Add to draft deck: Leadership team').check({ force: true });
   const deck = tabs.getByRole('button', { name: /Draft deck, 1 slide/ });
-  // On a phone the first slide does not slide the draft deck over the page. A message says it landed ("Added · 1 in draft deck")
-  // and offers View (opens the draft deck) and Undo.
-  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
-  const added = page.locator('.toast', { hasText: 'Added · 1 in draft deck' });
-  await expect(added).toBeVisible();
-  await added.getByRole('button', { name: 'View' }).click();
-  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
-  // The last tab opens it too, and Escape gives the focus back to it.
-  await deck.click();
+  // The first slide added to an empty draft deck opens it by itself, so the person sees it land.
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
   await expect(deck).toBeFocused();
+  // The last tab opens it again.
+  await deck.click();
+  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
 });
 
 // Deck sections (FD-57, FD-80). The sample decks have no section dividers, so the server's answers are stood in
