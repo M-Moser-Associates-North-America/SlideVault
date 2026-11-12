@@ -128,8 +128,10 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
   const shown = useSyncExternalStore(onAnswers, () => answerFor(key).shown, () => 0);
   const lastCast = useRef(0);
   const cast = (value: 1 | -1, fromUndo = false) => {
-    /* Two quick taps count as one, so a double-tap never flips the vote on and straight off again. */
-    if (!fromUndo && tooSoon(lastCast)) return;
+    /* A touch screen: two quick taps count as one, so a double-tap never flips the vote on and straight off again.
+       With a mouse or keyboard every click counts (a person can choose, and take back, as fast as they like). */
+    const touch = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    if (touch && !fromUndo && tooSoon(lastCast)) return;
     const now = answerFor(key);
     const next: Answer = now.shown === value ? 0 : value;
     const by = currentStoryRole();
@@ -140,7 +142,6 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
     answers.set(key, { shown: next, sent: sentAfter });
     answerListeners.forEach((l) => l());
     /* A touch screen has no hover tips, so a tap says what the choice does, with Undo. */
-    const touch = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
     if (touch && next !== 0) toast(next === 1 ? 'Useful: ranks it higher in similar searches.' : 'Not useful: ranks it lower in similar searches.', { label: 'Undo', run: () => { if (answerFor(key).shown === next) cast(next, true); } });
     if (!take && !give) return;
     take?.catch(() => undefined);
