@@ -353,3 +353,40 @@
   }
 }
 
+/* A phone on its side: a slim header. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .header {
+    padding: 6px 0 4px;
+  }
+  .logo {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+  }
+  .brand {
+    font-size: 19px;
+  }
+  /* Logo, name and small caption sit on one line. */
+  .headerInner {
+    align-items: center;
+    gap: 10px;
+  }
+  .logo {
+    margin-top: 0;
+  }
+  .title {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: nowrap;
+    gap: 10px;
+    white-space: nowrap;
+  }
+  .nameRow {
+    margin-top: 0 !important;
+  }
+  .eyebrow {
+    order: 2;
+    font-size: 10px;
+  }
+}
+

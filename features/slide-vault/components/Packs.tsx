@@ -314,7 +314,7 @@ export function GroupTool({ deckSlides, onDone }: { deckSlides: SlideSummary[]; 
   return (
     <>
       <p className="meta" style={{ marginTop: 12 }} role="status">
-        Click the slides in the order they should go. A slide can be in one pack at a time.
+        Click slides in order. A slide can be in only one pack.
       </p>
       <ul className="gt-grid">
         {deckSlides.map((s) => {

@@ -61,8 +61,8 @@ export function SearchForm({ onSubmit }: { onSubmit: () => void }) {
         className="btn btn-icon mic"
         aria-disabled="true"
         aria-label="Voice search, planned for later"
-        data-tip="Voice search: later, if time allows"
-        data-tip-pos="start"
+        data-tip="Voice search: coming soon"
+        data-tip-pos="end"
       >
         <Icon name="mic" />
       </button>

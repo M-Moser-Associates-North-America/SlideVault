@@ -37,7 +37,7 @@ export function Lightbox() {
   const ref = useRef<HTMLDialogElement>(null);
   const strip = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
-  useDialogOpen(ref, !!preview);
+  const lastTap = useRef(0);  useDialogOpen(ref, !!preview);
 
   /* A slide picked inside the deck replaces the result's slide until the person steps to another result. */
   const [pick, setPick] = useState<{
@@ -126,19 +126,7 @@ export function Lightbox() {
   } else if (!preview && seen.slide) {
     setSeen({ slide: null, index: 0, from: null, dir: null });
   }
-  const preview_img = (sl: SlideSummary) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={runtime.assetUrl(sl.previewPath)}
-      alt={sl === slide ? sl.title : ''}
-      style={{
-        width: '100%',
-        height: '100%',
-        objectFit: 'contain',
-        display: 'block',
-      }}
-    />
-  );
+  const preview_img = (sl: SlideSummary) => <PreviewPicture key={sl.id} src={runtime.assetUrl(sl.previewPath)} alt={sl === slide ? sl.title : ''} />;
 
   /* Keep the current slide in view in the filmstrip. */
   useEffect(() => {
@@ -268,8 +256,18 @@ export function Lightbox() {
                   touch.current = null;
                   if (!t) return;
                   const dx = e.changedTouches[0].clientX - t.x;
-                  if (Math.abs(dx) > 50 && Math.abs(e.changedTouches[0].clientY - t.y) < 40) moveDeck(dx < 0 ? 1 : -1);
+                  const dy = e.changedTouches[0].clientY - t.y;
+                  if (Math.abs(dx) > 50 && Math.abs(dy) < 40) return moveDeck(dx < 0 ? 1 : -1);
+                  /* Two quick taps on the slide open it full screen, to zoom in. */
+                  if (Math.abs(dx) < 12 && Math.abs(dy) < 12) {
+                    const now = Date.now();
+                    if (now - lastTap.current < 320) {
+                      lastTap.current = 0;
+                      setZoomed(true);
+                    } else lastTap.current = now;
+                  }
                 }}
+                onDoubleClick={() => setZoomed(true)}
               >
                 {seen.from && seen.dir && (
                   <div key={`out-${seen.from.id}`} className={`slide-layer slide-out-${seen.dir}`} aria-hidden="true">
@@ -460,7 +458,11 @@ export function NumberJump({ value, max, label, onGo, always }: { value: number;
       inputMode="numeric"
       pattern="[0-9]*"
       value={text}
-      style={{ width: `calc(${String(max).length}ch + 18px)` }}
+      maxLength={String(max).length}
+      enterKeyHint="go"
+      autoComplete="off"
+      spellCheck={false}
+      style={{ width: `calc(${String(max).length}ch + 10px)` }}
       aria-label={`${label}, a number from 1 to ${max}`}
       onChange={(e) => setText(e.target.value.replace(/[^0-9]/g, ''))}
       onFocus={(e) => e.currentTarget.select()}
@@ -471,6 +473,12 @@ export function NumberJump({ value, max, label, onGo, always }: { value: number;
           e.stopPropagation();
           commit();
           e.currentTarget.blur();
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          /* Up and down step the number, like any number box; Enter (or leaving the box) goes there. */
+          e.preventDefault();
+          e.stopPropagation();
+          const now = Math.round(Number(text)) || value;
+          setText(String(Math.min(max, Math.max(1, now + (e.key === 'ArrowUp' ? 1 : -1)))));
         } else if (e.key === 'Escape' && text !== String(value)) {
           e.preventDefault();
           e.stopPropagation();
@@ -752,8 +760,8 @@ export function AlsoDialog() {
               <Link className="t" to={{ view: 'slide', id: c.id }} tabIndex={-1} ariaHidden onNavigate={closeAlso}>
                 <Thumb slide={c} />
               </Link>
-              <div>
-                <Link to={{ view: 'slide', id: c.id }} onNavigate={closeAlso}>
+              <div className="also-txt">
+                <Link className="also-name" to={{ view: 'slide', id: c.id }} onNavigate={closeAlso} title={`${c.provenance.sourceTitle}: open this slide to see the full deck name`}>
                   {c.provenance.sourceTitle}
                 </Link>
                 <div className="meta">
@@ -771,5 +779,31 @@ export function AlsoDialog() {
         </button>
       </div>
     </dialog>
+  );
+}
+
+/** The big picture in the preview: tried once more if it fails, then a quiet note instead of a broken-image icon. */
+function PreviewPicture({ src, alt }: { src: string; alt: string }) {
+  const [tries, setTries] = useState(0);
+  if (tries >= 2) {
+    return (
+      <span className="thumb-missing" role="img" aria-label={`Preview unavailable${alt ? `: ${alt}` : ''}`}>
+        <Icon name="alert" />
+        <span>Preview unavailable</span>
+      </span>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      key={tries}
+      src={tries === 0 ? src : `${src}${src.includes('?') ? '&' : '?'}retry=1`}
+      alt={alt}
+      onError={() => {
+        if (tries === 0) window.setTimeout(() => setTries(1), 1500);
+        else setTries(2);
+      }}
+      style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+    />
   );
 }

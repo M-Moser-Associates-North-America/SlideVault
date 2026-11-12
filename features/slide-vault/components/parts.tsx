@@ -106,16 +106,31 @@ export function Thumb({ slide }: { slide: SlideSummary }) {
   const { runtime } = useWorkspace();
   /* A soft shimmer shows until the picture has arrived, then it fades in (a picture already in the cache shows at once). */
   const [loaded, setLoaded] = useState(false);
+  /* A picture that fails is tried once more after a moment (a patchy connection often recovers); if it still fails, a quiet note stands in for it. */
+  const [tries, setTries] = useState(0);
+  const base = runtime.assetUrl(slide.previewPath);
+  if (tries >= 2) {
+    return (
+      <span className="thumb-missing" role="img" aria-label="Preview unavailable">
+        <Icon name="alert" />
+        <span>Preview unavailable</span>
+      </span>
+    );
+  }
   // eslint-disable-next-line @next/next/no-img-element -- previews come from the injected API, not next/image
   return (
     <img
+      key={tries}
       ref={(el) => {
         if (el && el.complete && el.naturalWidth > 0) setLoaded(true);
       }}
       className={loaded ? 'is-loaded' : undefined}
       onLoad={() => setLoaded(true)}
-      onError={() => setLoaded(true)}
-      src={runtime.assetUrl(slide.previewPath)}
+      onError={() => {
+        if (tries === 0) window.setTimeout(() => setTries(1), 1500);
+        else setTries(2);
+      }}
+      src={tries === 0 ? base : `${base}${base.includes('?') ? '&' : '?'}retry=1`}
       alt=""
       loading="lazy"
       decoding="async"
@@ -323,7 +338,7 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
           {slide.title}
         </Link>
         {/* On the deck page every slide is from the same deck, so the client, year and type line is left out. */}
-        {(num === undefined || slide.alsoIn) && (
+        {num === undefined && (
         <div className="meta-row">
           {/* Hover: the whole line when it is cut off ("Next Level Games · 2025 · Design Consultancy"), else where the slide is from. */}
           <span
@@ -338,7 +353,7 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
           >
             <div className="meta clip">{meta || p.sourceTitle}</div>
           </span>
-          {slide.alsoIn && (
+          {slide.alsoIn && num === undefined && (
             <button
               type="button"
               className="also"
@@ -354,6 +369,14 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
         </div>
         )}
         <CompactTags slide={slide} />
+        {/* In a deck, the card says it in words under the tags instead of showing a bare icon and number. */}
+        {num !== undefined && slide.alsoIn && (
+          <button type="button" className="also-line" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} data-tip-pos="up start" onClick={() => openAlso(slide)}>
+            <Icon name="folders" className="ic-sm" />
+            <span className="also-words">Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</span>
+            <span className="also-n" aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
+          </button>
+        )}
         {note && (
           <div className="card-note">
             <Icon name="download" className="ic-sm" />

@@ -252,11 +252,24 @@ export function FilterBar() {
 
   /* Phones: once the row has scrolled off the top, a small "Filters" button stays pinned there. */
   useEffect(() => {
-    const el = rowRef.current;
-    if (!compact || !el) return;
-    const observer = new IntersectionObserver(([entry]) => setRowOut(!entry.isIntersecting && entry.boundingClientRect.top < (entry.rootBounds?.top ?? 0)), { root: scroll.current });
-    observer.observe(el);
-    return () => observer.disconnect();
+    if (!compact) return;
+    let observer: IntersectionObserver | null = null;
+    /* A phone on its side lays the row out without a box of its own (its buttons share the line with Storyboard), so then the whole bar is watched. */
+    const attach = () => {
+      observer?.disconnect();
+      const row = rowRef.current;
+      const el = row && row.getClientRects().length ? row : wrap.current;
+      if (!el) return;
+      observer = new IntersectionObserver(([entry]) => setRowOut(!entry.isIntersecting && entry.boundingClientRect.top < (entry.rootBounds?.top ?? 0)), { root: scroll.current });
+      observer.observe(el);
+    };
+    attach();
+    const turned = window.matchMedia('(orientation: landscape)');
+    turned.addEventListener('change', attach);
+    return () => {
+      turned.removeEventListener('change', attach);
+      observer?.disconnect();
+    };
   }, [compact, scroll]);
 
   const yearOn = filters.yfrom !== null || filters.yto !== null;

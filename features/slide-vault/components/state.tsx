@@ -430,6 +430,18 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     [dismissToast],
   );
 
+  /* Losing the connection is said once, and so is getting it back, so a failed save or a picture that will not load is not a mystery. */
+  useEffect(() => {
+    const off = () => toast("You're offline. Some things won't load or save until you reconnect.");
+    const on = () => toast('Back online.');
+    window.addEventListener('offline', off);
+    window.addEventListener('online', on);
+    return () => {
+      window.removeEventListener('offline', off);
+      window.removeEventListener('online', on);
+    };
+  }, [toast]);
+
   const [announcement, setAnnouncement] = useState('');
   const announce = useCallback((message: string) => {
     setAnnouncement('');

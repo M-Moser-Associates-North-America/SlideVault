@@ -1310,7 +1310,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .ai-ask-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-brand-strong); }
 .slidevault .ai-ask-body h2 { margin: 4px 0 0; font-size: 18px; letter-spacing: -0.01em; }
 .slidevault .ai-ask-words { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
-.slidevault .ai-ask-text { margin: 0; font-size: 14px; line-height: 1.55; color: var(--sv-text-secondary); }
+.slidevault .ai-ask-text { margin: 0; text-wrap: balance; font-size: 14px; line-height: 1.55; color: var(--sv-text-secondary); }
 .slidevault .ai-ask-foot { justify-content: center; border-top: 0; padding-top: 4px; }
 
 /* Tablets held upright get the phone's bottom bar too (Schiffon, 6 Nov: "we just want bottom rows", as in the
@@ -1360,7 +1360,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault dialog.sv-dialog.wide .dlg-body > .lb-row { grid-column: 1; grid-row: 1 / span 30; position: sticky; top: 0; align-self: start; }
   .slidevault dialog.sv-dialog.wide .lb-stage { max-height: calc(var(--sv-h, 393px) - 110px); }
   .slidevault dialog.sv-dialog.wide .lb-deck { display: none; }
-  .slidevault dialog.sv-dialog.wide .lb-caption { position: static; }
 }
 
 /* ---- Phone pass 2 (FD-100) ---- */
@@ -1403,11 +1402,12 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 }
 
 /* The slide preview on a phone. */
-.slidevault .lb-zoom, .slidevault .lb-rnav, .slidevault .lb-save { display: none; }
+.slidevault .lb-zoom, .slidevault .lb-rnav { display: none; }
+.slidevault .lb-save { display: inline-grid; } /* the heart sits beside Share in the preview on every screen */
 .slidevault .lb-save.is-saved { color: var(--sv-brand); }
 .slidevault .lb-save.is-saved .ic { fill: currentColor; }
 .slidevault .lb-also { margin-top: 10px; }
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .lb-save, .slidevault .lb-rnav { display: inline-grid; }
   .slidevault .lb-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "tools tools tools" "prev title next"; align-items: center; gap: 0 4px; padding: 8px 12px 6px; }
   .slidevault .lb-head .dlg-head-tools { grid-area: tools; justify-self: end; }
@@ -1453,7 +1453,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .tag-addrow > :first-child:not(.tag-suggested) { flex: none; }
 .slidevault .tag-addrow > .tag-suggested > .meta { white-space: nowrap; }
 .slidevault .lb-where { display: none; }
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .lb-row { grid-template-areas: "stage stage stage" "prev where next"; }
   .slidevault .lb-where { display: block; grid-area: where; justify-self: center; font-size: 13px; font-weight: 600; color: var(--sv-text-secondary); white-space: nowrap; }
   .slidevault .lb-caption .counter.is-dup { display: none; }
@@ -1479,7 +1479,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 
 /* ---- Phone pass 5: the preview ---- */
 .slidevault .tag-line { display: grid; gap: 10px; min-width: 0; }
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   /* All the tags in one row that scrolls sideways. */
   .slidevault .tag-line { display: flex; align-items: center; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }
   .slidevault .tag-line::-webkit-scrollbar { display: none; }
@@ -1495,7 +1495,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .lb-title-link { color: inherit; text-decoration: none; }
 .slidevault .lb-title-link:hover { text-decoration: underline; text-decoration-color: var(--sv-brand); text-underline-offset: 3px; }
 .slidevault .lbl-short { display: none; }
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .lb-title-link { text-decoration: underline; text-decoration-color: var(--sv-border-strong); text-underline-offset: 3px; }
   .slidevault .lbl-long { display: none; }
   .slidevault .lbl-short { display: inline; }
@@ -1513,13 +1513,13 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
   .slidevault dialog.sv-dialog.wide .lb-caption { margin-top: auto; bottom: 0; padding: 10px 0 calc(12px + env(safe-area-inset-bottom)); }
 }
 /* With an extra "Pack" or "Section" button the row is tight, so the icons go and the words stay. */
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .lb-caption .row-flex:has(> .lb-pack, > .lb-section) > .btn:not(.lb-open-deck) .ic { display: none; }
 }
 
 /* ---- Phone pass 7: the preview header ---- */
 .slidevault .lb-also-chip { display: none; }
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .lb-also-chip { display: inline-flex; align-items: center; gap: 4px; min-width: 36px; padding: 0 8px; font-weight: 600; }
   .slidevault .lb-also-chip .ic { width: 18px; height: 18px; }
   .slidevault .lb-also { display: none; }
@@ -1528,7 +1528,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 }
 
 /* ---- Phone pass 8: more room around the thumbnail ---- */
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .lb-results { margin: 6px 0 14px; }
   .slidevault .lb-row { margin-bottom: 12px; }
   .slidevault .fb-verdict { margin-top: 4px; }
@@ -1538,7 +1538,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 /* ---- Phone pass 9: the slide page ---- */
 .slidevault .slide-actions .lb-also-chip { margin-left: auto; }
 .slidevault .sv-app[data-size="compact"] .slide-detail { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
-.slidevault .sv-app[data-size="compact"] .slide-detail > div, .slidevault .sv-app[data-size="compact"] .stack-panels { display: contents; }
+.slidevault .sv-app[data-size="compact"] .slide-detail > div, .slidevault .sv-app[data-size="compact"] .slide-detail .slide-main, .slidevault .sv-app[data-size="compact"] .stack-panels { display: contents; }
 .slidevault .sv-app[data-size="compact"] .slide-detail .big-preview { margin-top: 18px; }
 /* Cards below the slide, in this order: Use this slide, About this slide, Details, Text on the slide. */
 .slidevault .sv-app[data-size="compact"] .stack-panels > * { order: 1; margin-top: 16px; }
@@ -1560,7 +1560,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
   .slidevault .fb-verdict, .slidevault .fb-verdict.is-small { justify-content: center; gap: 4px 32px; }
 }
 /* Phone: Useful at one side, Not useful at the other. */
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .fb-verdict, .slidevault .fb-verdict.is-small { flex-wrap: nowrap; justify-content: space-between; gap: 0 8px; }
   .slidevault .fb-verdict.is-small .sb-icon-btn { font-size: 10.5px; letter-spacing: 0.05em; gap: 3px; }
   .slidevault .fb-verdict.is-small .sb-icon-btn .ic-sm { width: 12px; height: 12px; }
@@ -1578,13 +1578,13 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
   .slidevault .fb-verdict .sb-icon-btn[data-tip]::after { left: 50%; transform: translateX(-50%); max-width: min(100%, 320px); text-align: center; }
 }
 /* A narrow card (two across on a phone): the ticks and crosses go and the words stay, so both words fit on one line. */
-@media (max-width: 700px) { .slidevault .fb-verdict { flex: 1 1 0; min-width: 0; } }
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) { .slidevault .fb-verdict { flex: 1 1 0; min-width: 0; } }
 @container (max-width: 190px) { .slidevault .fb-verdict .sb-icon-btn .ic-sm { display: none; } }
 /* With the example searches gone, the results heading needs its own room under the filter row. */
 .slidevault .sv-app .sv-wrap > .page-head { margin-top: 22px; }
 
 /* The number you can type in, in "Result [1] of 95" and "Slide [68] of 75 in this deck". */
-.slidevault .num-jump { box-sizing: content-box; height: 24px; padding: 0 4px; margin: 0 2px; border: 1px solid var(--sv-border-strong); border-radius: 6px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; vertical-align: baseline; }
+.slidevault .num-jump { box-sizing: content-box; height: 22px; padding: 0 2px; margin: 0 2px; font-size: 0.88em; line-height: 1; border: 1px solid var(--sv-border-strong); border-radius: 6px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; vertical-align: baseline; }
 .slidevault .num-jump:hover { border-color: var(--sv-text-secondary); }
 .slidevault .num-jump:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 1px; border-color: var(--sv-brand); }
 .slidevault .lb-where .num-jump { margin: 0 2px 0 0; }
@@ -1667,7 +1667,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .slidevault .summary-row .summary { margin: 0; }
 .slidevault .why-more { display: none; }
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .matched { position: relative; }
   .slidevault .matched .why-text { display: block; }
   .slidevault .matched .why-text:not(.is-open) { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -1706,13 +1706,13 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .sv-zoom-wait { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 
 /* Results on a phone: the count sits right under "Add all", and the rows have room between them. */
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .refine { margin: 14px 0 8px; }
   .slidevault .summary-row { flex-direction: row-reverse; align-items: flex-start; margin: 0 0 20px; }
   .slidevault .summary-row .summary { text-align: right; }
   .slidevault .sec-pills { margin-top: 0; }
 }
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .refine { flex-wrap: nowrap; gap: 8px; }
   .slidevault .refine .refine-lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .slidevault .refine .select { max-width: 130px; }
@@ -1722,7 +1722,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 }
 
 /* ---- Results page on a phone: a calmer top ---- */
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .sv-app[data-size="compact"] .sv-wrap.res-wrap > .page-head { margin-top: 10px; }
   .slidevault .res-title { font-size: 18px; line-height: 1.3; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .slidevault .sv-main:has(.res-wrap) .fb-tools { margin-bottom: 6px; }
@@ -1734,7 +1734,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
   .slidevault .res-wrap .sec-pills { margin: 0 0 12px; }
 }
 /* The count and its (i) sit left-aligned right under the heading; the Best match row comes after. */
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .sv-app[data-size="compact"] .res-wrap { display: flex; flex-direction: column; }
   .slidevault .res-wrap > .page-head { order: -2; }
   .slidevault .res-wrap > .summary-row { order: -1; justify-content: flex-start; margin: 4px 0 0; }
@@ -1744,7 +1744,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 
 /* ---- Phone pass 14: results, simpler ---- */
 .slidevault .cols-toggle { flex: none; }
-@media (max-width: 700px) {
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   /* The words "I'm looking for" go once there are results. */
   .slidevault .home-hero.has-results .home-hero-prefix { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .slidevault .home-hero.has-results { padding-top: 14px; }
@@ -1771,4 +1771,377 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .cols-toggle[aria-pressed] { background: var(--sv-surface); }
 
 /* The column button sits at the far right of the Best match row. */
-@media (max-width: 700px) { .slidevault .res-wrap .refine > .cols-toggle { margin-left: auto; } }
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) { .slidevault .res-wrap .refine > .cols-toggle { margin-left: auto; } }
+
+/* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  /* The tabs become a vertical rail. */
+  .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-bottombar { top: 0; right: auto; bottom: 0; width: calc(64px + env(safe-area-inset-left)); padding: 0 0 0 env(safe-area-inset-left); border-top: 0; border-right: 1px solid var(--sv-border); box-shadow: none; }
+  .slidevault .sv-bottombar ul { display: flex; flex-direction: column; height: 100%; }
+  .slidevault .sv-bottombar li, .slidevault .sv-bottombar li:last-child { flex: 1 1 0; min-height: 0; }
+  .slidevault .sv-bottombar a, .slidevault .sv-bottombar .bb-deck { height: 100%; padding-bottom: 0; gap: 2px; font-size: 10px; }
+  .slidevault .sv-bottombar .ic { width: 20px; height: 20px; }
+  .slidevault .sv-bottombar a[aria-current="page"]::before { top: 20%; bottom: 20%; left: 0; right: auto; width: 3px; height: auto; border-radius: 0 3px 3px 0; }
+  .slidevault .sv-bottombar .bb-n, .slidevault .sv-bottombar .bb-deck .bb-n { top: 6px; left: calc(50% + 6px); }
+  .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-scroll { padding-left: calc(64px + env(safe-area-inset-left)); }
+  .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-main { padding-bottom: 24px; }
+  .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts.lift { bottom: 12px; }
+  .slidevault .sv-wrap { padding-left: 16px; padding-right: calc(16px + env(safe-area-inset-right)); }
+  /* Home and results: the search sits on one line with its label; the grid fills the width. */
+  .slidevault .sv-app[data-size="compact"] .home-hero { padding-top: 8px; }
+  .slidevault .sv-app[data-size="compact"] .home-hero-search { display: flex; flex-direction: row; align-items: center; gap: 12px; }
+  .slidevault .sv-app[data-size="compact"] .home-hero-prefix { font-size: 18px; }
+  .slidevault .sv-app[data-size="compact"] .fb-tools { margin: 4px 0 8px; }
+  .slidevault .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+  .slidevault .sv-app[data-size="compact"] .grid.is-dense { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .slidevault .sv-app[data-size="compact"] .sv-wrap.res-wrap > .page-head { margin-top: 6px; }
+  .slidevault .res-wrap .refine { margin-top: 6px; }
+  .slidevault .grid.is-dense .matched .why-text:not(.is-open) { -webkit-line-clamp: 2; }
+  /* The draft deck is a panel down the right side, not a sheet. */
+  .slidevault .sv-app[data-size="compact"] .cart-col, .slidevault .sv-app[data-size="compact"] .cart-col:has(.cart-empty) { top: 0; bottom: 0; left: auto; right: 0; width: min(46%, 340px); height: auto; border-top: 0; border-left: 1px solid var(--sv-brand); border-radius: 0; box-shadow: -12px 0 32px -12px rgba(10, 10, 12, 0.45); transition: right 0.22s var(--sv-ease-out), visibility 0.22s; }
+  .slidevault .sv-app[data-size="compact"] .cart-min .cart-col, .slidevault .sv-app[data-size="compact"] .cart-min .cart-col:has(.cart-empty) { right: -110%; bottom: 0; visibility: hidden; box-shadow: none; }
+  /* Preview: the slide on the left; title, actions and details on the right. Result arrows are icons here. */
+  .slidevault dialog.sv-dialog.wide .lb-head { padding: 16px 20px 6px; row-gap: 4px; }
+  .slidevault dialog.sv-dialog.wide .dlg-body { padding: 4px 20px 6px; }
+  .slidevault dialog.sv-dialog.wide .lb-title h2 { font-size: 15px; -webkit-line-clamp: 1; }
+  .slidevault dialog.sv-dialog.wide .lb-row { grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr); column-gap: 10px; grid-template-areas: "stage stage stage stage stage" ". prev where next ."; row-gap: 10px; margin-bottom: 0; }
+  .slidevault dialog.sv-dialog.wide .lb-row > .lb-stage { justify-self: stretch; }
+  .slidevault dialog.sv-dialog.wide .lb-row > .lb-prev, .slidevault dialog.sv-dialog.wide .lb-row > .lb-next { width: 36px; height: 30px; justify-self: auto; }
+  .slidevault dialog.sv-dialog.wide .lb-stage { max-height: calc(var(--sv-h, 393px) - 150px); }
+  .slidevault .lb-caption { bottom: 0; padding: 8px 0 8px; }
+}
+.slidevault .upsubmit[hidden] { display: none; }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  /* Storyboard shares the filter row. */
+  .slidevault .sv-app[data-size="compact"] .fbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .slidevault .sv-app[data-size="compact"] .fbar > .fb-tools,
+  .slidevault .sv-app[data-size="compact"] .fbar > .fbar-row { display: contents; }
+  /* Order: Search with AI, hidden eye, Storyboard, then Filters, Year, Client. */
+  .slidevault .sv-app[data-size="compact"] .fbar-row > .ai-check-wrap { order: 1; }
+  .slidevault .sv-app[data-size="compact"] .fbar-row > .hid-wrap:not(.ai-check-wrap) { order: 2; }
+  .slidevault .sv-app[data-size="compact"] .fbar > .fb-tools > * { order: 3; margin-right: 12px; }
+  .slidevault .sv-app[data-size="compact"] .fbar-row > :not(.hid-wrap) { order: 4; }
+  .slidevault .sv-app[data-size="compact"] .fbar > .fb-chips { flex: 1 1 100%; }
+  /* Slide page: the slide on the left, its cards on the right. */
+  /* The heading sits over the slide only; the cards on the right start level with the top of the slide. */
+  .slidevault .sv-app[data-size="compact"] .slide-detail { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); column-gap: 14px; row-gap: 0; align-items: start; }
+  .slidevault .sv-app[data-size="compact"] .slide-detail > div { display: contents; }
+  .slidevault .sv-app[data-size="compact"] .slide-detail > div > :first-child { grid-column: 1; grid-row: 1; min-width: 0; }
+  .slidevault .sv-app[data-size="compact"] .slide-detail .slide-main { display: block; grid-column: 1; grid-row: 2; min-width: 0; }
+  .slidevault .sv-app[data-size="compact"] .slide-detail > .stack-panels { display: block; grid-column: 2; grid-row: 2; min-width: 0; padding-top: 10px; }
+  .slidevault .sv-app[data-size="compact"] .stack-panels > * { order: 0; margin-top: 12px; }
+  .slidevault .sv-app[data-size="compact"] .stack-panels > :first-child { margin-top: 0; }
+  .slidevault .sv-app[data-size="compact"] .hero-wrap { margin: 10px 0 0; border-radius: 12px; overflow: hidden; }
+  .slidevault .sv-app[data-size="compact"] .hero-add { left: 10px; }
+  .slidevault .sv-app[data-size="compact"] .hero-corner, .slidevault .sv-app[data-size="compact"] .hero-zoom { right: 10px; }
+  .slidevault .sv-app[data-size="compact"] .h1 { font-size: 22px; }
+  .slidevault .deck-sticky { left: calc(64px + env(safe-area-inset-left)); }
+  /* Preview header on one row; the picture a little smaller so the arrows under it fit. */
+  .slidevault dialog.sv-dialog.wide .lb-head { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title tools"; }
+  /* The result arrows move down to sit either side of "Result 1 of 77". */
+  .slidevault dialog.sv-dialog.wide .lb-head > .lb-rnav { display: none; }
+  .slidevault dialog.sv-dialog.wide .lb-results { justify-content: center; gap: 14px; margin: 4px 0 10px; }
+  .slidevault dialog.sv-dialog.wide .lb-results .counter { margin: 0; }
+  .slidevault dialog.sv-dialog.wide .lb-results > .btn:not(.btn-ghost) { display: inline-grid; place-items: center; width: 32px; height: 28px; min-height: 0; padding: 0; border: 0; border-radius: 6px; background: none; box-shadow: none; color: var(--sv-text-secondary); }
+  .slidevault dialog.sv-dialog.wide .lb-results > .btn:disabled { opacity: 0.3; }
+  .slidevault dialog.sv-dialog.wide .lb-results > .btn .ic { width: 20px; height: 20px; }
+  .slidevault dialog.sv-dialog.wide .lb-results > .btn:not(.btn-ghost) span { display: none; }
+  .slidevault dialog.sv-dialog.wide .lb-head .dlg-head-tools { grid-area: tools; }
+  .slidevault dialog.sv-dialog.wide .lb-stage { max-height: calc(var(--sv-h, 393px) - 185px); }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .fb-pin-bar { padding-left: calc(64px + 16px + env(safe-area-inset-left)); }
+  .slidevault dialog.sv-dialog.wide .lb-stage { max-height: calc(var(--sv-h, 393px) - 156px); }
+}
+
+/* Phones: the deck arrows under the preview picture are plain link-style arrows, not round buttons, so they take little room. */
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault dialog.sv-dialog .lb-row > .lb-prev, .slidevault dialog.sv-dialog .lb-row > .lb-next { width: 32px; height: 28px; min-height: 0; padding: 0; border: 0; border-radius: 6px; background: none; box-shadow: none; color: var(--sv-brand-strong); }
+  .slidevault dialog.sv-dialog .lb-row > .lb-prev:disabled, .slidevault dialog.sv-dialog .lb-row > .lb-next:disabled { opacity: 0.3; }
+  .slidevault dialog.sv-dialog .lb-row > .lb-prev .ic, .slidevault dialog.sv-dialog .lb-row > .lb-next .ic { width: 20px; height: 20px; }
+  .slidevault dialog.sv-dialog .lb-row { row-gap: 10px; }
+}
+
+/* Phone landscape preview, fixed layout: results row level with the top of the slide, Add / Download level with the bottom of the deck arrows,
+   the free space in between. No line above the buttons. Tags as in portrait: the tag row, then Add tag with the suggestions beside it. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault dialog.sv-dialog.wide .dlg-body { grid-template-rows: auto auto auto 1fr auto; }
+  .slidevault dialog.sv-dialog.wide .dlg-body > .lb-row { grid-row: 1 / 6; }
+  .slidevault dialog.sv-dialog.wide .dlg-body > .lb-results { grid-row: 1; margin: 0 0 8px; }
+  .slidevault dialog.sv-dialog.wide .dlg-body > .slide-actions { grid-row: 2; margin-top: 0; }
+  .slidevault dialog.sv-dialog.wide .dlg-body > .lb-tags { grid-row: 3; }
+  .slidevault dialog.sv-dialog.wide .dlg-body > .lb-caption { grid-row: 5; align-self: end; margin-top: 0; padding: 0; border-top: 0; }
+  .slidevault dialog.sv-dialog.wide .fb-verdict .sb-icon-btn { font-weight: 500; letter-spacing: 0.04em; }
+}
+
+/* Deck page on a phone turned sideways: less space above the title; "Created / Uploaded" on one line; "Go to slide" on the left of the tags. */
+.slidevault .deck-tagbar { display: contents; }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .sv-wrap > .deck-head { margin-top: 2px; }
+  .slidevault .sv-app[data-size="compact"] .sv-wrap > .crumbs, .slidevault .sv-app[data-size="compact"] .crumbs { margin-bottom: 4px; }
+  .slidevault .sv-app[data-size="compact"] .deck-who { display: block; }
+  .slidevault .sv-app[data-size="compact"] .deck-who > span { display: inline; }
+  .slidevault .sv-app[data-size="compact"] .deck-who > span + span::before { content: "·"; margin: 0 8px; }
+  .slidevault .sv-app[data-size="compact"] .deck-tagbar { display: flex; align-items: flex-end; gap: 16px; margin-top: 12px; }
+  .slidevault .sv-app[data-size="compact"] .deck-tagbar > .deck-jump { order: 0; flex: none; margin-top: 0; padding: 0; height: 24px; }
+  .slidevault .sv-app[data-size="compact"] .deck-tagbar .deck-jump-go { white-space: nowrap; }
+  .slidevault .sv-app[data-size="compact"] .deck-tagbar > .deck-tags { order: 1; flex: 1 1 0; min-width: 0; max-width: none; margin-top: 0; }
+}
+/* Small phones on their side (iPhone SE 667×375, small Android 640×360, 568×320): the preview's right-hand column is narrow, so it gets a little more width, tighter spacing and buttons without icons, so nothing is cut off or pushed onto another line. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
+  .slidevault dialog.sv-dialog.wide .dlg-body { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 12px; }
+  .slidevault dialog.sv-dialog.wide .lb-results { gap: 4px; flex-wrap: nowrap; }
+  .slidevault dialog.sv-dialog.wide .lb-results .counter { white-space: nowrap; font-size: 13px; }
+  .slidevault dialog.sv-dialog.wide .lb-caption .row-flex { gap: 6px; }
+  .slidevault dialog.sv-dialog.wide .lb-caption .row-flex > .btn { padding-inline: 8px; font-size: 13px; }
+  .slidevault dialog.sv-dialog.wide .lb-caption .row-flex > .btn:not(.lb-open-deck) .ic { display: none; }
+  .slidevault dialog.sv-dialog.wide .lb-caption .row-flex > .lb-open-deck { width: 40px; }
+  .slidevault dialog.sv-dialog.wide .fb-verdict .sb-icon-btn { font-size: 10px; letter-spacing: 0.02em; }
+}
+/* Small phones on their side (667×375, 640×360, 568×320): keep every part in its place and make it fit. */
+@media (orientation: landscape) and (max-height: 400px) and (max-width: 1000px) {
+  /* Draft deck panel: a shorter header, so the list has room, and buttons whose names fit. */
+  .slidevault .sv-app[data-size="compact"] .cart-head { padding: 8px 14px 10px; }
+  .slidevault .sv-app[data-size="compact"] .cart-name { margin-top: 6px; }
+  .slidevault .sv-app[data-size="compact"] .cart-name input { height: 36px; }
+  .slidevault .sv-app[data-size="compact"] .cart-title { margin-top: 4px; }
+  .slidevault .sv-app[data-size="compact"] .cart-head .cart-acts { margin-top: 8px; }
+  .slidevault .sv-app[data-size="compact"] .cart-head .cart-acts .btn { height: 34px; padding-inline: 8px; }
+  .slidevault .sv-app[data-size="compact"] .cart-head .cart-acts .btn .ic { display: none; }
+  .slidevault .sv-app[data-size="compact"] .cart-foot { padding: 6px 14px; }
+  .slidevault .sv-app[data-size="compact"] .cart-foot .txt { display: none; }
+  /* Slide page heading a little smaller, so it does not take four lines. */
+  .slidevault .sv-app[data-size="compact"] .h1 { font-size: 18px; }
+  /* Deck page: "Created … · Uploaded …" breaks evenly. */
+  .slidevault .sv-app[data-size="compact"] .deck-who { text-wrap: balance; }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
+  /* Home: Search with AI, eye, Storyboard, Filters, Year and Client stay on one row. */
+  .slidevault .sv-app[data-size="compact"] .fbar { gap: 6px; }
+  .slidevault .sv-app[data-size="compact"] .fbar > .fb-tools > * { margin-right: 6px; }
+  .slidevault .sv-app[data-size="compact"] .fbar .fb-btn { padding-inline: 10px; }
+  .slidevault .sv-app[data-size="compact"] .fbar .fb-btn .ic { display: none; }
+  .slidevault .sv-app[data-size="compact"] .fbar .ai-check { font-size: 13px; }
+}
+/* Deck page: "105 slides · Created by … · Uploaded by …" runs on one line and wraps between the parts when it has to, on every screen. */
+.slidevault .deck-meta { display: block; margin-top: 8px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .deck-meta .dm { display: inline; }
+.slidevault .deck-meta .dm:not(:last-child)::after { content: "·"; margin: 0 8px; }
+.slidevault .deck-meta .dm { white-space: normal; }
+.slidevault .range-add .range-close { min-width: 32px; padding-inline: 0; }
+/* Results: the sort box and the section pills share a row on a phone on its side; the box stays put, the pills scroll. */
+.slidevault .res-controls { display: contents; }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .res-controls { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0 0 10px; }
+  .slidevault .sv-app[data-size="compact"] .res-controls > .refine { flex: none; margin: 0; }
+  .slidevault .sv-app[data-size="compact"] .res-controls > .sec-pills { flex: 1 1 0; min-width: 0; margin: 0; }
+  /* The Useful / Not useful tips open downward in the preview here, where there is no room above the pair. */
+  .slidevault dialog.sv-dialog.wide .fb-verdict .sb-icon-btn[data-tip]::after { top: calc(100% + 6px); bottom: auto; }
+}
+
+/* Small phones on their side: the preview takes the height its content needs instead of standing tall with blank space under it, and the sort row sits clear of the results heading. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
+  dialog.slidevault.sv-dialog.wide { height: fit-content; }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .res-controls { margin-top: 12px; }
+}
+
+/* Slide page on a phone on its side: the cards on the right are a compact column that scales with its own width, so a small phone looks like a smaller iPhone 15. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .slide-detail > .stack-panels { container-type: inline-size; }
+  .slidevault .sv-app[data-size="compact"] .stack-panels .panel:not(.fold) { padding: 12px 14px; }
+  .slidevault .sv-app[data-size="compact"] .stack-panels .panel { border-radius: 16px; }
+  .slidevault .sv-app[data-size="compact"] .stack-panels .fold > summary { min-height: 44px; padding: 8px 12px; gap: 8px; }
+  .slidevault .sv-app[data-size="compact"] .stack-panels .fold-body { padding: 0 12px 12px; }
+  .slidevault .sv-app[data-size="compact"] .stack-panels .panel-use h2 { font-size: 15px; margin-bottom: 8px; }
+  .slidevault .sv-app[data-size="compact"] .stack-panels .panel-use .row-flex { gap: 6px; }
+  .slidevault .sv-app[data-size="compact"] .stack-panels .panel-use .btn { height: 34px; padding-inline: 10px; font-size: 13px; }
+  .slidevault .sv-app[data-size="compact"] .stack-panels .fold h2, .slidevault .sv-app[data-size="compact"] .stack-panels .fold .fold-title { font-size: 15px; }
+  .slidevault .sv-app[data-size="compact"] .stack-panels .fold .fold-hint, .slidevault .sv-app[data-size="compact"] .stack-panels .fold .meta { font-size: 12px; }
+}
+@container (max-width: 250px) {
+  .slidevault .panel-use .btn .ic { display: none; }
+  .slidevault .panel-use .btn { padding-inline: 8px; font-size: 12.5px; }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  /* Use this slide: the buttons fill the card in a tidy grid (full-width first button, then pairs; one per row when the card is narrow). */
+  .slidevault .sv-app[data-size="compact"] .panel-use .row-flex { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .slidevault .sv-app[data-size="compact"] .panel-use .row-flex > .btn { justify-content: center; min-width: 0; white-space: nowrap; padding-inline: 8px; }
+  .slidevault .sv-app[data-size="compact"] .panel-use .row-flex > .btn .ic { display: none; }
+}
+
+/* Slide page title and its pencil: the pencil is exactly as tall as one line of the title and centred in it, so it sits on the first line's horizontal axis at every size. */
+.slidevault .slide-title-row { --ttl-fs: 30px; --ttl-lh: 1.2; }
+.slidevault .sv-app[data-size="compact"] .slide-title-row { --ttl-fs: 22px; }
+@media (max-width: 480px) { .slidevault .slide-title-row { --ttl-fs: 24px; } .slidevault .sv-app[data-size="compact"] .slide-title-row { --ttl-fs: 22px; } }
+@media (orientation: landscape) and (max-height: 400px) and (max-width: 1000px) { .slidevault .sv-app[data-size="compact"] .slide-title-row { --ttl-fs: 18px; } }
+.slidevault .slide-title-row .h1 { font-size: var(--ttl-fs); line-height: var(--ttl-lh); }
+.slidevault .slide-title-row .title-edit { height: calc(var(--ttl-fs) * var(--ttl-lh)); margin-top: 0; align-self: flex-start; }
+/* "Also in N other decks" joins the tag row (left end, fixed) on a phone on its side. */
+.slidevault .tag-first { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.slidevault .tag-first > .tag-line { flex: 1 1 0; min-width: 0; }
+.slidevault .tag-lead { display: inline-flex; flex: none; }
+/* Create: the two cards side by side, and My decks: working drafts in two columns, on a phone on its side and on tablets. */
+.slidevault .sv-app[data-size="medium"] .create-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; }
+.slidevault .sv-app[data-size="medium"] .draft-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .create-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; gap: 12px; margin-top: 14px; }
+  .slidevault .sv-app[data-size="compact"] .create-card { padding: 16px; }
+  .slidevault .sv-app[data-size="compact"] .draft-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---- Phone on its side, round 3 ---- */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  /* Use this slide: four equal buttons in two rows; the words shrink with the card and wrap to a second line if they must. */
+  .slidevault .sv-app[data-size="compact"] .panel-use .row-flex > .btn { white-space: normal; text-align: center; line-height: 1.15; height: auto; min-height: 38px; padding: 4px 6px; font-size: clamp(11px, 4.6cqw, 13.5px); }
+    /* Sticky bars: one slim row. */
+  .slidevault .sv-app[data-size="compact"] .fb-pin-bar { padding-top: 4px; padding-bottom: 4px; }
+  .slidevault .deck-sticky { padding-top: 4px; padding-bottom: 4px; gap: 8px; font-size: 13px; }
+  .slidevault .deck-sticky .btn { min-height: 30px; height: 30px; }
+  .slidevault .sv-app[data-size="compact"] .fb-pin-bar .btn, .slidevault .sv-app[data-size="compact"] .fb-pin-bar .fb-pin { min-height: 30px; height: 30px; }
+  /* The smaller-cards button only makes the columns narrower; every card still shows its title, source, tags, why it fits and Useful / Not useful, as on a portrait phone. */
+  /* Preview: when the comments are open they sit over the tags and the free space, scrolling inside, so Add and Download stay where they are. */
+  .slidevault dialog.sv-dialog.wide .dlg-body > .comments { grid-column: 2; grid-row: 3 / 5; z-index: 5; align-self: stretch; min-height: 0; overflow: auto; background: var(--sv-surface); margin: 0; }
+}
+
+/* Working drafts in two columns: the buttons sit under the name, left aligned with it (not under the folder icon). */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .draft-item { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 8px; align-items: center; }
+  .slidevault .sv-app[data-size="compact"] .draft-acts, .slidevault .sv-app[data-size="compact"] .draft-item .cart-confirm { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
+}
+.slidevault .sv-app[data-size="medium"] .draft-item { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 8px; align-items: center; }
+.slidevault .sv-app[data-size="medium"] .draft-acts, .slidevault .sv-app[data-size="medium"] .draft-item .cart-confirm { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
+/* The tour's note on a short, wide screen (a phone on its side): smaller, so it never runs off the bottom. */
+@media (orientation: landscape) and (max-height: 400px) {
+  .slidevault .tour-pop { width: 300px; padding: 12px 16px 12px; }
+  .slidevault .tour-pop h2 { margin-top: 4px; font-size: 15px; }
+  .slidevault .tour-t { margin-top: 4px; font-size: 13px; line-height: 1.4; }
+  .slidevault .tour-acts { margin-top: 10px; }
+  .slidevault .tour-acts .btn { min-height: 34px; height: 34px; }
+}
+
+/* Tips that a scrolling row or the window edge would cut off are left out where the control explains itself: the suggested-tag chips (inside a sideways-scrolling row) and the deck arrows under the preview picture (they have a name for screen readers). */
+.slidevault .sv-app[data-size="compact"] .tag-suggested [data-tip]::after,
+.slidevault .sv-app[data-size="medium"] .tag-suggested [data-tip]::after,
+.slidevault .sv-app[data-size="compact"] .lb-row > .lb-nav[data-tip]::after { display: none; }
+/* Balance pass: each part of the deck line ("Created by … · date") stays together and wraps as a whole, and the slide page's Use this slide buttons are equal halves on every phone. */
+.slidevault .sv-app[data-size="compact"] .deck-meta .dm { display: inline-block; }
+.slidevault .sv-app[data-size="compact"] .deck-meta .dm:not(:last-child)::after { margin: 0 6px; }
+.slidevault .sv-app[data-size="compact"] .panel-use .row-flex { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.slidevault .sv-app[data-size="compact"] .panel-use .row-flex > .btn { justify-content: center; min-width: 0; }
+/* Working drafts on a portrait phone too: the buttons sit under the name, left aligned with it. */
+.slidevault .sv-app[data-size="compact"] .draft-item { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 8px; align-items: center; }
+.slidevault .sv-app[data-size="compact"] .draft-acts, .slidevault .sv-app[data-size="compact"] .draft-item .cart-confirm { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
+/* Phone on its side: the narrow pages (Settings, Create, Upload) line up with every other page's left edge instead of floating in the middle. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-shell.narrow .center .sv-main .sv-wrap, .slidevault .sv-app[data-size="compact"] .profile-wrap { margin-left: 0; margin-right: 0; }
+}
+/* Upload: the same space above the title as the Archive, Settings and My decks pages. */
+.slidevault .sv-app .sv-wrap.upload-wrap > .h1:first-child { margin-top: 22px; }
+/* Deck page on a phone on its side: one row. "Go to slide" at the left, the tags scrolling in the middle (Add tag first), and the one / two column button at the right end. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .deck-tagbar > .deck-jump { display: contents; }
+  .slidevault .sv-app[data-size="compact"] .deck-tagbar .deck-jump-go { order: 0; flex: none; align-self: center; }
+  .slidevault .sv-app[data-size="compact"] .deck-tagbar > .deck-tags { order: 1; }
+  .slidevault .sv-app[data-size="compact"] .deck-tagbar .cols-toggle { order: 2; flex: none; margin-left: 0; align-self: center; }
+  .slidevault .sv-app[data-size="compact"] .deck-tagbar { align-items: center; }
+}
+
+/* Deck page: the tags appear once. Normally under the buttons; on a phone on its side in the buttons' row (Add tag, a thin divider, then the tags scrolling). */
+.slidevault .deck-tags-main { display: contents; }
+.slidevault .deck-sep, .slidevault .deck-tags-inline { display: none; }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .deck-tags-main { display: none; }
+  .slidevault .sv-app[data-size="compact"] .deck-actions { flex-wrap: nowrap; align-items: center; }
+  .slidevault .sv-app[data-size="compact"] .deck-sep { display: block; flex: none; align-self: center; width: 1px; height: 28px; margin: 0 8px; background: var(--sv-border-strong); }
+  .slidevault .sv-app[data-size="compact"] .deck-tags-inline { display: block; flex: 1 1 0; min-width: 0; }
+  .slidevault .sv-app[data-size="compact"] .deck-tags-inline .deck-tags { margin: 0; max-width: none; }
+  .slidevault .sv-app[data-size="compact"] .deck-tags-inline .taglist { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .slidevault .sv-app[data-size="compact"] .deck-tags-inline .tag-addrow { order: 0; flex: none; margin: 0; }
+  .slidevault .sv-app[data-size="compact"] .deck-tags-inline .tag-suggested { display: none; }
+  .slidevault .sv-app[data-size="compact"] .deck-tags-inline .tag-first { order: 1; flex: 1 1 0; min-width: 0; }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .deck-tagbar .cols-toggle { margin-left: auto; }
+}
+
+/* "Also in 1 other deck" under a deck page card's tags: a quiet text link. */
+.slidevault .also-line { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: auto; padding: 4px 0; border: 0; background: none; font: inherit; font-size: var(--sv-text-small); font-weight: 600; color: var(--sv-text-secondary); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--sv-border-strong); cursor: pointer; }
+.slidevault .also-line:hover, .slidevault .also-line:focus-visible { color: var(--sv-text); text-decoration-color: currentColor; }
+
+/* The words already say it, so no tip; on a portrait phone the line is too wide, so it is just the icon and the number, with the tip. */
+.slidevault .also-line::after { display: none !important; }
+.slidevault .also-line .also-n { display: none; }
+@media (max-width: 700px) and (orientation: portrait) {
+  .slidevault .also-line .also-words { display: none; }
+  .slidevault .also-line .also-n { display: inline; font-variant-numeric: tabular-nums; }
+  .slidevault .also-line { text-decoration: none; min-height: 28px; padding: 2px 8px 2px 0; }
+  .slidevault .also-line:hover::after, .slidevault .also-line:focus-visible::after { display: block !important; top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; }
+}
+/* A preview that could not load: a quiet note in its place, never a broken-image icon. */
+.slidevault .thumb-missing { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 100%; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); font-size: var(--sv-text-small); font-weight: 600; text-align: center; padding: 8px; }
+.slidevault .thumb-missing .ic { width: 22px; height: 22px; }
+/* Loading placeholders never make the page wider than the screen (the page could be dragged sideways while it loaded). */
+.slidevault .skel-rows, .slidevault .skel-rows > *, .slidevault .skel-cards { min-width: 0; max-width: 100%; }
+.slidevault .deck-meta .dm { max-width: 100%; overflow-wrap: anywhere; }
+/* In the small mosaics (deck cards, the Archive) a missing preview is just the icon: there is no room for words. */
+.slidevault .mosaic .thumb-missing span, .slidevault .arch-mosaic .thumb-missing span { display: none; }
+.slidevault .mosaic .thumb-missing .ic, .slidevault .arch-mosaic .thumb-missing .ic { width: 14px; height: 14px; }
+/* The deck page's button row on a phone on its side: the buttons keep their own width however many tags there are. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .deck-actions > .btn, .slidevault .sv-app[data-size="compact"] .deck-actions > .sv-more, .slidevault .sv-app[data-size="compact"] .deck-actions > div:not(.deck-tags-inline) { flex: none; }
+  .slidevault .sv-app[data-size="compact"] .deck-actions .btn-primary { flex: none; }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .deck-actions > .btn:not(.btn-icon) { flex: none; }
+}
+/* Filters on a phone on its side: it rises from the bottom like on a portrait phone, but narrower and centred, so its words and boxes are not stretched across the whole screen. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  dialog.slidevault.fb-sheet { margin: auto auto 0; width: min(100%, 560px); max-height: 92%; border-radius: 20px 20px 0 0; border-bottom: 0; }
+  dialog.slidevault.fb-sheet .fb-sheet-body { padding-left: 24px; padding-right: 24px; }
+  dialog.slidevault.fb-sheet .dlg-head { padding-left: 24px; padding-right: 20px; }
+  dialog.slidevault.fb-sheet .dlg-foot { padding: 10px 24px calc(10px + env(safe-area-inset-bottom)); }
+  dialog.slidevault.fb-sheet .fb-list { max-height: 190px; }
+}
+/* The Filters sheet slides up from the bottom (and the dim behind it fades in), on every phone. People who ask their phone for less motion get it at once. */
+@keyframes svSheetUp { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes svDimIn { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  dialog.slidevault.fb-sheet[open] { animation: svSheetUp 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+  dialog.slidevault.fb-sheet[open]::backdrop { animation: svDimIn 0.3s ease-out; }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.slidevault.fb-sheet[open], dialog.slidevault.fb-sheet[open]::backdrop { animation: none; }
+}
+
+/* "Also in" list: a long deck name is cut with "…" on one line; it is a link to that slide's page, where the full name is shown. */
+.slidevault .also-list .also-txt { min-width: 0; }
+.slidevault .also-list .also-name { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .also-list .also-txt .meta { overflow-wrap: anywhere; }
+/* Deck page on a phone on its side: the suggested tags sit in the "Go to slide" row (scrolling, same chips as portrait), between the number box and the column button. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .deck-tags-main { display: block; order: 1; flex: 1 1 0; min-width: 0; }
+  .slidevault .sv-app[data-size="compact"] .deck-tags-main .deck-tags { margin: 0; max-width: none; }
+  .slidevault .sv-app[data-size="compact"] .deck-tags-main .tag-first, .slidevault .sv-app[data-size="compact"] .deck-tags-main .tag-addrow > :first-child:not(.tag-suggested), .slidevault .sv-app[data-size="compact"] .deck-tags-main .tagfold, .slidevault .sv-app[data-size="compact"] .deck-tags-main .meta:not(.tag-suggested > .meta) { display: none; }
+  .slidevault .sv-app[data-size="compact"] .deck-tags-main .tag-addrow { margin: 0; }
+  .slidevault .sv-app[data-size="compact"] .deck-tags-inline .tag-suggested { display: none; }
+}
+/* The smallest phones on their side (iPhone SE and under, about 570 wide): the Home filter row stays on one line. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 600px) {
+  .slidevault .sv-app[data-size="compact"] .fbar { gap: 4px; }
+  .slidevault .sv-app[data-size="compact"] .fbar > .fb-tools > * { margin-right: 4px; }
+  .slidevault .sv-app[data-size="compact"] .fbar .btn.sb-launch-btn { padding: 0 10px 0 8px; font-size: 12.5px; }
+  .slidevault .sv-app[data-size="compact"] .fbar .ai-check { font-size: 12px; gap: 6px; }
+  .slidevault .sv-app[data-size="compact"] .fbar .fb-btn { padding-inline: 8px; font-size: 12.5px; }
+  .slidevault .sv-app[data-size="compact"] .fbar .hid-toggle { width: 30px; height: 30px; }
+}
+/* Archive on a phone on its side, and on tablets: the deck cards in two columns, not one stretched row. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .arch-page .arch-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: none; margin-top: 14px; }
+  .slidevault .sv-app[data-size="compact"] .arch-page .arch-row { padding: 12px; gap: 10px 12px; }
+}
+.slidevault .sv-app[data-size="medium"] .arch-page .arch-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: none; }
+.slidevault .sv-app[data-size="medium"] .arch-page .arch-row { grid-template-columns: 84px minmax(0, 1fr); }
+.slidevault .sv-app[data-size="medium"] .arch-page .arch-row > .btn { grid-column: 1 / -1; justify-self: start; }
+.slidevault .sv-app[data-size="medium"] .arch-page .arch-row .arch-mosaic { width: 84px; }

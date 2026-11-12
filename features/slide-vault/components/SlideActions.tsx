@@ -16,12 +16,22 @@ import { ConfirmDialog } from './TagBits';
    button that does nothing; Share works today. */
 
 const MAX_COMMENT = 1000;
+/** Vote counts and comments are switched off in the screens (decision 11 Nov: they go in the hand-off notes). Useful / Not useful on a search result stays. */
+const SHOW_VOTES_AND_COMMENTS = false;
 const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
+/** True when the last call was under 0.4 s ago (a double-tap); otherwise it notes the time and says no. */
+function tooSoon(last: { current: number }) {
+  const t = Date.now();
+  if (t - last.current < 400) return true;
+  last.current = t;
+  return false;
+}
 
 /** The up / down pill. A vote on a slide you found by searching also teaches that search (Useful / Not relevant, FD-59). */
 function VotePill({ slide, engage, small }: { slide: SlideSummary; engage: EngageApi; small?: boolean }) {
   const { runtime, toast, query, search } = useWorkspace();
-  const v = engage.votes;
+  const v = SHOW_VOTES_AND_COMMENTS ? engage.votes : undefined;
   const searched = search.status === 'ready' ? query.trim() : '';
   /* No vote counts from the server yet: the same arrows still teach the search you came from. */
   if (!v) return searched && !demoTagsOn() ? <FeedbackPill slide={slide} searched={searched} small={small} /> : null;
@@ -58,7 +68,7 @@ function VotePill({ slide, engage, small }: { slide: SlideSummary; engage: Engag
 export function CardVotes({ slide }: { slide: SlideSummary }) {
   const { runtime, query, search } = useWorkspace();
   const engage = useEngagement(runtime, slide);
-  if (!engage.votes && !(search.status === 'ready' && query.trim())) return null;
+  if (!(SHOW_VOTES_AND_COMMENTS && engage.votes) && !(search.status === 'ready' && query.trim())) return null;
   return <VotePill slide={slide} engage={engage} small />;
 }
 
@@ -116,7 +126,10 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
   const { runtime, toast } = useWorkspace();
   const key = answerKey(searched, slide.id);
   const shown = useSyncExternalStore(onAnswers, () => answerFor(key).shown, () => 0);
-  const cast = (value: 1 | -1) => {
+  const lastCast = useRef(0);
+  const cast = (value: 1 | -1, fromUndo = false) => {
+    /* Two quick taps count as one, so a double-tap never flips the vote on and straight off again. */
+    if (!fromUndo && tooSoon(lastCast)) return;
     const now = answerFor(key);
     const next: Answer = now.shown === value ? 0 : value;
     const by = currentStoryRole();
@@ -126,6 +139,9 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
     const sentAfter: Answer = give ? next : next === 0 ? 0 : now.sent;
     answers.set(key, { shown: next, sent: sentAfter });
     answerListeners.forEach((l) => l());
+    /* A touch screen has no hover tips, so a tap says what the choice does, with Undo. */
+    const touch = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    if (touch && next !== 0) toast(next === 1 ? 'Useful: ranks it higher in similar searches.' : 'Not useful: ranks it lower in similar searches.', { label: 'Undo', run: () => { if (answerFor(key).shown === next) cast(next, true); } });
     if (!take && !give) return;
     take?.catch(() => undefined);
     if (!give) return remember(key, sentAfter);
@@ -133,7 +149,7 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
       (r) => {
         if (r && r.saved) {
           remember(key, next);
-          if (!toldThanks) {
+          if (!toldThanks && !touch) {
             toldThanks = true;
             toast('Thanks. Search will use this for similar searches.');
           }
@@ -197,7 +213,7 @@ export function SlideActions({ slide, commentsOpen, onComments, noShare, trailin
   return (
     <div className="slide-actions" role="group" aria-label="Slide actions">
       <VotePill slide={slide} engage={engage} />
-      {engage.commentCount !== undefined && (
+      {SHOW_VOTES_AND_COMMENTS && engage.commentCount !== undefined && (
         <button type="button" className="actpill" aria-expanded={!!commentsOpen} onClick={onComments}>
           <Icon name="comment" />
           <span>{engage.commentCount}</span>

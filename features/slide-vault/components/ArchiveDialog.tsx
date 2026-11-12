@@ -55,7 +55,7 @@ export function ArchiveDialog() {
                 <p className="arch-lead">{d.fromSlide ? `This hides all ${d.deck.slideCount} slides, not just “${d.fromSlide}”.` : `This hides all ${d.deck.slideCount} slides.`}</p>
                 <ul className="arch-list">
                   <li>Hidden from the library, search and AI, for everyone.</li>
-                  <li>Nothing is deleted. Restore it any time with “Show archived decks” in the filters.</li>
+                  <li>Nothing is deleted. Restore it from Filters → Show archived decks.</li>
                 </ul>
                 <p className="arch-note">Slides already in a draft deck stay there.</p>
               </>

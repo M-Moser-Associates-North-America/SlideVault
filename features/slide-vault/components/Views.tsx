@@ -693,6 +693,20 @@ export function ResultsView() {
   /* Client, year and slide type already light up in the filter row above. */
   const extraChips = result ? result.chips.filter((c) => !shownInFilterRow(c)) : [];
 
+  const secPills =
+    shown.length > 0 && sectionCounts.length > 1 ? (
+                <ScrollRow className="sec-pills" role="group" aria-label="Narrow to one section">
+                  <span className="meta">By section:</span>
+                  <button type="button" className="chip-x" aria-pressed={!pickedSection} onClick={clearSection}>
+                    All <span className="n">{shown.length}</span>
+                  </button>
+                  {sectionCounts.map(([kind, n]) => (
+                    <button key={kind} type="button" className="chip-x" aria-pressed={pickedSection === kind} onClick={() => (pickedSection === kind ? clearSection() : patchFilters({ section: [kind] }))}>
+                      {SECTION_LABEL[kind]} <span className="n">{n}</span>
+                    </button>
+                  ))}
+                </ScrollRow>
+    ) : null;
   return (
     <div className="sv-wrap res-wrap">
       <div className="page-head">
@@ -775,10 +789,11 @@ export function ResultsView() {
               )}
             </div>
           )}
-          {result.relaxed && <p className="meta">Nothing matched every detail, so these results leave out the client, year or category filter.</p>}
+          {result.relaxed && <p className="meta">Nothing matched every filter, so client, year and category are left out.</p>}
           {/* Results in groups, each with its own heading and room: Decks, then Sections (when asked for), then Slides. */}
           {sectionMode && <SectionCards heading="Sections" results={pickedSection ? slides : shown.map((i) => i.slide)} only={pickedSection ? [pickedSection] : sectionsFromSearch} />}
           {shown.length > 0 && (sectionMode || (found && found.decks.length > 0)) && <h2 className="h2 res-h">Slides</h2>}
+          <div className="res-controls">
           <div className="refine">
             <label>
               <span className="refine-lbl">Sort</span>
@@ -790,6 +805,8 @@ export function ResultsView() {
             </label>
             <span className="spacer" />
         {compact && <ColumnsToggle dense={dense} setDense={setDense} />}
+          </div>
+          {compact && secPills}
           </div>
           {shown.length === 0 && found && found.decks.length > 0 && filterCount(filters) === 0 ? null : shown.length === 0 ? (
             <StateBlock
@@ -825,19 +842,7 @@ export function ResultsView() {
                   </button>
                 </p>
               )}
-              {sectionCounts.length > 1 && (
-                <ScrollRow className="sec-pills" role="group" aria-label="Narrow to one section">
-                  <span className="meta">By section:</span>
-                  <button type="button" className="chip-x" aria-pressed={!pickedSection} onClick={clearSection}>
-                    All <span className="n">{shown.length}</span>
-                  </button>
-                  {sectionCounts.map(([kind, n]) => (
-                    <button key={kind} type="button" className="chip-x" aria-pressed={pickedSection === kind} onClick={() => (pickedSection === kind ? clearSection() : patchFilters({ section: [kind] }))}>
-                      {SECTION_LABEL[kind]} <span className="n">{n}</span>
-                    </button>
-                  ))}
-                </ScrollRow>
-              )}
+              {!compact && secPills}
               <div className={`grid${dense ? ' is-dense' : ''}`}>
                 {visible.map((i) => (
                   <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} aiRead={i.aiRead} note={sort === 'popular' ? downloadedNote(i.slide) : undefined} />
@@ -848,8 +853,7 @@ export function ResultsView() {
           <details className="how">
             <summary>How does this search work?</summary>
             <ol>
-              <li>Short searches, like “team”, are read by simple rules.</li>
-              <li>A longer question or sentence can be read once by an AI model and turned into search words and filters.</li>
+              <li>Short searches are read by simple rules. A longer question can be read once by an AI model and turned into search words and filters.</li>
               <li>Best matches come first, each with why it fits. Near-identical slides are grouped, never deleted.</li>
             </ol>
           </details>
@@ -867,7 +871,7 @@ const FILE_CREATED_TIP = "From the PowerPoint file's own details. For a deck mad
 /** One button that flips between one and two slides across; the icon shows what a tap will switch to. Used wherever slides are in a grid on a phone. */
 function ColumnsToggle({ dense, setDense }: { dense: boolean; setDense: (d: boolean) => void }) {
   return (
-    <button type="button" className="btn btn-sm btn-icon cols-toggle" aria-label={dense ? 'Show one slide across' : 'Show two slides across'} onClick={() => setDense(!dense)}>
+    <button type="button" className="btn btn-sm btn-icon cols-toggle" aria-label={dense ? 'Show larger cards' : 'Show smaller cards'} onClick={() => setDense(!dense)}>
       <Icon name={dense ? 'expand' : 'columns'} />
     </button>
   );
@@ -921,15 +925,31 @@ function MoreMenu({ label, items }: { label: string; items: { label: string; ico
   );
 }
 
-/** "Add slides [10] to [20]": a stretch of the deck into the draft deck at once. */
-function RangeAdd({ slides, onDone }: { slides: SlideSummary[]; onDone: () => void }) {
+/** The slide numbers a typed range means: both ends kept inside the deck, in order. */
+function rangeBounds(count: number, from: string, to: string): [number, number] {
+  const a = Math.min(count, Math.max(1, Math.round(Number(from)) || 1));
+  const b = Math.min(count, Math.max(1, Math.round(Number(to)) || count));
+  return [Math.min(a, b), Math.max(a, b)];
+}
+
+/** Selects the number and, a moment later (when an on-screen keyboard has opened), scrolls the box to the middle of what is left of the screen. */
+function keepInView(e: React.FocusEvent<HTMLInputElement>) {
+  const el = e.currentTarget;
+  el.select();
+  window.setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300);
+}
+
+/** "Add slides [10] to [20]": a stretch of the deck into the draft deck at once. The deck page shows only that stretch while this is open. */
+function RangeAdd({ slides, from, to, setFrom, setTo, onDone }: { slides: SlideSummary[]; from: string; to: string; setFrom: (v: string) => void; setTo: (v: string) => void; onDone: () => void }) {
   const { updateSelection, toast, announce } = useWorkspace();
-  const [from, setFrom] = useState('1');
-  const [to, setTo] = useState(String(slides.length));
-  const a = Math.min(slides.length, Math.max(1, Math.round(Number(from)) || 1));
-  const b = Math.min(slides.length, Math.max(1, Math.round(Number(to)) || slides.length));
-  const lo = Math.min(a, b);
-  const hi = Math.max(a, b);
+  const [lo, hi] = rangeBounds(slides.length, from, to);
+  /* Up and down step a number; it stays between 1 and the last slide. */
+  const step = (e: React.KeyboardEvent<HTMLInputElement>, text: string, set: (v: string) => void) => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault();
+    const now = Math.round(Number(text)) || 1;
+    set(String(Math.min(slides.length, Math.max(1, now + (e.key === 'ArrowUp' ? 1 : -1)))));
+  };
   const add = () => {
     const picked = slides.slice(lo - 1, hi);
     updateSelection((cur) => [...cur, ...picked.filter((s) => !cur.some((c) => c.id === s.id))]);
@@ -946,14 +966,14 @@ function RangeAdd({ slides, onDone }: { slides: SlideSummary[]; onDone: () => vo
       }}
     >
       <span>Add slides</span>
-      <input className="num-jump" inputMode="numeric" aria-label="From slide" value={from} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setFrom(e.target.value.replace(/[^0-9]/g, ''))} />
+      <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="next" autoComplete="off" aria-label={`From slide, a number from 1 to ${slides.length}`} value={from} onFocus={keepInView} onBlur={() => setFrom(String(Math.min(slides.length, Math.max(1, Math.round(Number(from)) || 1))))} onChange={(e) => setFrom(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, from, setFrom)} />
       <span>to</span>
-      <input className="num-jump" inputMode="numeric" aria-label="To slide" value={to} onFocus={(e) => e.currentTarget.select()} onChange={(e) => setTo(e.target.value.replace(/[^0-9]/g, ''))} />
+      <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="go" autoComplete="off" aria-label={`To slide, a number from 1 to ${slides.length}`} value={to} onFocus={keepInView} onBlur={() => setTo(String(Math.min(slides.length, Math.max(1, Math.round(Number(to)) || slides.length))))} onChange={(e) => setTo(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, to, setTo)} />
       <button type="submit" className="btn btn-sm btn-primary">
         Add {hi - lo + 1}
       </button>
-      <button type="button" className="btn btn-sm btn-ghost" onClick={onDone}>
-        Cancel
+      <button type="button" className="btn btn-sm btn-ghost btn-icon range-close" aria-label="Close, and show the whole deck" onClick={onDone}>
+        <Icon name="x" />
       </button>
     </form>
   );
@@ -1038,6 +1058,8 @@ export function DeckView({ id }: { id: string }) {
     }
   });
   const [rangeOpen, setRangeOpen] = useState(false);
+  const [rangeFrom, setRangeFrom] = useState('1');
+  const [rangeTo, setRangeTo] = useState('');
   const setDense = (d: boolean) => {
     setDenseState(d);
     try {
@@ -1060,6 +1082,14 @@ export function DeckView({ id }: { id: string }) {
       </div>
     );
   }
+  const openRange = () => {
+    setRangeFrom('1');
+    setRangeTo(String(deck.slides.length));
+    setRangeOpen(true);
+  };
+  /* While the range box is open, only those slides are shown below it; they keep their numbers from the deck. */
+  const [rangeLo, rangeHi] = rangeOpen ? rangeBounds(deck.slides.length, rangeFrom, rangeTo) : [1, deck.slides.length];
+  const shown = rangeOpen ? deck.slides.slice(rangeLo - 1, rangeHi) : deck.slides;
   return (
     <div className="sv-wrap">
       <div className="page-head deck-head">
@@ -1085,10 +1115,11 @@ export function DeckView({ id }: { id: string }) {
               {folderLabel(deck)}
             </span>
           </ScrollRow>
-          <p className="lede">
-            {compact ? plural(deck.slides.length, 'slide') : `${plural(deck.slides.length, 'slide')} in this deck.`}
-            {hiddenGap(deck.slides) > 0 &&
-              (compact ? (
+          {/* One line (it wraps to a second if it must): how many slides, who made the file, who uploaded it. */}
+          <p className="lede deck-meta">
+            <span className="dm">
+              {plural(deck.slides.length, 'slide')}
+              {hiddenGap(deck.slides) > 0 && (
                 <>
                   {' · '}
                   {hiddenGap(deck.slides)} hidden{' '}
@@ -1096,22 +1127,21 @@ export function DeckView({ id }: { id: string }) {
                     Show
                   </button>
                 </>
-              ) : (
-                <>
-                  {' '}
-                  {plural(hiddenGap(deck.slides), 'hidden slide')} not shown.{' '}
-                  <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
-                    Show {hiddenGap(deck.slides) === 1 ? 'it' : 'them'}
-                  </button>
-                </>
-              ))}
+              )}
+            </span>
+            {deck.createdBy && (
+              <span className="dm" title={FILE_CREATED_TIP}>
+                Created by {deck.createdBy}
+                {dateLabel(deck.createdAt) ? ` · ${dateLabel(deck.createdAt)}` : ''}
+              </span>
+            )}
+            {deck.uploadedBy && (
+              <span className="dm">
+                Uploaded by {deck.uploadedBy}
+                {dateLabel(deck.uploadedAt) ? ` · ${dateLabel(deck.uploadedAt)}` : ''}
+              </span>
+            )}
           </p>
-          {(deck.createdBy || deck.uploadedBy) && (
-            <p className="meta deck-who">
-              {deck.createdBy && <span title={FILE_CREATED_TIP}>{compact ? 'Created' : 'File created'} by {deck.createdBy}{dateLabel(deck.createdAt) ? ` · ${dateLabel(deck.createdAt)}` : ''}</span>}
-              {deck.uploadedBy && <span>Uploaded by {deck.uploadedBy}{dateLabel(deck.uploadedAt) ? ` · ${dateLabel(deck.uploadedAt)}` : ''}</span>}
-            </p>
-          )}
         </div>
         {compact ? (
           <div className="row-flex deck-actions">
@@ -1123,11 +1153,16 @@ export function DeckView({ id }: { id: string }) {
             <MoreMenu
               label="More deck actions"
               items={[
-                { label: 'Add a range of slides', icon: 'plus', onClick: () => setRangeOpen(true) },
+                { label: 'Add a range of slides', icon: 'plus', onClick: openRange },
                 { label: deck.archived ? 'Restore deck' : 'Archive deck', icon: 'archive', onClick: () => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived }) },
                 { label: grouping ? 'Stop grouping' : 'Group slides into a pack', icon: 'layers', onClick: () => setGrouping((g) => !g) },
               ]}
             />
+            {/* A phone on its side: the deck's tags sit in this row, after a thin divider (hidden elsewhere). */}
+            <span className="deck-sep" aria-hidden="true" />
+            <div className="deck-tags-inline">
+              <DeckTags deck={deck} />
+            </div>
           </div>
         ) : (
           <div className="row-flex">
@@ -1135,6 +1170,10 @@ export function DeckView({ id }: { id: string }) {
             <button type="button" className="btn btn-sm" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}>
               <Icon name="archive" />
               <span>{deck.archived ? 'Restore deck' : 'Archive deck'}</span>
+            </button>
+            <button type="button" className="btn btn-sm" aria-pressed={rangeOpen} onClick={() => (rangeOpen ? setRangeOpen(false) : openRange())}>
+              <Icon name="plus" />
+              <span>Add a range of slides</span>
             </button>
             <button type="button" className="btn btn-sm" aria-pressed={grouping} onClick={() => setGrouping((g) => !g)}>
               <Icon name="layers" />
@@ -1147,15 +1186,20 @@ export function DeckView({ id }: { id: string }) {
           </div>
         )}
       </div>
-      {compact && rangeOpen && <RangeAdd slides={deck.slides} onDone={() => setRangeOpen(false)} />}
-      <DeckTags deck={deck} />
-      {compact && !grouping && <DeckJump slides={deck.slides} dense={dense} setDense={setDense} />}
+      {rangeOpen && <RangeAdd slides={deck.slides} from={rangeFrom} to={rangeTo} setFrom={setRangeFrom} setTo={setRangeTo} onDone={() => setRangeOpen(false)} />}
+      {/* One wrapper so a phone on its side can put "Go to slide" and the tags on the same row (it adds no box on a portrait phone). */}
+      <div className="deck-tagbar">
+        <div className="deck-tags-main">
+          <DeckTags deck={deck} />
+        </div>
+        {compact && !grouping && <DeckJump slides={shown} dense={dense} setDense={setDense} />}
+      </div>
       {grouping ? (
         <GroupTool deckSlides={deck.slides} onDone={() => setGrouping(false)} />
       ) : (
         <div className={`grid${dense ? ' is-dense' : ''}`} style={{ marginTop: 16 }}>
-          {deck.slides.map((s, k) => (
-            <SlideCard key={s.id} slide={s} list={deck.slides} num={k + 1} />
+          {shown.map((s, k) => (
+            <SlideCard key={s.id} slide={s} list={shown} num={rangeLo + k} />
           ))}
         </div>
       )}
@@ -1252,11 +1296,21 @@ export function SlideView({ id }: { id: string }) {
       </p>
     </>
   );
+  /* "Also in N other decks": in the row with the actions on a portrait phone; at the left end of the tag row on a phone on its side. */
+  const alsoChip =
+    compact && slide.alsoIn ? (
+      <button type="button" className="btn btn-ghost btn-sm lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
+        <Icon name="folders" />
+        <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
+      </button>
+    ) : undefined;
   return (
     <div className="sv-wrap">
       <div className="slide-detail">
         <div>
           <SlideTitle slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />
+          {/* The picture and what goes with it; a phone on its side starts the right-hand cards level with the top of this. */}
+          <div className="slide-main">
           <div
             className={compact ? 'hero-wrap' : undefined}
             onTouchStart={(e) => {
@@ -1306,9 +1360,6 @@ export function SlideView({ id }: { id: string }) {
               <span className="hero-corner">
                 <button type="button" className={`hero-btn${isSaved(id) ? ' is-saved' : ''}`} aria-pressed={isSaved(id)} aria-label={isSaved(id) ? 'Remove from saved' : 'Save'} onClick={() => toggleSave(slide)}>
                   <Icon name="heart" />
-                </button>
-                <button type="button" className="hero-btn" aria-label="Share: copy a link to this slide" onClick={() => void shareSlide()}>
-                  <Icon name="share" />
                 </button>
               </span>
               <span className="hero-zoom" aria-hidden="true">
@@ -1371,30 +1422,15 @@ export function SlideView({ id }: { id: string }) {
             </p>
           )}
           {/* Phone: the tags are a scrolling row of pills here, in place of the Tags card (the Add tag pill and the suggestions in a second row). */}
-          {compact && <PreviewTags slide={slide} onNavigate={() => undefined} />}
-          <SlideEngagement
-            key={slide.id}
-            slide={slide}
-            loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null}
-            trailing={
-              compact && slide.alsoIn ? (
-                <button type="button" className="btn btn-ghost btn-sm lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
-                  <Icon name="folders" />
-                  <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
-                </button>
-              ) : undefined
-            }
-          />
-          {compact ? (
-            <FoldPanel className="slide-text-panel" title="Slide text" hint={text ? text.slice(0, 70) : text === null ? undefined : text === '' ? 'No text' : undefined}>
-              {textBody}
-            </FoldPanel>
-          ) : (
+          {compact && <PreviewTags slide={slide} onNavigate={() => undefined} lead={alsoChip && <span className="tag-lead">{alsoChip}</span>} />}
+          <SlideEngagement key={slide.id} slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />
+          {!compact && (
             <section className="panel slide-text-panel" style={{ marginTop: 16 }}>
               <h2>Text found on the slide</h2>
               {textBody}
             </section>
           )}
+          </div>
         </div>
         <div className="stack-panels">
           <section className="panel panel-use">
@@ -1540,6 +1576,11 @@ export function SlideView({ id }: { id: string }) {
               </dd>
             </dl>
           </section>
+          )}
+          {compact && (
+            <FoldPanel className="slide-text-panel" title="Slide text" hint={text ? text.slice(0, 70) : text === null ? undefined : text === '' ? 'No text' : undefined}>
+              {textBody}
+            </FoldPanel>
           )}
           {slide.alsoIn && !compact && (
             <section className="panel">

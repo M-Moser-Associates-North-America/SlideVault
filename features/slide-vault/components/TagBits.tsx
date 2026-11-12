@@ -579,7 +579,7 @@ export function LocalTagList({ label, value, onChange, inherited = [], inherited
  * The tags of one slide or deck: each as a pill with a remove button; an add box; the removal log
  * folded away underneath.
  */
-function TagList({ api, what, canEdit, onNavigate, suggestFor, tail, addRow }: { api: TagsApi; what: 'slide' | 'deck'; canEdit: boolean; onNavigate?: () => void; /** more tag rows to show under these (the preview: the deck's tags and the team's labels) */ tail?: ReactElement | null; /** the "Add tag" pill goes in the suggestions row, under all the tags */ addRow?: boolean; /** a saved slide's id: show tag suggestions for it (FD-82) */ suggestFor?: string }) {
+function TagList({ api, what, canEdit, onNavigate, suggestFor, tail, addRow, lead }: { api: TagsApi; /** something fixed at the left end of the first row (the slide page: "also in other decks") */ lead?: ReactNode; what: 'slide' | 'deck'; canEdit: boolean; onNavigate?: () => void; /** more tag rows to show under these (the preview: the deck's tags and the team's labels) */ tail?: ReactElement | null; /** the "Add tag" pill goes in the suggestions row, under all the tags */ addRow?: boolean; /** a saved slide's id: show tag suggestions for it (FD-82) */ suggestFor?: string }) {
   const { toast, announce } = useWorkspace();
   const known = useKnownTags();
   const suggested = useSlideTagSuggestions(canEdit ? suggestFor : undefined);
@@ -637,11 +637,14 @@ function TagList({ api, what, canEdit, onNavigate, suggestFor, tail, addRow }: {
   return (
     <div className="taglist">
       {addRow ? (
-        (api.shown.length > 0 || tail) && (
-          <TagLine>
-            {api.shown.length > 0 && <ul className="tagrows">{api.shown.map(row)}</ul>}
-            {tail}
-          </TagLine>
+        (api.shown.length > 0 || tail || lead) && (
+          <div className="tag-first">
+            {lead}
+            <TagLine>
+              {api.shown.length > 0 && <ul className="tagrows">{api.shown.map(row)}</ul>}
+              {tail}
+            </TagLine>
+          </div>
         )
       ) : api.shown.length > 0 || canEdit ? (
         <ul className="tagrows">
@@ -730,14 +733,14 @@ export function SlideTagsPanel({ slide, loaded }: { slide: SlideSummary; loaded?
 }
 
 /** The preview: the slide's own tags, small. */
-export function PreviewTags({ slide, onNavigate }: { slide: SlideSummary; onNavigate: () => void }) {
+export function PreviewTags({ slide, onNavigate, lead }: { slide: SlideSummary; onNavigate: () => void; lead?: ReactNode }) {
   const { runtime, profile } = useWorkspace();
   const seed = useSeed(slide);
   const own = useTags(runtime, profile, 'slide', slide.id, seed);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, seed);
   const canEdit = useCanEdit();
   const team = teamLabels(slide.story);
-  if (seed === undefined && !demoTagsOn() && team.length === 0) return null;
+  if (seed === undefined && !demoTagsOn() && team.length === 0 && !lead) return null;
   const more = (
     <>
       {deck.shown.length > 0 && (
@@ -758,7 +761,7 @@ export function PreviewTags({ slide, onNavigate }: { slide: SlideSummary; onNavi
   );
   /* The slide's tags, the deck's and the team's first; the "Add tag" pill and the suggestions share the last row. */
   const withList = seed !== undefined || demoTagsOn();
-  return <div className="lb-tags">{withList ? <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} suggestFor={slide.id} tail={more} addRow /> : <TagLine>{more}</TagLine>}</div>;
+  return <div className="lb-tags">{withList ? <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} suggestFor={slide.id} tail={more} addRow lead={lead} /> : lead ? <div className="tag-first">{lead}<TagLine>{more}</TagLine></div> : <TagLine>{more}</TagLine>}</div>;
 }
 
 /** The deck page: the deck's tags, which every slide in it also shows. Read from any one slide's detail. */

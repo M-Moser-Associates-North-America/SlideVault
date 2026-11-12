@@ -11,7 +11,10 @@ export type WorkspaceSize = 'compact' | 'medium' | 'wide';
  * compact: a phone. medium: a tablet held upright (narrow and taller than wide).
  * wide: everything with room for a side column, including a tablet on its side.
  */
-export const sizeForBox = (width: number, height: number): WorkspaceSize => (width <= 700 ? 'compact' : width <= 1100 && height > width ? 'medium' : 'wide');
+/** A phone held on its side is short (about 400 high) and not very wide: it gets the phone layout, with the tabs in a rail down the left. */
+export const isPhoneLandscape = (width: number, height: number) => width > height && height <= 520 && width <= 1000;
+export const sizeForBox = (width: number, height: number): WorkspaceSize =>
+  width <= 700 || isPhoneLandscape(width, height) ? 'compact' : width <= 1100 && height > width ? 'medium' : 'wide';
 
 /** Keeps `data-size` on the root up to date while `active` (the root is on screen). `onChange` hears the size after the first measurement and whenever it changes (`previous` is null the first time). */
 export function useWorkspaceSize(ref: RefObject<HTMLElement | null>, active: boolean, onChange?: (size: WorkspaceSize, previous: WorkspaceSize | null) => void) {
@@ -23,6 +26,8 @@ export function useWorkspaceSize(ref: RefObject<HTMLElement | null>, active: boo
       const box = el.getBoundingClientRect();
       const size = sizeForBox(box.width, box.height);
       if (el.dataset.size !== size) el.dataset.size = size;
+      if (isPhoneLandscape(box.width, box.height)) el.dataset.land = '';
+      else delete el.dataset.land;
       if (box.width >= 1360) el.dataset.xl = '';
       else delete el.dataset.xl;
       // Pixel sizes of this workspace, for CSS that needs a length (gutters, panel widths, heights).

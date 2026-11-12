@@ -74,6 +74,8 @@ export function Tour() {
   };
   const compact = useWorkspaceCompact();
   const bottomTabs = compact;
+  /* A phone on its side: the filter buttons share a line with Search with AI and Storyboard, and a note below a button would run off the short screen. */
+  const land = typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-height: 520px) and (max-width: 1000px)').matches;
 
   const stepFor: Record<StepId, Step> = {
     welcome: {
@@ -94,14 +96,14 @@ export function Tour() {
       target: compact ? '.fb-tools .sb-launch-btn' : '.sb-launch-btn',
       title: 'Build a story with Storyboard',
       content: 'Describe a client’s situation and Storyboard lines up slides into a story.',
-      placement: compact ? 'bottom' : 'bottom-end',
+      placement: land ? 'auto' : compact ? 'bottom' : 'bottom-end',
       before: toTop,
     },
     filters: {
-      target: '.fbar-row',
+      target: land ? '.fbar' : '.fbar-row',
       title: 'Narrow it down',
       content: compact ? 'Use Filters, Year and Client to cut the list down.' : 'Use Year, Client, Project type and Slide type to cut the list down.',
-      placement: 'bottom',
+      placement: land ? 'auto' : 'bottom',
       before: toTop,
     },
     pick: {
@@ -114,7 +116,7 @@ export function Tour() {
       // On a phone the panel fills the right side, so the note goes under its header instead of beside it.
       target: compact ? '.cart-col .cart-head' : '.cart-col',
       title: 'Your draft deck',
-      content: 'Ticked slides collect here. Name your deck, put the slides in order, then download or save it as a draft.',
+      content: 'Ticked slides collect here. Name it, order them, then download or save.',
       placement: compact ? 'top' : 'left',
       before: async () => {
         setCartMin(false);
