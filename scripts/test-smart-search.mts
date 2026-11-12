@@ -30,6 +30,13 @@ const ctx: PlanContext = { clients: ['Kestrel Law', 'Northgate Bank', 'Halcyon H
 
 // ---- The stand-in reader
 {
+  {
+    // Khushali, 11 Nov: "intro" alone is all filler words, so nothing was searched and the page was empty.
+    const alone = standInPlan('intro', ctx), slide = standInPlan('Intro slide', ctx), team = standInPlan('team intro', ctx), filler = standInPlan('show me the slides', ctx);
+    check(alone.keywords.includes('introduction') && alone.keywords.includes('intro') && slide.keywords.includes('introduction'), 'stand-in: "intro" alone searches for introductions instead of nothing', { alone: alone.keywords, slide: slide.keywords });
+    check(!team.keywords.includes('intro') && !team.keywords.includes('introduction') && team.topics.length > 0, 'stand-in: "team intro" is still a team search, "intro" stays filler beside other words', team);
+    check(filler.keywords.length === 0, 'stand-in: a search of pure filler ("show me the slides") still names no words', filler.keywords);
+  }
   const p = standInPlan('team intro for a bank pitch', ctx);
   check(p.topics.length > 0 && p.keywords.includes('bank'), 'stand-in: "team intro for a bank pitch" finds a topic and keeps "bank"', p);
   check(p.client === null, 'stand-in: "bank" alone is not read as the client Northgate Bank', p.client);
