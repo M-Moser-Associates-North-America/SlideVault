@@ -179,6 +179,20 @@ const STOP = new Set(
   ),
 );
 
+/**
+ * Filler beside other words ("team intro" is a team search, "bank pitch" a bank search), but what the person is after
+ * when it is all they typed: "intro" alone used to leave nothing to search and showed an empty page (Khushali, 11 Nov).
+ * Each is searched as the words slides use for it.
+ */
+const ALONE: Record<string, string[]> = {
+  intro: ['introduction', 'intro'],
+  introduce: ['introduction', 'introduce'],
+  pitch: ['pitch'],
+  project: ['project'],
+  work: ['work'],
+  works: ['work'],
+};
+
 /** Filler words the rules never search for ("the", "show me", "slides"). */
 export const isStopWord = (w: string) => STOP.has(w);
 
@@ -327,6 +341,10 @@ export function parseQuery(q: string, clients: string[]): Parsed {
     if (w.length < 3 || STOP.has(w) || /^20\d\d$/.test(w)) continue;
     const t = w.length > 4 ? w.replace(/(es|s)$/, '') : w;
     if (!STOP.has(t) && !P.tokens.includes(t)) P.tokens.push(t);
+  }
+  // Nothing understood and nothing left to search: the filler that can be a subject is the search ("intro", "intro slide").
+  if (!P.tokens.length && !P.chips.length) {
+    for (const w of rest.split(' ')) for (const t of ALONE[w] ?? []) if (!P.tokens.includes(t)) P.tokens.push(t);
   }
   return P;
 }
