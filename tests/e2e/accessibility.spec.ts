@@ -399,16 +399,21 @@ test('phones: tabs along the bottom, the draft deck opens from the last tab, not
 
   await page.getByLabel('Add to draft deck: Leadership team').check({ force: true });
   const deck = tabs.getByRole('button', { name: /Draft deck, 1 slide/ });
-  // The first slide added to an empty draft deck opens it by itself, so the person sees it land.
+  // On a phone the first slide does not slide the draft deck over the page. A message says it landed ("Added · 1 in draft deck")
+  // and offers View (opens the draft deck) and Undo.
+  await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
+  const added = page.locator('.toast', { hasText: 'Added · 1 in draft deck' });
+  await expect(added).toBeVisible();
+  await added.getByRole('button', { name: 'View' }).click();
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
-  await expect(deck).toBeFocused();
-  // The last tab opens it again.
+  // The last tab opens it too, and Escape gives the focus back to it.
   await deck.click();
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('region', { name: 'Draft deck' })).toBeHidden();
+  await expect(deck).toBeFocused();
 });
 
 // Deck sections (FD-57, FD-80). The sample decks have no section dividers, so the server's answers are stood in
@@ -446,10 +451,11 @@ test('sections: type a section, open it, see it framed in the deck strip, add it
   await expect(sectionCard).toContainText('3 slides in this section');
   expect(await axe(page)).toEqual([]);
 
-  // Open the section: counted "1 of 3 in section", the whole deck in the strip with the section in one frame.
+  // Open the section: counted "[1] of 3 in section" (the number is a typeable box), the whole deck in the strip with the section in one frame.
   await sectionCard.getByRole('button', { name: 'Open section' }).click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog.locator('.lb-results .counter')).toContainText('1 of 3 in section');
+  await expect(dialog.locator('.lb-results .counter')).toContainText('of 3 in section · Case studies');
+  await expect(dialog.locator('.lb-results .counter input')).toHaveValue('1');
   await expect(dialog.locator('.lb-frame')).toHaveCount(1);
   await expect(dialog.locator('.lb-frame .lb-thumb')).toHaveCount(3);
   expect(await dialog.locator('.lb-thumb').count()).toBe(deck.length);
@@ -459,7 +465,8 @@ test('sections: type a section, open it, see it framed in the deck strip, add it
   await page.keyboard.press('ArrowRight');
   await expect(dialog.locator('.lb-results .counter')).toContainText('Not in the Case studies section');
   await dialog.getByRole('button', { name: 'Back to the section' }).click();
-  await expect(dialog.locator('.lb-results .counter')).toContainText('1 of 3 in section');
+  await expect(dialog.locator('.lb-results .counter')).toContainText('of 3 in section · Case studies');
+  await expect(dialog.locator('.lb-results .counter input')).toHaveValue('1');
   expect(await axe(page)).toEqual([]);
   await page.keyboard.press('Escape');
 
@@ -729,16 +736,16 @@ test('upload: tags the AI fills in are marked "please check", can be removed, an
   await page.getByRole('button', { name: 'Fill the rest with AI' }).click();
   await expect(page.getByText('Added 1 deck tag and 1 slide tag the AI read from your slides.')).toBeVisible();
 
-  // Marked, with the same "please check" line as the other filled-in details.
+  // Marked with a sparkle and a line saying the AI suggested them (the confirmation before uploading still says "please check").
   await expect(page.locator('.tagchip.is-auto')).toHaveCount(1);
   await expect(page.locator('.upcard').nth(1).locator('.tag.is-auto')).toHaveCount(1);
-  await expect(page.getByText('Filled in from the AI (please check). Remove any that don’t fit.')).toBeVisible();
+  await expect(page.getByText('AI suggested these. Remove any that don’t fit.')).toBeVisible();
   expect(await axe(page)).toEqual([]);
 
   // Taking one off is one click and it is no longer "filled in"; the other is named before uploading.
   await page.getByRole('button', { name: 'Remove tag workplace strategy & data' }).click();
   await expect(page.locator('.tagchip.is-auto')).toHaveCount(0);
-  await expect(page.getByText('Filled in from the AI (please check). Remove any that don’t fit.')).toHaveCount(0);
+  await expect(page.getByText('AI suggested these. Remove any that don’t fit.')).toHaveCount(0);
   await page.getByRole('textbox', { name: 'Year' }).fill('2025');
   await page.getByRole('button', { name: 'Upload deck' }).click();
   await expect(page.getByRole('dialog').getByText('1 tag filled in by the AI: please check it before you upload')).toBeVisible();
