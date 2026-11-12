@@ -181,6 +181,9 @@ alter table slides add column if not exists convinces text;         -- one line:
 alter table slides add column if not exists story_status text check (story_status in ('suggested', 'confirmed'));
 alter table slides add column if not exists story_confirmed_by text;
 alter table slides add column if not exists ai_uncertain boolean not null default false; -- the AI's second reading disagreed with its first
+-- What the slide looks like (FD-86, FD-99): map, org chart, table, timeline, waterfall... Loaded from the team's look
+-- files by `npm run looks:import`, so search by look needs no files beside the app. Empty = nobody has looked yet.
+alter table slides add column if not exists looks text[] not null default '{}';
 
 -- Slide packs: slides that only work together (Grant, 21 Oct). Suggested at upload or import,
 -- confirmed by the person uploading. Picking one slide brings the rest, in order.

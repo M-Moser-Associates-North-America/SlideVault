@@ -350,6 +350,12 @@ export type PgSearchIntent = {
    * type (1.0), so slides labelled with it lead slides that only say a word, and the words order them among themselves.
    */
   ai?: { themes: string[]; sectors: string[] };
+  /**
+   * Looks the search asks for ("maps": map), the most specific first (FD-86, FD-99). A slide that looks that way
+   * qualifies whatever its words say and leads; a slide known to look otherwise is left out; a slide nobody has
+   * looked at yet (no looks) is judged by its words as before. Pass none where the looks column isn't filled.
+   */
+  looks?: string[];
 };
 
 /**
@@ -387,6 +393,16 @@ export async function smartSearchPg(plan: SearchPlan, limit: number, intent?: Pg
     const isSector = `(exists (select 1 from unnest(s.proof_sectors) x where lower(x) like any(${se}::text[])) or lower(coalesce(d.client_sector, '')) like any(array(select '%' || y from unnest(${se}::text[]) y)))`;
     match.push(isType, isTheme, isSector);
     score.push(`case when ${isType} then 1.0 else 0 end`, `case when ${isSector} then 0.5 else 0 end`, `case when ${isTheme} then 0.35 else 0 end`);
+  }
+  const looks = intent?.looks ?? [];
+  if (looks.length) {
+    const l = add(looks);
+    match.push(`s.looks && ${l}::text[]`);
+    // Above a slide type (1.0) and any word rank: the look asked for decides who qualifies, the words only order them.
+    score.push(`case when s.looks && ${l}::text[] then 2.0 else 0 end`);
+    // "The slide that looks like a waterfall": a confirmed waterfall before other process diagrams.
+    if (looks.length > 1) score.push(`case when ${add(looks[0])} = any(s.looks) then 0.5 else 0 end`);
+    where.push(`(cardinality(s.looks) = 0 or s.looks && ${l}::text[])`);
   }
   const aiThemes = intent?.ai?.themes ?? [];
   const aiSectors = (intent?.ai?.sectors ?? []).map((x) => `${x.toLowerCase()}%`);
@@ -488,6 +504,14 @@ export async function listDeckSlidesPg(): Promise<DeckSlidesPg[]> {
     deck.slides.push({ id: r.id, title: r.title ?? '', text: r.text ?? '', type: r.slide_type });
   }
   return [...decks.values()];
+}
+
+/** What each uploaded slide looks like, for the slides that have been looked at (FD-99). */
+export async function listSlideLooksPg(): Promise<Map<string, string[]>> {
+  const rows = await sql<{ id: string; looks: string[] }>(
+    `select s.id, s.looks from slides s join decks d on d.id = s.deck_id where cardinality(s.looks) > 0 and d.status = 'ready' and d.archived_at is null`,
+  );
+  return new Map(rows.map((r) => [r.id, r.looks]));
 }
 
 /** Every ready uploaded deck and its slides (GET /library). */

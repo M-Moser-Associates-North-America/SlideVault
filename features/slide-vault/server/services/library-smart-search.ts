@@ -30,7 +30,7 @@ import type { StoryBeat, StoryRefineRequest, StoryRefineResult, StoryboardSlide 
 import { suggestDeckFacts, type DeckSuggestionResult } from './suggest-deck';
 import { learnedForTopics } from '../story-feedback';
 import { learnedScore, searchLearning, sinks, slideLikes, type SearchLearned } from '../search-feedback';
-import { isInternalOnly, listDeckSlidesPg, type DeckSlidesPg } from '../pg-repository';
+import { isInternalOnly, listDeckSlidesPg, listSlideLooksPg, type DeckSlidesPg } from '../pg-repository';
 import type { SlideSummary, StoryUserRole } from '../../contracts/dto';
 
 /**
@@ -87,6 +87,36 @@ async function uploadedDecks(): Promise<{ sources: DeckSlidesPg[] }> {
   return uploads.library;
 }
 const currentUploads = () => uploads?.library ?? NO_UPLOADS;
+
+/**
+ * What uploaded slides look like, from the database (FD-99), read at most once a minute. None without database
+ * settings, and none (said once) where the looks column isn't there yet, so search carries on by words.
+ */
+const NO_LOOKS = new Map<string, string[]>();
+let uploadedLooksRead: { at: number; looks: Map<string, string[]> } | null = null;
+let looksColumnWarned = false;
+async function uploadedLooks(): Promise<Map<string, string[]>> {
+  if (!hasMmoserConfig()) return NO_LOOKS;
+  if (uploadedLooksRead && Date.now() - uploadedLooksRead.at < 60_000) return uploadedLooksRead.looks;
+  let looks = NO_LOOKS;
+  try {
+    looks = await listSlideLooksPg();
+  } catch (e) {
+    if (!looksColumnWarned) console.warn('Slide looks could not be read from the database (run npm run db:setup, then npm run looks:import); look searches fall back to words.', e instanceof Error ? e.message : e);
+    looksColumnWarned = true;
+  }
+  uploadedLooksRead = { at: Date.now(), looks };
+  return looks;
+}
+
+/**
+ * Every look search knows: the data folder's files (keyed by the sample library's slide ids, FD-86) and the
+ * database's looks column (keyed by uploaded slides' ids, FD-99). The two kinds of id never collide.
+ */
+async function knownLooks(): Promise<Map<string, string[]>> {
+  const [files, db] = await Promise.all([loadSlideLooks(), uploadedLooks()]);
+  return db.size ? new Map([...files, ...db]) : files;
+}
 
 /** Worked out once per sample-library load and uploaded-decks read. */
 function onceFor<T>(cache: WeakMap<object, { uploads: object; value: T }>, key: object, make: () => T): T {
@@ -204,8 +234,21 @@ export function inAskedOrder<T extends { slide: SlideSummary }>(items: T[], orde
 export async function looksWrongFor(query: string): Promise<(id: string) => boolean> {
   const intent = searchIntent(query);
   if (!intent.looks.length) return () => false;
-  const [readings, looks] = await Promise.all([loadSlideReadings(), loadSlideLooks()]);
+  const [readings, looks] = await Promise.all([loadSlideReadings(), knownLooks()]);
   return (id) => looksRight(intent, { looks: readings.get(id)?.looks?.length ? readings.get(id)!.looks : looks.get(id) }) === false;
+}
+
+/**
+ * The results of a search that asks for a look ("maps"), when some are known to look that way: those lead; a slide
+ * nothing has looked at yet stays behind them only when its own words matched; and a request for all of them
+ * ("every map") keeps such a slide only from a deck nobody has scanned (FD-86, FD-87, FD-99). Untouched when no
+ * result is known to match, so words still answer a library nobody has looked at.
+ */
+export function keptForLook<T extends { slide: { id: string }; matched: string[] }>(items: T[], opts: { looksRight: (id: string) => boolean | null; all: boolean; inUnscannedDeck: (id: string) => boolean }): T[] {
+  const right = items.filter((i) => opts.looksRight(i.slide.id) === true);
+  if (!right.length) return items;
+  const rest = items.filter((i) => opts.looksRight(i.slide.id) !== true && i.matched.length > 0 && (!opts.all || opts.inUnscannedDeck(i.slide.id)));
+  return [...right, ...rest];
 }
 
 /** inAskedOrder for a request's own words, reading the likes only when they're needed. */
@@ -222,10 +265,12 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   // What the search asks for beyond its words (FD-33): a kind of slide, a sector, a theme, matched
   // against the reviewed metadata and the local model's reading of each slide.
   const readings = await loadSlideReadings();
-  const looks = await loadSlideLooks();
+  const looks = await knownLooks();
   // What search knows of a slide: its reading, plus the picture sorter's or the file's look when the describing model hasn't read it.
   const known = (id: string) => { const k = readings.get(id); const l = looks.get(id); return l && !k?.looks?.length ? { ...(k ?? { role: '', topics: [], about: '' }), looks: l } : k; };
   const intent = searchIntent(query);
+  // The database is asked for looks only once its looks column is filled (FD-99); until then its search is by words as before.
+  const dbHasLooks = (await uploadedLooks()).size > 0;
   // The deck sections a search asks for (FD-57, "page breakers"): "resumes" finds each deck's résumé
   // section, "banner slides in case studies" each case-study section's cover.
   await uploadedDecks();
@@ -270,7 +315,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
       // The real decks are searched with what's known about each slide too: kind, sector, theme (FD-70).
       search: async (plan, max) => {
         wanted = mergeLabels(intent, plan.labels);
-        return [...byLearning(await orWithoutDb('search', () => smartSearchPg(plan, max, { ...wanted, ai: aiPicks(plan.labels) }), []), learned), ...smartSearchFixtures(index, plan, max, knownFor(wanted))].slice(0, max);
+        return [...byLearning(await orWithoutDb('search', () => smartSearchPg(plan, max, { ...wanted, looks: dbHasLooks ? wanted.looks : [], ai: aiPicks(plan.labels) }), []), learned), ...smartSearchFixtures(index, plan, max, knownFor(wanted))].slice(0, max);
       },
       howCommon: (word) => wordShare(index, word),
       isKnownName: (word) => knownNames(index, readings).has(word),
@@ -315,9 +360,22 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   // still fill in when no slide is known to match, and below a request that didn't ask for all.
   // Any look asked for, with slides known to match: a slide nothing has looked at yet stays only when its own words
   // matched ("maps" asked of the screen's 100 results was 24 maps and 68 slides that only shared a deck with one).
-  if (intent.looks.length && result.items.some((i) => looksRight(intent, known(i.slide.id)) === true)) {
-    const all = readAsk(query).all;
-    result.items = result.items.filter((i) => looksRight(intent, known(i.slide.id)) === true || (!all && i.matched.length > 0));
+  // While only some decks have been looked at (FD-99), "all" still shows a slide from a deck nobody has scanned when its
+  // words matched, after the known ones: a real map there is not hidden. Once every deck is scanned there are none.
+  if (intent.looks.length) {
+    const deckOf = new Map<string, string>();
+    const scanned = new Set<string>();
+    for (const src of [...(index?.sources ?? []), ...currentUploads().sources]) {
+      for (const sl of src.slides) {
+        deckOf.set(sl.id, src.id);
+        if (known(sl.id)?.looks?.length) scanned.add(src.id);
+      }
+    }
+    result.items = keptForLook(result.items, {
+      looksRight: (id) => looksRight(intent, known(id)),
+      all: readAsk(query).all,
+      inUnscannedDeck: (id) => { const d = deckOf.get(id); return !!d && !scanned.has(d); },
+    });
   }
 
   // Marked not relevant for searches like this more often than useful: shown last (Alina: "I didn't want to see… a director's interview").
@@ -332,7 +390,10 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   // Say what each slide is in the search's terms, ahead of the words it matched.
   const said = (id: string, why: string) => {
     // What the local files know (sample decks), else what the database knows (real decks, FD-70).
-    const kind = intentWhy(wanted, readings.get(id) ?? knownFromStory(byId.get(id)!.slide));
+    // The look comes from the files or the database's looks column (FD-99), so a map that never says "map" says why it is here.
+    const base = readings.get(id) ?? knownFromStory(byId.get(id)!.slide);
+    const look = looks.get(id);
+    const kind = intentWhy(wanted, look && !base?.looks?.length ? { ...(base ?? {}), looks: look } : base);
     const where = sectionWhy(sections.get(id), asked, cover);
     return [where, kind, why].filter(Boolean).join(' ').trim();
   };
@@ -503,7 +564,7 @@ export async function storyboardLibrary(situation: string, opts: { reader: Story
   const context = asked.mode === 'build' && theirIds.size ? { decks: asked.context.map((d) => ({ id: d.id, title: d.title })), rows: fixtureRowsWhere(index, (id) => theirIds.has(id), theirIds.size) } : undefined;
   // What the local model read on each slide (FD-26), when the scan has been run on this library.
   const readings = await loadSlideReadings();
-  const looks = await loadSlideLooks();
+  const looks = await knownLooks();
   // What search knows of a slide, looks included (FD-86), so a brief reads slides the way search does.
   const known = (id: string) => { const k = readings.get(id); const l = looks.get(id); return l && !k?.looks?.length ? { ...(k ?? { role: '', topics: [], about: '' }), looks: l } : k; };
   // What the brief asks for beyond its words, read as search reads a request (FD-33, FD-87): the kind of slide,
