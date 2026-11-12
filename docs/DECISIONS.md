@@ -1133,3 +1133,27 @@ Consequences for scope, cost, security and integration: client markup and CSS, w
 Acceptance evidence / affected PR criteria: typecheck and lint pass; each screen checked in Chrome at 393 wide. Not run: browser tests (need a production build), dark mode, a real phone, tablet after the later passes.
 Documents/contracts changed: components under features/slide-vault/components, client/ (first-name, results-summary), app/slide-vault (header, shell css).
 Revisit trigger: real-phone testing shows tap targets, the bottom sheet or swipe gestures need changes; hold-and-drag select is built.
+
+Decision ID and title: FD-104 Phone landscape layout (a phone on its side)
+Status: proposed
+Decision date: 2026-11-11
+Decision owner/reviewer: Khushali (asked for each change)
+Context and evidence: A phone turned sideways (about 852x393) was treated as a wide desktop: a tab row, a large header and a side draft column left about 190px of a 393px-tall screen for content. Sizes looked at: 852x393, 667x375, 640x360, 568x320.
+Options considered: keep the portrait single column and only halve the padding versus use the width (chose using the width: a 2 to 3 column grid, split views); a side panel versus a bottom sheet for Filters (chose a bottom sheet that slides up, narrower and centred, like portrait); suggested tags hidden in the deck-page button row versus a second row (chose the "Go to slide" row).
+Chosen outcome: one size class, `data-land` on `.sv-app` plus the media query `(orientation: landscape) and (max-height: 520px) and (max-width: 1000px)`. Tabs become a 64px left rail (notch-safe); slim one-line header; Home filter row order: Search with AI, eye, Storyboard, Filters, Year, Client; results in 3 columns with the sticky "N slides - Best match - Filters" bar; split preview (slide left; result arrows, Useful / Not useful, tags, Add / Download right); slide page in two columns (the cards start level with the slide); draft deck as a right-hand panel; Filters as a bottom sheet that slides up; Create, My decks working drafts and Archive in two columns; deck page: buttons, a divider, Add tag and the deck's tags in one row, "Go to slide", suggested tags and the one / two column button in the next; the tour's notes are smaller and its Filters step lights the whole row.
+Consequences for scope, cost, security and integration: client markup and CSS only (size.ts, Views, Dialogs, FilterBar, TagBits, Tour, slidevault-extras.css, shell.module.css). No data, API or database change. The media query is repeated through the CSS: change it everywhere together.
+Acceptance evidence / affected PR criteria: typecheck and lint pass; each screen checked in Chrome at 852x393, most also at 640x360 and 667x375, a few at 568x320. Not run: the browser tests, a real phone (notch, on-screen keyboard, browser bar), dark mode, tablets after these changes.
+Documents/contracts changed: components under features/slide-vault/components, app/slide-vault/shell.module.css; docs/DECISIONS.md.
+Revisit trigger: real-phone testing shows the rail, side panel or bottom sheet need changes; a left-handed mirror of the landscape layout is built (see the hand-off notes).
+
+Decision ID and title: FD-105 Phone edge cases and best practice (loading, taps, offline, long names, numbers)
+Status: proposed
+Decision date: 2026-11-11
+Decision owner/reviewer: Khushali (asked: test the edge cases and apply common best practice)
+Context and evidence: Worst-case text (long names without spaces), many tags, no results, missing pictures, tiny and large text spacing, and rotating with a pop-up open were tried in Chrome at 393x852, 852x393, 568x320 and 320x568, with a script that reports anything off-screen or cut. Findings were fixed.
+Options considered: a visible broken-image icon versus a retry and a quiet note (chose the retry once, then a "Preview unavailable" note); a long deck name wrapping versus cut with "..." (chose cut, as a link to the slide page, which shows the full name); an Undo that always re-applies the vote versus one that only works while the vote is unchanged (chose the second).
+Chosen outcome: a failed picture is tried once more, then shows a note (icon only in small thumbnails); loading placeholders cannot widen the page; two taps on Useful / Not useful within 0.4 s count once; Useful / Not useful on a touch screen says what it does in a toast with Undo; an offline / online message; number boxes show a numeric keypad, limit their length, step with Up and Down, and clamp to 1 to the last slide; the deck page's Created / Uploaded line wraps whole parts; wording shortened on several screens. Votes and comments are hidden behind `SHOW_VOTES_AND_COMMENTS` in SlideActions.tsx (false).
+Consequences for scope, cost, security and integration: client only. One extra request when a picture fails the first time. Back with a pop-up open and a session that ends already worked (app-history.ts, onSessionExpired) and were not changed.
+Acceptance evidence / affected PR criteria: typecheck and lint pass; the checks above run in Chrome. Not run: the browser tests, a real phone, tablets, dark mode beyond a first look, the system large-font setting.
+Documents/contracts changed: components under features/slide-vault/components; docs/DECISIONS.md.
+Revisit trigger: real-phone testing shows the keyboard, notch or browser bar break a screen, or the picture retry hides a real server problem.
