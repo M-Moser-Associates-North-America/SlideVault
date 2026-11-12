@@ -8,13 +8,27 @@ import { renderPreviews } from '../../../../workers/slide-vault/processors/rende
 import type { DeckSummary, UploadDeckMeta } from '../../contracts/dto';
 import { ServiceError } from '../http';
 import { describeChanges, detailsToAdd } from '../deck-details';
-import { createDeck, findDeckByHash, insertSlides, markDeckFailed, markDeckReady, restartDeck, updateDeckDetails } from '../pg-repository';
+import { fileClueLooks } from '../../../../workers/slide-vault/processors/file-clues';
+import { createDeck, fillEmptySlideLooks, findDeckByHash, insertSlides, markDeckFailed, markDeckReady, restartDeck, updateDeckDetails } from '../pg-repository';
 import { readFileFacts } from '../file-facts';
 import { readSlideSize } from '../slide-size';
 import { uploadOriginal, uploadPreview } from '../storage';
 import { cachedPreviewDir } from './upload-preview';
 
 const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
+
+/**
+ * What the file itself says each new slide looks like (a table, a SmartArt org chart or process, the office map),
+ * saved with the slides so search by look covers every upload with no tools run by hand (FD-100). Never fails the
+ * upload: a deck is saved whether or not its looks can be, and the look tools and looks:import can fill them later.
+ */
+async function saveFileClueLooks(deckId: string, bytes: Uint8Array, slides: { number: number; text: string }[]): Promise<void> {
+  try {
+    await fillEmptySlideLooks(deckId, await fileClueLooks(bytes, new Map(slides.map((s) => [s.number, s.text]))));
+  } catch (e) {
+    console.warn('Slide looks could not be saved for this upload (run npm run db:setup if the looks column is missing); search finds its slides by words.', e instanceof Error ? e.message : e);
+  }
+}
 
 /**
  * Store a .pptx unchanged, split it into slide records, and save everything in Postgres
@@ -123,6 +137,7 @@ async function processSlides(deckId: string, title: string, bytes: Uint8Array): 
         };
       });
       await insertSlides(deckId, slideInputs);
+      await saveFileClueLooks(deckId, bytes, slides);
     } finally {
       if (!hasAll) rmSync(previewDir, { recursive: true, force: true });
     }
