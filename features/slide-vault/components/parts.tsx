@@ -180,12 +180,15 @@ export function useCartToggle() {
   const isSelected = (id: string) => selection.some((s) => s.id === id);
   const setOne = (slide: SlideSummary, on: boolean) => {
     if (on && !selection.some((s) => s.id === slide.id)) {
-      /* Phone: "Added · 3 in draft deck", with View (opens the draft deck) and Undo. Elsewhere the draft deck is already on screen. */
+      /* Phone: the first slide opens the draft deck by itself, so it is seen landing and needs no message. Later ones leave it closed,
+         so a short message says where the slide went (the Draft deck tab shows the count), with a button to open the deck and one to take it back. */
       if (compact) {
-        toast(`Added · ${selection.length + 1} in draft deck`, [
-          { label: 'View', run: () => setCartMin(false) },
-          { label: 'Undo', run: () => updateSelection((cur) => cur.filter((x) => x.id !== slide.id)) },
-        ]);
+        if (selection.length > 0) {
+          toast('Added to draft deck', [
+            { label: 'View deck', run: () => setCartMin(false) },
+            { label: 'Undo', run: () => updateSelection((cur) => cur.filter((x) => x.id !== slide.id)) },
+          ]);
+        }
       } else toast(`Added. ${plural(selection.length + 1, 'slide')} ready`);
     }
     updateSelection((cur) => {

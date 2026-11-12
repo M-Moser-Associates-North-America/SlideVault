@@ -399,9 +399,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     (fn: (cur: SlideSummary[]) => SlideSummary[]) =>
       updateSelectionRaw((cur) => {
         const next = fn(cur);
-        /* On a phone the first slide doesn't slide the draft deck over the page; the "Added" message says it landed. */
-        const phone = typeof document !== 'undefined' && document.querySelector('.sv-app')?.getAttribute('data-size') === 'compact';
-        if (cur.length === 0 && next.length > 0 && !tourIsOpen() && !phone) setCartMin(false);
+        if (cur.length === 0 && next.length > 0 && !tourIsOpen()) setCartMin(false);
         return next;
       }),
     [updateSelectionRaw],
