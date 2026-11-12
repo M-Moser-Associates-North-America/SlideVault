@@ -1,4 +1,4 @@
-import { BASIC_MAX_WORDS, isBasicQuery, isStopWord, parseQuery } from '../../components/search-rules';
+import { BASIC_MAX_WORDS, isBasicQuery, isStopWord, parseQuery, topicNames } from '../../components/search-rules';
 
 /**
  * Quick AI search (docs/DECISIONS.md FD-16, FD-17): how a typed request becomes a search, and how
@@ -137,7 +137,9 @@ export function standInPlan(query: string, ctx: PlanContext): SearchPlan {
 export function namedWords(query: string, ctx: PlanContext, plan: SearchPlan): string[] {
   const p = parseQuery(query, ctx.clients);
   const taken = new Set([plan.category, plan.client].filter(Boolean).flatMap((x) => x!.toLowerCase().split(/\s+/)));
-  const out = [...p.tokens, ...typedCodes(query)].filter((w) => !taken.has(w) && !GENERIC_WORDS.has(w) && !isStopWord(w) && !ASKING_WORDS.test(w));
+  // A person's name that a topic took as its own word ("Moira" is the founder topic) is still named: beside other
+  // words the search would otherwise answer the rest of the request ("Moira resume" filled with other people's résumés).
+  const out = [...p.tokens, ...typedCodes(query), ...topicNames(query)].filter((w) => !taken.has(w) && !GENERIC_WORDS.has(w) && !isStopWord(w) && !ASKING_WORDS.test(w));
   // Shown as typed ("QNBC", "Toronto"); matched without regard to case.
   const typed = query.split(/\s+/).map((w) => w.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '').replace(/['’]s$/i, ''));
   const asTyped = (w: string) => typed.find((t) => t.toLowerCase() === w) ?? typed.find((t) => t.toLowerCase().startsWith(w)) ?? w;
