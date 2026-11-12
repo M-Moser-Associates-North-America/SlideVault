@@ -14,11 +14,10 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const BRIEF = 'A regional bank is consolidating three offices into one new headquarters and worries about staff morale and hybrid work.';
 
 /**
- * Known contrast failures, measured 11 Nov (docs/foundry/ACCESSIBILITY.md, "Open findings"). Only the color-contrast
- * rule, and only on elements with these classes, is set aside in the scans; each has its own test at the end of this
- * file, marked as failing until fixed. Any other rule on them, and any contrast failure anywhere else, still fails.
+ * Contrast failures to set aside in the scans while they are open (docs/foundry/ACCESSIBILITY.md, "Findings"), by
+ * class. None on the Storyboard since A3 to A9 were fixed (11 Nov); keep the mechanism for the next one.
  */
-const KNOWN_CONTRAST = ['sb-eyebrow', 'sb-n', 'sb-accent', 'sb-beat-more', 'sb-pull-2', 'sb-label', 'sb-step-label', 'sb-step-n'];
+const KNOWN_CONTRAST: string[] = [];
 
 async function axe(page: Page, opts: { known?: boolean } = { known: true }) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -131,14 +130,13 @@ test.describe('brief', () => {
     await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Storyboard');
   });
 
-  // WCAG 2.5.3 Label in Name (Level A): on hover and keyboard focus the button shows "Start planning story", but its
-  // name stays "Pull the story", so "click Start planning story" by voice finds nothing. Found 11 Nov; the button is
-  // Khushali's (StoryboardView.tsx, storyboard.css). Marked as failing until it is fixed: then this test passes and
-  // Playwright reports it, and test.fail can be removed.
-  test('the button\'s name contains the words it shows on focus (known issue: WCAG 2.5.3)', async ({ page }) => {
-    test.fail(true, 'Known: shows "Start planning story" on focus, named "Pull the story" (WCAG 2.5.3). Remove test.fail once fixed.');
+  // WCAG 2.5.3 Label in Name (Level A): on hover and keyboard focus the button shows "Start planning story", so its
+  // name must hold those words as well as "Pull the story", or "click Start planning story" by voice finds nothing.
+  // Found and fixed 11 Nov (ACCESSIBILITY.md, A2).
+  test('the button\'s name holds both labels it shows, at rest and on focus (WCAG 2.5.3)', async ({ page }) => {
     await openStoryboard(page);
     const button = page.getByRole('button', { name: 'Pull the story' });
+    expect(((await button.getAttribute('aria-label')) ?? '').toLowerCase()).toContain('pull the story');
     await button.focus();
     await page.keyboard.press('Shift+Tab');
     await page.keyboard.press('Tab');
@@ -348,7 +346,7 @@ test('the whole Storyboard with the keyboard alone: brief, story, a verdict, the
   // Tab past the mic (when shown) and Tuned for to the button, by name, the way a keyboard user would.
   for (let i = 0; i < 6; i++) {
     await page.keyboard.press('Tab');
-    if ((await page.evaluate(() => document.activeElement?.getAttribute('aria-label'))) === 'Pull the story') break;
+    if ((await page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? '')).startsWith('Pull the story')) break;
   }
   await expect(page.getByRole('button', { name: 'Pull the story' })).toBeFocused();
   await page.keyboard.press('Enter');
@@ -491,17 +489,14 @@ async function shortOfContrast(page: Page, selector: string) {
   });
 }
 
-test.describe('known contrast findings (WCAG 1.4.3, measured 11 Nov; marked failing until fixed)', () => {
-  // When a colour is fixed its test passes, Playwright reports "expected to fail, but passed", and its test.fail
-  // line and its class in KNOWN_CONTRAST can be removed.
-  test('the "Storyboard" / "From your library" label, light (4.09:1)', async ({ page }) => {
-    test.fail(true, 'Known: .sb-eyebrow #e03408 on #f3f4f6');
+test.describe('contrast of the Storyboard orange, measured (WCAG 1.4.3; A3 to A9, fixed 11 Nov)', () => {
+  // Each place the Storyboard uses orange as text or behind white text, worked out from the real colours.
+  test('the "Storyboard" / "From your library" label, light', async ({ page }) => {
     await openStoryboard(page);
     expect(await shortOfContrast(page, '.sb-eyebrow')).toEqual([]);
   });
 
-  test('Pull the story on hover or focus: "Start planning story", light (3.52:1) and dark (3.11:1)', async ({ page }) => {
-    test.fail(true, 'Known: .sb-pull-2 white on #ff3f0a (light), #ff5a2c (dark)');
+  test('Pull the story on hover or focus: "Start planning story", light and dark', async ({ page }) => {
     await openStoryboard(page);
     await page.getByRole('button', { name: 'Pull the story' }).hover();
     const light = await shortOfContrast(page, '.sb-pull-2');
@@ -513,7 +508,6 @@ test.describe('known contrast findings (WCAG 1.4.3, measured 11 Nov; marked fail
 
   for (const mode of ['light', 'dark'] as const) {
     test(`Composing, ${mode}: the current step and the steps to come (55% opacity)`, async ({ page }) => {
-      test.fail(true, mode === 'light' ? 'Known: current step #e03408 is 4.09:1; li.is-todo at opacity 0.55' : 'Known: li.is-todo at opacity 0.55');
       await page.route('**/api/slide-vault/v1/storyboard', async (route) => { await new Promise((r) => setTimeout(r, 6_000)); await route.fallback(); }, { times: 1 });
       await openStoryboard(page);
       await theme(page, mode);
@@ -524,48 +518,39 @@ test.describe('known contrast findings (WCAG 1.4.3, measured 11 Nov; marked fail
     });
   }
 
-  test('the beat numbers "01", "02"…, light (3.20:1)', async ({ page }) => {
-    test.fail(true, 'Known: .sb-n #ff3f0a on #f3f4f6');
+  test('the beat numbers "01", "02"…, light', async ({ page }) => {
     await pullStory(page);
     expect(await shortOfContrast(page, '.sb-n')).toEqual([]);
   });
 
-  test('the "Matches …" line under each slide, light (4.09:1)', async ({ page }) => {
-    test.fail(true, 'Known: .sb-accent #e03408 on #f3f4f6');
+  test('the "Matches …" line under each slide, light', async ({ page }) => {
     await pullStory(page);
     expect(await shortOfContrast(page, '.sb-accent')).toEqual([]);
   });
 
-  test('the "Talk to your story" heading, light (4.09:1)', async ({ page }) => {
-    test.fail(true, 'Known: #sb-sharpen-h (.sb-label) #e03408 on #f3f4f6');
+  test('the "Talk to your story" heading, light', async ({ page }) => {
     await pullStory(page);
     expect(await shortOfContrast(page, '#sb-sharpen-h')).toEqual([]);
   });
 
-  test('"Hide the other slides" once a beat is open, dark (2.74:1)', async ({ page }) => {
-    test.fail(true, 'Known: .sb-beat-more white on #ff7048');
+  test('"Hide the other slides" once a beat is open, dark', async ({ page }) => {
     await pullStory(page);
     await theme(page, 'dark');
     await page.getByRole('button', { name: /^Show \d+ more slides?$/ }).first().click();
     expect(await shortOfContrast(page, '.sb-beat-more[aria-expanded="true"]')).toEqual([]);
   });
 
-  test('passing colours stay passing: the open "+N" in light is 4.50:1, the other Storyboard text clears 4.5:1', async ({ page }) => {
+  test('the rest of the Storyboard text clears 4.5:1 too', async ({ page }) => {
     await pullStory(page);
     await page.getByRole('button', { name: /^Show \d+ more slides?$/ }).first().click();
     expect(await shortOfContrast(page, '.sb-beat-more, .sb-board-title, .sb-beat-title, .sb-beat-say, .sb-beat-why, .sb-beat-caption > span:first-child, .sb-msg')).toEqual([]);
   });
 });
 
-// WCAG 2.4.3 Focus Order / 4.1.3: when a "From your library" answer replaces Composing, focus should move to its title,
-// as it does for a story. Measured 11 Nov with the CPU slowed 6×: a story put focus on its title 5 of 5 times, a
-// "From your library" answer 1 of 5; otherwise focus fell to the page (the Stop button it was on is gone). Likely cause:
-// StoryboardView.tsx focuses the title in requestAnimationFrame, which can run before the new screen is rendered.
-// It is a timing race, so how often it shows depends on the machine (1 of 5 and 4 of 6 on 11 Nov): on a fast CI runner
-// it could pass by luck and break every PR. So it runs on demand only: SV_RACE_CHECK=1 npx playwright test storyboard -g "slow machine"
-test('"From your library": focus lands on the title every time, even on a slow machine (known issue)', async ({ page }) => {
-  test.skip(!process.env.SV_RACE_CHECK, 'Timing race: run on demand with SV_RACE_CHECK=1 (see the comment above).');
-  test.fail(true, 'Known: focus is lost after a "From your library" answer on slower machines.');
+// WCAG 2.4.3 Focus Order: when a "From your library" answer replaces Composing, focus moves to its title, as it does
+// for a story. Before the 11 Nov fix (A10), with the CPU slowed 6×, it got there 1 of 5 times: the title was focused in
+// requestAnimationFrame, which could run before the new screen was drawn. Now it is focused after the screen renders.
+test('"From your library": focus lands on the title every time, even on a slow machine', async ({ page }) => {
   test.setTimeout(240_000);
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });

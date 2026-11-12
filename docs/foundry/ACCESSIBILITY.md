@@ -12,7 +12,7 @@ Target: **WCAG 2.2 AA** (`docs/DESIGN_SYSTEM.md`, "Accessibility acceptance"). T
 | `tests/e2e/storyboard.spec.ts` (40 tests) | **Every Storyboard screen**: the brief and "too short", Composing and Stop (Escape too), the error, the finished story (beats, "+N", Useful / Not useful, preview, Add the story to the draft deck, Talk to your story, Start over) and both "From your library" answers. axe in light and dark on each; the whole flow by keyboard alone; focus outlines; targets ≥ 24 × 24 or spaced as WCAG 2.5.8 allows; **phone 390 px, tablet 768 px upright and 1024 px sideways, and 320 px**; reduced motion. The story is the real one (rules, synthetic library); only a slow answer, a failed one, the "From your library" answers and the Talk reply are stood in, each marked in the file |
 | `tests/e2e/screen-reader.spec.ts` (7 tests) | The 12-step walk-through below, checked against the accessibility tree |
 
-Each known issue below has its own test marked `test.fail`: it fails today, and the day it is fixed Playwright reports "expected to fail, but passed", so the fix can't go unnoticed. The scans set aside only those exact issues, so anything new still fails.
+An open issue has a test marked `test.fail`: it fails today, and the day it is fixed Playwright reports "expected to fail, but passed", so the fix can't go unnoticed. Fixed issues keep their tests as ordinary ones, so they stay fixed.
 
 Latest local result (11 November 2026, branch from `foundry-release` at `958b0df`): **70 passed, 1 skipped** (71 tests; the skipped one is the on-demand race check, A10) in 43 s. The Storyboard and screen-reader files also passed **3 runs in a row** (114 and 21 test runs). On a machine already running a local AI model, a full run took 20 minutes and some tests, old and new, ran out of time: that is the machine, not the app, but expect it if you run the suite beside a model.
 
@@ -33,25 +33,26 @@ Latest local result (11 November 2026, branch from `foundry-release` at `958b0df
 | 9 | A **Preview** button, Enter | a dialog named with the slide title; focus inside | Pass | To do |
 | 10 | In the preview | its place in the results ("N of N") in a polite live region | Pass | To do |
 | 11 | Escape | the dialog closes; focus back on the Preview button | Pass | To do |
-| 12 | Search `zzqq` | "No slides found" announced; the message and Clear search reachable | **Fail (known issue A1)**: reachable (a heading and a named button) but **not announced** | To do |
+| 12 | Search `zzqq` | "No slides found" announced; the message and Clear search reachable | **Fail (A1, open)**: reachable (a heading and a named button) but **not announced** | To do |
 
 **For the person:** start the app (`npm run dev`), open http://localhost:3000/slide-vault/pages in **Safari**, press **Cmd + F5** for VoiceOver. **Tab** / **Shift + Tab** move, **Enter** activates, **Control + Option + →** reads on, **Control + Option + U** opens the rotor, **Control** stops speech. Record the date, tester, browser and macOS version. Anything confusing, silent or out of order is a finding even if the automated column passes.
 
-## Open findings (found 11 November 2026)
+## Findings (found 11 November 2026)
 
-Each was measured, not judged by eye, and each has a test that fails until it is fixed. The screens are Khushali's (front end, UX and product design); the fixes are design calls about the brand orange, so they are listed here rather than changed.
+Each was measured, not judged by eye, and each has a test. **A2 to A10 are on the Storyboard and were fixed the same day** (Schiffon's screens: `StoryboardView.tsx`, `storyboard.css`); their tests now pass and keep them fixed. A1 and A11 are on Home and search (Khushali's screens) and are open.
 
-| # | WCAG | Where | What, measured | Test |
-| --- | --- | --- | --- | --- |
-| A1 | 4.1.3 Status Messages (AA) | Search, no results | "No slides found" is not announced: `StateBlock` (`parts.tsx`) has a role only for errors, and nothing calls `announce()` | `screen-reader.spec.ts`, step 12 |
-| A2 | 2.5.3 Label in Name (A) | Storyboard, Pull the story | On hover and keyboard focus it shows "Start planning story", but its name is "Pull the story", so "click Start planning story" by voice finds nothing | `storyboard.spec.ts`, brief |
-| A3 | 1.4.3 Contrast (AA) | Storyboard: "Storyboard" / "Composing" / "From your library" label (`.sb-eyebrow`), light | #e03408 on #f3f4f6, 12 px bold: **4.09:1** (needs 4.5) | known contrast findings |
-| A4 | 1.4.3 | Pull the story on hover / focus (`.sb-pull-2`) | white on #ff3f0a, 13 px: **3.52:1** light; white on #ff5a2c: **3.11:1** dark | known contrast findings |
-| A5 | 1.4.3 | Composing: the current step (`.is-active .sb-step-label`), light; the steps to come (`li.is-todo`, opacity 0.55), light and dark | current step #e03408: **4.09:1** light; steps to come (#6b6b6b, #a9a9ac dark, at 55% opacity): **2.15:1** light, **3.23:1** dark | known contrast findings |
-| A6 | 1.4.3 | Beat numbers "01", "02"… (`.sb-n`), light | #ff3f0a on #f3f4f6: **3.20:1** | known contrast findings |
-| A7 | 1.4.3 | "Matches …" under each slide (`.sb-accent`), light | #e03408, 11 px: **4.09:1** | known contrast findings |
-| A8 | 1.4.3 | "Talk to your story" heading (`#sb-sharpen-h`), light | #e03408, 12 px bold: **4.09:1** | known contrast findings |
-| A9 | 1.4.3 | "Hide the other slides" once a beat is open (`.sb-beat-more`), dark | white on #ff7048: **2.74:1** (light is 4.50:1, a pass) | known contrast findings |
-| A10 | 2.4.3 Focus Order (A) | Storyboard, "From your library" answers | Focus should move to the new title, as it does for a story. With the CPU slowed 6×: a story 5 of 5, "From your library" 1 of 5 and 4 of 6; otherwise focus falls to the page (the Stop button it was on is gone). Likely cause: the title is focused in `requestAnimationFrame` (`StoryboardView.tsx`), which can run before the new screen is drawn | on demand: `SV_RACE_CHECK=1 npx playwright test storyboard -g "slow machine"` (a timing race, so not in CI) |
+| # | WCAG | Where | Before (measured) | Now | Test |
+| --- | --- | --- | --- | --- | --- |
+| A1 | 4.1.3 Status Messages (AA) | Search, no results | "No slides found" not announced: `StateBlock` (`parts.tsx`) has a role only for errors, and nothing calls `announce()` | **Open** (Khushali) | `screen-reader.spec.ts`, step 12 (marked failing until fixed) |
+| A2 | 2.5.3 Label in Name (A) | Storyboard, Pull the story | Shows "Start planning story" on hover and focus, named "Pull the story": voice control can't find it by what it shows | Fixed: named "Pull the story: start planning story", so either phrase works | `storyboard.spec.ts`, brief |
+| A3 | 1.4.3 Contrast (AA) | "Storyboard" / "Composing" / "From your library" label, light | 4.09:1 | 5.20:1 | contrast of the Storyboard orange |
+| A4 | 1.4.3 | Pull the story on hover / focus | 3.52:1 light, 3.11:1 dark | 5.72:1 both | same |
+| A5 | 1.4.3 | Composing: current step; steps to come (were at 55% opacity) | 4.09:1 light; 2.15:1 light, 3.23:1 dark | 5.20:1; 4.84:1 light, 8.34:1 dark (secondary text colour, no fading) | same |
+| A6 | 1.4.3 | Beat numbers "01", "02"…, light | 3.20:1 | 5.20:1 | same |
+| A7 | 1.4.3 | "Matches …" under each slide, light | 4.09:1 | 5.20:1 | same |
+| A8 | 1.4.3 | "Talk to your story" heading, light | 4.09:1 | 5.20:1 | same |
+| A9 | 1.4.3 | "Hide the other slides" once a beat is open | 2.74:1 dark | 5.72:1 both | same |
+| A10 | 2.4.3 Focus Order (A) | Storyboard, "From your library" answers | Focus reached the new title 1 of 5 times with the CPU slowed 6× (a story: 5 of 5); otherwise it fell to the page. The title was focused in `requestAnimationFrame`, which could run before the new screen was drawn | Fixed: focused after the screen renders | `storyboard.spec.ts`, "even on a slow machine" (in CI) |
+| A11 | 1.4.3 | Home: the Storyboard launch button while it glows (`.sb-launch-btn.is-glow`) | From the CSS values, not yet on screen in a test: #e03408 on the tint #ffe6dc is 3.77:1 (light) | **Open** (Khushali; `StoryLauncher.tsx`) | none yet |
 
-A3 to A9 are all the brand orange used as small text on the light grey page; a darker orange for small text (or larger, bolder text) would clear most of them at once. Colours that pass today are held by a test too ("passing colours stay passing").
+**How the Storyboard colours were fixed, uniformly:** one orange, `--sb-orange-text` / `--sb-orange-fill` in `storyboard.css`, wherever the Storyboard uses orange as text or behind white text: #c22d07, the brand orange darker, which passes on every background it sits on (5.20:1 on the page, 5.72:1 on white, 4.79:1 on the orange tint, white on it 5.72:1). In dark mode orange text keeps #ff7048 (7.14:1 on the page, 5.37:1 on the tint); white-on-orange uses #c22d07 in both themes. Lines, outlines, the progress bar and icons keep the brand orange: they need 3:1, which it meets. A1 and A11 could use the same token if it moves into `docs/design-tokens.css`.

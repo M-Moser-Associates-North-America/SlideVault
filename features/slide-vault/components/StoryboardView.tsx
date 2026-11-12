@@ -45,6 +45,11 @@ export function StoryboardView() {
   const toldNotSaved = useRef(false);
   const abort = useRef<AbortController | null>(null);
   const headRef = useRef<HTMLHeadingElement>(null);
+  /** Counts finished answers, so focus moves to the new title once its screen is on the page (ACCESSIBILITY.md, A10). */
+  const [answered, setAnswered] = useState(0);
+  useEffect(() => {
+    if (answered) headRef.current?.focus();
+  }, [answered]);
 
   useEffect(() => () => abort.current?.abort(), []);
   useEffect(() => {
@@ -76,7 +81,7 @@ export function StoryboardView() {
     setSaid({});
     setChat([]);
     setPhase('ready');
-    requestAnimationFrame(() => headRef.current?.focus());
+    setAnswered((n) => n + 1);
   }
 
   async function run(withAnswers: string, mode?: 'retrieve' | 'reimagine' | 'build') {
@@ -184,7 +189,8 @@ export function StoryboardView() {
               </select>
             </p>
             {/* Clear like Tuned for beside it; lights up orange as Start planning story on hover, focus and tap. */}
-            <button type="button" className="sb-pull" aria-label="Pull the story" onClick={() => {
+            {/* Its name holds both labels it shows (at rest, and on hover or focus), so voice control finds it by either (WCAG 2.5.3). */}
+            <button type="button" className="sb-pull" aria-label="Pull the story: start planning story" onClick={() => {
                 if (situation.trim().length < 20) {
                   setTooShort(true);
                   situationRef.current?.focus();
