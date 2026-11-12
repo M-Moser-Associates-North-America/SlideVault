@@ -1,44 +1,58 @@
 # Accessibility record
 
-Target: **WCAG 2.2 AA** (`docs/DESIGN_SYSTEM.md`, "Accessibility acceptance"). This page records how each requirement is verified and the latest results.
+Target: **WCAG 2.2 AA** (`docs/DESIGN_SYSTEM.md`, "Accessibility acceptance"). This page records how each requirement is verified, the latest results, and what is still open.
 
 ## Automated: every change, in CI
 
-`npm run test:a11y` (Playwright + axe-core, `tests/e2e/accessibility.spec.ts`) runs against a production build of the synthetic library:
+`npm run test:a11y` (Playwright + axe-core) runs against a production build of the synthetic library, in three files:
 
-| Requirement | How it's checked |
+| File | What it covers |
 | --- | --- |
-| Text and placeholder contrast; non-text contrast | axe-core WCAG 2.2 AA rules, **light and dark** themes, with selected states, the preview dialog, empty results and an export error |
-| Visible focus | Tab through every control; each shows a 2px solid outline |
-| Target size | Every button and input ≥ 24 × 24 CSS px |
-| Keyboard-only workflow | Search, select, reorder and export with the keyboard alone |
-| Predictable focus | Preview: focus moves into the dialog, returns to the opener on Escape |
-| Semantics | One header / main / labelled aside, one h1, no skipped heading levels, named controls |
-| Reflow and motion | No sideways scroll at 320 px (400% zoom); transitions off with reduced motion |
+| `tests/e2e/accessibility.spec.ts` (24 tests) | Home, results, deck page, slide page, Create, Upload, sign-in, preview and download dialogs, empty results, the download error: axe WCAG 2.2 AA in **light and dark**; a 2px focus outline on every control; targets ≥ 24 × 24; search, select, reorder and download by keyboard alone; focus into and out of the preview; landmarks and headings; no sideways scroll at 320 px; reduced motion; phones at 390 px |
+| `tests/e2e/storyboard.spec.ts` (40 tests) | **Every Storyboard screen**: the brief and "too short", Composing and Stop (Escape too), the error, the finished story (beats, "+N", Useful / Not useful, preview, Add the story to the draft deck, Talk to your story, Start over) and both "From your library" answers. axe in light and dark on each; the whole flow by keyboard alone; focus outlines; targets ≥ 24 × 24 or spaced as WCAG 2.5.8 allows; **phone 390 px, tablet 768 px upright and 1024 px sideways, and 320 px**; reduced motion. The story is the real one (rules, synthetic library); only a slow answer, a failed one, the "From your library" answers and the Talk reply are stood in, each marked in the file |
+| `tests/e2e/screen-reader.spec.ts` (7 tests) | The 12-step walk-through below, checked against the accessibility tree |
 
-Latest local result (7 October 2026): **10/10 tests pass**, stable over three consecutive runs.
+An open issue has a test marked `test.fail`: it fails today, and the day it is fixed Playwright reports "expected to fail, but passed", so the fix can't go unnoticed. Fixed issues keep their tests as ordinary ones, so they stay fixed.
 
-## Manual: screen reader (VoiceOver on macOS)
+Latest local result (11 November 2026, branch from `foundry-release` at `958b0df`): **70 passed, 1 skipped** (71 tests; the skipped one is the on-demand race check, A10) in 43 s. The Storyboard and screen-reader files also passed **3 runs in a row** (114 and 21 test runs). On a machine already running a local AI model, a full run took 20 minutes and some tests, old and new, ran out of time: that is the machine, not the app, but expect it if you run the suite beside a model.
 
-Automated tools can't judge whether the app *makes sense* when heard. The design doc asks for a person to test the primary workflow with a screen reader. Run this on each milestone.
+## Screen-reader walk-through (the 12 steps)
 
-**Setup:** start the app (`npm run dev`), open http://localhost:3000/slide-vault/pages in **Safari**, then press **Cmd + F5** to turn VoiceOver on (Cmd + F5 again turns it off).
+**How it was checked (11 Nov):** each step against the browser's accessibility tree, which is what VoiceOver reads: roles, names, states, focus and live announcements (`tests/e2e/screen-reader.spec.ts`). That shows the app gives a screen reader the right things to say. It is **not** a person listening: whether VoiceOver actually speaks each announcement, and how it sounds, still needs a person (Safari + VoiceOver, below). The steps are updated to today's screens; the old ones named "Selection" and "Export editable PowerPoint", which no longer exist.
 
-**Keys:** **Tab** / **Shift + Tab** move between controls · **Enter** activates · **Control + Option + →** reads the next item · **Control + Option + U** opens the rotor (lists headings, landmarks, links) · **Control** stops speech.
-
-| # | Do this | You should hear | Result | Notes |
+| # | Do this | A screen reader should get | Automated (11 Nov) | Person with VoiceOver |
 | --- | --- | --- | --- | --- |
-| 1 | Load the page, open the rotor (Ctrl + Opt + U), arrow to **Landmarks** | banner, main, "Selection" complementary | | |
-| 2 | In the rotor, arrow to **Headings** | "Slides" (level 1), slide titles, "Selection" | | |
-| 3 | Tab to the search box | "Search slides, search text field" | | |
-| 4 | Type `leadership` and wait | "1 result for leadership" announced without moving focus | | |
-| 5 | Clear the search, Tab to a **Select** button, press Enter | "Select, toggle button, not pressed" → after Enter: "pressed"; the Selection count updates | | |
-| 6 | Select two more slides, then Tab to the selection list | "Move [title] up / down", "Remove [title] from selection" | | |
-| 7 | Press Enter on a **Move … up** button | Order changes; focus stays on the button | | |
-| 8 | Tab to **Export editable PowerPoint**, press Enter | "Building PowerPoint", then "Downloaded SlideVault-export.pptx with 3 slides" | | |
-| 9 | Tab to a **Preview** button, press Enter | Dialog announced with the slide title; focus inside | | |
-| 10 | Tab through the dialog to "Slide text" | "Slide text, region"; arrow keys scroll it | | |
-| 11 | Press Escape | Dialog closes; focus back on the Preview button you used | | |
-| 12 | Search for `zzqq` | "0 results"; "No slides match" message reachable | | |
+| 1 | Open Home, rotor → Landmarks | banner, Main navigation, main, search, "Draft deck" complementary | Pass | To do |
+| 2 | Rotor → Headings | one level-1 "Home"; no skipped levels | Pass | To do |
+| 3 | Tab to the search box | "I'm looking for (search slides)", search field, inside a search landmark | Pass | To do |
+| 4 | Type `leadership`, Enter | "N slides from N decks" from a polite live region; focus stays in the box | Pass (live region present; focus stays) | **Listen**: the count's live region appears with its text, which some screen readers don't announce the first time; check it is spoken after the first search |
+| 5 | Tab to a slide's **Add to draft deck** checkbox, Space | "Add to draft deck: [title], checkbox"; checked; an announcement | Pass, with a note: the app announces "Added to draft deck: [title]" and the general message then replaces it, so what is heard is "Added. 1 slide ready" | **Listen**: which one is spoken |
+| 6 | Add a second slide; Tab into the draft deck | "Reorder: [title]" and "Remove … [title]" buttons | Pass | To do |
+| 7 | On a Reorder button, Arrow Up | "[title] moved to position 1 of 2"; focus stays on it | Pass | To do |
+| 8 | **Download as pptx**, Enter; **Download**, Enter | a named dialog, focus inside; the file downloads | Pass | To do |
+| 9 | A **Preview** button, Enter | a dialog named with the slide title; focus inside | Pass | To do |
+| 10 | In the preview | its place in the results ("N of N") in a polite live region | Pass | To do |
+| 11 | Escape | the dialog closes; focus back on the Preview button | Pass | To do |
+| 12 | Search `zzqq` | "No slides found" announced; the message and Clear search reachable | **Fail (A1, open)**: reachable (a heading and a named button) but **not announced** | To do |
 
-Record the date, tester, browser and macOS version with the results. Anything confusing, silent or out of order is a finding even if the checks above pass.
+**For the person:** start the app (`npm run dev`), open http://localhost:3000/slide-vault/pages in **Safari**, press **Cmd + F5** for VoiceOver. **Tab** / **Shift + Tab** move, **Enter** activates, **Control + Option + →** reads on, **Control + Option + U** opens the rotor, **Control** stops speech. Record the date, tester, browser and macOS version. Anything confusing, silent or out of order is a finding even if the automated column passes.
+
+## Findings (found 11 November 2026)
+
+Each was measured, not judged by eye, and each has a test. **A2 to A10 are on the Storyboard and were fixed the same day** (Schiffon's screens: `StoryboardView.tsx`, `storyboard.css`); their tests now pass and keep them fixed. A1 and A11 are on Home and search (Khushali's screens) and are open.
+
+| # | WCAG | Where | Before (measured) | Now | Test |
+| --- | --- | --- | --- | --- | --- |
+| A1 | 4.1.3 Status Messages (AA) | Search, no results | "No slides found" not announced: `StateBlock` (`parts.tsx`) has a role only for errors, and nothing calls `announce()` | **Open** (Khushali) | `screen-reader.spec.ts`, step 12 (marked failing until fixed) |
+| A2 | 2.5.3 Label in Name (A) | Storyboard, Pull the story | Shows "Start planning story" on hover and focus, named "Pull the story": voice control can't find it by what it shows | Fixed: named "Pull the story: start planning story", so either phrase works | `storyboard.spec.ts`, brief |
+| A3 | 1.4.3 Contrast (AA) | "Storyboard" / "Composing" / "From your library" label, light | 4.09:1 | 5.20:1 | contrast of the Storyboard orange |
+| A4 | 1.4.3 | Pull the story on hover / focus | 3.52:1 light, 3.11:1 dark | 5.72:1 both | same |
+| A5 | 1.4.3 | Composing: current step; steps to come (were at 55% opacity) | 4.09:1 light; 2.15:1 light, 3.23:1 dark | 5.20:1; 4.84:1 light, 8.34:1 dark (secondary text colour, no fading) | same |
+| A6 | 1.4.3 | Beat numbers "01", "02"…, light | 3.20:1 | 5.20:1 | same |
+| A7 | 1.4.3 | "Matches …" under each slide, light | 4.09:1 | 5.20:1 | same |
+| A8 | 1.4.3 | "Talk to your story" heading, light | 4.09:1 | 5.20:1 | same |
+| A9 | 1.4.3 | "Hide the other slides" once a beat is open | 2.74:1 dark | 5.72:1 both | same |
+| A10 | 2.4.3 Focus Order (A) | Storyboard, "From your library" answers | Focus reached the new title 1 of 5 times with the CPU slowed 6× (a story: 5 of 5); otherwise it fell to the page. The title was focused in `requestAnimationFrame`, which could run before the new screen was drawn | Fixed: focused after the screen renders | `storyboard.spec.ts`, "even on a slow machine" (in CI) |
+| A11 | 1.4.3 | Home: the Storyboard launch button while it glows (`.sb-launch-btn.is-glow`) | From the CSS values, not yet on screen in a test: #e03408 on the tint #ffe6dc is 3.77:1 (light) | **Open** (Khushali; `StoryLauncher.tsx`) | none yet |
+
+**How the Storyboard colours were fixed, uniformly:** one orange, `--sb-orange-text` / `--sb-orange-fill` in `storyboard.css`, wherever the Storyboard uses orange as text or behind white text: #c22d07, the brand orange darker, which passes on every background it sits on (5.20:1 on the page, 5.72:1 on white, 4.79:1 on the orange tint, white on it 5.72:1). In dark mode orange text keeps #ff7048 (7.14:1 on the page, 5.37:1 on the tint); white-on-orange uses #c22d07 in both themes. Lines, outlines, the progress bar and icons keep the brand orange: they need 3:1, which it meets. A1 and A11 could use the same token if it moves into `docs/design-tokens.css`.
