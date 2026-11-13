@@ -37,6 +37,14 @@ const ctx: PlanContext = { clients: ['Kestrel Law', 'Northgate Bank', 'Halcyon H
     check(!team.keywords.includes('intro') && !team.keywords.includes('introduction') && team.topics.length > 0, 'stand-in: "team intro" is still a team search, "intro" stays filler beside other words', team);
     check(filler.keywords.length === 0, 'stand-in: a search of pure filler ("show me the slides") still names no words', filler.keywords);
   }
+  {
+    // Gaby, 28 Oct: "Moira resume" wants Moira's page. Since "Moira" became the founder topic (FD-87) the name was no
+    // longer required, and other people's résumés filled the results (found re-running the meeting searches, 11 Nov).
+    const named = (q: string) => standInPlan(q, ctx).named ?? [];
+    check(named('Moira resume').join() === 'Moira' && named('moira bio').join() === 'moira' && named('Moira Moser').includes('Moira'), 'named: a person\'s name stays named when a topic takes it as its own word', { resume: named('Moira resume'), bio: named('moira bio'), full: named('Moira Moser') });
+    check(named('our founder').length === 0 && named('the founder of the firm').length === 0, 'named: the topic alone ("our founder") names nobody', { founder: named('our founder') });
+    check(standInPlan('Moira resume', ctx).topics.includes('Moira Moser'), 'named: the founder topic still reads the search', standInPlan('Moira resume', ctx).topics);
+  }
   const p = standInPlan('team intro for a bank pitch', ctx);
   check(p.topics.length > 0 && p.keywords.includes('bank'), 'stand-in: "team intro for a bank pitch" finds a topic and keeps "bank"', p);
   check(p.client === null, 'stand-in: "bank" alone is not read as the client Northgate Bank', p.client);

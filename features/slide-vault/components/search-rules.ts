@@ -37,7 +37,17 @@ export function hasSlideType(s: SlideSummary, label: string): boolean {
 
 /* --------------------------------------------------------------- Topic rules */
 
-type Concept = { id: string; label: string; words: string[]; tags: string[] };
+type Concept = {
+  id: string;
+  label: string;
+  words: string[];
+  tags: string[];
+  /**
+   * Words of the topic that are a person's name. Typed, the name is still what the person is after: "Moira resume"
+   * wants Moira's page, not every résumé (Gaby, 28 Oct). The topic alone ("our founder") names nobody.
+   */
+  names?: string[];
+};
 
 const CONCEPTS: Concept[] = [
   {
@@ -60,6 +70,7 @@ const CONCEPTS: Concept[] = [
     label: 'Moira Moser',
     words: ['moira moser', 'moira', 'founder', 'our founder'],
     tags: ['about us'],
+    names: ['moira'],
   },
   {
     // M Moser's own words for where it is (Alina's office maps, 4 Nov): the slides say "studios", "global
@@ -192,6 +203,12 @@ const ALONE: Record<string, string[]> = {
   work: ['work'],
   works: ['work'],
 };
+
+/** The names typed in a search that a topic took as its own words ("moira" in "Moira resume"), so they can still be required. */
+export function topicNames(q: string): string[] {
+  const nq = ` ${norm(q).replace(/[^a-z0-9\- ]/g, ' ').replace(/\s+/g, ' ').trim()} `;
+  return CONCEPTS.flatMap((c) => c.names ?? []).filter((n) => nq.includes(` ${norm(n)} `));
+}
 
 /** Filler words the rules never search for ("the", "show me", "slides"). */
 export const isStopWord = (w: string) => STOP.has(w);
