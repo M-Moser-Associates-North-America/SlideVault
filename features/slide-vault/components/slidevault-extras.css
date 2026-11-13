@@ -2876,3 +2876,7 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault[data-xxl] .sv-top .sv-wrap { max-width: 1960px; }
 /* The app header (it belongs to the application shell, so its class is hashed) stops at the same width. */
 .slidevault .sv-app[data-xxl] [class*="headerInner"] { max-width: 1960px; }
+
+/* No lonely last word: paragraphs and list text break so the last line is never a single word; headings and short notes balance their lines. */
+.slidevault :is(p, li, dd, .lede, .meta, .hint, .txt) { text-wrap: pretty; }
+.slidevault :is(h1, h2, h3, .h1, .h2, .h3, dialog p, .state p, .state h2, .tour-t, .tour-pop h2, .toast, .sv-fixed-tip) { text-wrap: balance; }

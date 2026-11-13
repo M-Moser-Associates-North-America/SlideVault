@@ -556,7 +556,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     async function run(deck: { id: string; title: string }, archived: boolean): Promise<boolean> {
       try {
         if (!(await archiveDeckApi(transport, deck.id, archived))) {
-          toast('Archiving needs the server, which does not have it yet. Nothing was changed.');
+          toast('Archiving is not available yet. Nothing was changed.');
           return false;
         }
       } catch (e) {
@@ -609,7 +609,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
       }
       try {
         if (await setPackStatusApi(transport, pack.id, status)) refreshLibrary();
-        else toast('Confirming a pack needs the server, which does not have it yet. Nothing was changed.');
+        else toast('Confirming a pack is not available yet. Nothing was changed.');
       } catch (e) {
         toast(e instanceof Error ? e.message : 'Could not change the pack. Nothing was changed.');
       }

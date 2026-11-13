@@ -141,7 +141,7 @@ export function PackDialog() {
               run(() => {
                 const all = [...sec.slides, ...outside];
                 updateSelection((cur) => [...cur, ...all.filter((x) => !cur.some((c) => c.id === x.id))]);
-                toast(`Added ${plural(all.filter((x) => !selection.some((c) => c.id === x.id)).length, 'slide')}: the section and the rest of its pack`);
+                toast(`Added ${plural(all.filter((x) => !selection.some((c) => c.id === x.id)).length, 'slide')}: the section and its pack`);
                 announce('Added the section and the rest of its pack to the draft deck');
               })
             }

@@ -25,7 +25,7 @@ export function MicButton({ onText, disabled, className = 'btn btn-icon sb-mic',
     const recheck = async () => {
       const now = await speechStatus(runtime);
       setStatus(now);
-      if (now === 'down') toast("Voice isn't answering on this computer right now. Type for now, or start the voice service and tap again.");
+      if (now === 'down') toast("Voice is not available right now. Type your search instead.");
     };
     return (
       <button type="button" className={className} aria-disabled="true" aria-label="Talk instead of typing (voice isn't answering right now)" data-tip="Voice isn't answering right now" data-tip-pos="end" onClick={() => void recheck()}>
@@ -75,7 +75,7 @@ export function MicButton({ onText, disabled, className = 'btn btn-icon sb-mic',
       rec.current = await startRecording(() => void toggle());
       setState('listening');
     } catch {
-      toast('The microphone is blocked. Allow it in the browser to talk instead of type.');
+      toast('The microphone is blocked. Allow it in your browser to speak.');
     }
   }
 

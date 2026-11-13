@@ -158,7 +158,7 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
           answers.set(key, { shown: next, sent: 0 }); /* nothing was saved, so nothing to take back later */
           if (!toldOptedOut) {
             toldOptedOut = true;
-            toast('Not saved: learning from your activity is off. You can turn it on in Settings.');
+            toast('Not saved. Activity learning is off. Turn it on in Settings.');
           }
         }
       },

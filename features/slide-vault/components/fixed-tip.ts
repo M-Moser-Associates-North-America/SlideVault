@@ -74,6 +74,24 @@ export function installLongPressTips(): () => void {
     e.preventDefault();
     e.stopPropagation();
   };
+  /* A mouse on a narrow window: where the page hides its own hover note (it would not fit), show it the same way. */
+  let hovered: HTMLElement | null = null;
+  const over = (e: PointerEvent) => {
+    if (e.pointerType === 'touch') return;
+    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault [data-tip]');
+    if (el === hovered) return;
+    hovered = el ?? null;
+    if (!el) return hideTip();
+    const text = el.getAttribute('data-tip');
+    if (text && getComputedStyle(el, '::after').display === 'none') showTip(el, text);
+  };
+  const out = (e: PointerEvent) => {
+    if (e.pointerType === 'touch') return;
+    if (hovered && !(e.relatedTarget instanceof Node && hovered.contains(e.relatedTarget))) {
+      hovered = null;
+      hideTip();
+    }
+  };
   const menu = (e: Event) => {
     if ((e.target as Element | null)?.closest('.slidevault [data-tip]')) e.preventDefault();
   };
@@ -83,6 +101,8 @@ export function installLongPressTips(): () => void {
   document.addEventListener('pointercancel', clear, true);
   document.addEventListener('click', click, true);
   document.addEventListener('contextmenu', menu, true);
+  document.addEventListener('pointerover', over, true);
+  document.addEventListener('pointerout', out, true);
   return () => {
     clear();
     window.clearTimeout(hideTimer);
@@ -92,5 +112,7 @@ export function installLongPressTips(): () => void {
     document.removeEventListener('pointercancel', clear, true);
     document.removeEventListener('click', click, true);
     document.removeEventListener('contextmenu', menu, true);
+    document.removeEventListener('pointerover', over, true);
+    document.removeEventListener('pointerout', out, true);
   };
 }

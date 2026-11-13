@@ -44,7 +44,7 @@ function TourCard({ index, size, step, isLastStep, backProps, primaryProps, skip
 }
 
 /** The order of the steps; the ids let the rules below talk about "the draft deck step" without counting. */
-const STEP_IDS = ['welcome', 'search', 'story', 'filters', 'pick', 'deck', 'decks'] as const;
+const STEP_IDS = ['welcome', 'search', 'story', 'filters', 'pick', 'deck', 'tabs', 'decks'] as const;
 type StepId = (typeof STEP_IDS)[number];
 
 /**
@@ -80,6 +80,17 @@ export function Tour() {
   /* A phone on its side: the filter buttons share a line with Search with AI and Storyboard, and a note below a button would run off the short screen. */
   const land = typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-height: 520px) and (max-width: 1000px)').matches;
 
+  /* Where the draft deck covers the page (phone, upright tablet) or starts closed (tablet on its side), put it away so the tabs show. */
+  const putDeckAway = async () => {
+    const col = document.querySelector('.slidevault .cart-col');
+    const tabletSide = document.querySelector('.slidevault .sv-app')?.hasAttribute('data-tl');
+    if (workspaceSizeOf(col) !== 'wide' || tabletSide) {
+      setCartMin(true);
+      await new Promise((resolve) => setTimeout(resolve, 320));
+    }
+    await toTop();
+  };
+
   const stepFor: Record<StepId, Step> = {
     welcome: {
       target: 'body',
@@ -103,7 +114,7 @@ export function Tour() {
       before: toTop,
     },
     filters: {
-      target: land || tablet ? '.fbar' : '.fbar-row',
+      target: rolled ? '.fbar' : '.fbar-row',
       title: 'Narrow it down',
       content: rolled ? 'Use Filters to cut the list down.' : 'Use Year, Client, Project type and Slide type to cut the list down.',
       placement: land || tablet ? 'auto' : 'bottom',
@@ -128,20 +139,20 @@ export function Tour() {
         await new Promise((resolve) => setTimeout(resolve, 320));
       },
     },
+    tabs: {
+      target: bottomTabs ? '.sv-bottombar' : '.sv-nav',
+      title: 'Create and Upload',
+      content: 'Create builds a deck with AI. Upload adds a deck to the library.',
+      placement: bottomTabs ? 'top' : 'bottom',
+      before: putDeckAway,
+    },
     decks: {
       // Only the My decks tab is lit, not the whole row of tabs.
       target: bottomTabs ? '.sv-bottombar a[href$="/profile"]' : '.sv-nav a[href$="/profile"]',
       title: 'Find your saved work',
       content: 'Your saved slides and drafts are here. Replay this tour any time with the ? button.',
       placement: bottomTabs ? 'top' : 'bottom',
-      before: async () => {
-        // Where the draft deck covers the page (phone, upright tablet), put it away so the tabs show.
-        if (workspaceSizeOf(document.querySelector('.slidevault .cart-col')) !== 'wide') {
-          setCartMin(true);
-          await new Promise((resolve) => setTimeout(resolve, 320));
-        }
-        await toTop();
-      },
+      before: putDeckAway,
     },
   };
   const steps = STEP_IDS.map((id) => stepFor[id]);
