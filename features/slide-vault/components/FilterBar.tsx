@@ -16,7 +16,7 @@ import { StoryLauncher } from './StoryLauncher';
 import { useEdgeFade } from './edge-fade';
 import { useResultsSummary } from '../client/results-summary';
 import { useRoot } from './root';
-import { useWorkspacePhoneLike } from './size';
+import { useWorkspaceFiltersRolled, useWorkspaceTabletLandscape } from './size';
 import { useWorkspace } from './state';
 
 /**
@@ -142,7 +142,8 @@ export function FilterBar() {
   const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search, includeArchived, setIncludeArchived, autoSection, dismissAutoSection, searched } = useWorkspace();
   const [open, setOpen] = useState<Key | null>(null);
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
-  const compact = useWorkspacePhoneLike();
+  const compact = useWorkspaceFiltersRolled();
+  const tabletLand = useWorkspaceTabletLandscape();
   const { scroll } = useRoot();
   const [sheet, setSheet] = useState<Key | 'all' | null>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
@@ -521,7 +522,8 @@ export function FilterBar() {
       )}
       {compact && rowOut && sheet === null && (
         <div className="fb-pin-bar">
-          {summary ? (
+          {(tabletLand || !summary) && <StickySearch eye={tabletLand} placeholder={tabletLand ? undefined : 'Search slides'} />}
+          {summary && !tabletLand ? (
             <span className="pin-sum">
               <strong>{summary.count} slides</strong>
               <span aria-hidden="true"> · </span>

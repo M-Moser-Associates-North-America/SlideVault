@@ -42,7 +42,7 @@ import { useEdgeFade } from './edge-fade';
 import { ScrollRow } from './scroll-row';
 import { PreviewTags } from './TagBits';
 import { NumberJump } from './Dialogs';
-import { useWorkspaceCompact, useWorkspacePhoneLike } from './size';
+import { useWorkspaceCompact, useWorkspaceFiltersRolled, useWorkspacePhoneLike } from './size';
 import { useTipSeen } from '../client/tip-store';
 import { HiddenToggle } from './HiddenToggle';
 import { shownInFilterRow, withoutChip } from './search-reading';
@@ -245,7 +245,7 @@ let heroTouched = false;
 
 function HomeHeader() {
   const { query, setQuery, typeQuery, submitSearch, runtime, searched } = useWorkspace();
-  const compact = useWorkspacePhoneLike();
+  const compact = useWorkspaceFiltersRolled();
   const [touched, setTouched] = useState(heroTouched);
   /* The typing animation is for Home itself: once a results page is up (a search, a row's See all, a tile) the box just shows its plain hint. */
   const onResults = searched !== '' || runtime.location.view === 'browse';

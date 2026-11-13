@@ -571,39 +571,39 @@
 /* Phones: the draft deck is a sidebar on the right. Closed, it is off screen and the black pill
    opens it; open, it covers the right side and dims the page. It starts closed on phones. */
 /* container width: compact */
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-col, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-col:has(.cart-empty) {
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-col, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-col:has(.cart-empty) {
     display: block; position: absolute; top: 0; bottom: 0; right: 0; left: auto; transform: none;
     width: min(calc(var(--sv-w, 390px) * 0.88), 360px); max-height: none; margin: 0; padding: 0; overflow: hidden; z-index: 60;
     background: var(--sv-surface); border: 0; border-left: 1px solid var(--sv-brand);
     box-shadow: -12px 0 32px -12px rgba(10, 10, 12, 0.45);
     transition: right 0.22s var(--sv-ease-out), visibility 0.22s;
   }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart-col, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart-col:has(.cart-empty) {
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-min .cart-col, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-min .cart-col:has(.cart-empty) {
     right: calc(-1 * min(calc(var(--sv-w, 390px) * 0.88), 360px) - 24px); visibility: hidden; box-shadow: none; padding: 0;
   }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart {
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-min .cart {
     display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0;
     height: 100%; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
   }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-head, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-body, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-foot { display: block; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-body { overscroll-behavior: contain; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-items { display: grid; max-height: none; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-tg { display: inline-flex; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-mini, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-min .cart-mini { display: none; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-head { padding-top: calc(18px + env(safe-area-inset-top)); }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-top { order: 0; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart .txt { order: 0; flex: none; min-width: 0; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-pill { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-head, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-body, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-foot { display: block; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-body { overscroll-behavior: contain; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-items { display: grid; max-height: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-tg { display: inline-flex; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-mini, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-min .cart-mini { display: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-head { padding-top: calc(18px + env(safe-area-inset-top)); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-top { order: 0; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart .txt { order: 0; flex: none; min-width: 0; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-pill { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); }
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .sv-main { padding-bottom: 96px; }
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts.lift { bottom: calc(84px + env(safe-area-inset-bottom)); }
 
 @media (prefers-reduced-motion: reduce) {
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-col { transition: none; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-col { transition: none; }
 }
 /* container width: compact */
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .grip { touch-action: none; width: 26px; height: 44px; cursor: grab; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-body .ci { grid-template-columns: 26px 20px 62px minmax(0, 1fr) 28px; }
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-body .ci { grid-template-columns: 26px 20px 62px minmax(0, 1fr) 28px; }
 
 
 /* Phones: the search label sits above the box, and the example searches are one row you swipe. */
@@ -648,7 +648,7 @@
 .slidevault .auth-screen[data-size="compact"] .auth-foot { margin-top: 0; gap: 22px; }
 
 /* Draft deck button, a little higher on phones. */
-.slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-pill { bottom: calc(32px + env(safe-area-inset-bottom)); }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-pill { bottom: calc(32px + env(safe-area-inset-bottom)); }
 
 /* Filters on phones: one swipeable row, every filter opens in a bottom sheet, and a pinned button
    stays in reach once the row has scrolled away. */
@@ -672,7 +672,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 
 /* The dim layer behind the draft deck on phones. */
 .slidevault .cart-scrim { display: none; }
-.slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .cart-scrim { display: block; position: absolute; inset: 0; z-index: 59; padding: 0; border: 0; background: rgba(10, 10, 12, 0.5); cursor: default; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-scrim { display: block; position: absolute; inset: 0; z-index: 59; padding: 0; border: 0; background: rgba(10, 10, 12, 0.5); cursor: default; }
 
 /* Save as a draft: update the older deck or save a new one. Same look on phone, tablet and desktop. */
 .slidevault .save-opts { margin: 0 0 16px; padding: 0; border: 0; display: grid; gap: 10px; }
@@ -2588,3 +2588,87 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 /* Slide page on an upright tablet: "Use this slide" buttons are normal-sized and sit together on the left, not stretched across the card. */
 .slidevault .sv-app[data-size="medium"] .panel-use .row-flex { display: flex; flex-wrap: wrap; gap: 8px; }
 .slidevault .sv-app[data-size="medium"] .panel-use .row-flex > .btn { flex: 0 0 auto; width: auto; padding-inline: 14px; }
+
+/* Tablet on its side: Home and the filter row follow the upright tablet (one Filters button, one row of Try examples, Storyboard beside Search with AI), because the draft deck panel leaves little width. */
+.slidevault .sv-app[data-tl] .fb-item:has([data-key="category"]), .slidevault .sv-app[data-tl] .fb-item:has([data-key="slideType"]), .slidevault .sv-app[data-tl] .fb-item:has([data-key="section"]) { display: none; }
+.slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fb-tools { margin-bottom: 6px; }
+.slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fbar { padding-top: 6px; }
+.slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fb-chips { margin-top: 6px; }
+.slidevault .sv-app[data-tl] .home-hero.has-results .home-hero-prefix { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.slidevault .sv-app[data-tl] .home-hero.has-results { padding-top: 14px; }
+.slidevault .sv-app[data-tl] .fbar-row .hid-wrap { flex: none; }
+.slidevault .sv-app[data-tl] .fbar-row .hid-toggle { width: 34px; height: 34px; box-shadow: none; }
+.slidevault .sv-app[data-tl] .fbar-row .hid-toggle .ic { width: 16px; height: 16px; }
+.slidevault .sv-app[data-tl] .fbar-row .hid-tip { display: none; }
+.slidevault .sv-app[data-tl] .home-hero { padding-top: 8px; }
+.slidevault .sv-app[data-tl] .home-hero-prefix { font-size: 18px; }
+.slidevault .sv-app[data-tl] .fb-tools { margin: 4px 0 8px; }
+.slidevault .sv-app[data-tl] .fbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.slidevault .sv-app[data-tl] .fbar > .fb-tools, .slidevault .sv-app[data-tl] .fbar > .fbar-row { display: contents; }
+.slidevault .sv-app[data-tl] .fbar-row > .ai-check-wrap { order: 1; }
+.slidevault .sv-app[data-tl] .fbar-row > .hid-wrap:not(.ai-check-wrap) { order: 2; }
+.slidevault .sv-app[data-tl] .fbar > .fb-tools > * { order: 3; margin-right: 12px; }
+.slidevault .sv-app[data-tl] .fbar-row > :not(.hid-wrap) { order: 4; }
+.slidevault .sv-app[data-tl] .fbar > .fb-chips { flex: 1 1 100%; order: 5; }
+.slidevault .sv-app[data-tl] .home-hero-try { flex-wrap: nowrap; }
+.slidevault .sv-app[data-tl] .home-hero-try > span { flex: none; }
+.slidevault .sv-app[data-tl] .home-hero-try ul { flex-wrap: nowrap; overflow-x: auto; min-width: 0; padding-bottom: 4px; scrollbar-width: none; }
+.slidevault .sv-app[data-tl] .home-hero-try ul::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-tl] .home-hero-try ul li { flex: none; }
+.slidevault .sv-app[data-tl] .fbar { position: static; padding-top: 8px; }
+.slidevault .sv-app[data-tl] .fbar-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-tl] .fbar-row::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-tl] .fbar-row > * { flex: none; }
+.slidevault .sv-app[data-tl] .fb-all { display: inline-flex; }
+.slidevault .sv-app[data-tl] .fb-item:has([data-key="more"]) { display: none; }
+.slidevault .sv-app[data-tl] .fb-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-tl] .fb-chips::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-tl] .fb-chips li { flex: none; }
+.slidevault .sv-app[data-tl] .fb-pin { display: inline-flex; position: absolute; top: 12px; right: 16px; z-index: 45; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.slidevault .sv-app[data-tl] .fb-pin .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
+.slidevault .sv-app[data-tl] .home-hero-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; row-gap: 8px; }
+.slidevault .sv-app[data-tl] .home-hero-search > :not(.home-hero-field):not(.hid-wrap) { grid-column: 1 / -1; }
+.slidevault .sv-app[data-tl] .home-hero-search .hid-wrap { width: 52px; height: 52px; }
+.slidevault .sv-app[data-tl] .home-hero-field { padding-top: 3px; padding-bottom: 3px; }
+.slidevault .sv-app[data-tl] .home-hero-search { display: flex; flex-direction: row; align-items: center; gap: 12px; }
+.slidevault .sv-app[data-tl] .home-hero-field { flex: 1 1 0; min-width: 0; }
+.slidevault .sv-app[data-tl] .home-hero { padding-top: 64px; }
+.slidevault .sv-app[data-tl] .home-hero.has-results { padding-top: 28px; }
+.slidevault .sv-app[data-tl] .home-hero-search { display: flex; flex-direction: row; align-items: center; gap: 16px; }
+.slidevault .sv-app[data-tl] .home-hero-prefix { font-size: 24px; }
+.slidevault .sv-app[data-tl] .home-hero-field { padding: 8px 8px 8px 26px; }
+.slidevault .sv-app[data-tl] .home-hero-field input { height: 52px; font-size: 20px; }
+.slidevault .sv-app[data-tl] .home-hero + .fbar, .slidevault .sv-app[data-tl] .fbar { padding-top: 22px; }
+.slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fbar { padding-top: 14px; }
+.slidevault .sv-app[data-tl] .home-hero { padding-top: 40px; }
+.slidevault .sv-app[data-tl] .home-hero:not(.has-results) .home-hero-search { padding-left: 14px; }
+.slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fbar { padding-top: 22px; }
+.slidevault .sv-app[data-tl] .fbar { gap: 10px 10px; }
+.slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fb-tools { margin-bottom: 10px; }
+.slidevault .sv-app[data-tl] .sv-main:not(:has(.res-wrap)) .fbar { padding-left: 6px; } /* the tick box sits 8 px inside its row */
+.slidevault .sv-app[data-tl] .home-try { padding-left: 14px; }
+.slidevault .sv-app[data-tl] .fb-pin { position: static; }
+/* On a tablet on its side the search bar takes the width; Storyboard moved to the row below. */
+.slidevault .sv-app[data-tl] .home-hero-search { display: flex; flex-direction: row; align-items: center; gap: 16px; }
+.slidevault .sv-app[data-tl] .home-hero-field { flex: 1 1 0; min-width: 0; }
+/* The Filters sheet is a bottom card, not a full-width strip, on any screen wider than a phone. */
+@media (min-width: 701px) {
+  dialog.slidevault.fb-sheet { margin: auto auto 0; width: min(100%, 560px); max-height: 92%; border-radius: 20px 20px 0 0; border-bottom: 0; }
+}
+.slidevault .sv-app[data-tl]:not(:has(.cart-min)) .toasts { right: 16px; }
+.slidevault .sv-app[data-tl]:has(.cart-min) .toasts { bottom: 92px; }
+
+/* Tablet on its side: once the row has scrolled away, a pinned bar under the tabs keeps the slim search, Search with AI and Filters in reach (like desktop's sticky bar). */
+.slidevault .sv-app[data-tl] .fb-pin-bar { display: flex; align-items: center; gap: 12px; position: absolute; top: var(--cart-top, 47px); left: 0; right: 0; z-index: 45; padding: 8px var(--sv-side); background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); }
+.slidevault .sv-app[data-tl] .fb-pin-bar .fb-search-wrap { flex: 1 1 auto; margin: 0; max-width: none; min-width: 0; }
+.slidevault .sv-app[data-tl] .fb-pin-bar .fb-pin { position: static; box-shadow: none; flex: none; margin-left: 0; }
+.slidevault .sv-app[data-tl] .fb-pin-bar .btn, .slidevault .sv-app[data-tl] .fb-pin-bar .fb-pin { min-height: 36px; height: 36px; }
+
+/* Phones and upright tablets: the pinned bar on Home also holds a slim search, so searching again never needs a scroll back up. */
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .fb-pin-bar .fb-search-wrap { flex: 1 1 0; min-width: 0; margin: 0; max-width: none; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .fb-pin-bar .fb-search { height: 34px; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .fb-pin-bar { justify-content: flex-start; }
+
+/* Tablet on its side: the Home / Create / Upload / My decks row scrolls away with the page (it is only sticky on desktop), and the pinned search bar takes the top edge. */
+.slidevault .sv-app[data-tl] .sv-top { position: static; }
+.slidevault .sv-app[data-tl] .fb-pin-bar { top: 0; }

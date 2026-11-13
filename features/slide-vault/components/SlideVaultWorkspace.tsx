@@ -76,8 +76,10 @@ function Workspace({ header }: { header?: ReactNode }) {
   const root = useMemo(() => ({ app: appRef, scroll: scrollRef }), []);
   /* The draft deck starts open when there is room beside the page (desktop, a tablet on its side) and closed
      when it would cover the page (phone, a tablet held upright). Turning a tablet upright closes it. */
-  useWorkspaceSize(appRef, !!profile, (size, previous) => {
+  useWorkspaceSize(appRef, !!profile, (size, previous, tl, previousTl) => {
     if (size !== 'wide' && (previous === null || previous === 'wide')) setCartMin(true);
+    /* A tablet on its side starts with the draft deck put away too: open, it would squeeze the page to two-thirds. */
+    else if (size === 'wide' && tl && previousTl !== true) setCartMin(true);
   });
   const loc = runtime.location;
   const view = loc.view === 'home' || loc.view === 'library' ? 'pages' : loc.view;

@@ -9,7 +9,7 @@ import { useWorkspace } from './state';
  * The slim search that stays above the sticky filter row once Home's big search bar has scrolled
  * out of sight. Same query as the big bar; Enter lets the AI read it, as there.
  */
-export function StickySearch() {
+export function StickySearch({ eye = true, placeholder = 'Search slides, clients or topics' }: { eye?: boolean; placeholder?: string } = {}) {
   const { query, setQuery, typeQuery, submitSearch } = useWorkspace();
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -22,12 +22,12 @@ export function StickySearch() {
           Search slides
         </label>
         <Icon name="search" />
-        <input id="sv-fb-q" type="search" autoComplete="off" enterKeyHint="search" placeholder="Search slides, clients or topics" value={query} onChange={(e) => typeQuery(e.target.value)} />
+        <input id="sv-fb-q" type="search" autoComplete="off" enterKeyHint="search" placeholder={placeholder} value={query} onChange={(e) => typeQuery(e.target.value)} />
         <button type="button" className="fb-clear" aria-label="Clear search" hidden={!query} onClick={() => { setQuery(''); document.getElementById('sv-fb-q')?.focus(); }}>
           <Icon name="x" />
         </button>
       </form>
-      <HiddenToggle />
+      {eye && <HiddenToggle />}
     </div>
   );
 }

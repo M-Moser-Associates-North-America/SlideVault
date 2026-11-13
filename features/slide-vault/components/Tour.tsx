@@ -6,7 +6,7 @@ import { endTour, startTour, useTourOpen } from '../client/tour-store';
 import { useTipSeen } from '../client/tip-store';
 import { Icon } from './icons';
 import { useRoot } from './root';
-import { useWorkspaceCompact, useWorkspacePhoneLike, workspaceSizeOf } from './size';
+import { useWorkspaceCompact, useWorkspaceFiltersRolled, useWorkspacePhoneLike, workspaceSizeOf } from './size';
 import { useWorkspace } from './state';
 
 /** Wait for the next paint, so a panel opened by a step's `before` has a size to point at. */
@@ -74,7 +74,8 @@ export function Tour() {
   };
   const compact = useWorkspacePhoneLike(); // phone or upright tablet: the same short wording and the tabs along the bottom
   const onPhone = useWorkspaceCompact();
-  const tablet = compact && !onPhone; // an upright tablet shares the phone's filter row, like a phone on its side
+  const rolled = useWorkspaceFiltersRolled(); // the filter row is one Filters button (also on a tablet on its side)
+  const tablet = rolled && !onPhone; // an upright tablet shares the phone's filter row, like a phone on its side
   const bottomTabs = compact;
   /* A phone on its side: the filter buttons share a line with Search with AI and Storyboard, and a note below a button would run off the short screen. */
   const land = typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-height: 520px) and (max-width: 1000px)').matches;
@@ -95,16 +96,16 @@ export function Tour() {
       before: toTop,
     },
     story: {
-      target: compact ? '.fb-tools .sb-launch-btn' : '.sb-launch-btn',
+      target: rolled ? '.fb-tools .sb-launch-btn' : '.sb-launch-btn',
       title: 'Build a story with Storyboard',
       content: 'Describe a client’s situation and Storyboard lines up slides into a story.',
-      placement: land || tablet ? 'auto' : compact ? 'bottom' : 'bottom-end',
+      placement: land || tablet ? 'auto' : rolled ? 'bottom' : 'bottom-end',
       before: toTop,
     },
     filters: {
       target: land || tablet ? '.fbar' : '.fbar-row',
       title: 'Narrow it down',
-      content: compact ? 'Use Filters to cut the list down.' : 'Use Year, Client, Project type and Slide type to cut the list down.',
+      content: rolled ? 'Use Filters to cut the list down.' : 'Use Year, Client, Project type and Slide type to cut the list down.',
       placement: land || tablet ? 'auto' : 'bottom',
       before: toTop,
     },
