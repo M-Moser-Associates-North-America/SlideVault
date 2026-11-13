@@ -9,7 +9,7 @@ import { useEdgeFade } from './edge-fade';
 import { FoldPanel } from './fold-panel';
 import { Icon } from './icons';
 import { plural, type Deck } from './library';
-import { useWorkspaceCompact } from './size';
+import { useWorkspacePhoneLike } from './size';
 import { useWorkspace } from './state';
 import { cleanTag, type TagSuggestion } from './TagField';
 
@@ -287,7 +287,7 @@ function MoreTags({ names }: { names: string[] }) {
  */
 export function CompactTags({ slide }: { slide: SlideSummary }) {
   const { runtime, profile, query } = useWorkspace();
-  const compact = useWorkspaceCompact();
+  const compact = useWorkspacePhoneLike();
   const own = useTags(runtime, profile, 'slide', slide.id, slide.tags);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, slide.tags);
   type Item = { key: string; text: string; node: ReactElement };
@@ -480,8 +480,11 @@ export function AddTagPill({ label, known, have, disabled, onAdd }: { label: str
  * click adds the tag the normal way; nothing is added until then (Alina: AI suggestions stay suggestions
  * until a person confirms). Tags already there are left out; nothing shows when there are none.
  */
+const MAX_SUGGESTED_TAGS = 4;
+
 export function SuggestedTagChips({ suggestions, have, disabled, onAdd, label = 'Suggested tags', lead }: { suggestions: TagSuggestionItem[]; have: string[]; disabled?: boolean; onAdd: (tag: string) => void; label?: string; /** shown first, in the same row (the "Add tag" pill); outside the scrolling part so its menu is never clipped */ lead?: ReactElement }) {
-  const left = suggestions.filter((s) => !have.some((h) => h.toLowerCase() === s.tag.toLowerCase()));
+  /* Only the four best fits (the list arrives best first), so the row stays short and a person is not made to pick through a long one. */
+  const left = suggestions.filter((s) => !have.some((h) => h.toLowerCase() === s.tag.toLowerCase())).slice(0, MAX_SUGGESTED_TAGS);
   const row = useRef<HTMLDivElement>(null);
   useEdgeFade(row);
   if (!left.length) return lead ? <div className="tag-addrow">{lead}</div> : null;
@@ -531,7 +534,7 @@ function useSlideTagSuggestions(slideId: string | undefined): TagSuggestionItem[
   const similar = slideId && got?.id === slideId ? got.list : [];
   /* What the search that found this slide was read as comes first (FD-97); then tags from similar slides in other decks. */
   const fromSearch = searchTagSuggestions(search.status === 'ready' ? search.result : null, slideId);
-  return [...fromSearch, ...similar.filter((s) => !fromSearch.some((f) => f.tag.toLowerCase() === s.tag.toLowerCase()))].slice(0, 6);
+  return [...fromSearch, ...similar.filter((s) => !fromSearch.some((f) => f.tag.toLowerCase() === s.tag.toLowerCase()))].slice(0, MAX_SUGGESTED_TAGS);
 }
 
 /**
@@ -708,7 +711,7 @@ function TagList({ api, what, canEdit, onNavigate, suggestFor, tail, addRow, lea
 const useCanEdit = () => useWorkspace().runtime.capabilities.has('metadata.edit');
 
 /** The slide page: the slide's own tags, the deck's tags beside them (changed on the deck page), and the labels. */
-export function SlideTagsPanel({ slide, loaded }: { slide: SlideSummary; loaded?: SlideDetail | null }) {
+export function SlideTagsPanel({ slide, loaded, also }: { slide: SlideSummary; loaded?: SlideDetail | null; /** the "also in other decks" icon, at the right of the heading */ also?: ReactNode }) {
   const { runtime, profile } = useWorkspace();
   const seed = useSeed(slide, loaded ? (loaded.tags ?? []) : undefined);
   const own = useTags(runtime, profile, 'slide', slide.id, seed, true);
@@ -716,7 +719,10 @@ export function SlideTagsPanel({ slide, loaded }: { slide: SlideSummary; loaded?
   const canEdit = useCanEdit();
   return (
     <section className="panel">
-      <h2>Tags</h2>
+      <div className="panel-h">
+        <h2>Tags</h2>
+        {also}
+      </div>
       <TagList api={own} what="slide" canEdit={canEdit} suggestFor={slide.id} />
       {deck.shown.length > 0 && (
         <div className="tags-fromdeck">
@@ -780,7 +786,7 @@ export function DeckTags({ deck }: { deck: Deck }) {
   }, [runtime, first, deck.id]);
   const api = useTags(runtime, profile, 'deck', deck.id, seed?.id === deck.id ? seed.tags : first?.tags, true);
   const canEdit = useCanEdit();
-  const compact = useWorkspaceCompact();
+  const compact = useWorkspacePhoneLike();
   /* Phone: the tags in one row that scrolls sideways, and the "Add tag" pill under them, as in the preview and on the slide page. */
   return (
     <div className="deck-tags">
@@ -793,7 +799,7 @@ export function DeckTags({ deck }: { deck: Deck }) {
 /* ---------------------------------------------------------------- Labels */
 
 /** The team's own labels for a slide (role, type, themes...), read only. A sparkle marks ones only the AI has read. */
-export function SlideLabelsPanel({ story, fold }: { story: SlideStory | null | undefined; /** phone: a card that opens and closes */ fold?: boolean }) {
+export function SlideLabelsPanel({ story, fold, open }: { story: SlideStory | null | undefined; open?: boolean; /** phone: a card that opens and closes */ fold?: boolean }) {
   if (!story) return null;
   const confirmed = story.status === 'confirmed';
   const rows: [string, string | null][] = [
@@ -826,7 +832,7 @@ export function SlideLabelsPanel({ story, fold }: { story: SlideStory | null | u
   );
   if (fold) {
     return (
-      <FoldPanel className="panel-about" title="About this slide" hint={shown[0] ? `${shown[0][0]}: ${shown[0][1]}` : undefined}>
+      <FoldPanel className="panel-about" open={open} title="About this slide" hint={shown[0] ? `${shown[0][0]}: ${shown[0][1]}` : undefined}>
         {body}
       </FoldPanel>
     );

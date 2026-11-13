@@ -37,7 +37,10 @@ export function Lightbox() {
   const ref = useRef<HTMLDialogElement>(null);
   const strip = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
-  const lastTap = useRef(0);  useDialogOpen(ref, !!preview);
+  const lastTap = useRef(0);
+  const mouse = useRef<{ x: number; y: number } | null>(null);
+  const dragged = useRef(false);
+  useDialogOpen(ref, !!preview);
 
   /* A slide picked inside the deck replaces the result's slide until the person steps to another result. */
   const [pick, setPick] = useState<{
@@ -180,7 +183,7 @@ export function Lightbox() {
             )}
             <div className="dlg-head-tools">
               {slide.alsoIn && (
-                <button type="button" className="btn btn-ghost btn-sm lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
+                <button type="button" className="btn btn-ghost btn-sm lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
                   <Icon name="folders" />
                   <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
                 </button>
@@ -237,6 +240,18 @@ export function Lightbox() {
                 </button>
               </div>
             )}
+            {/* Phone held upright: the title sits under the result arrows, in the scrolling part. The header's own copy (read by screen readers) is hidden there. */}
+            <div className="lb-title lb-title-body" aria-hidden="true">
+              <p className="lb-title-text">
+                <Link className="lb-title-link" to={{ view: 'slide', id: slide.id }} onNavigate={closePreview} tabIndex={-1}>
+                  {slide.title}
+                </Link>
+              </p>
+              <p className="meta">
+                {slide.provenance.sourceTitle} · slide {slide.provenance.slideNumber}
+                {slide.hiddenInSource ? ' · hidden in source' : ''}
+              </p>
+            </div>
             <div className="lb-row">
               {sibs.length > 1 && (
                 <button type="button" className="btn btn-icon lb-nav lb-prev" aria-label="Previous slide in this deck" data-tip="Previous in deck" disabled={di <= 0} onClick={() => moveDeck(-1)}>
@@ -267,6 +282,30 @@ export function Lightbox() {
                     } else lastTap.current = now;
                   }
                 }}
+                onMouseDown={(e) => {
+                  if (e.button === 0) mouse.current = { x: e.clientX, y: e.clientY };
+                }}
+                onMouseUp={(e) => {
+                  const m = mouse.current;
+                  mouse.current = null;
+                  if (!m) return;
+                  const dx = e.clientX - m.x;
+                  const dy = e.clientY - m.y;
+                  /* Click and drag sideways with a mouse to walk the deck, like a swipe on a touch screen. */
+                  if (Math.abs(dx) > 50 && Math.abs(dy) < 60) {
+                    dragged.current = true;
+                    moveDeck(dx < 0 ? 1 : -1);
+                  }
+                }}
+                onMouseLeave={() => (mouse.current = null)}
+                onDragStart={(e) => e.preventDefault()}
+                onClickCapture={(e) => {
+                  if (dragged.current) {
+                    dragged.current = false;
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
                 onDoubleClick={() => setZoomed(true)}
               >
                 {seen.from && seen.dir && (
@@ -283,7 +322,8 @@ export function Lightbox() {
                 <span className="lb-where">
                   {di >= 0 ? (
                     <>
-                      <NumberJump value={di + 1} max={sibs.length} label="Go to a slide in this deck" onGo={jumpDeck} />/{sibs.length} in deck
+                      <NumberJump value={di + 1} max={sibs.length} label="Go to a slide in this deck" onGo={jumpDeck} />
+                      <span className="w-short">/{sibs.length} in deck</span>
                     </>
                   ) : (
                     `Slide ${slide.provenance.slideNumber}`
@@ -354,18 +394,13 @@ export function Lightbox() {
               </div>
             )}
             <PreviewActions key={slide.id} slide={slide} />
-            {slide.alsoIn && (
-              <button type="button" className="btn btn-sm lb-also" onClick={() => openAlso(slide)}>
-                <Icon name="folders" />
-                <span>Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</span>
-              </button>
-            )}
             <PreviewTags slide={slide} onNavigate={closePreview} />
             <div className="lb-caption">
               <span className={`counter${sibs.length > 1 ? ' is-dup' : ''}`} aria-live="polite">
                 {di >= 0 && sibs.length > 1 ? (
                   <>
-                    Slide <NumberJump value={di + 1} max={sibs.length} label="Go to a slide in this deck" onGo={jumpDeck} /> of {sibs.length} in this deck
+                    <NumberJump value={di + 1} max={sibs.length} label="Go to a slide in this deck" onGo={jumpDeck} />
+                    <span className="w-short">/{sibs.length} in deck</span>
                   </>
                 ) : (
                   where

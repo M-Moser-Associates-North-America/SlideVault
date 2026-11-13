@@ -343,7 +343,7 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
         {/* On the deck page every slide is from the same deck, so the client, year and type line is left out. */}
         {num === undefined && (
         <div className="meta-row">
-          {/* Hover: the whole line when it is cut off ("Next Level Games · 2025 · Design Consultancy"), else where the slide is from. */}
+          {/* Hover: the whole line, when it is cut off ("Next Level Games · 2025 · Design Consultancy"). */}
           <span
             className="meta-wrap"
             hidden={num !== undefined}
@@ -351,7 +351,17 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
             onMouseEnter={(e) => {
               const w = e.currentTarget;
               const m = w.querySelector<HTMLElement>('.meta');
-              w.setAttribute('data-tip', m && m.scrollWidth > m.clientWidth ? meta || p.sourceTitle : `Slide ${p.slideNumber} of ${p.sourceTitle}`);
+              /* Only when the line is cut off, so the full words can be read; the deck's file name adds nothing here. */
+              const cut = (() => {
+                if (!m) return false;
+                if (m.scrollWidth > m.clientWidth || m.scrollHeight > m.clientHeight + 1) return true;
+                /* scrollWidth can miss an ellipsis, so the words' own width is checked too. */
+                const r = document.createRange();
+                r.selectNodeContents(m);
+                return r.getBoundingClientRect().width > m.clientWidth;
+              })();
+              if (cut) w.setAttribute('data-tip', meta || p.sourceTitle);
+              else w.removeAttribute('data-tip');
             }}
           >
             <div className="meta clip">{meta || p.sourceTitle}</div>

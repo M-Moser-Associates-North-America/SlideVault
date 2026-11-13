@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { listLibrary } from '../client/api';
 import { Icon } from './icons';
 import { groupDecks, folderLabel, plural, type Deck } from './library';
@@ -14,12 +14,11 @@ type Loaded = { status: 'loading' } | { status: 'error'; message: string } | { s
  * Restore button on each. Opened from the profile menu. Nothing here is deleted. For the MVP anyone can restore.
  */
 export function ArchiveView() {
-  const { runtime, archiveDeck, openPreview } = useWorkspace();
+  const { runtime, openArchiveDialog, archiveDialog, openPreview } = useWorkspace();
   const { request, onSessionExpired } = runtime;
   const [loaded, setLoaded] = useState<Loaded>({ status: 'loading' });
   const [tries, setTries] = useState(0);
   const [text, setText] = useState('');
-  const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -36,12 +35,13 @@ export function ArchiveView() {
     return q ? loaded.decks.filter((d) => [d.title, d.clientName, d.category, String(d.year ?? '')].some((v) => v?.toLowerCase().includes(q))) : loaded.decks;
   }, [loaded, text]);
 
-  const restore = async (deck: Deck) => {
-    setBusyId(deck.id);
-    const ok = await archiveDeck(deck, false);
-    setBusyId(null);
-    if (ok) setTries((n) => n + 1);
-  };
+  /* Restoring asks first, in the same pop-up as archiving; when it closes the list is read again. */
+  const restore = (deck: Deck) => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: true });
+  const dialogWas = useRef(false);
+  useEffect(() => {
+    if (dialogWas.current && !archiveDialog) setTries((n) => n + 1);
+    dialogWas.current = !!archiveDialog;
+  }, [archiveDialog]);
 
   return (
     <div className="sv-wrap arch-page">
@@ -50,7 +50,12 @@ export function ArchiveView() {
           <h1 className="h1" tabIndex={-1}>
             Archived decks
           </h1>
-          <p className="lede">Hidden from search, not deleted. Restore a deck to bring it back.</p>
+          <p className="lede">Hidden, not deleted. Restore a deck to bring it back.</p>
+          {loaded.status === 'ready' && loaded.decks.length > 0 && (
+            <p className="arch-count" role="status">
+              {text.trim() ? `${shown.length} of ${plural(loaded.decks.length, 'archived deck')} match “${text.trim()}”.` : `${plural(loaded.decks.length, 'archived deck')}.`}
+            </p>
+          )}
         </div>
       </div>
 
@@ -71,10 +76,6 @@ export function ArchiveView() {
               <span className="sr-only">Find an archived deck</span>
               <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="Find an archived deck" autoComplete="off" />
             </label>
-            <p className="meta" role="status">
-              {plural(shown.length, 'archived deck')}
-              {text.trim() ? ` match “${text.trim()}”` : ''}
-            </p>
           </div>
           <ul className="arch-rows">
             {shown.map((d) => (
@@ -95,7 +96,7 @@ export function ArchiveView() {
                     <Icon name="folder" className="ic-sm" /> {folderLabel(d)}
                   </p>
                 </div>
-                <button type="button" className="btn btn-sm btn-primary" disabled={busyId === d.id} onClick={() => restore(d)} aria-label={`Restore deck: ${d.title}`}>
+                <button type="button" className="btn btn-sm btn-primary" onClick={() => restore(d)} aria-label={`Restore deck: ${d.title}`}>
                   <Icon name="refresh" />
                   <span>Restore</span>
                 </button>

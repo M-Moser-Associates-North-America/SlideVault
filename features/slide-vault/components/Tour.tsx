@@ -6,7 +6,7 @@ import { endTour, startTour, useTourOpen } from '../client/tour-store';
 import { useTipSeen } from '../client/tip-store';
 import { Icon } from './icons';
 import { useRoot } from './root';
-import { useWorkspaceCompact, workspaceSizeOf } from './size';
+import { useWorkspaceCompact, useWorkspacePhoneLike, workspaceSizeOf } from './size';
 import { useWorkspace } from './state';
 
 /** Wait for the next paint, so a panel opened by a step's `before` has a size to point at. */
@@ -63,7 +63,7 @@ type StepId = (typeof STEP_IDS)[number];
 export function Tour() {
   const open = useTourOpen();
   const { seen, dismiss } = useTipSeen('tour');
-  const { profile, runtime, setCartMin, cartMin } = useWorkspace();
+  const { profile, runtime, setCartMin, cartMin, closePreview, clearFilters, searched, setQuery } = useWorkspace();
   const view = runtime.location.view;
   const onHome = view === 'pages' || view === 'home' || view === 'library';
 
@@ -72,7 +72,9 @@ export function Tour() {
     scroll.current?.scrollTo(0, 0);
     await nextFrame();
   };
-  const compact = useWorkspaceCompact();
+  const compact = useWorkspacePhoneLike(); // phone or upright tablet: the same short wording and the tabs along the bottom
+  const onPhone = useWorkspaceCompact();
+  const tablet = compact && !onPhone; // an upright tablet shares the phone's filter row, like a phone on its side
   const bottomTabs = compact;
   /* A phone on its side: the filter buttons share a line with Search with AI and Storyboard, and a note below a button would run off the short screen. */
   const land = typeof window !== 'undefined' && window.matchMedia('(orientation: landscape) and (max-height: 520px) and (max-width: 1000px)').matches;
@@ -96,14 +98,14 @@ export function Tour() {
       target: compact ? '.fb-tools .sb-launch-btn' : '.sb-launch-btn',
       title: 'Build a story with Storyboard',
       content: 'Describe a client’s situation and Storyboard lines up slides into a story.',
-      placement: land ? 'auto' : compact ? 'bottom' : 'bottom-end',
+      placement: land || tablet ? 'auto' : compact ? 'bottom' : 'bottom-end',
       before: toTop,
     },
     filters: {
-      target: land ? '.fbar' : '.fbar-row',
+      target: land || tablet ? '.fbar' : '.fbar-row',
       title: 'Narrow it down',
-      content: compact ? 'Use Filters, Year and Client to cut the list down.' : 'Use Year, Client, Project type and Slide type to cut the list down.',
-      placement: land ? 'auto' : 'bottom',
+      content: compact ? 'Use Filters to cut the list down.' : 'Use Year, Client, Project type and Slide type to cut the list down.',
+      placement: land || tablet ? 'auto' : 'bottom',
       before: toTop,
     },
     pick: {
@@ -148,7 +150,9 @@ export function Tour() {
   const [shown, setShown] = useState<number | null>(null); // the step whose note is on screen right now
   const idOf = (i: number): StepId | undefined => STEP_IDS[i];
   /* Paused because the person left Home, or closed the draft deck while it is the thing being pointed at. */
-  const away = open && !onHome;
+  /* The tour waits until Home is showing, plain and at the top, so nothing it points at has moved. */
+  const [ready, setReady] = useState(false);
+  const away = open && ready && !onHome;
   const deckClosed = open && idOf(shown ?? -1) === 'deck' && cartMin;
   const paused = away || deckClosed;
 
@@ -160,15 +164,34 @@ export function Tour() {
     }
   }, [profile, seen, onHome, open]);
 
-  /* Replaying from somewhere else brings the person back to Home; the tour always starts at the first step. */
+  /* Starting (or replaying) from anywhere: go to Home, put away a preview, search and filters, and glide to the top before the first step shows. */
   useEffect(() => {
-    if (open && !onHome) runtime.navigate({ view: 'pages' });
+    if (!open || ready) return;
+    closePreview();
+    if (!onHome) {
+      runtime.navigate({ view: 'pages' });
+      return;
+    }
+    let cancelled = false;
+    const run = async () => {
+      if (searched) setQuery('');
+      clearFilters();
+      await new Promise((resolve) => setTimeout(resolve, 350)); // let Home draw
+      scroll.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      await new Promise((resolve) => setTimeout(resolve, 450)); // let the glide finish
+      if (!cancelled) setReady(true);
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, onHome, ready]);
 
   const close = useCallback(() => {
     dismiss();
     endTour();
+    setReady(false);
     setIndex(0);
     setShown(null);
   }, [dismiss]);
@@ -224,7 +247,7 @@ export function Tour() {
   return (
     <>
       <Joyride
-        run={open && !paused}
+        run={open && ready && !paused}
         stepIndex={index}
         steps={steps}
         continuous
@@ -246,7 +269,7 @@ export function Tour() {
           zIndex: 90,
         }}
       />
-      {open && paused && (
+      {open && ready && paused && (
         <div className="tour-paused" role="status">
           <span className="tour-paused-t">{away ? 'Tour paused. Go back to Home to continue.' : 'Tour paused. The draft deck was closed.'}</span>
           <button type="button" className="btn btn-sm btn-primary" onClick={resume}>

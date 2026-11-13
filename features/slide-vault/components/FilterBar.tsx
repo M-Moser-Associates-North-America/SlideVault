@@ -2,7 +2,7 @@
 
 import { startTransition, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
-import { categoryOf, clientOf, countBy, createdByOf, filterCount, SECTION_LABEL, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
+import { categoryOf, clientOf, countBy, createdByOf, filterCount, plural, SECTION_LABEL, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { DeeperAiToggle } from './DeeperAiToggle';
 import { Link } from './parts';
@@ -16,7 +16,7 @@ import { StoryLauncher } from './StoryLauncher';
 import { useEdgeFade } from './edge-fade';
 import { useResultsSummary } from '../client/results-summary';
 import { useRoot } from './root';
-import { useWorkspaceCompact } from './size';
+import { useWorkspacePhoneLike } from './size';
 import { useWorkspace } from './state';
 
 /**
@@ -31,9 +31,9 @@ import { useWorkspace } from './state';
 type Key = 'year' | 'client' | 'category' | 'slideType' | 'section' | 'more';
 
 const YEAR_PRESETS: [number, string][] = [
+  [1, 'This year'],
   [2, 'Last 2 years'],
   [5, 'Last 5 years'],
-  [10, 'Last 10 years'],
 ];
 
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
@@ -61,6 +61,7 @@ function Picker({
   counts,
   onToggle,
   single,
+  collapsible,
 }: {
   label: string;
   options: string[];
@@ -69,8 +70,11 @@ function Picker({
   onToggle: (v: string) => void;
   /** Only one can be picked: choosing another moves the tick */
   single?: boolean;
+  /** In the Filters sheet: a long list shows the first few, with a button to open the rest, so there is no small scrolling box inside the scrolling sheet. */
+  collapsible?: boolean;
 }) {
   const [text, setText] = useState('');
+  const [expanded, setExpanded] = useState(false);
   /* The tick shows the moment it is pressed; the page (which has a lot to redraw) follows a beat later, and
      the pending tick gives way to the real choice as soon as that arrives. */
   const sig = picked.join('|');
@@ -82,6 +86,9 @@ function Picker({
   };
   const shown = options.filter((o) => o.toLowerCase().includes(text.trim().toLowerCase()));
   const id = useId();
+  const SHORT = 5;
+  const folded = !!collapsible && !expanded && text.trim() === '' && shown.length > SHORT;
+  const listed = folded ? shown.filter((o, i) => i < SHORT || showing.includes(o)) : shown;
   return (
     <div className="fb-picker">
       <div className="fb-picker-h">
@@ -97,7 +104,7 @@ function Picker({
         data-autofocus
       />
       <ul className="fb-list" aria-label={label}>
-        {shown.map((o, i) => (
+        {listed.map((o, i) => (
           <li key={o}>
             <label htmlFor={`${id}-${i}`} className={counts && (counts.get(o) ?? 0) === 0 && !picked.includes(o) ? 'is-zero' : undefined}>
               <input id={`${id}-${i}`} type="checkbox" checked={showing.includes(o)} onChange={() => choose(o)} />
@@ -108,6 +115,12 @@ function Picker({
         ))}
         {shown.length === 0 && <li className="fb-none">Nothing matches “{text}”</li>}
       </ul>
+      {collapsible && shown.length > SHORT && text.trim() === '' && (
+        <button type="button" className="fb-showall" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+          {expanded ? 'Show fewer' : `Show all ${shown.length}`}
+          <Icon name="down" />
+        </button>
+      )}
     </div>
   );
 }
@@ -129,7 +142,7 @@ export function FilterBar() {
   const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search, includeArchived, setIncludeArchived, autoSection, dismissAutoSection, searched } = useWorkspace();
   const [open, setOpen] = useState<Key | null>(null);
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
-  const compact = useWorkspaceCompact();
+  const compact = useWorkspacePhoneLike();
   const { scroll } = useRoot();
   const [sheet, setSheet] = useState<Key | 'all' | null>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
@@ -274,12 +287,14 @@ export function FilterBar() {
 
   const yearOn = filters.yfrom !== null || filters.yto !== null;
   const moreCount = (filters.bestOnly ? 1 : 0) + filters.createdBy.length + filters.uploadedBy.length + filters.tag.length;
+  /* On the results page the section pills show the chosen section, so it is not repeated as a chip or counted on the Filters button. */
+  const secOnResults = searched !== '';
   const items: { key: Key; label: string; icon: IconName; active: number }[] = [
     { key: 'year', label: 'Year', icon: 'calendar', active: yearOn || fromYear ? 1 : 0 },
     { key: 'client', label: 'Client', icon: 'building', active: filters.client.length + (fromClient ? 1 : 0) },
     { key: 'category', label: 'Project type', icon: 'folder', active: filters.category.length },
     { key: 'slideType', label: 'Slide type', icon: 'layers', active: filters.slideType.length + fromTypes.length },
-    { key: 'section', label: 'Section', icon: 'folder', active: filters.section.length + (autoSection ? 1 : 0) },
+    { key: 'section', label: 'Section', icon: 'folder', active: secOnResults ? 0 : filters.section.length + (autoSection ? 1 : 0) },
     { key: 'more', label: 'More', icon: 'sliders', active: moreCount },
   ];
 
@@ -295,13 +310,13 @@ export function FilterBar() {
     ...filters.slideType.map((v) => ({ id: `t-${v}`, kind: 'Slide type', text: v, remove: () => patchFilters({ slideType: filters.slideType.filter((x) => x !== v) }) })),
     ...filters.createdBy.map((v) => ({ id: `cb-${v}`, kind: 'File created by', text: v, remove: () => patchFilters({ createdBy: filters.createdBy.filter((x) => x !== v) }) })),
     ...filters.uploadedBy.map((v) => ({ id: `ub-${v}`, kind: 'Uploaded by', text: v, remove: () => patchFilters({ uploadedBy: filters.uploadedBy.filter((x) => x !== v) }) })),
-    ...filters.section.map((v) => ({ id: `sc-${v}`, kind: 'Section', text: SECTION_LABEL[v] ?? v, remove: () => patchFilters({ section: [] }) })),
+    ...(secOnResults ? [] : filters.section).map((v) => ({ id: `sc-${v}`, kind: 'Section', text: SECTION_LABEL[v] ?? v, remove: () => patchFilters({ section: [] }) })),
     ...filters.tag.map((v) => ({ id: `tg-${v}`, kind: 'Tag', text: v, remove: () => patchFilters({ tag: filters.tag.filter((x) => x !== v) }) })),
     ...(filters.bestOnly ? [{ id: 'best', kind: 'Collection', text: 'Best of the Best', remove: () => patchFilters({ bestOnly: false }) }] : []),
     ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
     ...(fromClient ? [{ id: 'sc', kind: 'Client', text: fromClient.label, remove: () => removeFromSearch(fromClient), fromSearch: true }] : []),
     ...fromTypes.map((t) => ({ id: `st-${t.label}`, kind: 'Slide type', text: t.label, remove: () => removeFromSearch(t.chip), fromSearch: true })),
-    ...(autoSection ? [{ id: 'ss', kind: 'Section', text: SECTION_LABEL[autoSection] ?? autoSection, remove: dismissAutoSection, fromSearch: true }] : []),
+    ...(autoSection && !secOnResults ? [{ id: 'ss', kind: 'Section', text: SECTION_LABEL[autoSection] ?? autoSection, remove: dismissAutoSection, fromSearch: true }] : []),
   ];
 
   const panel = (key: Key) => {
@@ -324,7 +339,7 @@ export function FilterBar() {
               const on = filters.yfrom === nowYear - k + 1 && filters.yto === null;
               return (
                 <button key={k} type="button" className={`pchip${(yearCounts.get(k) ?? 0) === 0 && !on ? ' is-zero' : ''}`} aria-pressed={on} onClick={() => patchFilters(on ? { yfrom: null, yto: null } : { yfrom: nowYear - k + 1, yto: null })} data-autofocus={k === 2 ? true : undefined}>
-                  {label} <span className="fb-n">{yearCounts.get(k) ?? 0}</span>
+                  {label} <span className="fb-n">({plural(yearCounts.get(k) ?? 0, 'slide')})</span>
                 </button>
               );
             })}
@@ -360,6 +375,7 @@ export function FilterBar() {
     if (key === 'client')
       return (
         <Picker
+          collapsible={compact}
           label="Client"
           options={clients}
           picked={fromClient ? [...filters.client, fromClient.label] : filters.client}
@@ -368,11 +384,12 @@ export function FilterBar() {
         />
       );
     if (key === 'category')
-      return <Picker label="Project type" options={categories} picked={filters.category} counts={categoryCounts} onToggle={(v) => patchFilters({ category: toggle(filters.category, v) })} />;
+      return <Picker collapsible={compact} label="Project type" options={categories} picked={filters.category} counts={categoryCounts} onToggle={(v) => patchFilters({ category: toggle(filters.category, v) })} />;
     if (key === 'section') {
       const kindOf = (label: string) => Object.keys(SECTION_LABEL).find((k) => SECTION_LABEL[k] === label) ?? label;
       return (
         <Picker
+          collapsible={compact}
           label="Section"
           single
           options={Object.values(SECTION_LABEL)}
@@ -389,6 +406,7 @@ export function FilterBar() {
     if (key === 'slideType')
       return (
         <Picker
+          collapsible={compact}
           label="Slide type"
           options={SLIDE_TYPES.map((t) => t.label)}
           picked={[...filters.slideType, ...fromTypes.map((t) => t.label)]}
@@ -403,17 +421,17 @@ export function FilterBar() {
     return (
       <div className="fb-more">
         {tagNames.length > 0 ? (
-          <Picker label="Tags" options={tagNames} picked={filters.tag} counts={tagCounts} onToggle={(v) => patchFilters({ tag: toggle(filters.tag, v) })} />
+          <Picker collapsible={compact} label="Tags" options={tagNames} picked={filters.tag} counts={tagCounts} onToggle={(v) => patchFilters({ tag: toggle(filters.tag, v) })} />
         ) : (
           <NotYet label="Tags" />
         )}
         {creators.length > 0 ? (
-          <Picker label="File created by" options={creators} picked={filters.createdBy} counts={creatorCounts} onToggle={(v) => patchFilters({ createdBy: toggle(filters.createdBy, v) })} />
+          <Picker collapsible={compact} label="File created by" options={creators} picked={filters.createdBy} counts={creatorCounts} onToggle={(v) => patchFilters({ createdBy: toggle(filters.createdBy, v) })} />
         ) : (
           <NotYet label="File created by" />
         )}
         {uploaders.length > 0 ? (
-          <Picker label="Uploaded by" options={uploaders} picked={filters.uploadedBy} counts={uploaderCounts} onToggle={(v) => patchFilters({ uploadedBy: toggle(filters.uploadedBy, v) })} />
+          <Picker collapsible={compact} label="Uploaded by" options={uploaders} picked={filters.uploadedBy} counts={uploaderCounts} onToggle={(v) => patchFilters({ uploadedBy: toggle(filters.uploadedBy, v) })} />
         ) : (
           <NotYet label="Uploaded by" />
         )}
@@ -432,7 +450,7 @@ export function FilterBar() {
     );
   };
 
-  const n = filterCount(filters);
+  const n = filterCount(filters) - (secOnResults ? filters.section.length : 0);
   const activeTotal = items.reduce((sum, it) => sum + it.active, 0);
   const openOne = (key: Key) => (compact ? setSheet(key) : setOpen(open === key ? null : key));
 
@@ -441,7 +459,7 @@ export function FilterBar() {
     <div ref={sentinel} className="fbar-sentinel" aria-hidden="true" />
     <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}${heroOut && !compact ? ' has-search' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
       {heroOut && !compact && <StickySearch />}
-      {compact && searched === '' && (
+      {compact && searched === '' && runtime.location.view !== 'browse' && (
         <div className="fb-tools">
           <StoryLauncher part="button" />
         </div>
@@ -454,7 +472,8 @@ export function FilterBar() {
           <span className="fb-lbl">Filters</span>
           {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
         </button>
-        {items.map((it) => (
+        {/* Phones and upright tablets: one Filters button; the sheet it opens starts with Year and Client. */}
+        {!compact && items.map((it) => (
           <div key={it.key} className="fb-item">
             <button
               type="button"

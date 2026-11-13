@@ -6,7 +6,7 @@ import { SectionBrowse, SectionCards } from './SectionCards';
 import { DeckTags, SlideLabelsPanel, SlideTagsPanel } from './TagBits';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { getSlide } from '../client/api';
-import type { SlideDetail, SlideSummary } from '../contracts/dto';
+import type { SlideDetail, SlideSummary, SmartSearchItem, SmartSearchResult } from '../contracts/dto';
 import { Icon, type IconName } from './icons';
 import {
   browseSlides,
@@ -42,7 +42,7 @@ import { useEdgeFade } from './edge-fade';
 import { ScrollRow } from './scroll-row';
 import { PreviewTags } from './TagBits';
 import { NumberJump } from './Dialogs';
-import { useWorkspaceCompact } from './size';
+import { useWorkspaceCompact, useWorkspacePhoneLike } from './size';
 import { useTipSeen } from '../client/tip-store';
 import { HiddenToggle } from './HiddenToggle';
 import { shownInFilterRow, withoutChip } from './search-reading';
@@ -222,7 +222,7 @@ function HomeTry() {
   const tryRef = useRef<HTMLUListElement>(null);
   useEdgeFade(tryRef);
   return (
-    <div className={`home-try${searched !== '' ? ' in-results' : ''}`}>
+    <div className={`home-try${searched !== '' || runtime.location.view === 'browse' ? ' in-results' : ''}`}>
       <div className="home-hero-try">
         <span>Try</span>
         <ul ref={tryRef}>
@@ -245,9 +245,11 @@ let heroTouched = false;
 
 function HomeHeader() {
   const { query, setQuery, typeQuery, submitSearch, runtime, searched } = useWorkspace();
-  const compact = useWorkspaceCompact();
+  const compact = useWorkspacePhoneLike();
   const [touched, setTouched] = useState(heroTouched);
-  const showHint = query === '' && !touched;
+  /* The typing animation is for Home itself: once a results page is up (a search, a row's See all, a tile) the box just shows its plain hint. */
+  const onResults = searched !== '' || runtime.location.view === 'browse';
+  const showHint = query === '' && !touched && !onResults;
   const tw = useTypewriter(TYPEWRITER_PHRASES, showHint);
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -298,7 +300,7 @@ function HomeHeader() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
   return (
-    <div className={`home-hero${searched !== '' ? ' has-results' : ''}`}>
+    <div className={`home-hero${searched !== '' || runtime.location.view === 'browse' ? ' has-results' : ''}`}>
       <form className="home-hero-search" role="search" onSubmit={submit} ref={formRef}>
         <label htmlFor="sv-hero-q" className="home-hero-prefix">
           I&rsquo;m looking for
@@ -316,7 +318,7 @@ function HomeHeader() {
               typeQuery(e.target.value);
               /* Typing on a page that can't show results (a client or year list) takes you to Home's results. */
               if (e.target.value && runtime.location.view !== 'pages') runtime.navigate({ view: 'pages' });
-            }} placeholder={touched ? 'Slides, clients or topics' : undefined} onFocus={() => {
+            }} placeholder={touched || onResults ? 'Slides, clients or topics' : undefined} onFocus={() => {
               heroTouched = true;
               setTouched(true);
             }} />
@@ -428,7 +430,7 @@ function LibraryView() {
   const tiles = (kind: string, t: ReturnType<typeof tileCounts>, order: (a: string, b: string) => number) =>
     [...t.slideN.keys()].sort(order).map((v) => (
       <Link key={v} className="tile" to={{ view: 'browse', id: `${kind}:${v}` }}>
-        <b>{v}</b>
+        <b title={v}>{v}</b>
         <span className="tile-n">{plural(t.deckN.get(v)?.size ?? 0, 'deck')}</span>
         <span className="meta">{plural(t.slideN.get(v) ?? 0, 'slide')}</span>
       </Link>
@@ -538,7 +540,7 @@ export function BrowseView({ id }: { id: string }) {
   return (
     <>
       <SearchHeader />
-      <BrowsePage id={id} />
+      {id === 'decks' ? <BrowsePage id={id} /> : <ResultsView browse={id} />}
     </>
   );
 }
@@ -621,10 +623,32 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
 
 /* --------------------------------------------------------------- Search */
 
-export function ResultsView() {
+/**
+ * The results page. With `browse` set (a Home row's "See all", or a client / year / category tile) it shows the same page
+ * for a list that no search produced: same heading, filter pills, sort, section pills and cards, just without the "why it fits" lines.
+ */
+export function ResultsView({ browse }: { browse?: string } = {}) {
   const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch, dismissAutoSection } = useWorkspace();
-  const [sort, setSort] = useState<'best' | 'popular' | 'newest'>('best');
-  const compact = useWorkspaceCompact();
+  const [sort, setSort] = useState<'best' | 'popular' | 'newest'>(browse?.startsWith('popular') ? 'popular' : browse?.startsWith('recent') ? 'newest' : 'best');
+  const browseKind = browse?.split(':')[0];
+  const browseValue = browse ? browse.split(':').slice(1).join(':') : '';
+  const tileKind = browseKind === 'client' || browseKind === 'year' || browseKind === 'category';
+  /* A tile turns its client / year / category into a filter, so the pill shows and can be taken off; the rows' lists are not filters. */
+  const [applied, setApplied] = useState(!(browse && tileKind));
+  useEffect(() => {
+    if (!browse) return;
+    if (searched) setQuery('');
+    if (!tileKind) return;
+    clearFilters();
+    if (browseKind === 'client') patchFilters({ client: [browseValue] });
+    else if (browseKind === 'year') patchFilters({ yfrom: Number(browseValue), yto: Number(browseValue) });
+    else patchFilters({ category: [browseValue] });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the filters are in place before the list shows
+    setApplied(true);
+    return () => clearFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [browse]);
+  const compact = useWorkspacePhoneLike();
   /* Two slides across or one, remembered on this device (phone only). */
   const [dense, setDenseState] = useState(() => {
     try {
@@ -642,20 +666,26 @@ export function ResultsView() {
     }
   };
   /* The results are for the search that ran, not the words still being typed (FD-89). */
-  const q = searched;
+  const q = browse ? '' : searched;
   /* The "your search is short for the AI" note, put away for this search only. */
 
   /* Real search (FD-16, FD-17): the server reads the request, finds slides and says why each fits.
      The filter row narrows the results further here; sorting is a view choice. */
   /* While the card asks whether to use the AI, nothing is shown as found: the slide cards wait, loading, for the answer. */
-  const waitingForAi = !!aiAsk;
-  const result = !waitingForAi && search.status === 'ready' ? search.result : null;
+  const waitingForAi = !browse && !!aiAsk;
   /* Premade decks the request names (FD-31): "Barlow's proposal 2025", "all proposals from 2025".
      Found from the library's own deck facts, at once, before and beside the slide search. */
   const lib = useReadyLibrary();
+  const browseResult = useMemo((): SmartSearchResult | null => {
+    if (!browse || !applied || !('slides' in lib)) return null;
+    const base = tileKind ? lib.slides : browseSlides(browse, lib.slides);
+    const items: SmartSearchItem[] = base.map((slide) => ({ slide, why: '', matched: [] }));
+    return { query: '', reader: 'stand-in', readerNote: null, chips: [], relaxed: false, items };
+  }, [browse, applied, lib, tileKind]);
+  const result = browse ? browseResult : !waitingForAi && search.status === 'ready' ? search.result : null;
   const found = useMemo(
-    () => ('decks' in lib ? findDecks(q, lib.decks.map((d) => ({ ...d, versionId: d.slides[0]?.provenance.sourceVersionId }))) : null),
-    [lib, q],
+    () => (!browse && 'decks' in lib ? findDecks(q, lib.decks.map((d) => ({ ...d, versionId: d.slides[0]?.provenance.sourceVersionId }))) : null),
+    [lib, q, browse],
   );
   const shown = useMemo(() => {
     if (!result) return [];
@@ -689,7 +719,8 @@ export function ResultsView() {
     setResultsSummary({ count: slides.length, sort, setSort });
     return () => setResultsSummary(null);
   }, [slides.length, sort]);
-  const sectionMode = !!pickedSection || sectionsFromSearch.length > 0;
+  /* Only what the search itself asked for brings in the Sections block; tapping a section pill just narrows the slides, so nothing above them moves. */
+  const sectionMode = !!autoSection || sectionsFromSearch.length > 0;
   /* Client, year and slide type already light up in the filter row above. */
   const extraChips = result ? result.chips.filter((c) => !shownInFilterRow(c)) : [];
 
@@ -697,9 +728,6 @@ export function ResultsView() {
     shown.length > 0 && sectionCounts.length > 1 ? (
                 <ScrollRow className="sec-pills" role="group" aria-label="Narrow to one section">
                   <span className="meta">By section:</span>
-                  <button type="button" className="chip-x" aria-pressed={!pickedSection} onClick={clearSection}>
-                    All <span className="n">{shown.length}</span>
-                  </button>
                   {sectionCounts.map(([kind, n]) => (
                     <button key={kind} type="button" className="chip-x" aria-pressed={pickedSection === kind} onClick={() => (pickedSection === kind ? clearSection() : patchFilters({ section: [kind] }))}>
                       {SECTION_LABEL[kind]} <span className="n">{n}</span>
@@ -708,11 +736,11 @@ export function ResultsView() {
                 </ScrollRow>
     ) : null;
   return (
-    <div className="sv-wrap res-wrap">
+    <div className={`sv-wrap res-wrap${browse ? ' res-browse' : ''}`}>
       <div className="page-head">
         <h1 className="h1 res-title" tabIndex={-1}>
-          <span className="res-q">Results for “{q}”</span>
-          {compact && result && shown.length > 0 && <span className="res-n"> · {plural(visible.length, 'slide')}</span>}
+          <span className="res-q">{browse ? (tileKind ? 'Results' : browseTitle(browse)) : `Results for “${q}”`}</span>
+          {result && shown.length > 0 && <span className="res-n"> · {plural(visible.length, 'slide')}</span>}
 </h1>
       </div>
       {/* Honest misses (FD-34): a name or year asked for that no deck goes by */}
@@ -741,14 +769,16 @@ export function ResultsView() {
           ))}
         </Row>
       )}
-      {!waitingForAi && search.status === 'error' && (
+      {!browse && !waitingForAi && search.status === 'error' && (
         <StateBlock error icon="alert" title="Search did not work" text={search.message}>
           <button type="button" className="btn" onClick={retrySearch}>
             Try again
           </button>
         </StateBlock>
       )}
-      {(waitingForAi || search.status === 'loading' || search.status === 'idle') && (
+      {browse && !result && 'blocker' in lib && <div style={{ marginTop: 20 }}>{lib.blocker}</div>}
+      {browse && !result && !('blocker' in lib) && <SkeletonGrid count={4} />}
+      {!browse && (waitingForAi || search.status === 'loading' || search.status === 'idle') && (
         <div role="status" aria-live="polite">
           <p className="thinking">
             <Icon name="spinner" className="spin" />
@@ -791,31 +821,35 @@ export function ResultsView() {
           )}
           {result.relaxed && <p className="meta">Nothing matched every filter, so client, year and category are left out.</p>}
           {/* Results in groups, each with its own heading and room: Decks, then Sections (when asked for), then Slides. */}
-          {sectionMode && <SectionCards heading="Sections" results={pickedSection ? slides : shown.map((i) => i.slide)} only={pickedSection ? [pickedSection] : sectionsFromSearch} />}
+          {sectionMode && <SectionCards heading="Sections" results={shown.map((i) => i.slide)} only={autoSection ? [autoSection] : sectionsFromSearch} />}
           {shown.length > 0 && (sectionMode || (found && found.decks.length > 0)) && <h2 className="h2 res-h">Slides</h2>}
           <div className="res-controls">
           <div className="refine">
+            {!(browse && (browseKind === 'recent' || browseKind === 'popular')) && (
             <label>
               <span className="refine-lbl">Sort</span>
               <select className="select select-sm" value={sort} onChange={(e) => setSort(e.target.value as 'best' | 'popular' | 'newest')}>
-                <option value="best">Best match</option>
+                <option value="best">{browse ? 'Listed order' : 'Best match'}</option>
                 <option value="popular">Most downloaded</option>
                 <option value="newest">Newest first</option>
               </select>
             </label>
+            )}
             <span className="spacer" />
         {compact && <ColumnsToggle dense={dense} setDense={setDense} />}
           </div>
-          {compact && secPills}
+          {secPills}
           </div>
           {shown.length === 0 && found && found.decks.length > 0 && filterCount(filters) === 0 ? null : shown.length === 0 ? (
             <StateBlock
               icon="search"
-              title={`No slides found matching “${q}”`}
+              title={browse ? 'No slides here' : `No slides found matching “${q}”`}
               text={
                 filterCount(filters) > 0
                   ? `${found && found.decks.length > 0 ? 'The deck above matches your search, but none of its slides fit the filters. ' : ''}${removeHint(filters)}`
-                  : 'Try fewer words, or say it a different way. For example, “team intro” instead of “introduction to our team”.'
+                  : browse
+                    ? 'Nothing is in this list yet.'
+                    : 'Try fewer words, or say it a different way. For example, “team intro” instead of “introduction to our team”.'
               }
             >
               {filterCount(filters) > 0 && (
@@ -823,9 +857,11 @@ export function ResultsView() {
                   Clear all filters
                 </button>
               )}
-              <button type="button" className="btn" onClick={() => setQuery('')}>
-                Clear search
-              </button>
+              {!browse && (
+                <button type="button" className="btn" onClick={() => setQuery('')}>
+                  Clear search
+                </button>
+              )}
             </StateBlock>
           ) : (
             <>
@@ -834,15 +870,6 @@ export function ResultsView() {
                 <strong>{plural(visible.length, 'slide')}</strong> from {plural(deckCount, 'deck')}
               </p>
               </div>
-              {pickedSection && shown.length - visible.length > 0 && (
-                <p className="meta sec-hidden-note">
-                  {shown.length - visible.length} more matching {shown.length - visible.length === 1 ? 'slide is' : 'slides are'} outside this section.{' '}
-                  <button type="button" className="btn-link" onClick={clearSection}>
-                    Show {shown.length - visible.length === 1 ? 'it' : 'them'}
-                  </button>
-                </p>
-              )}
-              {!compact && secPills}
               <div className={`grid${dense ? ' is-dense' : ''}`}>
                 {visible.map((i) => (
                   <SlideCard key={i.slide.id} slide={i.slide} list={slides} why={i.why} aiRead={i.aiRead} note={sort === 'popular' ? downloadedNote(i.slide) : undefined} />
@@ -850,13 +877,13 @@ export function ResultsView() {
               </div>
             </>
           )}
-          <details className="how">
+          {!browse && <details className="how">
             <summary>How does this search work?</summary>
             <ol>
               <li>Short searches are read by simple rules. A longer question can be read once by an AI model and turned into search words and filters.</li>
               <li>Best matches come first, each with why it fits. Near-identical slides are grouped, never deleted.</li>
             </ol>
-          </details>
+          </details>}
         </>
       )}
     </div>
@@ -1047,7 +1074,9 @@ function DeckJump({ slides, dense, setDense }: { slides: SlideSummary[]; dense: 
 
 export function DeckView({ id }: { id: string }) {
   const { library, openDownload, openArchiveDialog, setIncludeHidden } = useWorkspace();
-  const compact = useWorkspaceCompact();
+  const compact = useWorkspacePhoneLike();
+  const onPhone = useWorkspaceCompact();
+  const tablet = compact && !onPhone; /* upright tablet: room to show "Add a range" as a button */
   const [grouping, setGrouping] = useState(false);
   /* One or two across is remembered on this device. */
   const [dense, setDenseState] = useState(() => {
@@ -1132,13 +1161,13 @@ export function DeckView({ id }: { id: string }) {
             {deck.createdBy && (
               <span className="dm" title={FILE_CREATED_TIP}>
                 Created by {deck.createdBy}
-                {dateLabel(deck.createdAt) ? ` · ${dateLabel(deck.createdAt)}` : ''}
+                {dateLabel(deck.createdAt) ? `, ${dateLabel(deck.createdAt)}` : ''}
               </span>
             )}
             {deck.uploadedBy && (
               <span className="dm">
                 Uploaded by {deck.uploadedBy}
-                {dateLabel(deck.uploadedAt) ? ` · ${dateLabel(deck.uploadedAt)}` : ''}
+                {dateLabel(deck.uploadedAt) ? `, ${dateLabel(deck.uploadedAt)}` : ''}
               </span>
             )}
           </p>
@@ -1146,6 +1175,12 @@ export function DeckView({ id }: { id: string }) {
         {compact ? (
           <div className="row-flex deck-actions">
             <SelectAll slides={deck.slides} />
+            {tablet && (
+              <button type="button" className="btn btn-sm" aria-pressed={rangeOpen} onClick={() => (rangeOpen ? setRangeOpen(false) : openRange())}>
+                <Icon name="plus" />
+                <span>Add a range of slides</span>
+              </button>
+            )}
             <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload(deck.slides)} aria-label="Download whole deck">
               <Icon name="download" />
               <span>Download</span>
@@ -1153,7 +1188,7 @@ export function DeckView({ id }: { id: string }) {
             <MoreMenu
               label="More deck actions"
               items={[
-                { label: 'Add a range of slides', icon: 'plus', onClick: openRange },
+                ...(tablet ? [] : [{ label: 'Add a range of slides', icon: 'plus' as const, onClick: openRange }]),
                 { label: deck.archived ? 'Restore deck' : 'Archive deck', icon: 'archive', onClick: () => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived }) },
                 { label: grouping ? 'Stop grouping' : 'Group slides into a pack', icon: 'layers', onClick: () => setGrouping((g) => !g) },
               ]}
@@ -1167,13 +1202,13 @@ export function DeckView({ id }: { id: string }) {
         ) : (
           <div className="row-flex">
             <SelectAll slides={deck.slides} />
-            <button type="button" className="btn btn-sm" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}>
-              <Icon name="archive" />
-              <span>{deck.archived ? 'Restore deck' : 'Archive deck'}</span>
-            </button>
             <button type="button" className="btn btn-sm" aria-pressed={rangeOpen} onClick={() => (rangeOpen ? setRangeOpen(false) : openRange())}>
               <Icon name="plus" />
               <span>Add a range of slides</span>
+            </button>
+            <button type="button" className="btn btn-sm" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}>
+              <Icon name="archive" />
+              <span>{deck.archived ? 'Restore deck' : 'Archive deck'}</span>
             </button>
             <button type="button" className="btn btn-sm" aria-pressed={grouping} onClick={() => setGrouping((g) => !g)}>
               <Icon name="layers" />
@@ -1224,7 +1259,9 @@ function FromFolder() {
 
 export function SlideView({ id }: { id: string }) {
   const { runtime, library, openPreview, openDownload, logActivity, packs, selection, addPackToDraft, openArchiveDialog, setIncludeHidden, openAlso } = useWorkspace();
-  const compact = useWorkspaceCompact();
+  const compact = useWorkspacePhoneLike();
+  const onPhoneNow = useWorkspaceCompact();
+  const upright = compact && !onPhoneNow; /* an upright tablet: the cards start opened */
   const shareSlide = useShareSlide(id);
   const { isSaved, toggle: toggleSave } = useSavedToggle();
   const touch = useRef<{ x: number; y: number } | null>(null);
@@ -1298,8 +1335,8 @@ export function SlideView({ id }: { id: string }) {
   );
   /* "Also in N other decks": in the row with the actions on a portrait phone; at the left end of the tag row on a phone on its side. */
   const alsoChip =
-    compact && slide.alsoIn ? (
-      <button type="button" className="btn btn-ghost btn-sm lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
+    slide.alsoIn ? (
+      <button type="button" className="btn btn-ghost btn-sm lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
         <Icon name="folders" />
         <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
       </button>
@@ -1374,7 +1411,9 @@ export function SlideView({ id }: { id: string }) {
                 <Icon name="left" />
               </Link>
             ) : (
-              <span className="btn-icon" style={{ width: 36 }} />
+              <span className="btn btn-sm btn-icon is-off" aria-hidden="true">
+                <Icon name="left" />
+              </span>
             )}
             <span className="meta slide-stepper-text">
               {compact ? (
@@ -1410,7 +1449,9 @@ export function SlideView({ id }: { id: string }) {
                 <Icon name="right" />
               </Link>
             ) : (
-              <span className="btn-icon" style={{ width: 36 }} />
+              <span className="btn btn-sm btn-icon is-off" aria-hidden="true">
+                <Icon name="right" />
+              </span>
             )}
           </div>
           {!compact && hiddenGap(sibs) > 0 && (
@@ -1461,14 +1502,19 @@ export function SlideView({ id }: { id: string }) {
             </div>
           </section>
           {slidePack && <PackPanel slide={slide} pack={slidePack} />}
-          {!compact && <SlideTagsPanel slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />}
-          <SlideLabelsPanel fold={compact} story={(detail && detail.id === id && 'slide' in detail ? detail.slide.story : undefined) ?? slide.story} />
+          {!compact && <SlideTagsPanel also={slide.alsoIn ? (
+            <button type="button" className="btn btn-ghost btn-sm also-words" onClick={() => openAlso(slide)}>
+              <Icon name="folders" />
+              <span>Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</span>
+            </button>
+          ) : undefined} slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />}
+          <SlideLabelsPanel fold={compact} open={upright} story={(detail && detail.id === id && 'slide' in detail ? detail.slide.story : undefined) ?? slide.story} />
           {compact ? (
-            <FoldPanel className="panel-details" title="Details" hint={p.sourceTitle}>
+            <FoldPanel className="panel-details" open={upright} title="Details" hint={p.sourceTitle}>
               <dl className="trust">
 
               <dt>Deck</dt>
-              <dd>
+              <dd className="break-name">
                 {p.sourceTitle}
                 <button type="button" className="btn-link arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
                   <Icon name="archive" className="ic-sm" />
@@ -1476,7 +1522,7 @@ export function SlideView({ id }: { id: string }) {
                 </button>
               </dd>
               <dt>File</dt>
-              <dd>{p.sourceFileName}</dd>
+              <dd className="break-name">{p.sourceFileName}</dd>
               </dl>
               <details className="more-det">
                 <summary>More</summary>
@@ -1486,7 +1532,7 @@ export function SlideView({ id }: { id: string }) {
                   <dt title={FILE_CREATED_TIP}>File created by</dt>
                   <dd>
                     {p.createdBy}
-                    {dateLabel(p.createdAt) ? ` · ${dateLabel(p.createdAt)}` : ''}
+                    {dateLabel(p.createdAt) ? `, ${dateLabel(p.createdAt)}` : ''}
                   </dd>
                 </>
               )}
@@ -1495,7 +1541,7 @@ export function SlideView({ id }: { id: string }) {
                   <dt>Uploaded by</dt>
                   <dd>
                     {p.uploadedBy}
-                    {dateLabel(p.uploadedAt) ? ` · ${dateLabel(p.uploadedAt)}` : ''}
+                    {dateLabel(p.uploadedAt) ? `, ${dateLabel(p.uploadedAt)}` : ''}
                   </dd>
                 </>
               )}
@@ -1527,7 +1573,7 @@ export function SlideView({ id }: { id: string }) {
             <h2>Details</h2>
             <dl className="trust">
               <dt>Deck</dt>
-              <dd>
+              <dd className="break-name">
                 {p.sourceTitle}
                 <button type="button" className="btn-link arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
                   <Icon name="archive" className="ic-sm" />
@@ -1535,13 +1581,13 @@ export function SlideView({ id }: { id: string }) {
                 </button>
               </dd>
               <dt>File</dt>
-              <dd>{p.sourceFileName}</dd>
+              <dd className="break-name">{p.sourceFileName}</dd>
               {p.createdBy && (
                 <>
                   <dt title={FILE_CREATED_TIP}>File created by</dt>
                   <dd>
                     {p.createdBy}
-                    {dateLabel(p.createdAt) ? ` · ${dateLabel(p.createdAt)}` : ''}
+                    {dateLabel(p.createdAt) ? `, ${dateLabel(p.createdAt)}` : ''}
                   </dd>
                 </>
               )}
@@ -1550,7 +1596,7 @@ export function SlideView({ id }: { id: string }) {
                   <dt>Uploaded by</dt>
                   <dd>
                     {p.uploadedBy}
-                    {dateLabel(p.uploadedAt) ? ` · ${dateLabel(p.uploadedAt)}` : ''}
+                    {dateLabel(p.uploadedAt) ? `, ${dateLabel(p.uploadedAt)}` : ''}
                   </dd>
                 </>
               )}
@@ -1578,15 +1624,9 @@ export function SlideView({ id }: { id: string }) {
           </section>
           )}
           {compact && (
-            <FoldPanel className="slide-text-panel" title="Slide text" hint={text ? text.slice(0, 70) : text === null ? undefined : text === '' ? 'No text' : undefined}>
+            <FoldPanel className="slide-text-panel" open={upright} title="Slide text" hint={text ? text.slice(0, 70) : text === null ? undefined : text === '' ? 'No text' : undefined}>
               {textBody}
             </FoldPanel>
-          )}
-          {slide.alsoIn && !compact && (
-            <section className="panel">
-              <h2>Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</h2>
-              <p className="meta">{slide.alsoIn.match === 'near' ? 'Nearly identical slides' : 'The same slide'} appear in other decks. Nothing is deleted.</p>
-            </section>
           )}
         </div>
       </div>
@@ -1609,7 +1649,7 @@ export function CreateView() {
   const { runtime } = useWorkspace();
   const opened = useTipSeen('storyboard-opened');
   return (
-    <div className="sv-wrap">
+    <div className="sv-wrap create-wrap">
       <h1 className="h1" tabIndex={-1}>
         Create
       </h1>
@@ -1637,11 +1677,11 @@ export function CreateView() {
           <Icon name="plus" className="ic-big" />
           <h2 className="h2">Build it yourself</h2>
           <p className="meta">
-            Step by step, from a blank deck. For now,{' '}
+            For now, build it from{' '}
             <Link to={{ view: 'pages' }} className="create-home">
-              go to Home
-            </Link>{' '}
-            and build.
+              Home
+            </Link>
+            .
           </p>
           <span className="badge" style={{ alignSelf: 'flex-start' }}>
             Planned

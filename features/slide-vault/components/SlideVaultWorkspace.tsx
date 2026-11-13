@@ -9,7 +9,6 @@ import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
 import { Crumbs, Link, type Crumb } from './parts';
 import { CompactSearch } from './CompactSearch';
-import { SearchForm } from './Rail';
 import { WorkspaceProvider, useWorkspace } from './state';
 import { LoginView } from './AuthView';
 import { ActivityOptInAsk } from './ActivityOptIn';
@@ -163,7 +162,6 @@ function Workspace({ header }: { header?: ReactNode }) {
       ?.focus({ preventScroll: true });
   }, [key, view]);
 
-  const toHome = () => runtime.navigate({ view: 'pages' });
 
   const crumbs: Crumb[] = [];
   if (view === 'browse') crumbs.push({ label: 'Home', to: { view: 'pages' } }, { label: browseTitle(loc.id ?? '') });
@@ -231,11 +229,6 @@ function Workspace({ header }: { header?: ReactNode }) {
       </div>
       <div className={`sv-shell${cartMin ? ' cart-min' : ''}${noRail ? ' no-rail' : ''}${narrow ? ' narrow' : ''}`}>
         <div className="center">
-          {deep && (
-            <div className="deep-search">
-              <SearchForm onSubmit={toHome} />
-            </div>
-          )}
           {(crumbs.length > 0 || showBack) && (
             <div className="sv-wrap navrow">
               <div className="navgroup">

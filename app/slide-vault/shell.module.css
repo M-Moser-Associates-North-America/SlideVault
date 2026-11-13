@@ -142,12 +142,18 @@
   top: calc(100% + 8px);
   right: 0;
   z-index: 80;
-  min-width: 220px;
+  min-width: 190px;
   padding: 6px;
   border: 1px solid var(--sv-border-strong);
   border-radius: 14px;
   background: var(--sv-surface);
   box-shadow: var(--sv-shadow-panel);
+}
+
+@media (max-width: 700px) {
+  .menu {
+    min-width: 168px;
+  }
 }
 
 .menuHead {

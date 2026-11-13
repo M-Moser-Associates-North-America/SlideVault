@@ -68,3 +68,11 @@ function subscribeToSize(onChange: () => void) {
 export function useWorkspaceCompact(): boolean {
   return useSyncExternalStore(subscribeToSize, () => rootEl()?.getAttribute('data-size') === 'compact', () => false);
 }
+
+/**
+ * True for a phone (either way up) and for a tablet held upright: the screens that share the phone's page layouts
+ * (one-row filters, one-row tags, the compact deck and slide pages). The slide preview and the tabs are decided separately.
+ */
+export function useWorkspacePhoneLike(): boolean {
+  return useSyncExternalStore(subscribeToSize, () => { const s = rootEl()?.getAttribute('data-size'); return s === 'compact' || s === 'medium'; }, () => false);
+}
