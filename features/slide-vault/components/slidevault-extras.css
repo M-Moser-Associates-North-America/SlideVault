@@ -2672,7 +2672,7 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 /* Tablet on its side: the Home / Create / Upload / My decks row scrolls away with the page (it is only sticky on desktop), and the pinned search bar takes the top edge. */
 .slidevault .sv-app[data-tl] .sv-top { position: static; }
 .slidevault .sv-app[data-tl] .fb-pin-bar { top: 0; }
-.slidevault .fb-chips .fb-clear-all { margin: 0 0 0 4px; }
+.slidevault .fb-chips .fb-clear-all { margin: 0 4px 0 0; }
 
 /* Phones and tablets: the selected filter pills sit in the same row as the Filters button and wrap to the next line only when they do not fit. */
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
@@ -2843,3 +2843,36 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 /* ...and on an upright tablet they are the same width. */
 .slidevault .sv-app[data-size="medium"] .sv-shell.narrow .center .sv-main .sv-wrap.profile-wrap,
 .slidevault .sv-app[data-size="medium"] .sv-shell.narrow .center .sv-main .sv-wrap.arch-page { max-width: 660px; }
+
+/* A link-button that has just been pressed: a small spinner in place of its icon, until the next page arrives. */
+.slidevault a.btn.is-pending { pointer-events: none; opacity: .85; position: relative; }
+.slidevault a.btn.is-pending .ic { visibility: hidden; width: 16px; margin-right: -16px; }
+.slidevault a.btn.is-pending::before { content: ""; flex: none; width: 14px; height: 14px; border: 2px solid color-mix(in srgb, currentColor 25%, transparent); border-top-color: var(--sv-brand-strong); border-radius: 50%; animation: svBtnSpin .7s linear infinite; order: -1; }
+.slidevault a.btn.is-pending.btn-primary::before { border-top-color: #fff; }
+@keyframes svBtnSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .slidevault a.btn.is-pending::before { animation-duration: 2s; } }
+
+/* A long press must not pop the phone's own menu or text selection on things that carry a note. */
+.slidevault [data-tip] { -webkit-touch-callout: none; }
+
+/* Touch screens (phones, tablets): a larger area around small controls responds to a tap, about 48px, without changing how they look. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.save-tg, .deck-arch)::before { content: ""; position: absolute; inset: -8px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.row-info, .helpdot, .also)::before { content: ""; position: absolute; inset: -12px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag::before { content: ""; position: absolute; inset: -12px -4px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag-more { position: relative; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag-more::before { content: ""; position: absolute; inset: -12px -6px; }
+
+/* Very large screens (1900px and up): the header and page content stop at 1960px and sit in the middle; the draft deck still reaches the screen's right edge. The base text is a notch bigger. */
+.slidevault .sv-app[data-xxl] .sv-top .sv-wrap, .slidevault .sv-app[data-xxl] .sv-shell { max-width: 1960px; }
+.slidevault .sv-app[data-xxl][data-size="wide"] .sv-shell { --gut: max(var(--sv-side, 28px), calc((var(--sv-w, 1280px) - 1960px) / 2 + var(--sv-side, 28px))); }
+.slidevault[data-xxl], .slidevault .sv-app[data-xxl] { --sv-text-body: 16px; --sv-text-small: 14.5px; --sv-text-meta: 13.5px; --sv-text-subheading: 20px; }
+.slidevault[data-xxl] .h1, .slidevault .sv-app[data-xxl] .h1 { font-size: 34px; }
+
+/* Empty states inside a page section (My decks: Saved, Working drafts): a smaller card with an icon, one line and a button. */
+.slidevault .row .state { padding: 28px 20px; margin-top: 4px; }
+.slidevault .row .state .ic-big { width: 28px; height: 28px; color: var(--sv-text-secondary); }
+.slidevault .row .state h2 { font-size: 16px; margin: 8px 0 4px; }
+.slidevault .row .state p { margin-bottom: 14px; }
+.slidevault[data-xxl] .sv-top .sv-wrap { max-width: 1960px; }
+/* The app header (it belongs to the application shell, so its class is hashed) stops at the same width. */
+.slidevault .sv-app[data-xxl] [class*="headerInner"] { max-width: 1960px; }

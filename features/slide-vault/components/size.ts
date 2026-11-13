@@ -35,6 +35,16 @@ export function useWorkspaceSize(ref: RefObject<HTMLElement | null>, active: boo
       else delete el.dataset.tl;
       if (box.width >= 1360) el.dataset.xl = '';
       else delete el.dataset.xl;
+      /* A very large screen (1900px and up): the content is capped and centred, and the base text is a notch bigger. Set on the portal root too, so dialogs match. */
+      const big = box.width >= 1900;
+      const rootEl = el.closest<HTMLElement>('.slidevault');
+      if (big) {
+        el.dataset.xxl = '';
+        if (rootEl) rootEl.dataset.xxl = '';
+      } else {
+        delete el.dataset.xxl;
+        if (rootEl) delete rootEl.dataset.xxl;
+      }
       // Pixel sizes of this workspace, for CSS that needs a length (gutters, panel widths, heights).
       el.style.setProperty('--sv-w', `${Math.round(box.width)}px`);
       el.style.setProperty('--sv-h', `${Math.round(box.height)}px`);

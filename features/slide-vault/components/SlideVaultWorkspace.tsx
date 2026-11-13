@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
 import { Cart, CartPill, focusDraftOpener } from './Cart';
 import { AlsoDialog, DownloadDialog, Lightbox } from './Dialogs';
+import { installLongPressTips } from './fixed-tip';
 import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
 import { Crumbs, Link, type Crumb } from './parts';
@@ -98,6 +99,23 @@ function Workspace({ header }: { header?: ReactNode }) {
   /* Toasts sit in the browser's top layer, so they show in front of the preview and other dialogs. Showing
      the popover again whenever a toast arrives (or a dialog opens) moves it back to the front. */
   const toastHost = useRef<HTMLDivElement>(null);
+  /* Touch screens: a long press on anything with a hover note shows the note. */
+  useEffect(() => installLongPressTips(), []);
+  /* A button that is really a link answers the moment it is pressed (a small spinner), before the next page has loaded. */
+  useEffect(() => {
+    const press = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest<HTMLAnchorElement>('.slidevault a.btn');
+      if (!a || e.defaultPrevented || a.hasAttribute('aria-disabled')) return;
+      a.classList.add('is-pending');
+      a.setAttribute('aria-busy', 'true');
+      window.setTimeout(() => {
+        a.classList.remove('is-pending');
+        a.removeAttribute('aria-busy');
+      }, 4000);
+    };
+    document.addEventListener('click', press);
+    return () => document.removeEventListener('click', press);
+  }, []);
   const latestToast = toasts.length ? toasts[toasts.length - 1] : null;
   const latestToastId = latestToast?.id;
   const previewOpen = !!preview;

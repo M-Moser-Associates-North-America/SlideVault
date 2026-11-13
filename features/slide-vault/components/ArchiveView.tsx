@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { listLibrary } from '../client/api';
 import { Icon } from './icons';
 import { groupDecks, folderLabel, plural, type Deck } from './library';
-import { StateBlock, Thumb } from './parts';
+import { Link, StateBlock, Thumb } from './parts';
 import { useWorkspace } from './state';
 
 type Loaded = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; decks: Deck[] };
@@ -67,7 +67,11 @@ export function ArchiveView() {
           </button>
         </StateBlock>
       )}
-      {loaded.status === 'ready' && loaded.decks.length === 0 && <StateBlock icon="folder" title="Nothing is archived" text="Decks you archive show up here, ready to restore." />}
+      {loaded.status === 'ready' && loaded.decks.length === 0 && <StateBlock icon="archive" title="Nothing is archived" text="Decks you archive show up here, ready to restore.">
+          <Link className="btn" to={{ view: 'pages' }}>
+            Browse slides
+          </Link>
+        </StateBlock>}
       {loaded.status === 'ready' && loaded.decks.length > 0 && (
         <>
           <div className="arch-tools">

@@ -9,7 +9,8 @@ import { useEdgeFade } from './edge-fade';
 import { FoldPanel } from './fold-panel';
 import { Icon } from './icons';
 import { plural, type Deck } from './library';
-import { useWorkspacePhoneLike } from './size';
+import { hideTip, showTip } from './fixed-tip';
+import { useWorkspaceCompact, useWorkspacePhoneLike } from './size';
 import { useWorkspace } from './state';
 import { cleanTag, type TagSuggestion } from './TagField';
 
@@ -94,39 +95,13 @@ function useTagSearch(onNavigate?: () => void) {
 /** One of six soft hues per tag, the same everywhere, so tags look different from the grey action buttons. */
 export const hueOf = (tag: string) => [...tag.toLowerCase()].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 5) % 6;
 
-/**
- * When a chip's text is cut off ("Workplace str…"), hover or focus names it in full. Nothing when it fits.
- * The note is drawn once, at the top of the feature and fixed to the screen, so a slide card's edge or a
- * scrolling row of tags can never cut it off; it sits above the chip, or below when there is no room.
- */
-let fixedTip: HTMLDivElement | null = null;
-function hideTip() {
-  if (fixedTip) fixedTip.style.visibility = 'hidden';
-}
+/** When a chip's text is cut off ("Workplace str…"), hover or focus names it in full. Nothing when it fits. */
 function nameWhenCut(e: { currentTarget: HTMLElement }, text: string) {
   const b = e.currentTarget;
   const t = b.querySelector<HTMLElement>('.tag-t');
   b.removeAttribute('data-tip');
-  if (!t || t.scrollWidth <= t.clientWidth) return hideTip();
-  const root = b.closest<HTMLElement>('.slidevault');
-  if (!root) return;
-  if (!fixedTip || !root.contains(fixedTip)) {
-    fixedTip = document.createElement('div');
-    fixedTip.className = 'sv-fixed-tip';
-    fixedTip.setAttribute('aria-hidden', 'true');
-    root.appendChild(fixedTip);
-    window.addEventListener('scroll', hideTip, true);
-  }
-  fixedTip.textContent = text;
-  fixedTip.style.visibility = 'hidden';
-  const r = b.getBoundingClientRect();
-  const w = fixedTip.offsetWidth;
-  const h = fixedTip.offsetHeight;
-  const left = Math.min(Math.max(8, r.left), window.innerWidth - w - 8);
-  const top = r.top - h - 6 >= 8 ? r.top - h - 6 : r.bottom + 6;
-  fixedTip.style.left = `${left}px`;
-  fixedTip.style.top = `${top}px`;
-  fixedTip.style.visibility = 'visible';
+  if (t && t.scrollWidth > t.clientWidth) showTip(b, text);
+  else hideTip();
 }
 
 /** A small pill. Click to search for it; hover or focus says who added it. */
@@ -315,7 +290,7 @@ function MoreTags({ names }: { names: string[] }) {
  */
 export function CompactTags({ slide }: { slide: SlideSummary }) {
   const { runtime, profile, query } = useWorkspace();
-  const compact = useWorkspacePhoneLike();
+  const compact = useWorkspaceCompact();
   const own = useTags(runtime, profile, 'slide', slide.id, slide.tags);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, slide.tags);
   type Item = { key: string; text: string; node: ReactElement };
@@ -327,7 +302,7 @@ export function CompactTags({ slide }: { slide: SlideSummary }) {
   const all = q ? [...items.filter((i) => matchesQuery(i.text, q)), ...items.filter((i) => !matchesQuery(i.text, q))] : items;
   /* A card without tags keeps an empty row when other cards on the page have tags, so everything below lines up. */
   if (all.length === 0) return <div className="tags-spacer" aria-hidden="true" />;
-  /* Phones: every tag, in one row that scrolls sideways (no "+N" to open). Wider screens: two tags, then "+N". */
+  /* Phones: every tag, in one row that scrolls sideways (no "+N" to open). Tablets and desktop: two tags, then "+N". */
   if (compact) return <ScrollingTags nodes={all.map((i) => i.node)} />;
   const more = all.slice(2);
   return (

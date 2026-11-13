@@ -495,7 +495,7 @@ export function FilterBar() {
             )}
           </div>
         ))}
-        {n > 0 && (compact || chips.length === 0) && (
+        {n > 0 && chips.length === 0 && (
           <button type="button" className="btn-link fb-clear-all" onClick={clearFilters}>
             Clear all
           </button>
@@ -503,6 +503,13 @@ export function FilterBar() {
       </div>
       {chips.length > 0 && (
         <ul className="fb-chips" aria-label="Filters on" ref={chipsRef}>
+          {n > 0 && (
+            <li className="fb-chips-clear">
+              <button type="button" className="btn-link fb-clear-all" onClick={clearFilters}>
+                Clear all
+              </button>
+            </li>
+          )}
           {chips.map((c) => (
             <li key={c.id}>
               <button
@@ -518,13 +525,6 @@ export function FilterBar() {
               </button>
             </li>
           ))}
-          {!compact && n > 0 && (
-            <li className="fb-chips-clear">
-              <button type="button" className="btn-link fb-clear-all" onClick={clearFilters}>
-                Clear all
-              </button>
-            </li>
-          )}
         </ul>
       )}
       {compact && rowOut && sheet === null && (

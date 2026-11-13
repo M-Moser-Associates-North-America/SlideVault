@@ -829,7 +829,7 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
             <label>
               <span className="refine-lbl">Sort</span>
               <select className="select select-sm" value={sort} onChange={(e) => setSort(e.target.value as 'best' | 'popular' | 'newest')}>
-                <option value="best">{browse ? 'Listed order' : 'Best match'}</option>
+                <option value="best">Best match</option>
                 <option value="popular">Most downloaded</option>
                 <option value="newest">Newest first</option>
               </select>

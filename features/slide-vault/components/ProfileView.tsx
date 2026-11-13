@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { firstNameOf } from '../client/first-name';
 import { Icon } from './icons';
 import { timeAgo } from './library';
-import { SlideCard } from './parts';
+import { Link, SlideCard, StateBlock } from './parts';
 import { ConfirmDialog } from './TagBits';
 import { useWorkspace } from './state';
 
@@ -40,7 +40,11 @@ export function ProfileView() {
           <h2 className="h2">Saved</h2>
         </div>
         {saved.length === 0 ? (
-          <p className="meta">Nothing saved yet. Tap the heart on a slide.</p>
+          <StateBlock icon="heart" title="No saved slides yet" text="Tap the heart on any slide to keep it here.">
+            <Link className="btn" to={{ view: 'pages' }}>
+              Browse slides
+            </Link>
+          </StateBlock>
         ) : (
           <ul className="row-scroller">
             {saved.map((s) => (
@@ -57,7 +61,11 @@ export function ProfileView() {
           <h2 className="h2">Working drafts</h2>
         </div>
         {drafts.length === 0 ? (
-          <p className="meta">No drafts yet.</p>
+          <StateBlock icon="layers" title="No working drafts yet" text="Save your draft deck to come back to it later.">
+            <Link className="btn" to={{ view: 'pages' }}>
+              Browse slides
+            </Link>
+          </StateBlock>
         ) : (
           <ul className="draft-list">
             {drafts.map((d) => (
