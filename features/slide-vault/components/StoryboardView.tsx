@@ -66,7 +66,7 @@ export function StoryboardView() {
         // Said once per story: with learning off, the mark shows but teaches nothing (FD-37).
         if (!saved && !toldNotSaved.current) {
           toldNotSaved.current = true;
-          toast('Not saved. Activity learning is off. Turn it on in Settings.');
+          toast('Not saved: learning from your activity is off. You can turn it on in Settings.');
         }
       })
       .catch(() => toast("Couldn't save that. Please try again."));
@@ -385,7 +385,7 @@ function Beat({ n, beat, deck, said, onSay }: { n: number; beat: StoryBeat; deck
       )}
       {beat.narration && <p className="sb-beat-say">{beat.narration}</p>}
       <p className="sb-beat-why">
-        <b>Why this slide:</b> {beat.why}
+        <b>Why this slide</b> — {beat.why}
       </p>
     </li>
   );

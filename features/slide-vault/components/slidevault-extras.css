@@ -2826,9 +2826,9 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault .tag[aria-pressed="true"], .slidevault .tag.is-on, .slidevault .tag.is-selected { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
 
 /* Buttons: orange on hover, keyboard focus and while pressed (so a tap answers straight away, before the next page loads) and when selected. */
-.slidevault .btn:not(.btn-ghost):not(.btn-primary):not(.btn-danger):not(.btn-icon):not(:disabled):not([aria-disabled="true"]):hover,
-.slidevault .btn:not(.btn-ghost):not(.btn-primary):not(.btn-danger):not(.btn-icon):not(:disabled):not([aria-disabled="true"]):focus-visible,
-.slidevault .btn:not(.btn-ghost):not(.btn-primary):not(.btn-danger):not(.btn-icon):not(:disabled):not([aria-disabled="true"]):active { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
+.slidevault .btn:not(.btn-ghost):not(.btn-primary):not(.btn-danger):not(.btn-icon):not(.sb-launch-btn):not(:disabled):not([aria-disabled="true"]):hover,
+.slidevault .btn:not(.btn-ghost):not(.btn-primary):not(.btn-danger):not(.btn-icon):not(.sb-launch-btn):not(:disabled):not([aria-disabled="true"]):focus-visible,
+.slidevault .btn:not(.btn-ghost):not(.btn-primary):not(.btn-danger):not(.btn-icon):not(.sb-launch-btn):not(:disabled):not([aria-disabled="true"]):active { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
 .slidevault .btn[aria-pressed="true"]:not(.btn-primary) { background: var(--sv-brand-tint); }
 .slidevault .btn-primary:not(:disabled):not([aria-disabled="true"]):hover,
 .slidevault .btn-primary:not(:disabled):not([aria-disabled="true"]):focus-visible,
@@ -2880,3 +2880,8 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 /* No lonely last word: paragraphs and list text break so the last line is never a single word; headings and short notes balance their lines. */
 .slidevault :is(p, li, dd, .lede, .meta, .hint, .txt) { text-wrap: pretty; }
 .slidevault :is(h1, h2, h3, .h1, .h2, .h3, dialog p, .state p, .state h2, .tour-t, .tour-pop h2, .toast, .sv-fixed-tip) { text-wrap: balance; }
+
+/* Storyboard is Schiffon's design: its buttons keep their own corners, outline and hover, and the Storyboard button keeps its solid orange. */
+.slidevault .sb .btn:not(.btn-primary):not(.btn-ghost):not(.btn-danger):not(.btn-icon) { border-radius: var(--sv-radius-control); border-color: var(--sv-control-border); }
+.slidevault .sb .btn:not(.btn-ghost):not(.btn-primary):not(.btn-danger):not(.btn-icon):not(.sb-launch-btn):not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active) { background: var(--sv-surface-sunken); border-color: var(--sv-control-border); }
+.slidevault .sb .btn-primary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active) { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); opacity: .86; }
