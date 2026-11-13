@@ -94,12 +94,39 @@ function useTagSearch(onNavigate?: () => void) {
 /** One of six soft hues per tag, the same everywhere, so tags look different from the grey action buttons. */
 export const hueOf = (tag: string) => [...tag.toLowerCase()].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 5) % 6;
 
-/** When a chip's text is cut off ("Workplace str…"), hover or focus names it in full. Nothing when it fits. */
+/**
+ * When a chip's text is cut off ("Workplace str…"), hover or focus names it in full. Nothing when it fits.
+ * The note is drawn once, at the top of the feature and fixed to the screen, so a slide card's edge or a
+ * scrolling row of tags can never cut it off; it sits above the chip, or below when there is no room.
+ */
+let fixedTip: HTMLDivElement | null = null;
+function hideTip() {
+  if (fixedTip) fixedTip.style.visibility = 'hidden';
+}
 function nameWhenCut(e: { currentTarget: HTMLElement }, text: string) {
   const b = e.currentTarget;
   const t = b.querySelector<HTMLElement>('.tag-t');
-  if (t && t.scrollWidth > t.clientWidth) b.setAttribute('data-tip', text);
-  else b.removeAttribute('data-tip');
+  b.removeAttribute('data-tip');
+  if (!t || t.scrollWidth <= t.clientWidth) return hideTip();
+  const root = b.closest<HTMLElement>('.slidevault');
+  if (!root) return;
+  if (!fixedTip || !root.contains(fixedTip)) {
+    fixedTip = document.createElement('div');
+    fixedTip.className = 'sv-fixed-tip';
+    fixedTip.setAttribute('aria-hidden', 'true');
+    root.appendChild(fixedTip);
+    window.addEventListener('scroll', hideTip, true);
+  }
+  fixedTip.textContent = text;
+  fixedTip.style.visibility = 'hidden';
+  const r = b.getBoundingClientRect();
+  const w = fixedTip.offsetWidth;
+  const h = fixedTip.offsetHeight;
+  const left = Math.min(Math.max(8, r.left), window.innerWidth - w - 8);
+  const top = r.top - h - 6 >= 8 ? r.top - h - 6 : r.bottom + 6;
+  fixedTip.style.left = `${left}px`;
+  fixedTip.style.top = `${top}px`;
+  fixedTip.style.visibility = 'visible';
 }
 
 /** A small pill. Click to search for it; hover or focus says who added it. */
@@ -108,7 +135,7 @@ export function TagChip({ tag, onNavigate }: { tag: FreeTag; onNavigate?: () => 
   const tipId = useId();
   return (
     <>
-      <button type="button" className="tag" data-h={hueOf(tag.tag)} aria-describedby={tipId} onClick={() => search(tag.tag)} onMouseEnter={(e) => nameWhenCut(e, tag.tag)} onFocus={(e) => nameWhenCut(e, tag.tag)}>
+      <button type="button" className="tag" data-h={hueOf(tag.tag)} aria-describedby={tipId} onClick={() => search(tag.tag)} onMouseEnter={(e) => nameWhenCut(e, tag.tag)} onFocus={(e) => nameWhenCut(e, tag.tag)} onMouseLeave={hideTip} onBlur={hideTip}>
         <span className="tag-t">{tag.tag}</span>
       </button>
       <span id={tipId} className="sr-only">
@@ -150,7 +177,7 @@ const matchesQuery = (text: string, query: string) => {
 export function TeamChip({ label, onNavigate }: { label: TeamLabel; onNavigate?: () => void }) {
   const search = useTagSearch(onNavigate);
   return (
-    <button type="button" className="tag tag-team" aria-label={`${label.text}. ${label.what}, reviewed by the team. Search for it.`} onClick={() => search(label.text)} onMouseEnter={(e) => nameWhenCut(e, label.text)} onFocus={(e) => nameWhenCut(e, label.text)}>
+    <button type="button" className="tag tag-team" aria-label={`${label.text}. ${label.what}, reviewed by the team. Search for it.`} onClick={() => search(label.text)} onMouseEnter={(e) => nameWhenCut(e, label.text)} onFocus={(e) => nameWhenCut(e, label.text)} onMouseLeave={hideTip} onBlur={hideTip}>
       <span className="tag-t">{label.text}</span>
     </button>
   );
@@ -262,13 +289,14 @@ function MoreTags({ names }: { names: string[] }) {
               <button
                 key={n}
                 type="button"
-                className="tagmenu-item"
+                className="tag tagmenu-item"
+                data-h={hueOf(n)}
                 onClick={() => {
                   close();
                   search(n);
                 }}
               >
-                {n}
+                <span className="tag-t">{n}</span>
               </button>
             ))}
           </div>,
@@ -480,10 +508,10 @@ export function AddTagPill({ label, known, have, disabled, onAdd }: { label: str
  * click adds the tag the normal way; nothing is added until then (Alina: AI suggestions stay suggestions
  * until a person confirms). Tags already there are left out; nothing shows when there are none.
  */
-const MAX_SUGGESTED_TAGS = 4;
+const MAX_SUGGESTED_TAGS = 3;
 
 export function SuggestedTagChips({ suggestions, have, disabled, onAdd, label = 'Suggested tags', lead }: { suggestions: TagSuggestionItem[]; have: string[]; disabled?: boolean; onAdd: (tag: string) => void; label?: string; /** shown first, in the same row (the "Add tag" pill); outside the scrolling part so its menu is never clipped */ lead?: ReactElement }) {
-  /* Only the four best fits (the list arrives best first), so the row stays short and a person is not made to pick through a long one. */
+  /* Only the three best fits (the list arrives best first), so the row stays short and a person is not made to pick through a long one. */
   const left = suggestions.filter((s) => !have.some((h) => h.toLowerCase() === s.tag.toLowerCase())).slice(0, MAX_SUGGESTED_TAGS);
   const row = useRef<HTMLDivElement>(null);
   useEdgeFade(row);

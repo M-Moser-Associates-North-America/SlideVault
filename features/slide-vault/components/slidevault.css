@@ -36,8 +36,9 @@
 /* ------------------------------------------------------------------
    Buttons, fields, chips
 ------------------------------------------------------------------- */
-.slidevault .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: var(--sv-radius-control); border: 1px solid var(--sv-control-border); background: var(--sv-surface); color: var(--sv-text); font-size: var(--sv-text-small); font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background-color var(--sv-duration-fast) var(--sv-ease-out); }
-.slidevault .btn:hover { background: var(--sv-surface-sunken); }
+.slidevault .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--sv-control-border) 45%, transparent); background: var(--sv-surface); color: var(--sv-text); font-size: var(--sv-text-small); font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background-color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .btn:hover { background: var(--sv-surface-sunken); border-color: var(--sv-control-border); }
+.slidevault .btn-primary:hover { border-color: var(--sv-action-bg); }
 .slidevault .btn-primary { background: var(--sv-action-bg); color: var(--sv-action-fg); border-color: var(--sv-action-bg); }
 .slidevault .btn-primary:hover { background: var(--sv-action-bg); opacity: .86; }
 .slidevault .btn-ghost { border-color: transparent; background: transparent; }

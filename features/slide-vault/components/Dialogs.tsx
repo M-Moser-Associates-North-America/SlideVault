@@ -9,6 +9,7 @@ import { useEdgeFade } from './edge-fade';
 import { Icon } from './icons';
 import { categoryOf, clientOf, downloadPlan, plural, planSummary, yearOf } from './library';
 import { Link, Thumb, useAddSection, useCartToggle, useSavedToggle } from './parts';
+import { useWorkspaceCompact } from './size';
 import { useWorkspace } from './state';
 
 /** Open and close a native <dialog> from React state. Escape closes it (via the dialog's own close event). */
@@ -28,6 +29,9 @@ export const backdropClose = (onClose: () => void) => (e: MouseEvent<HTMLDialogE
 
 /** Large preview of a slide. The side arrows, the filmstrip and swipes walk the slide's own deck; a separate bar steps through the search results it was opened from. */
 export function Lightbox() {
+  const compactNow = useWorkspaceCompact();
+  /* Tablets and desktop share the arrows-on-the-picture layout; only a phone held upright differs. */
+  const onTablet = !compactNow;
   const { runtime, library, preview, closePreview, movePreview, goToPreview, openPreview, openDownload, packs, selection, addPackToDraft } = useWorkspace();
   const { isSelected, setOne } = useCartToggle();
   const { addSection } = useAddSection();
@@ -252,7 +256,7 @@ export function Lightbox() {
                 {slide.hiddenInSource ? ' · hidden in source' : ''}
               </p>
             </div>
-            <div className="lb-row">
+            <div className="lb-row" data-tablet={onTablet ? '' : undefined} data-handheld="">
               {sibs.length > 1 && (
                 <button type="button" className="btn btn-icon lb-nav lb-prev" aria-label="Previous slide in this deck" data-tip="Previous in deck" disabled={di <= 0} onClick={() => moveDeck(-1)}>
                   <Icon name="left" />

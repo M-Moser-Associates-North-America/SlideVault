@@ -213,7 +213,7 @@ function useTypewriter(phrases: string[], active: boolean): string {
 
 /** The "Try" example searches, shown under the search and filter card. */
 function HomeTry() {
-  const { query, typeQuery, submitSearch, runtime, searched } = useWorkspace();
+  const { query, typeQuery, submitSearch, runtime, searched, filters } = useWorkspace();
   const search = (q: string) => {
     typeQuery(q);
     submitSearch(q);
@@ -222,7 +222,7 @@ function HomeTry() {
   const tryRef = useRef<HTMLUListElement>(null);
   useEdgeFade(tryRef);
   return (
-    <div className={`home-try${searched !== '' || runtime.location.view === 'browse' ? ' in-results' : ''}`}>
+    <div className={`home-try${searched !== '' || runtime.location.view === 'browse' || filterCount(filters) > 0 ? ' in-results' : ''}`}>
       <div className="home-hero-try">
         <span>Try</span>
         <ul ref={tryRef}>
@@ -1200,7 +1200,7 @@ export function DeckView({ id }: { id: string }) {
             </div>
           </div>
         ) : (
-          <div className="row-flex">
+          <div className="row-flex deck-actions-row">
             <SelectAll slides={deck.slides} />
             <button type="button" className="btn btn-sm" aria-pressed={rangeOpen} onClick={() => (rangeOpen ? setRangeOpen(false) : openRange())}>
               <Icon name="plus" />
@@ -1416,31 +1416,15 @@ export function SlideView({ id }: { id: string }) {
               </span>
             )}
             <span className="meta slide-stepper-text">
-              {compact ? (
+              <NumberJump value={i + 1} max={sibs.length} label="Go to a slide in this deck" onGo={(k) => runtime.navigate({ view: 'slide', id: sibs[k].id })} />
+              /{sibs.length} in deck
+              {hiddenGap(sibs) > 0 && (
                 <>
-                  <NumberJump value={i + 1} max={sibs.length} label="Go to a slide in this deck" onGo={(k) => runtime.navigate({ view: 'slide', id: sibs[k].id })} />/{sibs.length}
-                  {hiddenGap(sibs) > 0 && (
-                    <>
-                      {' · '}
-                      {hiddenGap(sibs)} hidden{' '}
-                      <button type="button" className="btn-link" aria-label={`Show ${plural(hiddenGap(sibs), 'hidden slide')}`} onClick={() => setIncludeHidden(true)}>
-                        Show
-                      </button>
-                    </>
-                  )}
-                </>
-              ) : (
-                <>
-                  <span className="step-long">Slide {p.slideNumber} of {sibs.length + hiddenGap(sibs)} in this deck</span>
-                  {hiddenGap(sibs) > 0 && (
-                    <span className="step-hidden-inline">
-                      {' · '}
-                      {plural(hiddenGap(sibs), 'hidden slide')} not shown.{' '}
-                      <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
-                        Show {hiddenGap(sibs) === 1 ? 'it' : 'them'}
-                      </button>
-                    </span>
-                  )}
+                  {' · '}
+                  {hiddenGap(sibs)} hidden{' '}
+                  <button type="button" className="btn-link" aria-label={`Show ${plural(hiddenGap(sibs), 'hidden slide')}`} onClick={() => setIncludeHidden(true)}>
+                    Show
+                  </button>
                 </>
               )}
             </span>
@@ -1454,14 +1438,6 @@ export function SlideView({ id }: { id: string }) {
               </span>
             )}
           </div>
-          {!compact && hiddenGap(sibs) > 0 && (
-            <p className="meta step-hidden-below">
-              {plural(hiddenGap(sibs), 'hidden slide')} not shown.{' '}
-              <button type="button" className="btn-link" onClick={() => setIncludeHidden(true)}>
-                Show {hiddenGap(sibs) === 1 ? 'it' : 'them'}
-              </button>
-            </p>
-          )}
           {/* Phone: the tags are a scrolling row of pills here, in place of the Tags card (the Add tag pill and the suggestions in a second row). */}
           {compact && <PreviewTags slide={slide} onNavigate={() => undefined} lead={alsoChip && <span className="tag-lead">{alsoChip}</span>} />}
           <SlideEngagement key={slide.id} slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />
@@ -1518,7 +1494,9 @@ export function SlideView({ id }: { id: string }) {
                 {p.sourceTitle}
                 <button type="button" className="btn-link arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
                   <Icon name="archive" className="ic-sm" />
-                  {deck.archived ? `Restore this deck (${deck.slides.length} slides)` : `Archive this deck (${deck.slides.length} slides)`}
+                  <span className="arch-text">
+                    <span className="arch-l">{deck.archived ? 'Restore this deck' : 'Archive this deck'}</span> <span className="arch-n">({deck.slides.length} slides)</span>
+                  </span>
                 </button>
               </dd>
               <dt>File</dt>
@@ -1577,7 +1555,9 @@ export function SlideView({ id }: { id: string }) {
                 {p.sourceTitle}
                 <button type="button" className="btn-link arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
                   <Icon name="archive" className="ic-sm" />
-                  {deck.archived ? `Restore this deck (${deck.slides.length} slides)` : `Archive this deck (${deck.slides.length} slides)`}
+                  <span className="arch-text">
+                    <span className="arch-l">{deck.archived ? 'Restore this deck' : 'Archive this deck'}</span> <span className="arch-n">({deck.slides.length} slides)</span>
+                  </span>
                 </button>
               </dd>
               <dt>File</dt>
