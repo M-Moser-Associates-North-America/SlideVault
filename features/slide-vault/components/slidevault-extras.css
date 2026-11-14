@@ -501,7 +501,7 @@
 
   .slidevault .sv-app[data-size="wide"] .cart-col { padding: 0; min-height: 0; background: var(--sv-surface); border-top: 0; border-left: 1px solid var(--sv-brand); box-shadow: -8px 0 24px -12px rgba(20, 20, 20, 0.22); overflow: hidden; margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 2200px) / 2)); }
   .slidevault .sv-app[data-size="wide"] .cart-min .cart-col { padding: 0; width: 0; min-height: 0; max-height: 0; border: 0; background: none; overflow: visible; margin-right: 0; }
-  .slidevault .sv-app[data-size="wide"] .cart-col { top: var(--cart-top, 47px); }
+  .slidevault .sv-app[data-size="wide"] .cart-col { top: var(--cart-top, 0px); }
   .slidevault .sv-app[data-size="wide"] .cart { gap: 0; height: var(--cart-room, calc(var(--sv-h, 100%) - 179px)); }
 
 
@@ -3068,3 +3068,20 @@ dialog.slidevault.tag-sheet .tag-sheet-body { padding-bottom: calc(40px + env(sa
 .slidevault .seccards-browse > .h1 + .meta { margin: 6px 0 22px; }
 /* Desktop: a clear gap between the filter buttons and the row of chosen filters under them. */
 .slidevault .sv-app[data-size="wide"]:not([data-tl]) .fbar-row > .fb-chips { margin-top: 12px; }
+
+/* Pinned and showing the slim search: both height corrections apply (-26px for the pinned padding, -50px for the slim search), so the page under it never jumps. */
+.slidevault .fbar.is-stuck.has-search { margin-bottom: -76px; }
+
+/* Phone held upright: the draft deck slides in from the right as a full-height panel, like on a tablet (it was a sheet from the bottom). */
+@media (max-width: 700px) {
+  .slidevault .sv-app[data-size="compact"]:not([data-land]) .cart-col, .slidevault .sv-app[data-size="compact"]:not([data-land]) .cart-col:has(.cart-empty) {
+    top: 0; bottom: 0; left: auto; right: 0; width: min(calc(var(--sv-w, 390px) * 0.88), 360px); height: auto;
+    border-top: 0; border-left: 1px solid var(--sv-brand); border-radius: 0;
+    box-shadow: -12px 0 32px -12px rgba(10, 10, 12, 0.45);
+    transition: right 0.22s var(--sv-ease-out), visibility 0.22s;
+  }
+  .slidevault .sv-app[data-size="compact"]:not([data-land]) .cart-min .cart-col, .slidevault .sv-app[data-size="compact"]:not([data-land]) .cart-min .cart-col:has(.cart-empty) {
+    bottom: 0; right: calc(-1 * min(calc(var(--sv-w, 390px) * 0.88), 360px) - 24px); visibility: hidden; box-shadow: none;
+  }
+  .slidevault .sv-app[data-size="compact"]:not([data-land]) .cart-head { padding-top: calc(18px + env(safe-area-inset-top)); }
+}

@@ -185,7 +185,9 @@ export function Cart() {
       const col = scroller.querySelector<HTMLElement>('.cart-col');
       if (!col) return;
       /* Stick right under the tabs bar, whatever its height is, so no gap shows above the panel. */
-      const stick = scroller.querySelector<HTMLElement>('.sv-top')?.offsetHeight ?? 47;
+      /* Only a pinned tabs bar takes room at the top; on desktop the header scrolls away, so the panel sticks to the very top. */
+      const top = document.querySelector<HTMLElement>('.slidevault .sv-top');
+      const stick = top && /sticky|fixed/.test(getComputedStyle(top).position) ? top.offsetHeight : 0;
       col.style.setProperty('--cart-top', `${stick}px`);
       const colTop = col.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
       col.style.setProperty('--cart-room', `${Math.max(240, scroller.clientHeight - Math.max(stick, colTop))}px`);

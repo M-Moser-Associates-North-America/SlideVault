@@ -272,7 +272,10 @@ function HomeHeader() {
     let io: IntersectionObserver | undefined;
     const watch = () => {
       io?.disconnect();
-      const tabs = document.querySelector<HTMLElement>('.slidevault .sv-top')?.offsetHeight ?? 47;
+      /* Only a pinned tabs row covers the top of the page; on desktop the header scrolls away, so nothing is subtracted. */
+      const top = document.querySelector<HTMLElement>('.slidevault .sv-top');
+      const pinned = !!top && /sticky|fixed/.test(getComputedStyle(top).position);
+      const tabs = pinned ? top.offsetHeight : 0;
       io = new IntersectionObserver(([entry]) => setHeroOut(!entry.isIntersecting), { root: scroll.current, rootMargin: `-${tabs}px 0px 0px 0px` });
       io.observe(el);
     };
