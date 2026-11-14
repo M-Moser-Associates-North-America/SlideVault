@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '../ui/Button';
 import { SectionBrowse } from '../SectionCards';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { SlideSummary } from '../../contracts/dto';
@@ -384,9 +385,9 @@ function LibraryView() {
           )}
           {slides.length === 0 && (
             <StateBlock icon="search" title="No slides match" text={removeHint(filters) || 'Try a different filter.'}>
-              <button type="button" className="btn" onClick={clearFilters}>
+              <Button  onClick={clearFilters}>
                 Clear all filters
-              </button>
+              </Button>
             </StateBlock>
           )}
         </>

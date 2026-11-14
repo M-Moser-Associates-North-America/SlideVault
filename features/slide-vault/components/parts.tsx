@@ -1,5 +1,6 @@
 'use client';
 
+import { Badge } from './ui/Badge';
 import { CardVotes } from './SlideActions';
 import { useWorkspaceCompact } from './size';
 import { CompactTags } from './TagBits';
@@ -328,8 +329,8 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
         {pack && <PackBadge pack={pack} slideId={slide.id} />}
         {(slide.hiddenInSource || p.archived) && (
           <span className="thumb-badge">
-            {p.archived && <span className="badge badge-archived">Archived</span>}
-            {slide.hiddenInSource && <span className="badge">Hidden in source</span>}
+            {p.archived && <Badge tone="archived">Archived</Badge>}
+            {slide.hiddenInSource && <Badge >Hidden in source</Badge>}
           </span>
         )}
         <button

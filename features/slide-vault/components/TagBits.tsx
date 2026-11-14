@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactElement, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { getSlide, listTags, searchTagSuggestions, tagSuggestions, type TagSuggestionItem } from '../client/api';
@@ -358,9 +359,9 @@ export function ConfirmDialog({ open, title, kind, subject, detail, lead, confir
     <dialog ref={ref} className="slidevault sv-dialog" data-theme={runtime.theme} aria-labelledby={titleId} onClose={onCancel} onClick={backdropClose(onCancel)}>
       <div className="dlg-head">
         <h2 id={titleId}>{title}</h2>
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={onCancel}>
+        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={onCancel}>
           <Icon name="x" />
-        </button>
+        </Button>
       </div>
       <div className="dlg-body arch-body">
         <div className="arch-deck">
@@ -371,12 +372,12 @@ export function ConfirmDialog({ open, title, kind, subject, detail, lead, confir
         <p className="arch-lead">{lead}</p>
       </div>
       <div className="dlg-foot">
-        <button ref={cancelRef} type="button" className="btn btn-ghost" onClick={onCancel}>
+        <Button ref={cancelRef} variant="ghost" onClick={onCancel}>
           Cancel
-        </button>
-        <button type="button" className="btn btn-primary" onClick={onConfirm}>
+        </Button>
+        <Button variant="primary" onClick={onConfirm}>
           {confirmLabel}
-        </button>
+        </Button>
       </div>
     </dialog>
   );
@@ -449,9 +450,9 @@ function AddTagSheet({ label, known, have, disabled, onAdd }: { label: string; k
           <>
             <div className="dlg-head">
               <h2 id={titleId}>Add a tag</h2>
-              <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={close}>
+              <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={close}>
                 <Icon name="x" />
-              </button>
+              </Button>
             </div>
             <div className="dlg-body tag-sheet-body">
               <form
@@ -480,9 +481,9 @@ function AddTagSheet({ label, known, have, disabled, onAdd }: { label: string; k
                     else setText(v);
                   }}
                 />
-                <button type="submit" className="btn btn-primary" disabled={!typed || taken(typed)}>
+                <Button type="submit" variant="primary" disabled={!typed || taken(typed)}>
                   Add
-                </button>
+                </Button>
               </form>
               {added.length > 0 && <p className="meta tag-sheet-added">Added: {added.join(', ')}</p>}
               {options.length > 0 && (

@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '../ui/Button';
 import { SectionCards } from '../SectionCards';
 import { useEffect, useMemo, useState } from 'react';
 import type { SmartSearchItem, SmartSearchResult } from '../../contracts/dto';
@@ -139,9 +140,9 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
       )}
       {!browse && !waitingForAi && search.status === 'error' && (
         <StateBlock error icon="alert" title="Search did not work" text={search.message}>
-          <button type="button" className="btn" onClick={retrySearch}>
+          <Button  onClick={retrySearch}>
             Try again
-          </button>
+          </Button>
         </StateBlock>
       )}
       {browse && !result && 'blocker' in lib && <div style={{ marginTop: 20 }}>{lib.blocker}</div>}
@@ -215,14 +216,14 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
               }
             >
               {filterCount(filters) > 0 && (
-                <button type="button" className="btn" onClick={clearFilters}>
+                <Button  onClick={clearFilters}>
                   Clear all filters
-                </button>
+                </Button>
               )}
               {!browse && (
-                <button type="button" className="btn" onClick={() => setQuery('')}>
+                <Button  onClick={() => setQuery('')}>
                   Clear search
-                </button>
+                </Button>
               )}
             </StateBlock>
           ) : (

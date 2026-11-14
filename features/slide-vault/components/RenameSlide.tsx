@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import type { SlideDetail, SlideSummary, TitleEdit } from '../contracts/dto';
 import { backdropClose, useDialogOpen } from './Dialogs';
@@ -86,9 +87,9 @@ export function SlideTitle({ slide, loaded }: { slide: SlideSummary; loaded?: Sl
         <form onSubmit={save}>
           <div className="dlg-head">
             <h2 id={`${id}-t`}>Rename this slide?</h2>
-            <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={close}>
+            <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={close}>
               <Icon name="x" />
-            </button>
+            </Button>
           </div>
           <div className="dlg-body arch-body">
             <div className="notice info">
@@ -109,12 +110,12 @@ export function SlideTitle({ slide, loaded }: { slide: SlideSummary; loaded?: Sl
             )}
           </div>
           <div className="dlg-foot">
-            <button type="button" className="btn btn-ghost" onClick={close} disabled={busy}>
+            <Button variant="ghost" onClick={close} disabled={busy}>
               Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={!changed || busy}>
+            </Button>
+            <Button type="submit" variant="primary" disabled={!changed || busy}>
               {busy ? 'Renaming…' : 'Rename for everyone'}
-            </button>
+            </Button>
           </div>
         </form>
       </dialog>

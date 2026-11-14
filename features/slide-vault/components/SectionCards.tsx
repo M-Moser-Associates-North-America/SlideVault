@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useMemo, useState } from 'react';
 import { getSection, listSections } from '../client/api';
 import type { SlideSummary } from '../contracts/dto';
@@ -133,10 +134,10 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
                 </p>
                 <p className="seccard-n">{plural(n, 'slide')} in this section</p>
                 <div className="seccard-acts">
-                  <button type="button" className="btn btn-sm" aria-busy={busy === g.key} disabled={!!busy && busy !== g.key} onClick={() => void working(g, () => open(g))}>
+                  <Button size="sm" aria-busy={busy === g.key} disabled={!!busy && busy !== g.key} onClick={() => void working(g, () => open(g))}>
                     Open section
-                  </button>
-                  <button type="button" className={`btn btn-sm${on ? '' : ' btn-primary'}`} aria-pressed={on} aria-busy={busy === g.key} disabled={!!busy && busy !== g.key} onClick={() => void working(g, () => toggle(g))}>
+                  </Button>
+                  <Button size="sm" variant={on ? 'secondary' : 'primary'} aria-pressed={on} aria-busy={busy === g.key} disabled={!!busy && busy !== g.key} onClick={() => void working(g, () => toggle(g))}>
                     {busy === g.key && !whole[g.dividerId] ? (
                       <>
                         <span className="sv-ring is-small" aria-hidden="true" /> Getting the section…
@@ -148,7 +149,7 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
                     ) : (
                       <>Add all {n} to draft deck</>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </li>

@@ -1,5 +1,7 @@
 'use client';
 
+import { Button, buttonClass } from '../ui/Button';
+import { Badge } from '../ui/Badge';
 import { DeckTags } from '../TagBits';
 import { useEffect, useRef, useState } from 'react';
 import type { SlideSummary } from '../../contracts/dto';
@@ -36,9 +38,9 @@ function MoreMenu({ label, items }: { label: string; items: { label: string; ico
   }, [open]);
   return (
     <div className="more-menu" ref={wrap}>
-      <button type="button" className="btn btn-sm btn-icon" aria-haspopup="menu" aria-expanded={open} aria-label={label} onClick={() => setOpen((o) => !o)}>
+      <Button size="sm" iconOnly aria-haspopup="menu" aria-expanded={open} aria-label={label} onClick={() => setOpen((o) => !o)}>
         <Icon name="more" />
-      </button>
+      </Button>
       {open && (
         <div className="more-menu-list" role="menu">
           {items.map((it) => (
@@ -107,12 +109,12 @@ function RangeAdd({ slides, from, to, setFrom, setTo, onDone }: { slides: SlideS
       <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="next" autoComplete="off" aria-label={`From slide, a number from 1 to ${slides.length}`} value={from} onFocus={keepInView} onBlur={() => setFrom(String(Math.min(slides.length, Math.max(1, Math.round(Number(from)) || 1))))} onChange={(e) => setFrom(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, from, setFrom)} />
       <span>to</span>
       <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="go" autoComplete="off" aria-label={`To slide, a number from 1 to ${slides.length}`} value={to} onFocus={keepInView} onBlur={() => setTo(String(Math.min(slides.length, Math.max(1, Math.round(Number(to)) || slides.length))))} onChange={(e) => setTo(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, to, setTo)} />
-      <button type="submit" className="btn btn-sm btn-primary">
+      <Button type="submit" size="sm" variant="primary">
         Add {hi - lo + 1}
-      </button>
-      <button type="button" className="btn btn-sm btn-ghost btn-icon range-close" aria-label="Close, and show the whole deck" onClick={onDone}>
+      </Button>
+      <Button size="sm" variant="ghost" iconOnly className="range-close" aria-label="Close, and show the whole deck" onClick={onDone}>
         <Icon name="x" />
-      </button>
+      </Button>
     </form>
   );
 }
@@ -170,9 +172,9 @@ function DeckJump({ slides, dense, setDense }: { slides: SlideSummary[]; dense: 
       </div>
       {stuck && (
         <div className="deck-sticky">
-          <button type="button" className="btn btn-sm btn-icon" aria-label="Back to the top" onClick={() => scroll.current?.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <Button size="sm" iconOnly aria-label="Back to the top" onClick={() => scroll.current?.scrollTo({ top: 0, behavior: 'smooth' })}>
             <Icon name="up" />
-          </button>
+          </Button>
           <span className="deck-jump-go">
             Slide {goBox} of {slides.length}
           </span>
@@ -216,7 +218,7 @@ export function DeckView({ id }: { id: string }) {
     return (
       <div className="sv-wrap">
         <StateBlock icon="search" title="Deck not found" text="It may have been removed.">
-          <Link className="btn" to={{ view: 'pages' }}>
+          <Link className={buttonClass()} to={{ view: 'pages' }}>
             Back to Home
           </Link>
         </StateBlock>
@@ -248,13 +250,13 @@ export function DeckView({ id }: { id: string }) {
             ))}
           </h1>
           <ScrollRow className="badges deck-badges">
-            {deck.archived && <span className="badge badge-archived">Archived</span>}
-            {deck.category && <span className="badge">{deck.category}</span>}
-            {deck.year && <span className="badge">{deck.year}</span>}
-            <span className="badge">
+            {deck.archived && <Badge tone="archived">Archived</Badge>}
+            {deck.category && <Badge >{deck.category}</Badge>}
+            {deck.year && <Badge >{deck.year}</Badge>}
+            <Badge >
               <Icon name="folder" />
               {folderLabel(deck)}
-            </span>
+            </Badge>
           </ScrollRow>
           {/* One line (it wraps to a second if it must): how many slides, who made the file, who uploaded it. */}
           <p className="lede deck-meta">
@@ -288,15 +290,15 @@ export function DeckView({ id }: { id: string }) {
           <div className="row-flex deck-actions">
             <SelectAll slides={deck.slides} />
             {tablet && (
-              <button type="button" className="btn btn-sm" aria-pressed={rangeOpen} onClick={() => (rangeOpen ? setRangeOpen(false) : openRange())}>
+              <Button size="sm" aria-pressed={rangeOpen} onClick={() => (rangeOpen ? setRangeOpen(false) : openRange())}>
                 <Icon name="plus" />
                 <span>Add a range of slides</span>
-              </button>
+              </Button>
             )}
-            <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload(deck.slides)} aria-label="Download whole deck">
+            <Button size="sm" variant="primary" onClick={() => openDownload(deck.slides)} aria-label="Download whole deck">
               <Icon name="download" />
               <span>Download</span>
-            </button>
+            </Button>
             <MoreMenu
               label="More deck actions"
               items={[
@@ -314,22 +316,22 @@ export function DeckView({ id }: { id: string }) {
         ) : (
           <div className="row-flex deck-actions-row">
             <SelectAll slides={deck.slides} />
-            <button type="button" className="btn btn-sm" aria-pressed={rangeOpen} onClick={() => (rangeOpen ? setRangeOpen(false) : openRange())}>
+            <Button size="sm" aria-pressed={rangeOpen} onClick={() => (rangeOpen ? setRangeOpen(false) : openRange())}>
               <Icon name="plus" />
               <span>Add a range of slides</span>
-            </button>
-            <button type="button" className="btn btn-sm" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}>
+            </Button>
+            <Button size="sm" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}>
               <Icon name="archive" />
               <span>{deck.archived ? 'Restore deck' : 'Archive deck'}</span>
-            </button>
-            <button type="button" className="btn btn-sm" aria-pressed={grouping} onClick={() => setGrouping((g) => !g)}>
+            </Button>
+            <Button size="sm" aria-pressed={grouping} onClick={() => setGrouping((g) => !g)}>
               <Icon name="layers" />
               <span>{grouping ? 'Stop grouping' : 'Group slides into a pack'}</span>
-            </button>
-            <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload(deck.slides)}>
+            </Button>
+            <Button size="sm" variant="primary" onClick={() => openDownload(deck.slides)}>
               <Icon name="download" />
               <span>Download whole deck</span>
-            </button>
+            </Button>
           </div>
         )}
       </div>

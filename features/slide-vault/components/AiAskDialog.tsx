@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useRef } from 'react';
 import { useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
@@ -46,12 +47,12 @@ export function AiAskDialog() {
         </p>
       </div>
       <div className="dlg-foot ai-ask-foot">
-        <button type="button" className="btn btn-ghost" onClick={no}>
+        <Button variant="ghost" onClick={no}>
           {long ? 'No, regular search' : 'No, search normally'}
-        </button>
-        <button ref={yesRef} type="button" className="btn btn-primary" onClick={() => answerAiAsk(true)}>
+        </Button>
+        <Button ref={yesRef} variant="primary" onClick={() => answerAiAsk(true)}>
           Yes, use AI
-        </button>
+        </Button>
       </div>
     </dialog>
   );

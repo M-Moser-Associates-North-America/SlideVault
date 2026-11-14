@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from 'react';
 import { sendSearchFeedback } from '../client/api';
 import { EngageUnavailable, useEngagement, type EngageApi } from '../client/engage-store';
@@ -205,9 +206,9 @@ export function useShareSlide(slideId: string) {
 export function ShareIconButton({ slideId }: { slideId: string }) {
   const share = useShareSlide(slideId);
   return (
-    <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Share: copy a link to this slide" data-tip="Copy link" data-tip-pos="end" onClick={() => void share()}>
+    <Button variant="ghost" iconOnly size="sm" aria-label="Share: copy a link to this slide" data-tip="Copy link" data-tip-pos="end" onClick={() => void share()}>
       <Icon name="share" />
-    </button>
+    </Button>
   );
 }
 

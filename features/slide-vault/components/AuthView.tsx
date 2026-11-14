@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Icon } from './icons';
 import { useWorkspaceSize } from './size';
@@ -104,9 +105,9 @@ export function LoginView() {
                 </button>
               </div>
             </label>
-            <button type="submit" className="btn btn-primary auth-submit">
+            <Button type="submit" variant="primary" className="auth-submit">
               {isSignUp ? 'Request access' : 'Sign in'}
-            </button>
+            </Button>
           </form>
           <div className="auth-switch">
             {isSignUp ? 'Already have access?' : 'Need an account?'}{' '}

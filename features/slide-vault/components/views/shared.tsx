@@ -1,5 +1,6 @@
 'use client';
 
+import { Button, buttonClass } from '../ui/Button';
 import { useRef, type ReactNode } from 'react';
 import type { SlideSummary } from '../../contracts/dto';
 import { Icon } from '../icons';
@@ -45,12 +46,12 @@ export function Row({ id, title, sub, seeAll, total, children }: { id: string; t
               See all {total}
             </Link>
           )}
-          <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Scroll ${title} left`} onClick={() => scroll(-1)}>
+          <Button variant="ghost" iconOnly size="sm" aria-label={`Scroll ${title} left`} onClick={() => scroll(-1)}>
             <Icon name="left" />
-          </button>
-          <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Scroll ${title} right`} onClick={() => scroll(1)}>
+          </Button>
+          <Button variant="ghost" iconOnly size="sm" aria-label={`Scroll ${title} right`} onClick={() => scroll(1)}>
             <Icon name="right" />
-          </button>
+          </Button>
         </div>
       </div>
       <ul ref={ref} className="row-scroller">
@@ -98,9 +99,9 @@ export function useReadyLibrary(): { slides: SlideSummary[]; decks: Deck[] } | {
     return {
       blocker: (
         <StateBlock error icon="alert" title="The library could not be loaded" text={library.message}>
-          <button type="button" className="btn" onClick={reloadLibrary}>
+          <Button  onClick={reloadLibrary}>
             Try again
-          </button>
+          </Button>
         </StateBlock>
       ),
     };
@@ -109,7 +110,7 @@ export function useReadyLibrary(): { slides: SlideSummary[]; decks: Deck[] } | {
     return {
       blocker: (
         <StateBlock icon="library" title="Your library is empty" text="No decks have been added yet. Upload a deck to see its slides here.">
-          <Link className="btn" to={{ view: 'upload' }}>
+          <Link className={buttonClass()} to={{ view: 'upload' }}>
             Go to Upload
           </Link>
         </StateBlock>
@@ -130,20 +131,20 @@ export function SelectAll({ slides }: { slides: SlideSummary[] }) {
     announce(all ? 'Removed from draft deck' : `${plural(slides.length, 'slide')} added to draft deck`);
   };
   return (
-    <button type="button" className="btn btn-sm" onClick={click} aria-label={all ? 'Remove all from draft deck' : `Add all ${slides.length} to draft deck`}>
+    <Button size="sm" onClick={click} aria-label={all ? 'Remove all from draft deck' : `Add all ${slides.length} to draft deck`}>
       <Icon name="check" />
       <span className="lbl-long" aria-hidden="true">{all ? 'Remove all from draft deck' : `Add all ${slides.length} to draft deck`}</span>
       <span className="lbl-short" aria-hidden="true">{all ? 'Remove all' : `Add all ${slides.length}`}</span>
-    </button>
+    </Button>
   );
 }
 
 /** One button that flips between one and two slides across; the icon shows what a tap will switch to. Used wherever slides are in a grid on a phone. */
 export function ColumnsToggle({ dense, setDense }: { dense: boolean; setDense: (d: boolean) => void }) {
   return (
-    <button type="button" className="btn btn-sm btn-icon cols-toggle" aria-label={dense ? 'Show larger cards' : 'Show smaller cards'} onClick={() => setDense(!dense)}>
+    <Button size="sm" iconOnly className="cols-toggle" aria-label={dense ? 'Show larger cards' : 'Show smaller cards'} onClick={() => setDense(!dense)}>
       <Icon name={dense ? 'expand' : 'columns'} />
-    </button>
+    </Button>
   );
 }
 

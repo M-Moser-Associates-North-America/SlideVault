@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useId, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from 'react';
 import { Icon } from './icons';
 import { categoryOf, clientOf, countBy, filterCount, yearsOf, type Deck } from './library';
@@ -56,16 +57,15 @@ export function SearchForm({ onSubmit }: { onSubmit: () => void }) {
           <Icon name="x" />
         </button>
       </div>
-      <button
-        type="button"
-        className="btn btn-icon mic"
+      <Button
+        iconOnly className="mic"
         aria-disabled="true"
         aria-label="Voice search, planned for later"
         data-tip="Voice search: coming soon"
         data-tip-pos="end"
       >
         <Icon name="mic" />
-      </button>
+      </Button>
     </form>
   );
 }

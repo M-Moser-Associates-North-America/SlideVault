@@ -1,5 +1,6 @@
 'use client';
 
+import { Button, buttonClass } from './ui/Button';
 import { PreviewActions, ShareIconButton } from './SlideActions';
 import { PreviewTags } from './TagBits';
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
@@ -168,9 +169,9 @@ export function Lightbox() {
         <>
           <div className="dlg-head lb-head">
             {results && (
-              <button type="button" className="btn btn-ghost btn-icon btn-sm lb-rnav" aria-label="Previous result" disabled={section ? sectionFirst : atFirstResult} onClick={() => moveResult(-1)}>
+              <Button variant="ghost" iconOnly size="sm" className="lb-rnav" aria-label="Previous result" disabled={section ? sectionFirst : atFirstResult} onClick={() => moveResult(-1)}>
                 <Icon name="left" />
-              </button>
+              </Button>
             )}
             <div className="lb-title">
               <h2 id="sv-lb-title">
@@ -184,39 +185,41 @@ export function Lightbox() {
               </ScrollLine>
             </div>
             {results && (
-              <button type="button" className="btn btn-ghost btn-icon btn-sm lb-rnav" aria-label="Next result" disabled={section ? sectionLast : atLastResult} onClick={() => moveResult(1)}>
+              <Button variant="ghost" iconOnly size="sm" className="lb-rnav" aria-label="Next result" disabled={section ? sectionLast : atLastResult} onClick={() => moveResult(1)}>
                 <Icon name="right" />
-              </button>
+              </Button>
             )}
             <div className="dlg-head-tools">
               {slide.alsoIn && (
-                <button type="button" className="btn btn-ghost btn-sm lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
+                <Button variant="ghost" size="sm" className="lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
                   <Icon name="folders" />
                   <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
-                </button>
+                </Button>
               )}
-              <button
-                type="button"
-                className={`btn btn-ghost btn-icon btn-sm lb-save${isSaved(slide.id) ? ' is-saved' : ''}`}
+              <Button
+                variant="ghost"
+                iconOnly
+                size="sm"
+                className={`lb-save${isSaved(slide.id) ? ' is-saved' : ''}`}
                 aria-pressed={isSaved(slide.id)}
                 aria-label={isSaved(slide.id) ? `Remove from saved: ${slide.title}` : `Save: ${slide.title}`}
                 onClick={() => toggleSave(slide)}
               >
                 <Icon name="heart" />
-              </button>
+              </Button>
               <ShareIconButton slideId={slide.id} />
-              <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close preview" onClick={closePreview}>
+              <Button variant="ghost" iconOnly size="sm" aria-label="Close preview" onClick={closePreview}>
                 <Icon name="x" />
-              </button>
+              </Button>
             </div>
           </div>
           <div className="dlg-body">
             {results && (
               <div className="lb-results" role="group" aria-label={section ? `${section} section` : 'Search results'}>
-                <button type="button" className="btn btn-sm" disabled={section ? sectionFirst : atFirstResult} onClick={() => moveResult(-1)} title="Previous result ([ or Shift+←)">
+                <Button size="sm" disabled={section ? sectionFirst : atFirstResult} onClick={() => moveResult(-1)} title="Previous result ([ or Shift+←)">
                   <Icon name="left" />
                   <span>Previous result</span>
-                </button>
+                </Button>
                 <span className="counter" aria-live="polite">
                   {section ? (
                     sectionAt >= 0 ? (
@@ -237,14 +240,14 @@ export function Lightbox() {
                   )}
                 </span>
                 {picked && preview && picked.id !== preview.list[preview.index].id && (
-                  <button type="button" className="btn btn-sm btn-ghost" onClick={() => setPick(null)}>
+                  <Button size="sm" variant="ghost" onClick={() => setPick(null)}>
                     {section ? 'Back to the section' : 'Back to the result'}
-                  </button>
+                  </Button>
                 )}
-                <button type="button" className="btn btn-sm" disabled={section ? sectionLast : atLastResult} onClick={() => moveResult(1)} title="Next result (] or Shift+→)">
+                <Button size="sm" disabled={section ? sectionLast : atLastResult} onClick={() => moveResult(1)} title="Next result (] or Shift+→)">
                   <span>Next result</span>
                   <Icon name="right" />
-                </button>
+                </Button>
               </div>
             )}
             {/* Phone held upright: the title sits under the result arrows, in the scrolling part. The header's own copy (read by screen readers) is hidden there. */}
@@ -261,9 +264,9 @@ export function Lightbox() {
             </div>
             <div className="lb-row" data-tablet={onTablet ? '' : undefined} data-handheld="">
               {sibs.length > 1 && (
-                <button type="button" className="btn btn-icon lb-nav lb-prev" aria-label="Previous slide in this deck" data-tip="Previous in deck" disabled={di <= 0} onClick={() => moveDeck(-1)}>
+                <Button iconOnly className="lb-nav lb-prev" aria-label="Previous slide in this deck" data-tip="Previous in deck" disabled={di <= 0} onClick={() => moveDeck(-1)}>
                   <Icon name="left" />
-                </button>
+                </Button>
               )}
               <div
                 className="lb-stage"
@@ -338,16 +341,15 @@ export function Lightbox() {
                 </span>
               )}
               {sibs.length > 1 && (
-                <button
-                  type="button"
-                  className="btn btn-icon lb-nav lb-next"
+                <Button
+                  iconOnly className="lb-nav lb-next"
                   aria-label="Next slide in this deck"
                   data-tip="Next in deck"
                   disabled={di < 0 || di >= sibs.length - 1}
                   onClick={() => moveDeck(1)}
                 >
                   <Icon name="right" />
-                </button>
+                </Button>
               )}
             </div>
             {deckLoading && sibs.length <= 1 && (
@@ -414,38 +416,35 @@ export function Lightbox() {
                 )}
               </span>
               <span className="row-flex">
-                <button type="button" className="btn btn-sm" aria-pressed={isSelected(slide.id)} onClick={() => setOne(slide, !isSelected(slide.id))}>
+                <Button size="sm" aria-pressed={isSelected(slide.id)} onClick={() => setOne(slide, !isSelected(slide.id))}>
                   <Icon name="check" />
                   <span className="lbl-long">{section ? (isSelected(slide.id) ? 'Slide in deck' : 'Add slide to deck') : isSelected(slide.id) ? 'In draft deck' : 'Add to draft deck'}</span>
                   <span className="lbl-short" aria-hidden="true">{isSelected(slide.id) ? 'In deck' : 'Add'}</span>
-                </button>
+                </Button>
                 {section && preview && preview.list.length > 1 && (
-                  <button
-                    type="button"
-                    className="btn btn-sm lb-section"
+                  <Button
+                    size="sm" className="lb-section"
                     disabled={preview.list.every((x) => selection.some((y) => y.id === x.id))}
                     onClick={() => addSection(section, preview.list)}
                   >
                     <Icon name="check" />
                     <span className="lbl-long">{preview.list.every((x) => selection.some((y) => y.id === x.id)) ? 'Section in deck' : `Add section to deck (${preview.list.length})`}</span>
                     <span className="lbl-short" aria-hidden="true">Section ({preview.list.length})</span>
-                  </button>
+                  </Button>
                 )}
                 {packs.of(slide.id) && (
-                  <button
-                    type="button"
-                    className="btn btn-sm lb-pack"
+                  <Button
+                    size="sm" className="lb-pack"
                     disabled={packs.of(slide.id)!.slideIds.every((id) => selection.some((x) => x.id === id))}
                     onClick={() => addPackToDraft(packs.of(slide.id)!)}
                   >
                     <Icon name="plus" />
                     <span className="lbl-long">Add whole pack ({packs.of(slide.id)!.slideIds.length})</span>
                     <span className="lbl-short" aria-hidden="true">Pack ({packs.of(slide.id)!.slideIds.length})</span>
-                  </button>
+                  </Button>
                 )}
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
+                <Button
+                  size="sm" variant="primary"
                   onClick={() => {
                     closePreview();
                     openDownload([slide]);
@@ -454,13 +453,13 @@ export function Lightbox() {
                   <Icon name="download" />
                   <span className="lbl-long">Download only this slide</span>
                   <span className="lbl-short" aria-hidden="true">Download</span>
-                </button>
-                <Link className="btn btn-sm lb-open-page" to={{ view: 'slide', id: slide.id }} onNavigate={closePreview}>
+                </Button>
+                <Link className={buttonClass({ size: 'sm', className: 'lb-open-page' })} to={{ view: 'slide', id: slide.id }} onNavigate={closePreview}>
                   <Icon name="open" />
                   <span>Open slide page</span>
                 </Link>
                 {deck && (
-                  <Link className="btn btn-sm lb-open-deck" to={{ view: 'deck', id: deck.id }} onNavigate={closePreview} aria-label="Open deck" title="Open deck">
+                  <Link className={buttonClass({ size: 'sm', className: 'lb-open-deck' })} to={{ view: 'deck', id: deck.id }} onNavigate={closePreview} aria-label="Open deck" title="Open deck">
                     <Icon name="deck" />
                     <span className="lbl-long">Open deck</span>
                   </Link>
@@ -619,15 +618,15 @@ function SlideViewer({ src, title, theme, onClose }: { src: string; title: strin
   return (
     <dialog ref={ref} className="slidevault sv-zoom" data-theme={theme} aria-label={`${title}, full screen`} onClose={onClose} onKeyDown={(e) => e.stopPropagation()}>
       <div className="sv-zoom-bar">
-        <button type="button" className="btn btn-icon" aria-label="Zoom out" disabled={v.s <= 1} onClick={() => zoomTo(v.s / 1.5)}>
+        <Button iconOnly aria-label="Zoom out" disabled={v.s <= 1} onClick={() => zoomTo(v.s / 1.5)}>
           <Icon name="minus" />
-        </button>
-        <button type="button" className="btn btn-icon" aria-label="Zoom in" disabled={v.s >= MAX} onClick={() => zoomTo(v.s * 1.5)}>
+        </Button>
+        <Button iconOnly aria-label="Zoom in" disabled={v.s >= MAX} onClick={() => zoomTo(v.s * 1.5)}>
           <Icon name="plus" />
-        </button>
-        <button type="button" className="btn btn-icon" aria-label="Close full screen view" onClick={onClose}>
+        </Button>
+        <Button iconOnly aria-label="Close full screen view" onClick={onClose}>
           <Icon name="x" />
-        </button>
+        </Button>
       </div>
       <div
         ref={stage}
@@ -719,9 +718,9 @@ export function DownloadDialog() {
             You get {planSummary(plan, combine)}. Slides stay editable.
           </p>
         </div>
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closeDownload}>
+        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={closeDownload}>
           <Icon name="x" />
-        </button>
+        </Button>
       </div>
       <div className="dlg-body">
         <ul className="dl-files">
@@ -765,14 +764,14 @@ export function DownloadDialog() {
         )}
       </div>
       <div className="dlg-foot">
-        <button type="button" className="btn" onClick={closeDownload}>
+        <Button  onClick={closeDownload}>
           {run.kind === 'done' ? 'Done' : 'Cancel'}
-        </button>
+        </Button>
         {run.kind !== 'done' && (
-          <button type="button" className="btn btn-primary" disabled={!canExport || !slides.length || run.kind === 'busy'} aria-busy={run.kind === 'busy'} onClick={go}>
+          <Button variant="primary" disabled={!canExport || !slides.length || run.kind === 'busy'} aria-busy={run.kind === 'busy'} onClick={go}>
             <Icon name={run.kind === 'busy' ? 'spinner' : 'download'} className={run.kind === 'busy' ? 'spin' : ''} />
             <span>{run.kind === 'busy' ? 'Building PowerPoint…' : run.kind === 'error' ? 'Try again' : 'Download'}</span>
-          </button>
+          </Button>
         )}
       </div>
     </dialog>
@@ -797,9 +796,9 @@ export function AlsoDialog() {
           <h2 id="sv-also-title">Also in {plural(others || alsoFor?.alsoIn?.otherDeckCount || 0, 'other deck')}</h2>
           <p className="meta">Also in these decks.</p>
         </div>
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closeAlso}>
+        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={closeAlso}>
           <Icon name="x" />
-        </button>
+        </Button>
       </div>
       <div className="dlg-body">
         <ul className="also-list">
@@ -822,9 +821,9 @@ export function AlsoDialog() {
         </ul>
       </div>
       <div className="dlg-foot">
-        <button type="button" className="btn" onClick={closeAlso}>
+        <Button  onClick={closeAlso}>
           Close
-        </button>
+        </Button>
       </div>
     </dialog>
   );

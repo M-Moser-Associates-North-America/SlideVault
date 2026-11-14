@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { startTransition, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, countBy, createdByOf, filterCount, plural, SECTION_LABEL, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
@@ -588,22 +589,22 @@ export function FilterBar() {
           <>
             <div className="dlg-head">
               <h2 id="sv-sheet-title">{sheet === 'all' ? 'Filters' : (items.find((it) => it.key === sheet)?.label ?? 'Filters')}</h2>
-              <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close filters" onClick={() => setSheet(null)}>
+              <Button variant="ghost" iconOnly size="sm" aria-label="Close filters" onClick={() => setSheet(null)}>
                 <Icon name="x" />
-              </button>
+              </Button>
             </div>
             <div className="dlg-body fb-sheet-body">
               {sheet === 'all' ? items.map((it) => <section key={it.key}>{panel(it.key)}</section>) : panel(sheet)}
             </div>
             <div className="dlg-foot">
               {n > 0 && (
-                <button type="button" className="btn" onClick={clearFilters}>
+                <Button  onClick={clearFilters}>
                   Clear all
-                </button>
+                </Button>
               )}
-              <button type="button" className="btn btn-primary" onClick={() => setSheet(null)}>
+              <Button variant="primary" onClick={() => setSheet(null)}>
                 Done
-              </button>
+              </Button>
             </div>
           </>
         )}

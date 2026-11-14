@@ -1,5 +1,6 @@
 'use client';
 
+import { Button, buttonClass } from '../ui/Button';
 import { SlideTitle } from '../RenameSlide';
 import { SlideEngagement, useShareSlide } from '../SlideActions';
 import { SlideLabelsPanel, SlideTagsPanel, PreviewTags } from '../TagBits';
@@ -76,7 +77,7 @@ export function SlideView({ id }: { id: string }) {
     return (
       <div className="sv-wrap">
         <StateBlock icon="search" title="Slide not found" text="It may have been removed.">
-          <Link className="btn" to={{ view: 'pages' }}>
+          <Link className={buttonClass()} to={{ view: 'pages' }}>
             Back to Home
           </Link>
         </StateBlock>
@@ -112,10 +113,10 @@ export function SlideView({ id }: { id: string }) {
   /* "Also in N other decks": in the row with the actions on a portrait phone; at the left end of the tag row on a phone on its side. */
   const alsoChip =
     slide.alsoIn ? (
-      <button type="button" className="btn btn-ghost btn-sm lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
+      <Button variant="ghost" size="sm" className="lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
         <Icon name="folders" />
         <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
-      </button>
+      </Button>
     ) : undefined;
   return (
     <div className="sv-wrap">
@@ -183,7 +184,7 @@ export function SlideView({ id }: { id: string }) {
           </div>
           <div className="row-flex slide-stepper" style={{ marginTop: 12, justifyContent: 'center', gap: 14 }}>
             {i > 0 ? (
-              <Link className="btn btn-sm btn-icon" to={{ view: 'slide', id: sibs[i - 1].id }} aria-label="Previous slide in this deck" title="Previous slide">
+              <Link className={buttonClass({ size: 'sm', iconOnly: true })} to={{ view: 'slide', id: sibs[i - 1].id }} aria-label="Previous slide in this deck" title="Previous slide">
                 <Icon name="left" />
               </Link>
             ) : (
@@ -205,7 +206,7 @@ export function SlideView({ id }: { id: string }) {
               )}
             </span>
             {i < sibs.length - 1 ? (
-              <Link className="btn btn-sm btn-icon" to={{ view: 'slide', id: sibs[i + 1].id }} aria-label="Next slide in this deck" title="Next slide">
+              <Link className={buttonClass({ size: 'sm', iconOnly: true })} to={{ view: 'slide', id: sibs[i + 1].id }} aria-label="Next slide in this deck" title="Next slide">
                 <Icon name="right" />
               </Link>
             ) : (
@@ -229,25 +230,25 @@ export function SlideView({ id }: { id: string }) {
           <section className="panel panel-use">
             <h2>Use this slide</h2>
             <div className="row-flex">
-              <button type="button" className="btn btn-sm" aria-pressed={sel} onClick={() => setOne(slide, !sel)}>
+              <Button size="sm" aria-pressed={sel} onClick={() => setOne(slide, !sel)}>
                 <Icon name="check" />
                 <span>{sel ? 'In draft deck' : 'Add to draft deck'}</span>
-              </button>
-              <button type="button" className="btn btn-sm" onClick={() => void shareSlide()} data-tip="Copy link">
+              </Button>
+              <Button size="sm" onClick={() => void shareSlide()} data-tip="Copy link">
                 <Icon name="share" />
                 <span>Share</span>
-              </button>
+              </Button>
               {slidePack && (
-                <button type="button" className="btn btn-sm" disabled={slidePack.slideIds.every((pid) => selection.some((x) => x.id === pid))} onClick={() => addPackToDraft(slidePack)}>
+                <Button size="sm" disabled={slidePack.slideIds.every((pid) => selection.some((x) => x.id === pid))} onClick={() => addPackToDraft(slidePack)}>
                   <Icon name="plus" />
                   <span>Add whole pack ({slidePack.slideIds.length})</span>
-                </button>
+                </Button>
               )}
-              <button type="button" className="btn btn-sm btn-primary" onClick={() => openDownload([slide])}>
+              <Button size="sm" variant="primary" onClick={() => openDownload([slide])}>
                 <Icon name="download" />
                 <span>Download slide</span>
-              </button>
-              <Link className="btn btn-sm" to={{ view: 'deck', id: deck.id }}>
+              </Button>
+              <Link className={buttonClass({ size: 'sm' })} to={{ view: 'deck', id: deck.id }}>
                 <Icon name="deck" />
                 <span>Open deck</span>
               </Link>
@@ -255,10 +256,10 @@ export function SlideView({ id }: { id: string }) {
           </section>
           {slidePack && <PackPanel slide={slide} pack={slidePack} />}
           {!compact && <SlideTagsPanel also={slide.alsoIn ? (
-            <button type="button" className="btn btn-ghost btn-sm also-words" onClick={() => openAlso(slide)}>
+            <Button variant="ghost" size="sm" className="also-words" onClick={() => openAlso(slide)}>
               <Icon name="folders" />
               <span>Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</span>
-            </button>
+            </Button>
           ) : undefined} slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />}
           <SlideLabelsPanel fold={compact} open={upright} story={(detail && detail.id === id && 'slide' in detail ? detail.slide.story : undefined) ?? slide.story} />
           {compact ? (

@@ -1,5 +1,6 @@
 'use client';
 
+import { Badge } from '../ui/Badge';
 import { Icon } from '../icons';
 import { Link } from '../parts';
 import { useTipSeen } from '../../client/tip-store';
@@ -43,9 +44,9 @@ export function CreateView() {
             </Link>
             .
           </p>
-          <span className="badge" style={{ alignSelf: 'flex-start' }}>
+          <Badge  style={{ alignSelf: 'flex-start' }}>
             Planned
-          </span>
+          </Badge>
         </div>
       </div>
     </div>

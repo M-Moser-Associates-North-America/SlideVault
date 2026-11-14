@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from './ui/Button';
+import { Badge } from './ui/Badge';
 import { useState } from 'react';
 import type { PreviewSlide } from '../client/pptx-preview';
 import { Icon } from './icons';
@@ -97,9 +99,9 @@ export function UploadSlideGrid({
             </span>
           </p>
         </div>
-        <button type="button" className="btn btn-sm" disabled={disabled} onClick={() => setSelected(allOn ? new Set() : new Set(slides.map((s) => s.number)))}>
+        <Button size="sm" disabled={disabled} onClick={() => setSelected(allOn ? new Set() : new Set(slides.map((s) => s.number)))}>
           {allOn ? 'Clear selection' : 'Select all'}
-        </button>
+        </Button>
       </div>
 
       {selected.size > 0 && (
@@ -108,9 +110,9 @@ export function UploadSlideGrid({
           <div className="upgrid-bulk-field">
             <AddTagPill label={`Add a tag to ${plural(selected.size, 'selected slide')}`} known={suggestions} have={[]} disabled={disabled} onAdd={addToSelected} />
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelected(new Set())}>
+          <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
             Done
-          </button>
+          </Button>
         </div>
       )}
 
@@ -139,7 +141,7 @@ export function UploadSlideGrid({
             </label>
             <div className="upcard-body">
               <h3 className="upcard-title">{s.title}</h3>
-              {s.hidden && <span className="badge">Hidden in the file</span>}
+              {s.hidden && <Badge >Hidden in the file</Badge>}
               {bodyOf(s) && <p className="upcard-text">{bodyOf(s)}</p>}
               <LocalTagList auto={autoTags[s.number]} label={`Tags for slide ${s.number}`} value={tags[s.number] ?? []} onChange={(list) => setOne(s.number, list)} inherited={deckTags} inheritedTip="Applies to the whole deck (set above)" suggestions={suggestions} suggested={suggested?.[String(s.number)]} disabled={disabled} />
             </div>
@@ -147,9 +149,9 @@ export function UploadSlideGrid({
         ))}
       </ul>
       {shown < slides.length && (
-        <button type="button" className="btn upgrid-more" onClick={() => setShown((n) => n + PAGE)}>
+        <Button className="upgrid-more" onClick={() => setShown((n) => n + PAGE)}>
           Show {Math.min(PAGE, slides.length - shown)} more slides
-        </button>
+        </Button>
       )}
     </section>
   );

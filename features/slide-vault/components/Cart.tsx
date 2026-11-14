@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { stopNudge, useNudge } from '../client/draft-nudge';
 import { useTourOpen } from '../client/tour-store';
 import { Fragment, useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
@@ -242,9 +243,9 @@ export function Cart() {
   });
 
   const toggleButton = (
-    <button type="button" className="btn btn-ghost btn-icon btn-sm cart-tg" aria-label="Close draft deck" onClick={closeCart}>
+    <Button variant="ghost" iconOnly size="sm" className="cart-tg" aria-label="Close draft deck" onClick={closeCart}>
       <Icon name="x" />
-    </button>
+    </Button>
   );
 
   if (!n) {
@@ -286,14 +287,14 @@ export function Cart() {
           {titleField}
           <p className="cart-title">{plural(n, 'slide')}</p>
           <div className="cart-acts">
-            <button type="button" className="btn btn-sm" onClick={openSave}>
+            <Button size="sm" onClick={openSave}>
               <Icon name="folder" />
               <span>Save as draft</span>
-            </button>
-            <button type="button" className="btn btn-sm btn-primary" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openDownload(included)}>
+            </Button>
+            <Button size="sm" variant="primary" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openDownload(included)}>
               <Icon name="download" />
               <span>Download as pptx</span>
-            </button>
+            </Button>
           </div>
         </div>
         <div className="cart-body">
@@ -346,9 +347,8 @@ export function Cart() {
                       <Link to={{ view: 'slide', id: s.id }}>{s.title}</Link>
                       <span className="meta">{s.provenance.sourceTitle}</span>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-icon btn-sm"
+                    <Button
+                      variant="ghost" iconOnly size="sm"
                       aria-label={`Remove from draft deck: ${s.title}`}
                       onClick={() => {
                         if (pack && present > 1) openPackDialog({ kind: 'remove', pack, slide: s });
@@ -356,7 +356,7 @@ export function Cart() {
                       }}
                     >
                       <Icon name="x" />
-                    </button>
+                    </Button>
                   </li>
                 </Fragment>
               );
@@ -392,9 +392,8 @@ export function Cart() {
             {confirming ? (
               <div className="cart-confirm" role="group" aria-label="Confirm clearing the draft deck">
                 <span className="cc-q">Are you sure?</span>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-icon cc-yes"
+                <Button
+                  size="sm" iconOnly className="cc-yes"
                   aria-label="Yes, clear the draft deck"
                   title="Yes, clear it"
                   onClick={() => {
@@ -404,21 +403,21 @@ export function Cart() {
                   }}
                 >
                   <Icon name="check" />
-                </button>
-                <button type="button" className="btn btn-sm btn-icon" aria-label="No, keep my slides" title="No, keep them" onClick={() => setConfirmFor(null)} autoFocus>
+                </Button>
+                <Button size="sm" iconOnly aria-label="No, keep my slides" title="No, keep them" onClick={() => setConfirmFor(null)} autoFocus>
                   <Icon name="x" />
-                </button>
+                </Button>
               </div>
             ) : (
               <>
-                <button type="button" className="btn btn-ghost btn-sm" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openPreview(included, 0)}>
+                <Button variant="ghost" size="sm" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openPreview(included, 0)}>
                   <Icon name="eye" />
                   <span>Preview</span>
-                </button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmFor(signature)}>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setConfirmFor(signature)}>
                   <Icon name="trash" />
                   <span>Clear</span>
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -441,9 +440,9 @@ export function Cart() {
                   {origin ? (unchanged ? `Started from “${origin.name}”. Nothing has changed since you saved it.` : `Started from “${origin.name}”. Since then: ${changes}.`) : 'Saved under Working drafts in My decks.'}
                 </p>
               </div>
-              <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closeSave}>
+              <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={closeSave}>
                 <Icon name="x" />
-              </button>
+              </Button>
             </div>
             <div className="dlg-body">
               {origin && (
@@ -470,12 +469,12 @@ export function Cart() {
               </p>
             </div>
             <div className="dlg-foot">
-              <button type="button" className="btn" onClick={closeSave}>
+              <Button  onClick={closeSave}>
                 Cancel
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={!draftName.trim() || saving}>
+              </Button>
+              <Button type="submit" variant="primary" disabled={!draftName.trim() || saving}>
                 {saving ? 'Saving…' : origin ? (choice === 'update' ? 'Update deck' : 'Save new deck') : 'Save draft'}
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -560,12 +559,12 @@ function TagAll({ slides }: { slides: SlideSummary[] }) {
           Tag for all {slides.length} slides
         </label>
         <input id={`${id}-t`} className="input" type="text" value={text} maxLength={TAG_MAX_LENGTH} placeholder="Tag, e.g. Priya" disabled={busy} onChange={(e) => setText(e.target.value)} autoFocus />
-        <button type="submit" className="btn btn-sm" disabled={busy || !cleanTag(text)}>
+        <Button type="submit" size="sm" disabled={busy || !cleanTag(text)}>
           {busy ? 'Tagging…' : 'Add'}
-        </button>
-        <button type="button" className="btn btn-sm btn-icon" aria-label="Cancel tagging" onClick={() => setOpen(false)} disabled={busy}>
+        </Button>
+        <Button size="sm" iconOnly aria-label="Cancel tagging" onClick={() => setOpen(false)} disabled={busy}>
           <Icon name="x" />
-        </button>
+        </Button>
       </form>
       <p className="meta cart-tagall-note">Tags are shared with everyone, and show up in search.</p>
     </div>

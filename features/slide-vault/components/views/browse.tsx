@@ -1,5 +1,6 @@
 'use client';
 
+import { buttonClass } from '../ui/Button';
 import type { SlideSummary } from '../../contracts/dto';
 import { browseSlides, browseTitle, deckMatches, downloadedNote, plural, slideMatches, type Deck } from '../library';
 import { DeckCard, Link, SlideCard, StateBlock } from '../parts';
@@ -53,7 +54,7 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
   if (!ids.length) {
     return (
       <StateBlock icon="search" title="No slides in this row yet" text="Nothing here matches your filters. Try removing one, or head back to Home.">
-        <Link className="btn" to={{ view: 'pages' }}>
+        <Link className={buttonClass()} to={{ view: 'pages' }}>
           Back to Home
         </Link>
       </StateBlock>

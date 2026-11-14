@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useCallback, useEffect, useState } from 'react';
 import { ACTIONS, EVENTS, Joyride, STATUS, type EventData, type Step, type TooltipRenderProps } from 'react-joyride';
 import { endTour, startTour, useTourOpen } from '../client/tour-store';
@@ -16,27 +17,27 @@ const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() 
 function TourCard({ index, size, step, isLastStep, backProps, primaryProps, skipProps, closeProps, tooltipProps }: TooltipRenderProps) {
   return (
     <div className="tour-pop" {...tooltipProps} aria-labelledby="tour-title">
-      <button type="button" className="btn btn-ghost btn-icon btn-sm tour-x" {...closeProps} aria-label="Close tour" title="Close tour (Esc)">
+      <Button variant="ghost" iconOnly size="sm" className="tour-x" {...closeProps} aria-label="Close tour" title="Close tour (Esc)">
         <Icon name="x" />
-      </button>
+      </Button>
       <p className="tour-n">
         Step {index + 1} of {size}
       </p>
       <h2 id="tour-title">{step.title}</h2>
       <p className="tour-t">{step.content}</p>
       <div className="tour-acts">
-        <button type="button" className="btn btn-ghost btn-sm" {...skipProps}>
+        <Button variant="ghost" size="sm" {...skipProps}>
           Skip tour
-        </button>
+        </Button>
         <span className="tour-nav">
           {index > 0 && (
-            <button type="button" className="btn btn-sm" {...backProps}>
+            <Button size="sm" {...backProps}>
               Back
-            </button>
+            </Button>
           )}
-          <button type="button" className="btn btn-sm btn-primary" {...primaryProps}>
+          <Button size="sm" variant="primary" {...primaryProps}>
             {isLastStep ? 'Done' : 'Next'}
-          </button>
+          </Button>
         </span>
       </div>
     </div>
@@ -290,12 +291,12 @@ export function Tour() {
       {open && ready && paused && (
         <div className="tour-paused" role="status">
           <span className="tour-paused-t">{away ? 'Tour paused. Go back to Home to continue.' : 'Tour paused. The draft deck was closed.'}</span>
-          <button type="button" className="btn btn-sm btn-primary" onClick={resume}>
+          <Button size="sm" variant="primary" onClick={resume}>
             {away ? 'Back to Home' : 'Resume'}
-          </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={close}>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={close}>
             End tour
-          </button>
+          </Button>
         </div>
       )}
     </>
