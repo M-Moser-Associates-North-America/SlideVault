@@ -3066,3 +3066,5 @@ dialog.slidevault.tag-sheet .tag-sheet-body { padding-bottom: calc(40px + env(sa
 /* A section's own page (a section chosen on Home): the heading, its one line, then room before the section cards. */
 .slidevault .seccards-browse > .h1 { margin: 0; }
 .slidevault .seccards-browse > .h1 + .meta { margin: 6px 0 22px; }
+/* Desktop: a clear gap between the filter buttons and the row of chosen filters under them. */
+.slidevault .sv-app[data-size="wide"]:not([data-tl]) .fbar-row > .fb-chips { margin-top: 12px; }
