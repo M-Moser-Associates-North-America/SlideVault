@@ -4,14 +4,16 @@ import { useRef, useState } from 'react';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
 import { plural } from './library';
-import { useWorkspace } from './state';
+import { useLibrary, useOverlays, useRuntime } from './state';
 
 /**
  * Archive or restore a deck (FD-50). Archiving hides the deck from the library, search and AI for everyone;
  * nothing is deleted and it can be restored. For the MVP anyone signed in can do it (a tier decision for later).
  */
 export function ArchiveDialog() {
-  const { runtime, archiveDialog, closeArchiveDialog, archiveDeck } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { archiveDeck } = useLibrary();
+  const { archiveDialog, closeArchiveDialog } = useOverlays();
   const ref = useRef<HTMLDialogElement>(null);
   useDialogOpen(ref, !!archiveDialog);
   const [busy, setBusy] = useState(false);

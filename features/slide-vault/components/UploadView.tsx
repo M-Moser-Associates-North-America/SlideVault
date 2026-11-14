@@ -10,7 +10,7 @@ import { Icon } from './icons';
 import { plural } from './library';
 import { Link } from './parts';
 import { useWorkspaceCompact } from './size';
-import { useWorkspace } from './state';
+import { useLibrary, useNotify, useRuntime } from './state';
 import { SuggestedTagChips } from './TagBits';
 import { TagField, type TagSuggestion } from './TagField';
 import { UploadConfirmDialog, type UploadSummary } from './UploadConfirmDialog';
@@ -53,7 +53,9 @@ function Bar({ label, done, total }: { label: string; done?: number; total?: num
  * until the person confirms); the server then splits it into slides with pictures. Uses the real POST /uploads.
  */
 export function UploadView() {
-  const { runtime, reloadLibrary, announce } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { reloadLibrary } = useLibrary();
+  const { announce } = useNotify();
   const compact = useWorkspaceCompact();
   const [file, setFile] = useState<File | null>(null);
   const [reading, setReading] = useState<Reading>({ kind: 'none' });

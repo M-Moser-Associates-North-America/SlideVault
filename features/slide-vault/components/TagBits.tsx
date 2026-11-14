@@ -12,7 +12,7 @@ import { plural, type Deck } from './library';
 import { hideTip, showTip } from './fixed-tip';
 import { peekHeight } from './scroll-peek';
 import { useWorkspaceCompact, useWorkspacePhoneLike } from './size';
-import { useWorkspace } from './state';
+import { useAccount, useNotify, useRuntime, useSearch } from './state';
 import { cleanTag, type TagSuggestion } from './TagField';
 
 /* Tags on cards, the preview, the slide page and the deck page (FD-72). Quiet by default: small grey
@@ -47,7 +47,7 @@ const backdropClose = (onClose: () => void) => (e: MouseEvent<HTMLDialogElement>
 /** Tags already in use, so adding one reuses the library's spelling. One request for the whole session. */
 let knownPromise: Promise<TagSuggestion[]> | null = null;
 function useKnownTags(): TagSuggestion[] {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const [known, setKnown] = useState<TagSuggestion[]>([]);
   useEffect(() => {
     let live = true;
@@ -63,7 +63,7 @@ function useKnownTags(): TagSuggestion[] {
 /** The slide's tags as the server sent them. Library slides carry none, so the preview asks once for the slide's detail. */
 const seeds = new Map<string, FreeTag[]>();
 function useSeed(slide: SlideSummary, loaded?: FreeTag[]): FreeTag[] | undefined {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const [fetched, setFetched] = useState<{ id: string; tags: FreeTag[] } | null>(null);
   const need = slide.tags === undefined && loaded === undefined && !demoTagsOn();
   useEffect(() => {
@@ -82,7 +82,8 @@ function useSeed(slide: SlideSummary, loaded?: FreeTag[]): FreeTag[] | undefined
 }
 
 function useTagSearch(onNavigate?: () => void) {
-  const { runtime, typeQuery, submitSearch } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { typeQuery, submitSearch } = useSearch();
   return (tag: string) => {
     onNavigate?.();
     typeQuery(tag);
@@ -294,7 +295,9 @@ function MoreTags({ names }: { names: string[] }) {
  * the team's labels. Nothing at all when the slide has none.
  */
 export function CompactTags({ slide }: { slide: SlideSummary }) {
-  const { runtime, profile, query } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { query } = useSearch();
+  const { profile } = useAccount();
   const compact = useWorkspaceCompact();
   const own = useTags(runtime, profile, 'slide', slide.id, slide.tags);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, slide.tags);
@@ -343,7 +346,7 @@ function ScrollingTags({ nodes }: { nodes: ReactElement[] }) {
 
 /** "Are you sure?" before anything is removed. Cancel has focus, so Enter never deletes by accident. */
 export function ConfirmDialog({ open, title, kind, subject, detail, lead, confirmLabel, onCancel, onConfirm }: { open: boolean; title: string; kind: string; subject: string; detail?: string; lead: string; confirmLabel: string; onCancel: () => void; onConfirm: () => void }) {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const ref = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -393,7 +396,7 @@ export function AddTagPill({ label, known, have, disabled, onAdd }: { label: str
 
 /** Phones: "+ Add tag" opens a sheet with a full-width box and the matching tags to tap. Several tags can be added; the X or a tap outside closes it. */
 function AddTagSheet({ label, known, have, disabled, onAdd }: { label: string; known: TagSuggestion[]; have: string[]; disabled?: boolean; onAdd: (name: string) => void }) {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [added, setAdded] = useState<string[]>([]);
@@ -649,7 +652,8 @@ export function SuggestedTagChips({ suggestions, have, disabled, onAdd, label = 
 
 /** The suggestions for one saved slide; empty while loading, for sample decks, or when meaning search isn't set up. */
 function useSlideTagSuggestions(slideId: string | undefined): TagSuggestionItem[] {
-  const { runtime, search } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { search } = useSearch();
   /* Kept with the slide they belong to, so moving to another slide never shows the last one's suggestions. */
   const [got, setGot] = useState<{ id: string; list: TagSuggestionItem[] } | null>(null);
   useEffect(() => {
@@ -713,7 +717,7 @@ export function LocalTagList({ label, value, onChange, inherited = [], inherited
  * folded away underneath.
  */
 function TagList({ api, what, canEdit, onNavigate, suggestFor, tail, addRow, lead }: { api: TagsApi; /** something fixed at the left end of the first row (the slide page: "also in other decks") */ lead?: ReactNode; what: 'slide' | 'deck'; canEdit: boolean; onNavigate?: () => void; /** more tag rows to show under these (the preview: the deck's tags and the team's labels) */ tail?: ReactElement | null; /** the "Add tag" pill goes in the suggestions row, under all the tags */ addRow?: boolean; /** a saved slide's id: show tag suggestions for it (FD-82) */ suggestFor?: string }) {
-  const { toast, announce } = useWorkspace();
+  const { toast, announce } = useNotify();
   const known = useKnownTags();
   const suggested = useSlideTagSuggestions(canEdit ? suggestFor : undefined);
   const [asking, setAsking] = useState<FreeTag | null>(null);
@@ -838,11 +842,12 @@ function TagList({ api, what, canEdit, onNavigate, suggestFor, tail, addRow, lea
   );
 }
 
-const useCanEdit = () => useWorkspace().runtime.capabilities.has('metadata.edit');
+const useCanEdit = () => useRuntime().runtime.capabilities.has('metadata.edit');
 
 /** The slide page: the slide's own tags, the deck's tags beside them (changed on the deck page), and the labels. */
 export function SlideTagsPanel({ slide, loaded, also }: { slide: SlideSummary; loaded?: SlideDetail | null; /** the "also in other decks" icon, at the right of the heading */ also?: ReactNode }) {
-  const { runtime, profile } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { profile } = useAccount();
   const seed = useSeed(slide, loaded ? (loaded.tags ?? []) : undefined);
   const own = useTags(runtime, profile, 'slide', slide.id, seed, true);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, seed);
@@ -870,7 +875,8 @@ export function SlideTagsPanel({ slide, loaded, also }: { slide: SlideSummary; l
 
 /** The preview: the slide's own tags, small. */
 export function PreviewTags({ slide, onNavigate, lead }: { slide: SlideSummary; onNavigate: () => void; lead?: ReactNode }) {
-  const { runtime, profile } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { profile } = useAccount();
   const seed = useSeed(slide);
   const own = useTags(runtime, profile, 'slide', slide.id, seed);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, seed);
@@ -902,7 +908,8 @@ export function PreviewTags({ slide, onNavigate, lead }: { slide: SlideSummary; 
 
 /** The deck page: the deck's tags, which every slide in it also shows. Read from any one slide's detail. */
 export function DeckTags({ deck }: { deck: Deck }) {
-  const { runtime, profile } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { profile } = useAccount();
   const first = deck.slides[0];
   const [seed, setSeed] = useState<{ id: string; tags: FreeTag[] } | null>(null);
   useEffect(() => {

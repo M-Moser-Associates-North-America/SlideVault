@@ -7,7 +7,7 @@ import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
 import { plural } from './library';
 import { Link, Thumb, useAddSection, useCartToggle } from './parts';
-import { useWorkspace } from './state';
+import { useDraft, useLibrary, useNotify, useOverlays, useRuntime } from './state';
 
 /**
  * Packs (FD-38): slides that only work together, such as a team introduction and its people. Picking
@@ -19,7 +19,7 @@ const packName = (pack: Pack) => (pack.label ? `“${pack.label}”` : 'this pac
 
 /** The slides of a pack in order, current one marked. */
 export function PackStrip({ pack, currentId, onNavigate }: { pack: Pack; currentId?: string; onNavigate?: () => void }) {
-  const { library } = useWorkspace();
+  const { library } = useLibrary();
   const byId = new Map((library.status === 'ready' ? library.slides : []).map((s) => [s.id, s]));
   return (
     <ol className="pack-strip" aria-label={`Slides in ${pack.label ?? 'the pack'}`}>
@@ -44,7 +44,11 @@ export function PackStrip({ pack, currentId, onNavigate }: { pack: Pack; current
 
 /** The question asked before adding or removing one slide of a pack, and before ungrouping one. */
 export function PackDialog() {
-  const { runtime, library, packDialog, closePackDialog, selection, updateSelection, addPackToDraft, removePackFromDraft, ungroupPack, toast, announce } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { library, ungroupPack } = useLibrary();
+  const { selection, updateSelection, addPackToDraft, removePackFromDraft } = useDraft();
+  const { packDialog, closePackDialog } = useOverlays();
+  const { toast, announce } = useNotify();
   const { setOne } = useCartToggle();
   const { addNow } = useAddSection();
   const ref = useRef<HTMLDialogElement>(null);
@@ -214,7 +218,9 @@ export function PackDialog() {
 
 /** On a slide's own page: its pack, the whole pack in one click, rename and ungroup. */
 export function PackPanel({ slide, pack }: { slide: SlideSummary; pack: Pack }) {
-  const { openPackDialog, renamePack, setPackStatus, toast, announce } = useWorkspace();
+  const { renamePack, setPackStatus } = useLibrary();
+  const { openPackDialog } = useOverlays();
+  const { toast, announce } = useNotify();
   const suggested = pack.status === 'suggested';
   const when = pack.confirmedAt ? new Date(pack.confirmedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : null;
   const [renaming, setRenaming] = useState(false);
@@ -292,7 +298,8 @@ export function PackPanel({ slide, pack }: { slide: SlideSummary; pack: Pack }) 
 
 /** Group mode on a deck page: pick slides in the order they should go, name the pack, create it. */
 export function GroupTool({ deckSlides, onDone }: { deckSlides: SlideSummary[]; onDone: () => void }) {
-  const { packs, makePack, toast, announce } = useWorkspace();
+  const { packs, makePack } = useLibrary();
+  const { toast, announce } = useNotify();
   const [picked, setPicked] = useState<string[]>([]);
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);

@@ -16,7 +16,7 @@ import { userApi } from './user-api';
  */
 export type { ActivityEntry, Draft };
 
-// Higher than a simple recent-activity list would need, because Top 10 (Views.tsx TopTenRow)
+// Higher than a simple recent-activity list would need, because Top 10 (views/shared.tsx TopTenRow)
 // counts how often each slide shows up in this history to rank "what this profile uses most."
 const ACTIVITY_LIMIT = 60;
 const PROFILE_KEY = 'slidevault:profile';

@@ -11,7 +11,7 @@ import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
 import { Crumbs, Link, type Crumb } from './parts';
 import { CompactSearch } from './CompactSearch';
-import { WorkspaceProvider, useWorkspace } from './state';
+import { WorkspaceProvider, useAccount, useDraft, useLibrary, useNotices, useNotify, useOverlays, useRuntime, useSearch } from './state';
 import { LoginView } from './AuthView';
 import { ActivityOptInAsk } from './ActivityOptIn';
 import { ProfileView } from './ProfileView';
@@ -26,7 +26,7 @@ import { HistoryButtons } from './HistoryButtons';
 import { LeaveUploadDialog } from './LeaveUploadDialog';
 import { AiAskDialog } from './AiAskDialog';
 import { UploadView } from './UploadView';
-import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './Views';
+import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './views';
 import { StoryboardView } from './StoryboardView';
 import './slidevault.css';
 import './slidevault-extras.css';
@@ -72,7 +72,14 @@ const TABS: {
 ];
 
 function Workspace({ header }: { header?: ReactNode }) {
-  const { runtime, library, searched, cartMin, selection, toasts, dismissToast, announcement, announce, profile, setCartMin, preview } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { library } = useLibrary();
+  const { searched } = useSearch();
+  const { cartMin, selection, setCartMin } = useDraft();
+  const { preview } = useOverlays();
+  const { dismissToast, announce } = useNotify();
+  const { toasts, announcement } = useNotices();
+  const { profile } = useAccount();
   const appRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const root = useMemo(() => ({ app: appRef, scroll: scrollRef }), []);
@@ -86,7 +93,7 @@ function Workspace({ header }: { header?: ReactNode }) {
   const loc = runtime.location;
   const view = loc.view === 'home' || loc.view === 'library' ? 'pages' : loc.view;
   const deep = view === 'deck' || view === 'slide';
-  /* Home (browsing or searching) uses the reference HTML's hero search (Views.tsx HomeHeader)
+  /* Home (browsing or searching) uses the reference HTML's hero search (views/home.tsx HomeHeader)
      instead of a side rail; it stays mounted across that transition so typing never loses focus. */
   const noRail = true; // the search bar and filter row now sit at the top of Home and the browse lists
   const narrow = view === 'create' || view === 'upload' || view === 'profile' || view === 'settings' || view === 'archive';
@@ -352,7 +359,8 @@ function Workspace({ header }: { header?: ReactNode }) {
  * instead of the top tabs when the workspace is narrow (the tabs always sit at the bottom on a phone).
  */
 function BottomBar({ view, deep }: { view: string; deep: boolean }) {
-  const { runtime, selection, cartMin, setCartMin } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { selection, cartMin, setCartMin } = useDraft();
   const n = selection.length;
   return (
     <nav className="sv-bottombar" aria-label="Main">

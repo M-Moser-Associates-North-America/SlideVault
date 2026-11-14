@@ -5,11 +5,11 @@ import { ActivityOptInDialog, RETENTION_FALLBACK_DAYS, type OptInMode } from './
 import { Icon } from './icons';
 import { timeAgo } from './library';
 import { StoryRoleSetting } from './StoryRoleSetting';
-import { useWorkspace } from './state';
+import { useAccount } from './state';
 
 /** Settings from the account menu: personalization and the activity it records. */
 export function SettingsView() {
-  const { profile, activity, activityOptedIn, activityRetentionDays } = useWorkspace();
+  const { profile, activity, activityOptedIn, activityRetentionDays } = useAccount();
   const [optInFor, setOptInFor] = useState<OptInMode | null>(null);
   const days = activityRetentionDays ?? RETENTION_FALLBACK_DAYS;
 

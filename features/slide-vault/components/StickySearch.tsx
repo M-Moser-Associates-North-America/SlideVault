@@ -3,14 +3,14 @@
 import type { FormEvent } from 'react';
 import { HiddenToggle } from './HiddenToggle';
 import { Icon } from './icons';
-import { useWorkspace } from './state';
+import { useSearch } from './state';
 
 /**
  * The slim search that stays above the sticky filter row once Home's big search bar has scrolled
  * out of sight. Same query as the big bar; Enter lets the AI read it, as there.
  */
 export function StickySearch({ eye = true, placeholder = 'Search slides, clients or topics' }: { eye?: boolean; placeholder?: string } = {}) {
-  const { query, setQuery, typeQuery, submitSearch } = useWorkspace();
+  const { query, setQuery, typeQuery, submitSearch } = useSearch();
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (query.trim()) submitSearch();

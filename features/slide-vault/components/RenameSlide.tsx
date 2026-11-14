@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import type { SlideDetail, SlideSummary, TitleEdit } from '../contracts/dto';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
-import { titleEditOf, useWorkspace } from './state';
+import { titleEditOf, useLibrary, useRuntime } from './state';
 
 const MAX_TITLE = 200;
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -23,7 +23,8 @@ const tidy = (raw: string) => raw.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE
  * there (FD-73). Nothing changes until "Rename for everyone" is pressed.
  */
 export function SlideTitle({ slide, loaded }: { slide: SlideSummary; loaded?: SlideDetail | null }) {
-  const { runtime, renameSlide } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { renameSlide } = useLibrary();
   const canEdit = runtime.capabilities.has('metadata.edit');
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(slide.title);

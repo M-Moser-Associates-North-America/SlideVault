@@ -4,11 +4,11 @@ import { useEffect, useRef } from 'react';
 import { answerLeaveUpload, useLeaveUploadQuestion } from '../client/upload-draft-store';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
-import { useWorkspace } from './state';
+import { useRuntime } from './state';
 
 /** Asked when someone signs out while the Upload screen holds unsent work. Stay is the default. */
 export function LeaveUploadDialog() {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const { draft, asking } = useLeaveUploadQuestion();
   const ref = useRef<HTMLDialogElement>(null);
   const stayRef = useRef<HTMLButtonElement>(null);

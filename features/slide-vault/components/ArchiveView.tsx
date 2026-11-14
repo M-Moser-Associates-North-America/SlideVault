@@ -5,7 +5,7 @@ import { listLibrary } from '../client/api';
 import { Icon } from './icons';
 import { groupDecks, folderLabel, plural, type Deck } from './library';
 import { Link, StateBlock, Thumb } from './parts';
-import { useWorkspace } from './state';
+import { useOverlays, useRuntime } from './state';
 
 type Loaded = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; decks: Deck[] };
 
@@ -14,7 +14,8 @@ type Loaded = { status: 'loading' } | { status: 'error'; message: string } | { s
  * Restore button on each. Opened from the profile menu. Nothing here is deleted. For the MVP anyone can restore.
  */
 export function ArchiveView() {
-  const { runtime, openArchiveDialog, archiveDialog, openPreview } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { openArchiveDialog, archiveDialog, openPreview } = useOverlays();
   const { request, onSessionExpired } = runtime;
   const [loaded, setLoaded] = useState<Loaded>({ status: 'loading' });
   const [tries, setTries] = useState(0);

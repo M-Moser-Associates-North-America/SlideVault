@@ -184,12 +184,51 @@ type Workspace = {
   loadDraft: (draft: Draft) => number;
 };
 
-const Ctx = createContext<Workspace | null>(null);
+/*
+ * The workspace state is published in small groups, one context each (Alina's FE note 1): a component reads only
+ * the groups it uses, so ticking a slide no longer redraws the search box, and typing no longer redraws the draft deck.
+ * Each group's value only changes when one of its own fields does. Notify holds the always-stable toast/announce
+ * actions apart from the list of notes on screen, so the many components that only announce never redraw for a note.
+ */
+export type RuntimeGroup = Pick<Workspace, 'runtime'>;
+export type LibraryGroup = Pick<Workspace, 'library' | 'reloadLibrary' | 'includeHidden' | 'setIncludeHidden' | 'includeArchived' | 'setIncludeArchived' | 'archiveDeck' | 'renameSlide' | 'packs' | 'makePack' | 'ungroupPack' | 'renamePack' | 'setPackStatus'>;
+export type SearchGroup = Pick<Workspace, 'aiAvailable' | 'deeperAi' | 'setDeeperAi' | 'aiAsk' | 'aiAskKind' | 'answerAiAsk' | 'query' | 'setQuery' | 'typeQuery' | 'searched' | 'submitSearch' | 'retrySearch' | 'search' | 'filters' | 'patchFilters' | 'clearFilters' | 'sectionsFromSearch' | 'autoSection' | 'dismissAutoSection'>;
+export type DraftGroup = Pick<Workspace, 'selection' | 'updateSelection' | 'excluded' | 'setIncluded' | 'cartMin' | 'setCartMin' | 'draftTitle' | 'setDraftTitle' | 'combine' | 'setCombine' | 'addPackToDraft' | 'removePackFromDraft' | 'drafts' | 'saveDraft' | 'replaceDraft' | 'draftOrigin' | 'deleteDraft' | 'loadDraft'>;
+export type OverlaysGroup = Pick<Workspace, 'preview' | 'openPreview' | 'closePreview' | 'movePreview' | 'goToPreview' | 'downloadSlides' | 'openDownload' | 'closeDownload' | 'alsoFor' | 'openAlso' | 'closeAlso' | 'archiveDialog' | 'openArchiveDialog' | 'closeArchiveDialog' | 'packDialog' | 'openPackDialog' | 'closePackDialog'>;
+export type NotifyGroup = Pick<Workspace, 'toast' | 'dismissToast' | 'announce'>;
+export type NoticesGroup = Pick<Workspace, 'toasts' | 'announcement'>;
+export type AccountGroup = Pick<Workspace, 'profile' | 'submitLogin' | 'signOut' | 'savedIds' | 'toggleSaved' | 'activity' | 'logActivity' | 'activityOptedIn' | 'setActivityOptIn' | 'activityRetentionDays'>;
 
+const RuntimeContext = createContext<RuntimeGroup | null>(null);
+const LibraryContext = createContext<LibraryGroup | null>(null);
+const SearchContext = createContext<SearchGroup | null>(null);
+const DraftContext = createContext<DraftGroup | null>(null);
+const OverlaysContext = createContext<OverlaysGroup | null>(null);
+const NotifyContext = createContext<NotifyGroup | null>(null);
+const NoticesContext = createContext<NoticesGroup | null>(null);
+const AccountContext = createContext<AccountGroup | null>(null);
+
+function need<T>(value: T | null, hook: string): T {
+  if (!value) throw new Error(`${hook} must be used inside <WorkspaceProvider>`);
+  return value;
+}
+export const useRuntime = (): RuntimeGroup => need(useContext(RuntimeContext), 'useRuntime');
+export const useLibrary = (): LibraryGroup => need(useContext(LibraryContext), 'useLibrary');
+export const useSearch = (): SearchGroup => need(useContext(SearchContext), 'useSearch');
+export const useDraft = (): DraftGroup => need(useContext(DraftContext), 'useDraft');
+export const useOverlays = (): OverlaysGroup => need(useContext(OverlaysContext), 'useOverlays');
+export const useNotify = (): NotifyGroup => need(useContext(NotifyContext), 'useNotify');
+export const useNotices = (): NoticesGroup => need(useContext(NoticesContext), 'useNotices');
+export const useAccount = (): AccountGroup => need(useContext(AccountContext), 'useAccount');
+
+/**
+ * Everything at once. Kept only for the Storyboard files (StoryboardView, StoryLauncher, StoryRoleSetting), which
+ * Schiffon owns and this restructure leaves untouched; they still redraw on any change, as before. New code uses the
+ * group hooks above.
+ * @deprecated Use the group hooks (useLibrary, useSearch, useDraft, …).
+ */
 export function useWorkspace(): Workspace {
-  const v = useContext(Ctx);
-  if (!v) throw new Error('useWorkspace must be used inside <WorkspaceProvider>');
-  return v;
+  return { ...useRuntime(), ...useLibrary(), ...useSearch(), ...useDraft(), ...useOverlays(), ...useNotify(), ...useNotices(), ...useAccount() };
 }
 
 const SEARCH_DELAY_MS = 250;
@@ -679,90 +718,33 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     [library, updateSelection],
   );
 
-  const value: Workspace = {
-    runtime,
-    library,
-    reloadLibrary,
-    includeArchived,
-    setIncludeArchived,
-    archiveDialog,
-    openArchiveDialog,
-    closeArchiveDialog,
-    archiveDeck,
-    renameSlide,
-    packs,
-    packDialog,
-    openPackDialog,
-    closePackDialog,
-    addPackToDraft,
-    removePackFromDraft,
-    makePack,
-    ungroupPack,
-    renamePack,
-    setPackStatus,
-    includeHidden,
-    setIncludeHidden,
-    sectionsFromSearch,
-    autoSection,
-    dismissAutoSection,
-    aiAvailable,
-    deeperAi,
-    setDeeperAi,
-    aiAsk,
-    aiAskKind,
-    answerAiAsk,
-    query,
-    setQuery,
-    typeQuery,
-    searched: submitted,
-    submitSearch,
-    retrySearch,
-    search: aiAsk ? ({ status: 'loading' } as SearchState) : search,
-    filters,
-    patchFilters,
-    clearFilters,
-    selection,
-    updateSelection,
-    excluded,
-    setIncluded,
-    cartMin,
-    setCartMin,
-    draftTitle,
-    setDraftTitle,
-    combine,
-    setCombine,
-    toasts,
-    toast,
-    dismissToast,
-    announcement,
-    announce,
-    preview,
-    openPreview,
-    closePreview,
-    movePreview,
-    goToPreview,
-    downloadSlides,
-    openDownload,
-    closeDownload,
-    alsoFor,
-    openAlso,
-    closeAlso,
-    profile,
-    submitLogin,
-    signOut,
-    savedIds,
-    toggleSaved,
-    activity,
-    logActivity,
-    activityOptedIn,
-    setActivityOptIn,
-    activityRetentionDays,
-    drafts,
-    saveDraft,
-    replaceDraft,
-    draftOrigin,
-    deleteDraft,
-    loadDraft,
-  };
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  /* While the AI question is waiting, the results show as loading. */
+  const shownSearch = useMemo<SearchState>(() => (aiAsk ? { status: 'loading' } : search), [aiAsk, search]);
+  const runtimeValue = useMemo<RuntimeGroup>(() => ({ runtime }), [runtime]);
+  const libraryValue = useMemo<LibraryGroup>(() => ({ library, reloadLibrary, includeHidden, setIncludeHidden, includeArchived, setIncludeArchived, archiveDeck, renameSlide, packs, makePack, ungroupPack, renamePack, setPackStatus }), [library, reloadLibrary, includeHidden, setIncludeHidden, includeArchived, setIncludeArchived, archiveDeck, renameSlide, packs, makePack, ungroupPack, renamePack, setPackStatus]);
+  const searchValue = useMemo<SearchGroup>(() => ({ aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, searched: submitted, submitSearch, retrySearch, search: shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection }), [aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, submitted, submitSearch, retrySearch, shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection]);
+  const draftValue = useMemo<DraftGroup>(() => ({ selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft }), [selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft]);
+  const overlaysValue = useMemo<OverlaysGroup>(() => ({ preview, openPreview, closePreview, movePreview, goToPreview, downloadSlides, openDownload, closeDownload, alsoFor, openAlso, closeAlso, archiveDialog, openArchiveDialog, closeArchiveDialog, packDialog, openPackDialog, closePackDialog }), [preview, openPreview, closePreview, movePreview, goToPreview, downloadSlides, openDownload, closeDownload, alsoFor, openAlso, closeAlso, archiveDialog, openArchiveDialog, closeArchiveDialog, packDialog, openPackDialog, closePackDialog]);
+  const notifyValue = useMemo<NotifyGroup>(() => ({ toast, dismissToast, announce }), [toast, dismissToast, announce]);
+  const noticesValue = useMemo<NoticesGroup>(() => ({ toasts, announcement }), [toasts, announcement]);
+  const accountValue = useMemo<AccountGroup>(() => ({ profile, submitLogin, signOut, savedIds, toggleSaved, activity, logActivity, activityOptedIn, setActivityOptIn, activityRetentionDays }), [profile, submitLogin, signOut, savedIds, toggleSaved, activity, logActivity, activityOptedIn, setActivityOptIn, activityRetentionDays]);
+  return (
+    <RuntimeContext.Provider value={runtimeValue}>
+      <LibraryContext.Provider value={libraryValue}>
+        <SearchContext.Provider value={searchValue}>
+          <DraftContext.Provider value={draftValue}>
+            <OverlaysContext.Provider value={overlaysValue}>
+              <NotifyContext.Provider value={notifyValue}>
+                <NoticesContext.Provider value={noticesValue}>
+                  <AccountContext.Provider value={accountValue}>
+                    {children}
+                  </AccountContext.Provider>
+                </NoticesContext.Provider>
+              </NotifyContext.Provider>
+            </OverlaysContext.Provider>
+          </DraftContext.Provider>
+        </SearchContext.Provider>
+      </LibraryContext.Provider>
+    </RuntimeContext.Provider>
+  );
 }

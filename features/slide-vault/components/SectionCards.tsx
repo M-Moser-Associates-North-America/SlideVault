@@ -6,7 +6,7 @@ import type { SlideSummary } from '../contracts/dto';
 import { Icon } from './icons';
 import { clientOf, plural, SECTION_LABEL, slideMatches, yearOf } from './library';
 import { Thumb, useAddSection } from './parts';
-import { useWorkspace } from './state';
+import { useDraft, useNotify, useOverlays, useRuntime, useSearch } from './state';
 
 /**
  * A deck's section as one card (docs/DECISIONS.md FD-57, FD-80; Alina, 28 Oct: "scroll through these five
@@ -54,7 +54,10 @@ const FIRST = 6;
 
 /** The cards, and what they do. `groups` are the sections to show; each asks for its whole section once. */
 function Cards({ groups }: { groups: SectionGroup[] }) {
-  const { runtime, openPreview, selection, updateSelection, announce } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { selection, updateSelection } = useDraft();
+  const { openPreview } = useOverlays();
+  const { announce } = useNotify();
   const { addSection } = useAddSection();
   const [all, setAll] = useState(false);
   const [whole, setWhole] = useState<Record<string, SlideSummary[]>>({});
@@ -192,7 +195,8 @@ export function SectionCards({ results, only, heading }: { results: SlideSummary
 
 /** Browse one kind of section across every deck, with no search (the Section filter on Home, FD-80). The other filters still apply. */
 export function SectionBrowse({ kind }: { kind: string }) {
-  const { runtime, filters } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { filters } = useSearch();
   const [list, setList] = useState<{ kind: string; groups: SectionGroup[] } | 'error' | null>(null);
   useEffect(() => {
     const ctl = new AbortController();

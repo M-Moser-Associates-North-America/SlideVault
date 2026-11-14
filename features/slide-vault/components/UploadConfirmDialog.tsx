@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
 import { plural } from './library';
-import { useWorkspace } from './state';
+import { useRuntime } from './state';
 
 export type UploadSummary = {
   title: string;
@@ -24,7 +24,7 @@ export type UploadSummary = {
 
 /** "Upload this deck?" with what will happen, in order of importance, before anything is sent. */
 export function UploadConfirmDialog({ open, summary, onCancel, onConfirm }: { open: boolean; summary: UploadSummary | null; onCancel: () => void; onConfirm: () => void }) {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const ref = useRef<HTMLDialogElement>(null);
   useDialogOpen(ref, open);
   const s = summary;

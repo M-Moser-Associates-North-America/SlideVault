@@ -7,7 +7,7 @@ import { useTipSeen } from '../client/tip-store';
 import { Icon } from './icons';
 import { useRoot } from './root';
 import { useWorkspaceCompact, useWorkspaceFiltersRolled, useWorkspacePhoneLike, workspaceSizeOf } from './size';
-import { useWorkspace } from './state';
+import { useAccount, useDraft, useOverlays, useRuntime, useSearch } from './state';
 
 /** Wait for the next paint, so a panel opened by a step's `before` has a size to point at. */
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -63,7 +63,11 @@ type StepId = (typeof STEP_IDS)[number];
 export function Tour() {
   const open = useTourOpen();
   const { seen, dismiss } = useTipSeen('tour');
-  const { profile, runtime, setCartMin, cartMin, closePreview, clearFilters, searched, setQuery } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { clearFilters, searched, setQuery } = useSearch();
+  const { setCartMin, cartMin } = useDraft();
+  const { closePreview } = useOverlays();
+  const { profile } = useAccount();
   const view = runtime.location.view;
   const onHome = view === 'pages' || view === 'home' || view === 'library';
 

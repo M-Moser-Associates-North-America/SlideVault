@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Icon } from './icons';
 import { useWorkspaceSize } from './size';
-import { useWorkspace } from './state';
+import { useAccount } from './state';
 
 /**
  * Placeholder sign-in, taken from the client's own reference mockup (reference/SlideVault.html --
@@ -12,7 +12,7 @@ import { useWorkspace } from './state';
  * one demo profile ("Person A").
  */
 export function LoginView() {
-  const { submitLogin } = useWorkspace();
+  const { submitLogin } = useAccount();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

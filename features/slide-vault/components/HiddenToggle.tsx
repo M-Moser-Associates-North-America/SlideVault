@@ -2,7 +2,7 @@
 
 import { useId } from 'react';
 import { Icon } from './icons';
-import { useWorkspace } from './state';
+import { useLibrary } from './state';
 
 /**
  * An eye button beside the search bar. Off (the default): slides that were hidden in their original
@@ -10,7 +10,7 @@ import { useWorkspace } from './state';
  * The tooltip is our own (the browser's is slow and easy to miss): a heading, then one plain line.
  */
 export function HiddenToggle() {
-  const { includeHidden, setIncludeHidden } = useWorkspace();
+  const { includeHidden, setIncludeHidden } = useLibrary();
   const tipId = useId();
   return (
     <span className="hid-wrap">

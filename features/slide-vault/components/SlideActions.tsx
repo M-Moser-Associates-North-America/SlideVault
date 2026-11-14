@@ -8,7 +8,7 @@ import { demoTagsOn } from '../client/tag-store';
 import type { SlideComment, SlideDetail, SlideSummary } from '../contracts/dto';
 import { Icon } from './icons';
 import { plural } from './library';
-import { profileInitials, useWorkspace } from './state';
+import { profileInitials, useAccount, useNotify, useRuntime, useSearch } from './state';
 import { ConfirmDialog } from './TagBits';
 
 /* Reddit-style actions on a slide (FD-72): ▲ net score ▼, comments, Share. Quiet grey pills that turn
@@ -30,7 +30,9 @@ function tooSoon(last: { current: number }) {
 
 /** The up / down pill. A vote on a slide you found by searching also teaches that search (Useful / Not relevant, FD-59). */
 function VotePill({ slide, engage, small }: { slide: SlideSummary; engage: EngageApi; small?: boolean }) {
-  const { runtime, toast, query, search } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { query, search } = useSearch();
+  const { toast } = useNotify();
   const v = SHOW_VOTES_AND_COMMENTS ? engage.votes : undefined;
   const searched = search.status === 'ready' ? query.trim() : '';
   /* No vote counts from the server yet: the same arrows still teach the search you came from. */
@@ -66,7 +68,8 @@ function VotePill({ slide, engage, small }: { slide: SlideSummary; engage: Engag
 
 /** Just the vote pill, small, for a result card: vote counts when the server has them, else Useful / Not relevant on a search result. */
 export function CardVotes({ slide }: { slide: SlideSummary }) {
-  const { runtime, query, search } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { query, search } = useSearch();
   const engage = useEngagement(runtime, slide);
   if (!(SHOW_VOTES_AND_COMMENTS && engage.votes) && !(search.status === 'ready' && query.trim())) return null;
   return <VotePill slide={slide} engage={engage} small />;
@@ -123,7 +126,8 @@ function answerFor(key: string) {
  * words and no name; it teaches the search and, through it, the storyboard (FD-75).
  */
 function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searched: string; small?: boolean }) {
-  const { runtime, toast } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { toast } = useNotify();
   const key = answerKey(searched, slide.id);
   const shown = useSyncExternalStore(onAnswers, () => answerFor(key).shown, () => 0);
   const lastCast = useRef(0);
@@ -182,7 +186,8 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
 
 /** Copies a link to the slide's page. Only people signed in at M Moser can open it, so it is safe to paste in a chat or an email. */
 export function useShareSlide(slideId: string) {
-  const { runtime, toast } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { toast } = useNotify();
   return async () => {
     const path = runtime.hrefFor?.({ view: 'slide', id: slideId });
     if (!path) return toast("This page can't make a link here.");
@@ -208,7 +213,7 @@ export function ShareIconButton({ slideId }: { slideId: string }) {
 
 /** The full bar: vote pill, comments, Share (the slide page has Share in its Use this slide card instead: noShare). */
 export function SlideActions({ slide, commentsOpen, onComments, noShare, trailing }: { slide: SlideSummary; commentsOpen?: boolean; onComments: () => void; noShare?: boolean; /** something at the far end of the bar (the slide page's "also in other decks" icon) */ trailing?: ReactNode }) {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const engage = useEngagement(runtime, slide);
   const share = useShareSlide(slide.id);
   return (
@@ -258,7 +263,9 @@ export function PreviewActions({ slide }: { slide: SlideSummary }) {
 /* ---------------------------------------------------------------- Comments */
 
 function CommentsSection({ slide }: { slide: SlideSummary }) {
-  const { runtime, profile, toast, announce } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { toast, announce } = useNotify();
+  const { profile } = useAccount();
   const engage = useEngagement(runtime, slide, true);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);

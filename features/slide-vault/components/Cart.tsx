@@ -9,7 +9,7 @@ import { useRoot } from './root';
 import { workspaceSizeOf } from './size';
 import type { SlideSummary } from '../contracts/dto';
 import { Link, Thumb } from './parts';
-import { useWorkspace } from './state';
+import { useAccount, useDraft, useLibrary, useNotify, useOverlays, useRuntime } from './state';
 import { addTagToSlides, TagsUnavailable } from '../client/tag-store';
 import { cleanTag, TAG_MAX_LENGTH } from './TagField';
 
@@ -18,7 +18,11 @@ import { cleanTag, TAG_MAX_LENGTH } from './TagField';
  * Collapsed to a thin rail by default; opens by itself the first time a slide is added.
  */
 export function Cart() {
-  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, openDownload, openPreview, announce, saveDraft, replaceDraft, draftOrigin, toast, runtime, combine, setCombine, packs, openPackDialog, addPackToDraft } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { packs } = useLibrary();
+  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, saveDraft, replaceDraft, draftOrigin, combine, setCombine, addPackToDraft } = useDraft();
+  const { openDownload, openPreview, openPackDialog } = useOverlays();
+  const { announce, toast } = useNotify();
   const n = selection.length;
   const included = selection.filter((s) => !excluded.has(s.id));
   const plan = downloadPlan(included);
@@ -491,7 +495,7 @@ export function focusDraftOpener() {
 /* The black button at the bottom right that opens the draft deck, like the reference mockup's. It sits at
    the workspace level, outside the panel, so it stays put while the panel is closed. */
 export function CartPill() {
-  const { selection, cartMin, setCartMin } = useWorkspace();
+  const { selection, cartMin, setCartMin } = useDraft();
   const touring = useTourOpen();
   const nudge = useNudge('draft') && !touring;
   const n = selection.length;
@@ -519,7 +523,9 @@ export function CartPill() {
  * set can be found again by typing it. Closed until asked for, to keep the draft deck quiet.
  */
 function TagAll({ slides }: { slides: SlideSummary[] }) {
-  const { runtime, toast, profile } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { toast } = useNotify();
+  const { profile } = useAccount();
   const id = useId();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');

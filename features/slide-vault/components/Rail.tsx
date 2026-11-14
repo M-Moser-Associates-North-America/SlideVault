@@ -3,7 +3,7 @@
 import { useId, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from 'react';
 import { Icon } from './icons';
 import { categoryOf, clientOf, countBy, filterCount, yearsOf, type Deck } from './library';
-import { useWorkspace } from './state';
+import { useNotify, useSearch } from './state';
 
 /**
  * Example searches shown under the box. The sentence-style ones are read by the smart search
@@ -29,7 +29,7 @@ const norm = (s: string) => s.toLowerCase().replace(/[’']/g, '');
 
 /** The search box. On Home it sits at the top of the left column; on deck and slide pages it sits above the content. */
 export function SearchForm({ onSubmit }: { onSubmit: () => void }) {
-  const { query, setQuery, typeQuery, submitSearch } = useWorkspace();
+  const { query, setQuery, typeQuery, submitSearch } = useSearch();
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (query.trim()) submitSearch();
@@ -71,7 +71,7 @@ export function SearchForm({ onSubmit }: { onSubmit: () => void }) {
 }
 
 export function TryAsking() {
-  const { query, typeQuery, submitSearch } = useWorkspace();
+  const { query, typeQuery, submitSearch } = useSearch();
   return (
     <section className="rail-try" aria-labelledby="try-h">
       <h2 id="try-h" className="try-h">
@@ -114,7 +114,7 @@ function Chips({ label, values, picked, onToggle, count }: { label: string; valu
 }
 
 function ClientCombo({ options, picked, onPick, onRemove }: { options: [string, number][]; picked: string[]; onPick: (v: string) => void; onRemove: (v: string) => void }) {
-  const { announce } = useWorkspace();
+  const { announce } = useNotify();
   const id = useId();
   const [text, setText] = useState('');
   const [open, setOpen] = useState(false);
@@ -221,7 +221,7 @@ const PRESETS: [number, string][] = [
 ];
 
 export function FilterPanel({ decks, slidesAll }: { decks: Deck[]; slidesAll: import('../contracts/dto').SlideSummary[] }) {
-  const { filters, patchFilters, clearFilters } = useWorkspace();
+  const { filters, patchFilters, clearFilters } = useSearch();
   const nowYear = new Date().getFullYear();
   const n = filterCount(filters);
   const wide = useIsWide();

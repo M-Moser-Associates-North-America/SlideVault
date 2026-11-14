@@ -10,7 +10,7 @@ import { Icon } from './icons';
 import { categoryOf, clientOf, downloadPlan, plural, planSummary, yearOf } from './library';
 import { Link, Thumb, useAddSection, useCartToggle, useSavedToggle } from './parts';
 import { useWorkspaceCompact } from './size';
-import { useWorkspace } from './state';
+import { useAccount, useDraft, useLibrary, useNotify, useOverlays, useRuntime } from './state';
 
 /** Open and close a native <dialog> from React state. Escape closes it (via the dialog's own close event). */
 export function useDialogOpen(ref: RefObject<HTMLDialogElement | null>, open: boolean) {
@@ -32,11 +32,14 @@ export function Lightbox() {
   const compactNow = useWorkspaceCompact();
   /* Tablets and desktop share the arrows-on-the-picture layout; only a phone held upright differs. */
   const onTablet = !compactNow;
-  const { runtime, library, preview, closePreview, movePreview, goToPreview, openPreview, openDownload, packs, selection, addPackToDraft } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { library, packs } = useLibrary();
+  const { selection, addPackToDraft } = useDraft();
+  const { preview, closePreview, movePreview, goToPreview, openPreview, openDownload } = useOverlays();
   const { isSelected, setOne } = useCartToggle();
   const { addSection } = useAddSection();
   const { isSaved, toggle: toggleSave } = useSavedToggle();
-  const { openAlso } = useWorkspace();
+  const { openAlso } = useOverlays();
   const [zoomed, setZoomed] = useState(false);
   const ref = useRef<HTMLDialogElement>(null);
   const strip = useRef<HTMLDivElement>(null);
@@ -666,7 +669,11 @@ type Run = { kind: 'idle' } | { kind: 'busy' } | { kind: 'done'; fileName: strin
 
 /** What you are about to download, then the real export. */
 export function DownloadDialog() {
-  const { runtime, downloadSlides, closeDownload, toast, logActivity, combine, setCombine } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { combine, setCombine } = useDraft();
+  const { downloadSlides, closeDownload } = useOverlays();
+  const { toast } = useNotify();
+  const { logActivity } = useAccount();
   // The result belongs to the slides it was started for, so opening the dialog again starts fresh.
   const [result, setResult] = useState<{
     for: SlideSummary[] | null;
@@ -774,7 +781,9 @@ export function DownloadDialog() {
 
 /** Every other deck that holds this slide, or one almost identical to it. Nothing is deleted. */
 export function AlsoDialog() {
-  const { runtime, library, alsoFor, closeAlso } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { library } = useLibrary();
+  const { alsoFor, closeAlso } = useOverlays();
   const ref = useRef<HTMLDialogElement>(null);
   useDialogOpen(ref, !!alsoFor);
   const group = alsoFor?.alsoIn?.groupId;

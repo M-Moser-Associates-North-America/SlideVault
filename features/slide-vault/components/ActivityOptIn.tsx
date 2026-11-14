@@ -5,7 +5,7 @@ import { useTipSeen } from '../client/tip-store';
 import { useTourOpen } from '../client/tour-store';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
-import { useWorkspace } from './state';
+import { useAccount, useNotify, useRuntime } from './state';
 
 /** Shown until the server says how long it keeps activity. */
 export const RETENTION_FALLBACK_DAYS = 90;
@@ -20,7 +20,9 @@ export type OptInMode = 'first' | 'on' | 'off';
  * on / off) until the person presses Done, so the answer is confirmed on screen, not in a toast.
  */
 export function ActivityOptInDialog({ mode, onClose }: { mode: OptInMode | null; onClose: () => void }) {
-  const { runtime, setActivityOptIn, activityRetentionDays, toast } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { toast } = useNotify();
+  const { setActivityOptIn, activityRetentionDays } = useAccount();
   const ref = useRef<HTMLDialogElement>(null);
   const [busy, setBusy] = useState(false);
   /** Set once the change is saved: the card stays open and says what happened. */
@@ -121,7 +123,7 @@ export function ActivityOptInDialog({ mode, onClose }: { mode: OptInMode | null;
  * closing it) is remembered in this browser only; nothing is sent anywhere.
  */
 export function ActivityOptInAsk() {
-  const { profile, activityOptedIn } = useWorkspace();
+  const { profile, activityOptedIn } = useAccount();
   const { seen: asked, dismiss } = useTipSeen('activity-ask');
   const { seen: toured } = useTipSeen('tour');
   const touring = useTourOpen();

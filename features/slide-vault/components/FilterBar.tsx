@@ -18,7 +18,7 @@ import { useResultsSummary } from '../client/results-summary';
 import { useRoot } from './root';
 import { peekHeight } from './scroll-peek';
 import { useWorkspaceCompact, useWorkspaceFiltersRolled, useWorkspacePhoneUpright, useWorkspaceTabletLandscape } from './size';
-import { useWorkspace } from './state';
+import { useLibrary, useRuntime, useSearch } from './state';
 
 /**
  * The slim filter row under the Home search box: one icon per filter. Hovering shows the name,
@@ -149,7 +149,9 @@ function NotYet({ label }: { label: string }) {
 }
 
 export function FilterBar() {
-  const { library, filters, patchFilters, clearFilters, runtime, query, setQuery, search, includeArchived, setIncludeArchived, autoSection, dismissAutoSection, searched } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { library, includeArchived, setIncludeArchived } = useLibrary();
+  const { filters, patchFilters, clearFilters, query, setQuery, search, autoSection, dismissAutoSection, searched } = useSearch();
   const [open, setOpen] = useState<Key | null>(null);
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
   const compact = useWorkspaceFiltersRolled();
