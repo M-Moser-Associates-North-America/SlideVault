@@ -210,7 +210,7 @@ export function Lightbox() {
           <div className="dlg-body">
             {results && (
               <div className="lb-results" role="group" aria-label={section ? `${section} section` : 'Search results'}>
-                <button type="button" className="btn btn-sm" disabled={section ? sectionFirst : atFirstResult} onClick={() => moveResult(-1)} title="Previous result ( [ or Shift+←)">
+                <button type="button" className="btn btn-sm" disabled={section ? sectionFirst : atFirstResult} onClick={() => moveResult(-1)} title="Previous result ([ or Shift+←)">
                   <Icon name="left" />
                   <span>Previous result</span>
                 </button>
@@ -238,7 +238,7 @@ export function Lightbox() {
                     {section ? 'Back to the section' : 'Back to the result'}
                   </button>
                 )}
-                <button type="button" className="btn btn-sm" disabled={section ? sectionLast : atLastResult} onClick={() => moveResult(1)} title="Next result ( ] or Shift+→)">
+                <button type="button" className="btn btn-sm" disabled={section ? sectionLast : atLastResult} onClick={() => moveResult(1)} title="Next result (] or Shift+→)">
                   <span>Next result</span>
                   <Icon name="right" />
                 </button>

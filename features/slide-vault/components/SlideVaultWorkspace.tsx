@@ -6,6 +6,7 @@ import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
 import { Cart, CartPill, focusDraftOpener } from './Cart';
 import { AlsoDialog, DownloadDialog, Lightbox } from './Dialogs';
 import { installLongPressTips } from './fixed-tip';
+import { installTapFeedback } from './tap-feedback';
 import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
 import { Crumbs, Link, type Crumb } from './parts';
@@ -101,6 +102,8 @@ function Workspace({ header }: { header?: ReactNode }) {
   const toastHost = useRef<HTMLDivElement>(null);
   /* Touch screens: a long press on anything with a hover note shows the note. */
   useEffect(() => installLongPressTips(), []);
+  /* Whatever is pressed (touch or keyboard) shows its pressed look straight away and keeps it until the page answers. */
+  useEffect(() => installTapFeedback(), []);
   /* A button that is really a link answers the moment it is pressed (a small spinner), before the next page has loaded. */
   useEffect(() => {
     const press = (e: MouseEvent) => {

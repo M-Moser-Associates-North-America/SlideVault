@@ -827,7 +827,7 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
           <div className="refine">
             {!(browse && (browseKind === 'recent' || browseKind === 'popular')) && (
             <label>
-              <span className="refine-lbl">Sort</span>
+              <span className="refine-lbl">Sort:</span>
               <select className="select select-sm" value={sort} onChange={(e) => setSort(e.target.value as 'best' | 'popular' | 'newest')}>
                 <option value="best">Best match</option>
                 <option value="popular">Most downloaded</option>
@@ -880,8 +880,8 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
           {!browse && <details className="how">
             <summary>How does this search work?</summary>
             <ol>
-              <li>Short searches are read by simple rules. A longer question can be read once by an AI model and turned into search words and filters.</li>
-              <li>Best matches come first, each with why it fits. Near-identical slides are grouped, never deleted.</li>
+              <li>Short searches use simple rules. A longer question is read once by AI and turned into words and filters.</li>
+              <li>Best matches first, with why each fits. Near-duplicates are grouped, not deleted.</li>
             </ol>
           </details>}
         </>

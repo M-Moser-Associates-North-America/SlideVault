@@ -107,7 +107,7 @@ export function Tour() {
       before: toTop,
     },
     story: {
-      target: rolled ? '.fb-tools .sb-launch-btn' : '.sb-launch-btn',
+      target: '.fbar .sb-launch-btn, .sb-launch-btn',
       title: 'Build a story with Storyboard',
       content: 'Describe a client’s situation and Storyboard lines up slides into a story.',
       placement: land || tablet ? 'auto' : rolled ? 'bottom' : 'bottom-end',
@@ -143,7 +143,7 @@ export function Tour() {
       target: bottomTabs ? '.sv-bottombar' : '.sv-nav',
       title: 'Create and Upload',
       content: 'Create builds a deck with AI. Upload adds a deck to the library.',
-      placement: bottomTabs ? 'top' : 'bottom',
+      placement: land ? 'right' : bottomTabs ? 'top' : 'bottom',
       before: putDeckAway,
     },
     decks: {
@@ -151,7 +151,7 @@ export function Tour() {
       target: bottomTabs ? '.sv-bottombar a[href$="/profile"]' : '.sv-nav a[href$="/profile"]',
       title: 'Find your saved work',
       content: 'Your saved slides and drafts are here. Replay this tour any time with the ? button.',
-      placement: bottomTabs ? 'top' : 'bottom',
+      placement: land ? 'right' : bottomTabs ? 'top' : 'bottom',
       before: putDeckAway,
     },
   };
@@ -278,6 +278,8 @@ export function Tour() {
           spotlightRadius: 14,
           // Room for the sticky tabs row, so a target never hides under it
           scrollOffset: 160,
+          // The slides step points at a card; if the library is still loading, wait for it instead of ending the tour.
+          targetWaitTimeout: 10000,
           zIndex: 90,
         }}
       />

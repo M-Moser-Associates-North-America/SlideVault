@@ -230,7 +230,7 @@ export function PackPanel({ slide, pack }: { slide: SlideSummary; pack: Pack }) 
       <h2 id="sv-pack-h">
         {pack.label ?? 'Part of a pack'}
         {pack.status === 'suggested' ? <span className="badge pack-sug">Suggested</span> : <span className="badge">Confirmed</span>}
-        {pack.local && <span className="badge" title="Kept in this browser only until the server can store packs">This browser only</span>}
+        {pack.local && <span className="badge" title="Saved on this device only">This browser only</span>}
       </h2>
       <p className="meta">
         Slide {packPosition(pack, slide.id)} of {plural(pack.slideIds.length, 'slide')} that go together, in this order.

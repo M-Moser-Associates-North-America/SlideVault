@@ -16,7 +16,7 @@ import { StoryLauncher } from './StoryLauncher';
 import { useEdgeFade } from './edge-fade';
 import { useResultsSummary } from '../client/results-summary';
 import { useRoot } from './root';
-import { useWorkspaceFiltersRolled, useWorkspaceTabletLandscape } from './size';
+import { useWorkspaceCompact, useWorkspaceFiltersRolled, useWorkspacePhoneUpright, useWorkspaceTabletLandscape } from './size';
 import { useWorkspace } from './state';
 
 /**
@@ -144,6 +144,8 @@ export function FilterBar() {
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
   const compact = useWorkspaceFiltersRolled();
   const tabletLand = useWorkspaceTabletLandscape();
+  const onPhone = useWorkspaceCompact();
+  const upright = useWorkspacePhoneUpright();
   const { scroll } = useRoot();
   const [sheet, setSheet] = useState<Key | 'all' | null>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
@@ -460,7 +462,7 @@ export function FilterBar() {
     <div ref={sentinel} className="fbar-sentinel" aria-hidden="true" />
     <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}${heroOut && !compact ? ' has-search' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
       {heroOut && !compact && <StickySearch />}
-      {compact && searched === '' && runtime.location.view !== 'browse' && (
+      {compact && upright && searched === '' && runtime.location.view !== 'browse' && (
         <div className="fb-tools">
           <StoryLauncher part="button" />
         </div>
@@ -473,6 +475,8 @@ export function FilterBar() {
           <span className="fb-lbl">Filters</span>
           {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
         </button>
+        {/* Phone on its side and tablets: Storyboard is in this same row, after Filters (a phone held upright keeps it on a line above). */}
+        {compact && !upright && searched === '' && runtime.location.view !== 'browse' && <StoryLauncher part="button" />}
         {/* Phones and upright tablets: one Filters button; the sheet it opens starts with Year and Client. */}
         {!compact && items.map((it) => (
           <div key={it.key} className="fb-item">
@@ -500,16 +504,10 @@ export function FilterBar() {
             Clear all
           </button>
         )}
-      </div>
       {chips.length > 0 && (
         <ul className="fb-chips" aria-label="Filters on" ref={chipsRef}>
-          {n > 0 && (
-            <li className="fb-chips-clear">
-              <button type="button" className="btn-link fb-clear-all" onClick={clearFilters}>
-                Clear all
-              </button>
-            </li>
-          )}
+          {/* A thin vertical line (phones and tablets) marks where the filter buttons end and the chosen filters start. */}
+          <li className="fb-sep" aria-hidden="true" />
           {chips.map((c) => (
             <li key={c.id}>
               <button
@@ -525,11 +523,19 @@ export function FilterBar() {
               </button>
             </li>
           ))}
+          {n > 0 && (
+            <li className="fb-chips-clear">
+              <button type="button" className="btn-link fb-clear-all" onClick={clearFilters}>
+                Clear all
+              </button>
+            </li>
+          )}
         </ul>
       )}
+      </div>
       {compact && rowOut && sheet === null && (
         <div className="fb-pin-bar">
-          {(tabletLand || !summary) && <StickySearch eye={tabletLand} placeholder={tabletLand ? undefined : 'Search slides'} />}
+          {(tabletLand || !summary) && <StickySearch eye={false} placeholder={tabletLand ? undefined : 'Search slides'} />}
           {summary && !tabletLand ? (
             <span className="pin-sum">
               <strong>{summary.count} slides</strong>
@@ -546,11 +552,14 @@ export function FilterBar() {
           ) : (
             <DeeperAiToggle />
           )}
-          <button type="button" className="fb-pin" onClick={() => setSheet('all')}>
-            <Icon name="sliders" />
-            <span>Filters</span>
-            {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
-          </button>
+          {/* On a phone the pinned bar has no room for a Filters button: the search needs it. */}
+          {!onPhone && (
+            <button type="button" className="fb-pin" onClick={() => setSheet('all')}>
+              <Icon name="sliders" />
+              <span>Filters</span>
+              {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
+            </button>
+          )}
         </div>
       )}
       <dialog

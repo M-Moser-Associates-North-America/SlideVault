@@ -53,9 +53,10 @@ export function installLongPressTips(): () => void {
     if (e.pointerType !== 'touch') return;
     hideTip();
     shown = false;
-    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault [data-tip]');
+    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault [data-tip], .slidevault [title]');
     if (!el) return;
-    const text = el.getAttribute('data-tip');
+    /* A plain title note (hover only on a computer) is shown the same way on a touch screen. */
+    const text = el.getAttribute('data-tip') || el.getAttribute('title');
     if (!text) return;
     start = { x: e.clientX, y: e.clientY };
     timer = window.setTimeout(() => {
@@ -93,7 +94,7 @@ export function installLongPressTips(): () => void {
     }
   };
   const menu = (e: Event) => {
-    if ((e.target as Element | null)?.closest('.slidevault [data-tip]')) e.preventDefault();
+    if ((e.target as Element | null)?.closest('.slidevault [data-tip], .slidevault [title]')) e.preventDefault();
   };
   document.addEventListener('pointerdown', down, true);
   document.addEventListener('pointermove', move, true);

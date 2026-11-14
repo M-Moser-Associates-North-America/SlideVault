@@ -2885,3 +2885,98 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault .sb .btn:not(.btn-primary):not(.btn-ghost):not(.btn-danger):not(.btn-icon) { border-radius: var(--sv-radius-control); border-color: var(--sv-control-border); }
 .slidevault .sb .btn:not(.btn-ghost):not(.btn-primary):not(.btn-danger):not(.btn-icon):not(.sb-launch-btn):not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active) { background: var(--sv-surface-sunken); border-color: var(--sv-control-border); }
 .slidevault .sb .btn-primary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active) { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); opacity: .86; }
+
+/* Phone on its side and both tablets: Search with AI, the eye and Filters sit together on the left, Storyboard is at the right end of the same row, and the chosen filters (Clear all first) are a row of their own underneath, as on desktop. */
+.slidevault :is(.sv-app[data-size="medium"], .sv-app[data-tl], .sv-app[data-size="compact"][data-land]) .fbar > .fb-tools > * { order: 5; margin: 0; }
+.slidevault :is(.sv-app[data-size="medium"], .sv-app[data-tl], .sv-app[data-size="compact"][data-land]) .fbar > .fb-chips { display: flex; flex-wrap: wrap; flex: 1 1 100%; order: 6; overflow: visible; padding-bottom: 0; margin-top: 2px; }
+.slidevault :is(.sv-app[data-size="medium"], .sv-app[data-tl], .sv-app[data-size="compact"][data-land]) .fbar > .fb-chips > li { order: 0; }
+/* Phone held upright: a little more room between the filter row and the chosen filters. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar { row-gap: 12px; }
+
+/* The Storyboard pill is a little bigger, and its right edge lines up with the right edge of the search bar above (the bar ends 12px inside the hero, and the hero stops at 1040px). */
+.slidevault :is(.sv-app[data-size="medium"], .sv-app[data-tl], .sv-app[data-size="compact"][data-land]) .fbar .fb-tools .btn.sb-launch-btn { height: 36px; min-height: 36px; padding: 0 14px 0 12px; font-size: 13px; font-weight: 700; }
+/* The bigger tap area of the small round controls is measured from the control itself, not from the row around it. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.row-info, .helpdot, .also) { position: relative; }
+
+/* An upright tablet of any width (iPad Pro 12.9 is 1024px across) uses one centred column: the wide-screen grid, with its empty draft deck column on the right, must not apply. */
+.slidevault .sv-app[data-size="medium"] .sv-shell { display: block; padding: 0 20px; }
+
+/* Pressed look that stays (see tap-feedback.ts): the same orange as hover, on touch and on Enter or Space, so a slow page change still shows the press. */
+.slidevault [data-tapped]:not(input):not(select):not(textarea) { outline: 2px solid color-mix(in srgb, var(--sv-brand) 75%, transparent); outline-offset: 2px; }
+.slidevault .btn[data-tapped]:not(.btn-ghost):not(.btn-primary):not(.btn-danger):not(.btn-icon):not(.sb-launch-btn):not(:disabled) { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
+.slidevault .btn-primary[data-tapped]:not(:disabled) { background: var(--sv-brand-strong); border-color: var(--sv-brand-strong); color: #fff; opacity: 1; }
+.slidevault .btn-ghost[data-tapped] { color: var(--sv-brand-strong); background: var(--sv-brand-tint); }
+.slidevault .btn.sb-launch-btn[data-tapped]:not(.is-glow) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .tag[data-tapped], .slidevault .chip-btn[data-tapped], .slidevault .chip-x[data-tapped], .slidevault .fb-btn[data-tapped], .slidevault .try-chip[data-tapped] { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
+.slidevault .btn-link[data-tapped], .slidevault .crumbs a[data-tapped] { color: var(--sv-brand-strong); text-decoration-thickness: 2px; }
+.slidevault .sv-nav a[data-tapped], .slidevault .sv-bottombar a[data-tapped], .slidevault .sv-bottombar button[data-tapped] { color: var(--sv-brand-strong); background: var(--sv-brand-tint); }
+.slidevault .vcard [data-tapped] { outline-offset: -2px; }
+
+/* Phone on its side: more room above the Search with AI and Storyboard row. */
+.slidevault .sv-app[data-size="compact"][data-land] .fbar { padding-top: 20px; }
+
+/* Pinned search bar. Tablet on its side: a shorter search box, no eye. Upright tablet: a thicker bar. Phone: the search gets the room the Filters button had. */
+.slidevault .sv-app[data-tl] .fb-pin-bar .fb-search-wrap { flex: 0 1 420px; }
+.slidevault .sv-app[data-size="medium"] .fb-pin-bar { padding-top: 10px; padding-bottom: 10px; }
+.slidevault .sv-app[data-size="medium"] .fb-pin-bar .fb-search { height: 44px; }
+.slidevault .sv-app[data-size="medium"] .fb-pin-bar .btn, .slidevault .sv-app[data-size="medium"] .fb-pin-bar .fb-pin { min-height: 40px; height: 40px; }
+.slidevault .sv-app[data-size="compact"] .fb-pin-bar .fb-search-wrap { flex: 1 1 0; }
+
+/* Desktop and larger screens: the header and the Home / Create tabs scroll away with the page, they are not pinned. */
+.slidevault .sv-app[data-size="wide"] .sv-top { position: static; }
+
+/* Phone on its side: the pinned search box is a normal length, not the whole bar. */
+.slidevault .sv-app[data-size="compact"][data-land] .fb-pin-bar .fb-search-wrap { flex: 0 1 340px; }
+
+/* Results pages, every screen: the Sort box sits on the same row as the heading, right-aligned (the section pills, when there are any, are a row of their own below). */
+.slidevault .sv-app .sv-wrap.res-wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-items: end; }
+.slidevault .sv-app .sv-wrap.res-wrap > * { grid-column: 1 / -1; }
+.slidevault .sv-app .sv-wrap.res-wrap > .page-head { grid-column: 1; grid-row: 1; margin-bottom: 18px; }
+.slidevault .sv-app .res-wrap > .res-controls { display: contents; }
+.slidevault .sv-app .res-wrap > .res-controls > .refine { grid-column: 2; grid-row: 1; margin: 0 0 18px; padding: 0; }
+.slidevault .sv-app .res-wrap > .res-controls > .sec-pills { grid-column: 1 / -1; margin: 0 0 14px; }
+/* Tablet on its side: no "Sort" word before the box, as on the upright tablet. */
+.slidevault .sv-app[data-tl] .refine .refine-lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+/* Slide cards: a little more room under the tag pills. */
+.slidevault .vcard .card-body { padding-bottom: 14px; }
+/* Results page on a tablet on its side: the breadcrumb sits 40px above the search bar. */
+.slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .home-hero { margin-top: -4px; }
+/* Deck page, upright tablet: more room under the buttons before "Go to slide". */
+.slidevault .sv-app[data-size="medium"] .deck-jump { margin-top: 24px; }
+
+/* Phone held upright: there is no room to share the heading's row, so Sort (and the columns button) stay on their own row, with space below it before the first card. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .sv-wrap.res-wrap { display: flex; flex-direction: column; align-items: stretch; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head { margin-bottom: 0; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .res-controls { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 12px 0 20px; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .res-controls > .refine { margin: 0; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .res-controls > .sec-pills { margin: 0; flex: 1 1 0; }
+.slidevault .sv-app[data-size="medium"] .sv-wrap .deck-tagbar { margin-top: 32px; }
+
+/* ---- One scrolling filter row (phones and tablets, both ways up) ----
+   Search with AI, the eye, Filters, Storyboard (not on a phone held upright, where it keeps a line above) and then
+   Clear all with the chosen filters are all one row that scrolls sideways. Desktop keeps its wrapped layout, with the chosen filters on their own line under the row. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar.fbar { display: block; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar.fbar > .fb-tools { display: block; margin: 0 0 12px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar.fbar > .fbar-row.fbar-row { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px 10px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; max-width: none; padding: 2px 0; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row::-webkit-scrollbar { display: none; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row.fbar-row > * { flex: none; margin: 0; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row.fbar-row > .fb-chips { display: contents; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row.fbar-row .fb-chips > li { order: 5; flex: none; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row .btn.sb-launch-btn { order: 4; height: 36px; min-height: 36px; padding: 0 14px 0 12px; font-size: 13px; font-weight: 700; width: auto; }
+/* Desktop: the chosen filters are the last line of the row, the same distance under the filter buttons as the buttons are under the search bar. */
+.slidevault .fbar-row > .fb-chips { flex: 1 1 100%; margin: 4px 0 0; }
+/* "Sort:" is shown in front of the box on every screen. */
+.slidevault .sv-app .sv-wrap .refine .refine-lbl, .slidevault .sv-app[data-size="medium"] .sv-wrap .refine .refine-lbl, .slidevault .sv-app[data-tl] .sv-wrap .refine .refine-lbl { position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: nowrap; }
+.slidevault .fbar-row .sb-launch-btn .sb-new { top: -3px; right: -3px; width: 10px; height: 10px; padding: 0; overflow: hidden; font-size: 0; color: transparent; background: var(--sv-brand); border: 2px solid var(--sv-bg); }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar.fbar > .fbar-row.fbar-row { padding-top: 6px; padding-bottom: 4px; }
+
+/* The thin line between the filter buttons and the chosen filters: only in the one scrolling row (phones and tablets). "Clear all" is the last item. */
+.slidevault .fb-chips > .fb-sep { display: none; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row .fb-chips > .fb-sep { display: block; flex: none; width: 1px; height: 24px; margin: 0 6px; background: var(--sv-border-strong); order: 5; }
+.slidevault .fb-chips .fb-clear-all { margin: 0 0 0 4px; }
+
+/* Phone held upright: the page heading is a little bigger, with more room around it, so it clearly starts the results below the filters. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head { margin-top: 28px; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head .res-title { font-size: 26px; line-height: 1.2; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .res-controls { margin-top: 14px; }

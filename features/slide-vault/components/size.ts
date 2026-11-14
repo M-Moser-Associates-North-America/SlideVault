@@ -78,7 +78,7 @@ function subscribeToSize(onChange: () => void) {
   const el = rootEl();
   if (!el) return () => {};
   const observer = new MutationObserver(onChange);
-  observer.observe(el, { attributes: true, attributeFilter: ['data-size', 'data-tl'] });
+  observer.observe(el, { attributes: true, attributeFilter: ['data-size', 'data-tl', 'data-land'] });
   return () => observer.disconnect();
 }
 
@@ -114,4 +114,19 @@ export function useWorkspaceFiltersRolled(): boolean {
 /** True on a tablet on its side (wide layout with limited width). */
 export function useWorkspaceTabletLandscape(): boolean {
   return useSyncExternalStore(subscribeToSize, () => rootEl()?.hasAttribute('data-tl') === true, () => false);
+}
+
+/**
+ * True on a phone held upright (the narrow layout, not turned on its side). There the Storyboard button gets a line of
+ * its own above the filter row; elsewhere it sits in the filter row.
+ */
+export function useWorkspacePhoneUpright(): boolean {
+  return useSyncExternalStore(
+    subscribeToSize,
+    () => {
+      const el = rootEl();
+      return el?.getAttribute('data-size') === 'compact' && !el.hasAttribute('data-land');
+    },
+    () => false,
+  );
 }
