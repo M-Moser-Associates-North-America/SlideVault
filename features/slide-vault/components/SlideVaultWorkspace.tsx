@@ -243,7 +243,7 @@ function Workspace({ header }: { header?: ReactNode }) {
                 </li>
               </ul>
             </nav>
-            <div className="sv-brandrow-end">
+            <div className="sv-brandrow-end" role="region" aria-label="Back, forward and search">
               {(view === 'pages' || view === 'browse') && <CompactSearch />}
               <HistoryButtons />
             </div>
