@@ -49,7 +49,7 @@
 .slidevault .fb-presets { display: flex; flex-wrap: wrap; gap: 6px; }
 .slidevault .fb-range { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; font-size: 12px; color: var(--sv-text-secondary); }
 .slidevault .fb-range input { margin-top: 4px; }
-.slidevault .fb-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; }
+.slidevault .fb-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; }
 
 /* ---- Filter choices read from the typed sentence ---- */
 .slidevault .fb-note { margin: 0 0 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
@@ -61,14 +61,10 @@
    stays in reach once the row has scrolled away. */
 .slidevault .fb-all, .slidevault .fb-pin { display: none; }
 .slidevault .sv-app[data-size="compact"] .fbar { position: static; padding-top: 8px; }
-.slidevault .sv-app[data-size="compact"] .fbar-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-.slidevault .sv-app[data-size="compact"] .fbar-row::-webkit-scrollbar { display: none; }
-.slidevault .sv-app[data-size="compact"] .fbar-row > * { flex: none; }
 .slidevault .sv-app[data-size="compact"] .fb-all { display: inline-flex; }
 .slidevault .sv-app[data-size="compact"] .fb-item:has([data-key="more"]) { display: none; }
 .slidevault .sv-app[data-size="compact"] .fb-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .slidevault .sv-app[data-size="compact"] .fb-chips::-webkit-scrollbar { display: none; }
-.slidevault .sv-app[data-size="compact"] .fb-chips li { flex: none; }
 .slidevault .sv-app[data-size="compact"] .fb-pin { display: inline-flex; position: absolute; top: 12px; right: 16px; z-index: 45; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); font: 600 13px var(--sv-font-sans); cursor: pointer; }
 .slidevault .sv-app[data-size="compact"] .fb-pin .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
 dialog.slidevault.fb-sheet .fb-sheet-body { overflow-y: auto; overscroll-behavior: contain; }
@@ -80,12 +76,11 @@ dialog.slidevault.fb-sheet .fb-sheet-body section + section { margin-top: 22px; 
 .slidevault .fb-picker.is-off .fb-note { margin: 4px 0 0; font-size: 13px; color: var(--sv-text-secondary); }
 .slidevault .fb-picker.is-off .fb-find { pointer-events: none; }
 /* The Filters button that stays on a phone once the row has scrolled away sits on its own plain strip, so slides never show behind or beside it. */
-.slidevault .fb-pin-bar { display: none; }
-.slidevault .sv-app[data-size="compact"] .fb-pin-bar { display: flex; justify-content: flex-end; position: absolute; top: 0; left: 0; right: 0; z-index: 45; padding: 8px 16px; background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); }
+.slidevault .sv-app[data-size="compact"] .fb-pin-bar { display: flex; position: absolute; top: 0; left: 0; right: 0; z-index: 45; padding: 8px 16px; background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); }
 .slidevault .sv-app[data-size="compact"] .fb-pin-bar .fb-pin { position: static; box-shadow: none; }
 
 /* Phone: the search bar has its own full row; under it the AI tick, the eye and a small Storyboard button share one row. */
-.slidevault .fb-tools { position: relative; display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+.slidevault .fb-tools { position: relative; align-items: center; gap: 8px; }
 
 /* ---- Phone pass 3 ---- */
 .slidevault .fb-pin-bar { align-items: center; gap: 8px; }
@@ -99,16 +94,13 @@ dialog.slidevault.fb-sheet .fb-sheet-body section + section { margin-top: 22px; 
 
 @media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
 .slidevault .sv-main:has(.res-wrap) .fb-tools { margin-bottom: 6px; }
-.slidevault .sv-main:has(.res-wrap) .fbar { padding-top: 6px; }
-.slidevault .sv-main:has(.res-wrap) .fb-chips { margin-top: 6px; } }
+.slidevault .sv-main:has(.res-wrap) .fbar { padding-top: 6px; } }
 
 /* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
 
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
 .slidevault .sv-app[data-size="compact"] .fb-tools { margin: 4px 0 8px; }
-.slidevault .sv-app[data-size="compact"] .fbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-.slidevault .sv-app[data-size="compact"] .fbar > .fb-tools,
-  .slidevault .sv-app[data-size="compact"] .fbar > .fbar-row { display: contents; }
+.slidevault .sv-app[data-size="compact"] .fbar { flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .slidevault .sv-app[data-size="compact"] .fbar > .fb-tools > * { order: 3; margin-right: 12px; }
 .slidevault .sv-app[data-size="compact"] .fbar-row > :not(.hid-wrap) { order: 4; }
 .slidevault .sv-app[data-size="compact"] .fbar > .fb-chips { flex: 1 1 100%; order: 5; }
@@ -135,30 +127,26 @@ dialog.slidevault.fb-sheet .fb-sheet-body { padding-left: 24px; padding-right: 2
 .slidevault .sv-app[data-size="compact"] .fbar .fb-btn { padding-inline: 8px; font-size: 12.5px; } }
 
 /* ======== Tablet held upright (FD-106): the phone-on-its-side page layouts (Home, results, slide page, deck page) with the tabs along the bottom. The slide preview keeps the desktop layout. ======== */
-.slidevault .sv-app[data-size="medium"] .fb-pin-bar { display: flex; justify-content: flex-end; position: absolute; top: 0; left: 0; right: 0; z-index: 45; padding: 8px 16px; background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); }
+.slidevault .sv-app[data-size="medium"] .fb-pin-bar { display: flex; position: absolute; top: 0; left: 0; right: 0; z-index: 45; padding: 8px 16px; background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); }
 .slidevault .sv-app[data-size="medium"] .fb-pin-bar .fb-pin { position: static; box-shadow: none; }
 .slidevault .sv-app[data-size="medium"] .fb-pin-bar .fb-pin { margin-left: auto; }
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
 .slidevault .sv-app[data-size="medium"] .fb-item:has([data-key="category"]), .slidevault .sv-app[data-size="medium"] .fb-item:has([data-key="slideType"]), .slidevault .sv-app[data-size="medium"] .fb-item:has([data-key="section"]) { display: none; }
 .slidevault .sv-app[data-size="medium"] .sv-main:has(.res-wrap) .fb-chips { margin-top: 6px; }
 .slidevault .sv-app[data-size="medium"] .fb-tools { margin: 4px 0 8px; }
-.slidevault .sv-app[data-size="medium"] .fbar { display: flex; flex-wrap: wrap; align-items: center; }
-.slidevault .sv-app[data-size="medium"] .fbar > .fb-tools, .slidevault .sv-app[data-size="medium"] .fbar > .fbar-row { display: contents; }
+.slidevault .sv-app[data-size="medium"] .fbar { flex-wrap: wrap; align-items: center; }
 .slidevault .sv-app[data-size="medium"] .fbar > .fb-tools > * { order: 3; margin-right: 12px; }
 .slidevault .sv-app[data-size="medium"] .fbar-row > :not(.hid-wrap) { order: 4; }
 .slidevault .sv-app[data-size="medium"] .fbar > .fb-chips { flex: 1 1 100%; order: 5; }
 
 /* Tablet upright: the filter row, Filters button, example searches and Home rows follow the phone. */
 .slidevault .sv-app[data-size="medium"] .fbar { position: static; }
-.slidevault .sv-app[data-size="medium"] .fbar-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-.slidevault .sv-app[data-size="medium"] .fbar-row::-webkit-scrollbar { display: none; }
-.slidevault .sv-app[data-size="medium"] .fbar-row > * { flex: none; }
 .slidevault .sv-app[data-size="medium"] .fb-all { display: inline-flex; }
 .slidevault .sv-app[data-size="medium"] .fb-item:has([data-key="more"]) { display: none; }
 .slidevault .sv-app[data-size="medium"] .fb-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .slidevault .sv-app[data-size="medium"] .fb-chips::-webkit-scrollbar { display: none; }
 .slidevault .sv-app[data-size="medium"] .fb-chips li { flex: none; }
-.slidevault .sv-app[data-size="medium"] .fb-pin { display: inline-flex; position: absolute; top: 12px; right: 16px; z-index: 45; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.slidevault .sv-app[data-size="medium"] .fb-pin { display: inline-flex; top: 12px; right: 16px; z-index: 45; align-items: center; gap: 7px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); font: 600 13px var(--sv-font-sans); cursor: pointer; }
 .slidevault .sv-app[data-size="medium"] .fb-pin .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
 
 /* Tablet upright: the Filters sheet is the same size and slide-up as on a phone on its side, centred at the bottom instead of full width. */
@@ -191,28 +179,23 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault .sv-app[data-tl] .fb-item:has([data-key="category"]), .slidevault .sv-app[data-tl] .fb-item:has([data-key="slideType"]), .slidevault .sv-app[data-tl] .fb-item:has([data-key="section"]) { display: none; }
 .slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fb-chips { margin-top: 6px; }
 .slidevault .sv-app[data-tl] .fb-tools { margin: 4px 0 8px; }
-.slidevault .sv-app[data-tl] .fbar { display: flex; flex-wrap: wrap; align-items: center; }
-.slidevault .sv-app[data-tl] .fbar > .fb-tools, .slidevault .sv-app[data-tl] .fbar > .fbar-row { display: contents; }
+.slidevault .sv-app[data-tl] .fbar { flex-wrap: wrap; align-items: center; }
 .slidevault .sv-app[data-tl] .fbar > .fb-tools > * { order: 3; margin-right: 12px; }
 .slidevault .sv-app[data-tl] .fbar-row > :not(.hid-wrap) { order: 4; }
 .slidevault .sv-app[data-tl] .fbar > .fb-chips { flex: 1 1 100%; order: 5; }
 .slidevault .sv-app[data-tl] .fbar { position: static; }
-.slidevault .sv-app[data-tl] .fbar-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-.slidevault .sv-app[data-tl] .fbar-row::-webkit-scrollbar { display: none; }
-.slidevault .sv-app[data-tl] .fbar-row > * { flex: none; }
 .slidevault .sv-app[data-tl] .fb-all { display: inline-flex; }
 .slidevault .sv-app[data-tl] .fb-item:has([data-key="more"]) { display: none; }
 .slidevault .sv-app[data-tl] .fb-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .slidevault .sv-app[data-tl] .fb-chips::-webkit-scrollbar { display: none; }
 .slidevault .sv-app[data-tl] .fb-chips li { flex: none; }
-.slidevault .sv-app[data-tl] .fb-pin { display: inline-flex; top: 12px; right: 16px; z-index: 45; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.slidevault .sv-app[data-tl] .fb-pin { display: inline-flex; top: 12px; right: 16px; z-index: 45; align-items: center; gap: 7px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); font: 600 13px var(--sv-font-sans); cursor: pointer; }
 .slidevault .sv-app[data-tl] .fb-pin .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
 .slidevault .sv-app[data-tl] .home-hero + .fbar, .slidevault .sv-app[data-tl] .fbar { padding-top: 22px; }
 .slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fbar { padding-top: 22px; }
 .slidevault .sv-app[data-tl] .fbar { gap: 10px 10px; }
 .slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fb-tools { margin-bottom: 10px; }
 .slidevault .sv-app[data-tl] .sv-main:not(:has(.res-wrap)) .fbar { padding-left: 6px; } /* the tick box sits 8 px inside its row */
-.slidevault .sv-app[data-tl] .fb-pin { position: static; }
 
 /* Tablet on its side: once the row has scrolled away, a pinned bar under the tabs keeps the slim search, Search with AI and Filters in reach (like desktop's sticky bar). */
 .slidevault .sv-app[data-tl] .fb-pin-bar { display: flex; align-items: center; gap: 12px; position: absolute; left: 0; right: 0; z-index: 45; padding: 8px var(--sv-side); background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); }
@@ -226,8 +209,7 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault .sv-app[data-tl] .fb-pin-bar { top: 0; }
 
 /* Phones and tablets: the selected filter pills sit in the same row as the Filters button and wrap to the next line only when they do not fit. */
-.slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-.slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar > .fbar-row { display: contents; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar { flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar > .fb-tools { flex: 1 1 100%; }
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .fbar > .fb-chips { display: contents; }
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .fbar > .fb-chips > li { flex: none; order: 4; max-width: 100%; }
@@ -266,7 +248,7 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 
 /* The thin line between the filter buttons and the chosen filters: only in the one scrolling row (phones and tablets). "Clear all" is the last item. */
 .slidevault .fb-chips > .fb-sep { display: none; }
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row .fb-chips > .fb-sep { display: block; flex: none; width: 1px; height: 24px; margin: 0 6px; background: var(--sv-border-strong); order: 5; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row .fb-chips > .fb-sep { display: block; width: 1px; height: 24px; margin: 0 6px; background: var(--sv-border-strong); }
 .slidevault .fb-chips .fb-clear-all { margin: 0 0 0 4px; }
 
 /* With chosen filters showing, the filter area ends with clear room before the page heading below it (a section, a results heading, a list). */
