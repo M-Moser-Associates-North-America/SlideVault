@@ -1,0 +1,279 @@
+/* Filter bar (FilterBar.tsx)
+   The row of filter buttons (Year, Client, Project type, Slide type, Section, More), their pickers,
+   the chosen-filter pills with Clear all, the pinned bar once the page scrolls, and the Filters sheet on phones.
+*/
+
+/* full-bleed: the colour runs to the window edge behind the column */
+.slidevault .pchip { min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--sv-border-strong); background: var(--sv-surface); color: var(--sv-text); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.slidevault .pchip:hover { background: var(--sv-surface-sunken); }
+/* orange accents (selection, focus and small brand marks only) */
+.slidevault .pchip[aria-pressed="true"], .slidevault .pchip[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); border-color: var(--sv-brand); color: var(--sv-text); }
+.slidevault .pchip[aria-pressed="true"]::before { content: ""; width: 5px; height: 9px; border: solid var(--sv-brand-strong); border-width: 0 2px 2px 0; transform: rotate(45deg); margin: -3px 8px 0 0; display: inline-block; }
+/* touch: 44px targets */
+@media (pointer: coarse) {
+.slidevault .pchip { min-height: 44px; } } 
+
+/* ---- Filter row under the Home search box (FilterBar.tsx) ---- */
+.slidevault .fbar { position: sticky; z-index: 25; margin: 0; padding: 12px 0 4px; background: var(--sv-bg); }
+.slidevault .fbar-sentinel { height: 0; }
+/* Stuck to the top: more room above the row. The negative margin keeps the page below from jumping. */
+.slidevault .fbar.is-stuck { padding-top: 22px; padding-bottom: 20px; margin-bottom: -26px; }
+/* The bar's background reaches the edges of the scrolling area (and the draft deck panel), so no slide cards show beside or under it. */
+.slidevault .fbar::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(-1 * var(--fb-l, 0px)); right: calc(-1 * var(--fb-r, 0px)); background: var(--sv-bg); pointer-events: none; }
+.slidevault .sv-app[data-size="wide"] .fbar { --fb-l: var(--sv-side); --fb-r: 24px; }
+.slidevault .sv-app[data-size="wide"] .cart-min .fbar { --fb-r: var(--sv-side); }
+.slidevault .sv-app[data-size="medium"] .fbar { --fb-l: 20px; --fb-r: 20px; }
+.slidevault .fbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: 840px; }
+.slidevault .fb-item { position: relative; }
+.slidevault .fb-btn { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.slidevault .fb-btn:hover { border-color: var(--sv-text-secondary); color: var(--sv-text); }
+.slidevault .fb-btn[aria-expanded="true"] { border-color: var(--sv-text); color: var(--sv-text); }
+.slidevault .fb-btn.on { background: var(--sv-brand-tint); border-color: var(--sv-brand); color: var(--sv-text); }
+.slidevault .fb-btn .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
+.slidevault .fb-btn.on .ic, .slidevault .fb-btn[aria-expanded="true"] .ic { color: var(--sv-brand); }
+.slidevault .fb-n-on { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 6px; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
+.slidevault .fb-clear-all { margin: 0 6px; font-size: var(--sv-text-small); white-space: nowrap; }
+.slidevault .fb-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 35; width: 280px; padding: 14px; border: 1px solid var(--sv-border); border-radius: 16px; background: var(--sv-surface); box-shadow: var(--sv-shadow-panel); overflow-y: auto; overscroll-behavior: contain; }
+.slidevault .fb-pop-wide { width: 320px; }
+.slidevault .fb-picker + .fb-picker, .slidevault .fb-more > * + * { margin-top: 14px; }
+.slidevault .fb-picker-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: var(--sv-text-small); font-weight: 700; }
+.slidevault .fb-find, .slidevault .fb-range input { width: 100%; height: 36px; padding: 0 12px; border: 1px solid var(--sv-control-border); border-radius: 10px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); }
+.slidevault .fb-find:focus, .slidevault .fb-range input:focus { outline: none; border-color: var(--sv-brand); }
+.slidevault .fb-list { list-style: none; margin: 8px 0 0; padding: 0; max-height: 220px; overflow-y: auto; overscroll-behavior: contain; }
+.slidevault .fb-list label { display: flex; align-items: center; gap: 10px; padding: 7px 6px; border-radius: 8px; cursor: pointer; font-size: var(--sv-text-small); }
+.slidevault .fb-list label:hover { background: var(--sv-surface-sunken); }
+.slidevault .fb-list input[type="checkbox"] { accent-color: var(--sv-brand); width: 16px; height: 16px; }
+.slidevault .fb-opt { flex: 1; min-width: 0; }
+.slidevault .fb-n { color: var(--sv-text-secondary); font-size: 12px; }
+.slidevault .fb-none { padding: 8px 6px; color: var(--sv-text-secondary); font-size: var(--sv-text-small); }
+.slidevault .fb-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.slidevault .fb-range { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; font-size: 12px; color: var(--sv-text-secondary); }
+.slidevault .fb-range input { margin-top: 4px; }
+.slidevault .fb-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; }
+
+/* ---- Filter choices read from the typed sentence ---- */
+.slidevault .fb-note { margin: 0 0 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+
+/* ---- Filter options that would leave nothing are greyed out (still clickable) ---- */
+.slidevault .fb-list label.is-zero, .slidevault .fb-presets .pchip.is-zero { opacity: 0.45; }
+
+/* Filters on phones: one swipeable row, every filter opens in a bottom sheet, and a pinned button
+   stays in reach once the row has scrolled away. */
+.slidevault .fb-all, .slidevault .fb-pin { display: none; }
+.slidevault .sv-app[data-size="compact"] .fbar { position: static; padding-top: 8px; }
+.slidevault .sv-app[data-size="compact"] .fbar-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-size="compact"] .fbar-row::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="compact"] .fbar-row > * { flex: none; }
+.slidevault .sv-app[data-size="compact"] .fb-all { display: inline-flex; }
+.slidevault .sv-app[data-size="compact"] .fb-item:has([data-key="more"]) { display: none; }
+.slidevault .sv-app[data-size="compact"] .fb-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-size="compact"] .fb-chips::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="compact"] .fb-chips li { flex: none; }
+.slidevault .sv-app[data-size="compact"] .fb-pin { display: inline-flex; position: absolute; top: 12px; right: 16px; z-index: 45; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.slidevault .sv-app[data-size="compact"] .fb-pin .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
+dialog.slidevault.fb-sheet .fb-sheet-body { overflow-y: auto; overscroll-behavior: contain; }
+dialog.slidevault.fb-sheet .fb-sheet-body section + section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--sv-border); } /* ours (.fb-clear) stays while there is text; the browser's only shows on hover */
+.slidevault .fbar.has-search { margin-bottom: -50px; }
+
+/* More panel: a list the server cannot fill yet stays visible but greyed out, with the reason. */
+.slidevault .fb-picker.is-off { opacity: 0.55; }
+.slidevault .fb-picker.is-off .fb-note { margin: 4px 0 0; font-size: 13px; color: var(--sv-text-secondary); }
+.slidevault .fb-picker.is-off .fb-find { pointer-events: none; }
+/* The Filters button that stays on a phone once the row has scrolled away sits on its own plain strip, so slides never show behind or beside it. */
+.slidevault .fb-pin-bar { display: none; }
+.slidevault .sv-app[data-size="compact"] .fb-pin-bar { display: flex; justify-content: flex-end; position: absolute; top: 0; left: 0; right: 0; z-index: 45; padding: 8px 16px; background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); }
+.slidevault .sv-app[data-size="compact"] .fb-pin-bar .fb-pin { position: static; box-shadow: none; }
+
+/* Phone: the search bar has its own full row; under it the AI tick, the eye and a small Storyboard button share one row. */
+.slidevault .fb-tools { position: relative; display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+
+/* ---- Phone pass 3 ---- */
+.slidevault .fb-pin-bar { align-items: center; gap: 8px; }
+.slidevault .sv-app[data-size="compact"] .fb-pin-bar .fb-pin { margin-left: auto; }
+/* Only Filters, Year and Client sit in the row; the rest are in the Filters sheet. */
+.slidevault .sv-app[data-size="compact"] .fb-item:has([data-key="category"]), .slidevault .sv-app[data-size="compact"] .fb-item:has([data-key="slideType"]), .slidevault .sv-app[data-size="compact"] .fb-item:has([data-key="section"]) { display: none; }
+.slidevault .pin-sum { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font-size: var(--sv-text-small); }
+.slidevault .pin-sort select { max-width: 150px; height: 34px; padding: 0 8px; border: 1px solid var(--sv-border); border-radius: 8px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-weight: 600; }
+
+/* ---- Results page on a phone: a calmer top ---- */
+
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-main:has(.res-wrap) .fb-tools { margin-bottom: 6px; }
+.slidevault .sv-main:has(.res-wrap) .fbar { padding-top: 6px; }
+.slidevault .sv-main:has(.res-wrap) .fb-chips { margin-top: 6px; } }
+
+/* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .fb-tools { margin: 4px 0 8px; }
+.slidevault .sv-app[data-size="compact"] .fbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.slidevault .sv-app[data-size="compact"] .fbar > .fb-tools,
+  .slidevault .sv-app[data-size="compact"] .fbar > .fbar-row { display: contents; }
+.slidevault .sv-app[data-size="compact"] .fbar > .fb-tools > * { order: 3; margin-right: 12px; }
+.slidevault .sv-app[data-size="compact"] .fbar-row > :not(.hid-wrap) { order: 4; }
+.slidevault .sv-app[data-size="compact"] .fbar > .fb-chips { flex: 1 1 100%; order: 5; }
+.slidevault .sv-app[data-size="compact"] .fb-pin-bar { padding-left: calc(64px + 16px + env(safe-area-inset-left)); } }
+/* Small phones on their side (667×375, 640×360, 568×320): keep every part in its place and make it fit. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
+.slidevault .sv-app[data-size="compact"] .fbar { gap: 6px; }
+.slidevault .sv-app[data-size="compact"] .fbar > .fb-tools > * { margin-right: 6px; }
+.slidevault .sv-app[data-size="compact"] .fbar .fb-btn { padding-inline: 10px; }
+.slidevault .sv-app[data-size="compact"] .fbar .fb-btn .ic { display: none; } }
+
+/* ---- Phone on its side, round 3 ---- */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .fb-pin-bar { padding-top: 4px; padding-bottom: 4px; }
+.slidevault .sv-app[data-size="compact"] .fb-pin-bar .btn, .slidevault .sv-app[data-size="compact"] .fb-pin-bar .fb-pin { min-height: 30px; height: 30px; } }
+/* Filters on a phone on its side: it rises from the bottom like on a portrait phone, but narrower and centred, so its words and boxes are not stretched across the whole screen. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+dialog.slidevault.fb-sheet .fb-sheet-body { padding-left: 24px; padding-right: 24px; } }
+/* The smallest phones on their side (iPhone SE and under, about 570 wide): the Home filter row stays on one line. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 600px) {
+.slidevault .sv-app[data-size="compact"] .fbar { gap: 4px; }
+.slidevault .sv-app[data-size="compact"] .fbar > .fb-tools > * { margin-right: 4px; }
+.slidevault .sv-app[data-size="compact"] .fbar .fb-btn { padding-inline: 8px; font-size: 12.5px; } }
+
+/* ======== Tablet held upright (FD-106): the phone-on-its-side page layouts (Home, results, slide page, deck page) with the tabs along the bottom. The slide preview keeps the desktop layout. ======== */
+.slidevault .sv-app[data-size="medium"] .fb-pin-bar { display: flex; justify-content: flex-end; position: absolute; top: 0; left: 0; right: 0; z-index: 45; padding: 8px 16px; background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); }
+.slidevault .sv-app[data-size="medium"] .fb-pin-bar .fb-pin { position: static; box-shadow: none; }
+.slidevault .sv-app[data-size="medium"] .fb-pin-bar .fb-pin { margin-left: auto; }
+/* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
+.slidevault .sv-app[data-size="medium"] .fb-item:has([data-key="category"]), .slidevault .sv-app[data-size="medium"] .fb-item:has([data-key="slideType"]), .slidevault .sv-app[data-size="medium"] .fb-item:has([data-key="section"]) { display: none; }
+.slidevault .sv-app[data-size="medium"] .sv-main:has(.res-wrap) .fb-chips { margin-top: 6px; }
+.slidevault .sv-app[data-size="medium"] .fb-tools { margin: 4px 0 8px; }
+.slidevault .sv-app[data-size="medium"] .fbar { display: flex; flex-wrap: wrap; align-items: center; }
+.slidevault .sv-app[data-size="medium"] .fbar > .fb-tools, .slidevault .sv-app[data-size="medium"] .fbar > .fbar-row { display: contents; }
+.slidevault .sv-app[data-size="medium"] .fbar > .fb-tools > * { order: 3; margin-right: 12px; }
+.slidevault .sv-app[data-size="medium"] .fbar-row > :not(.hid-wrap) { order: 4; }
+.slidevault .sv-app[data-size="medium"] .fbar > .fb-chips { flex: 1 1 100%; order: 5; }
+
+/* Tablet upright: the filter row, Filters button, example searches and Home rows follow the phone. */
+.slidevault .sv-app[data-size="medium"] .fbar { position: static; }
+.slidevault .sv-app[data-size="medium"] .fbar-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-size="medium"] .fbar-row::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="medium"] .fbar-row > * { flex: none; }
+.slidevault .sv-app[data-size="medium"] .fb-all { display: inline-flex; }
+.slidevault .sv-app[data-size="medium"] .fb-item:has([data-key="more"]) { display: none; }
+.slidevault .sv-app[data-size="medium"] .fb-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-size="medium"] .fb-chips::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="medium"] .fb-chips li { flex: none; }
+.slidevault .sv-app[data-size="medium"] .fb-pin { display: inline-flex; position: absolute; top: 12px; right: 16px; z-index: 45; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.slidevault .sv-app[data-size="medium"] .fb-pin .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
+
+/* Tablet upright: the Filters sheet is the same size and slide-up as on a phone on its side, centred at the bottom instead of full width. */
+
+@media (orientation: portrait) and (min-width: 701px) and (max-width: 1100px) {
+dialog.slidevault.fb-sheet .fb-sheet-body { padding-left: 24px; padding-right: 24px; } }
+
+/* Tablet upright Home: the search keeps its big, airy desktop size (the rest of the page follows the phone). */
+.slidevault .sv-app[data-size="medium"] .home-hero + .fbar, .slidevault .sv-app[data-size="medium"] .fbar { padding-top: 22px; }
+
+/* Tablet upright results: no column button, and more air between the rows. */
+.slidevault .sv-app[data-size="medium"] .sv-main:has(.res-wrap) .fbar { padding-top: 22px; }
+.slidevault .sv-app[data-size="medium"] .fbar { gap: 10px 10px; }
+.slidevault .sv-app[data-size="medium"] .sv-main:has(.res-wrap) .fb-tools { margin-bottom: 10px; }
+/* Tablet upright Home: the filter row and the example searches start on the same line as "I'm looking for". */
+.slidevault .sv-app[data-size="medium"] .sv-main:not(:has(.res-wrap)) .fbar { padding-left: 6px; }
+
+/* Filters sheet (phones, tablets): long lists show their first few and open with a button, so the sheet is the only thing that scrolls. */
+dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
+.slidevault .fb-showall { display: inline-flex; align-items: center; gap: 6px; margin: 6px 0 0 6px; min-height: 40px; padding: 0 4px; border: 0; background: none; color: var(--sv-brand-strong); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.slidevault .fb-showall .ic { width: 16px; height: 16px; transition: transform 0.15s; }
+.slidevault .fb-showall[aria-expanded="true"] .ic { transform: rotate(180deg); }
+.slidevault .fb-showall:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; border-radius: 6px; }
+/* Year quick picks: each one whole on one line, the count a quieter second part. */
+.slidevault .fb-presets .pchip { flex: none; white-space: nowrap; }
+.slidevault .fb-presets .pchip .fb-n { margin-left: 6px; font-weight: 500; }
+.slidevault .fb-presets .pchip[aria-pressed="true"] .fb-n { color: inherit; opacity: 0.85; }
+
+/* Tablet on its side: Home and the filter row follow the upright tablet (one Filters button, one row of Try examples, Storyboard beside Search with AI), because the draft deck panel leaves little width. */
+.slidevault .sv-app[data-tl] .fb-item:has([data-key="category"]), .slidevault .sv-app[data-tl] .fb-item:has([data-key="slideType"]), .slidevault .sv-app[data-tl] .fb-item:has([data-key="section"]) { display: none; }
+.slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fb-chips { margin-top: 6px; }
+.slidevault .sv-app[data-tl] .fb-tools { margin: 4px 0 8px; }
+.slidevault .sv-app[data-tl] .fbar { display: flex; flex-wrap: wrap; align-items: center; }
+.slidevault .sv-app[data-tl] .fbar > .fb-tools, .slidevault .sv-app[data-tl] .fbar > .fbar-row { display: contents; }
+.slidevault .sv-app[data-tl] .fbar > .fb-tools > * { order: 3; margin-right: 12px; }
+.slidevault .sv-app[data-tl] .fbar-row > :not(.hid-wrap) { order: 4; }
+.slidevault .sv-app[data-tl] .fbar > .fb-chips { flex: 1 1 100%; order: 5; }
+.slidevault .sv-app[data-tl] .fbar { position: static; }
+.slidevault .sv-app[data-tl] .fbar-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-tl] .fbar-row::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-tl] .fbar-row > * { flex: none; }
+.slidevault .sv-app[data-tl] .fb-all { display: inline-flex; }
+.slidevault .sv-app[data-tl] .fb-item:has([data-key="more"]) { display: none; }
+.slidevault .sv-app[data-tl] .fb-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.slidevault .sv-app[data-tl] .fb-chips::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-tl] .fb-chips li { flex: none; }
+.slidevault .sv-app[data-tl] .fb-pin { display: inline-flex; top: 12px; right: 16px; z-index: 45; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.slidevault .sv-app[data-tl] .fb-pin .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }
+.slidevault .sv-app[data-tl] .home-hero + .fbar, .slidevault .sv-app[data-tl] .fbar { padding-top: 22px; }
+.slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fbar { padding-top: 22px; }
+.slidevault .sv-app[data-tl] .fbar { gap: 10px 10px; }
+.slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .fb-tools { margin-bottom: 10px; }
+.slidevault .sv-app[data-tl] .sv-main:not(:has(.res-wrap)) .fbar { padding-left: 6px; } /* the tick box sits 8 px inside its row */
+.slidevault .sv-app[data-tl] .fb-pin { position: static; }
+
+/* Tablet on its side: once the row has scrolled away, a pinned bar under the tabs keeps the slim search, Search with AI and Filters in reach (like desktop's sticky bar). */
+.slidevault .sv-app[data-tl] .fb-pin-bar { display: flex; align-items: center; gap: 12px; position: absolute; left: 0; right: 0; z-index: 45; padding: 8px var(--sv-side); background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); }
+.slidevault .sv-app[data-tl] .fb-pin-bar .fb-pin { position: static; box-shadow: none; flex: none; margin-left: 0; }
+.slidevault .sv-app[data-tl] .fb-pin-bar .btn, .slidevault .sv-app[data-tl] .fb-pin-bar .fb-pin { min-height: 36px; height: 36px; }
+
+/* Phones and upright tablets: the pinned bar on Home also holds a slim search, so searching again never needs a scroll back up. */
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .fb-pin-bar { justify-content: flex-start; }
+
+/* Tablet on its side: the Home / Create / Upload / My decks row scrolls away with the page (it is only sticky on desktop), and the pinned search bar takes the top edge. */
+.slidevault .sv-app[data-tl] .fb-pin-bar { top: 0; }
+
+/* Phones and tablets: the selected filter pills sit in the same row as the Filters button and wrap to the next line only when they do not fit. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar > .fbar-row { display: contents; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar > .fb-tools { flex: 1 1 100%; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .fbar > .fb-chips { display: contents; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .fbar > .fb-chips > li { flex: none; order: 4; max-width: 100%; }
+
+/* Phone on its side and both tablets: Search with AI, the eye and Filters sit together on the left, Storyboard is at the right end of the same row, and the chosen filters (Clear all first) are a row of their own underneath, as on desktop. */
+.slidevault :is(.sv-app[data-size="medium"], .sv-app[data-tl], .sv-app[data-size="compact"][data-land]) .fbar > .fb-tools > * { order: 5; margin: 0; }
+.slidevault :is(.sv-app[data-size="medium"], .sv-app[data-tl], .sv-app[data-size="compact"][data-land]) .fbar > .fb-chips { display: flex; flex-wrap: wrap; flex: 1 1 100%; order: 6; overflow: visible; padding-bottom: 0; margin-top: 2px; }
+.slidevault :is(.sv-app[data-size="medium"], .sv-app[data-tl], .sv-app[data-size="compact"][data-land]) .fbar > .fb-chips > li { order: 0; }
+/* Phone held upright: a little more room between the filter row and the chosen filters. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar { row-gap: 12px; }
+
+/* Pressed look that stays (see tap-feedback.ts): the same orange as hover, on touch and on Enter or Space, so a slow page change still shows the press. */
+.slidevault .fb-btn[data-tapped] { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
+
+/* Phone on its side: more room above the Search with AI and Storyboard row. */
+.slidevault .sv-app[data-size="compact"][data-land] .fbar { padding-top: 20px; }
+
+/* Pinned search bar. Tablet on its side: a shorter search box, no eye. Upright tablet: a thicker bar. Phone: the search gets the room the Filters button had. */
+.slidevault .sv-app[data-size="medium"] .fb-pin-bar { padding-top: 10px; padding-bottom: 10px; }
+.slidevault .sv-app[data-size="medium"] .fb-pin-bar .btn, .slidevault .sv-app[data-size="medium"] .fb-pin-bar .fb-pin { min-height: 40px; height: 40px; }
+
+/* ---- One scrolling filter row (phones and tablets, both ways up) ----
+   Search with AI, the eye, Filters, Storyboard (not on a phone held upright, where it keeps a line above) and then
+   Clear all with the chosen filters are all one row that scrolls sideways. Desktop keeps its wrapped layout, with the chosen filters on their own line under the row. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar.fbar { display: block; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar.fbar > .fb-tools { display: block; margin: 0 0 12px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar.fbar > .fbar-row.fbar-row { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px 10px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; max-width: none; padding: 2px 0; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row::-webkit-scrollbar { display: none; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row.fbar-row > * { flex: none; margin: 0; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row.fbar-row > .fb-chips { display: contents; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row.fbar-row .fb-chips > li { order: 5; flex: none; }
+/* Desktop: the chosen filters are the last line of the row, the same distance under the filter buttons as the buttons are under the search bar. */
+.slidevault .fbar-row > .fb-chips { flex: 1 1 100%; margin: 4px 0 0; }
+/* "Sort:" is shown in front of the box on every screen. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar.fbar > .fbar-row.fbar-row { padding-top: 6px; padding-bottom: 4px; }
+
+/* The thin line between the filter buttons and the chosen filters: only in the one scrolling row (phones and tablets). "Clear all" is the last item. */
+.slidevault .fb-chips > .fb-sep { display: none; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row .fb-chips > .fb-sep { display: block; flex: none; width: 1px; height: 24px; margin: 0 6px; background: var(--sv-border-strong); order: 5; }
+.slidevault .fb-chips .fb-clear-all { margin: 0 0 0 4px; }
+
+/* With chosen filters showing, the filter area ends with clear room before the page heading below it (a section, a results heading, a list). */
+.slidevault .fbar:has(.fb-chips):not(.is-stuck) { margin-bottom: 28px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar:has(.fb-chips) { margin-bottom: 24px; }
+/* Desktop: a clear gap between the filter buttons and the row of chosen filters under them. */
+.slidevault .sv-app[data-size="wide"]:not([data-tl]) .fbar-row > .fb-chips { margin-top: 12px; }
+
+/* Pinned and showing the slim search: both height corrections apply (-26px for the pinned padding, -50px for the slim search), so the page under it never jumps. */
+.slidevault .fbar.is-stuck.has-search { margin-bottom: -76px; }

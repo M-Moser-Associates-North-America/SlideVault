@@ -362,8 +362,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .y-link { display: inline-block; margin-top: 10px; font-size: 13px; background: none; border: 0; padding: 0; cursor: pointer; }
 .slidevault .yr { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .slidevault .yr .select { flex: 1; min-width: 0; }
-.slidevault .pchip { min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--sv-border-strong); background: var(--sv-surface); color: var(--sv-text); font: 600 13px var(--sv-font-sans); cursor: pointer; }
-.slidevault .pchip:hover { background: var(--sv-surface-sunken); }
 .slidevault .pickchip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 8px 0 12px; border-radius: 999px; border: 1px solid var(--sv-brand); background: var(--sv-surface); color: var(--sv-text); font: 600 13px var(--sv-font-sans); cursor: pointer; }
 .slidevault .pickchip .ic { width: 14px; height: 14px; color: var(--sv-text-secondary); }
 .slidevault .pickchip:hover { background: var(--sv-surface-sunken); }
@@ -457,8 +455,8 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .chip-x:hover { background: color-mix(in srgb, var(--sv-brand) 16%, var(--sv-surface)); }
 .slidevault .matched { background: color-mix(in srgb, var(--sv-brand) 8%, var(--sv-surface)); border-radius: 8px; padding: 9px 11px; margin: 6px 0; line-height: 1.45; }
 .slidevault .matched b { margin-bottom: 4px; }
-.slidevault .fchip input:checked + span, .slidevault .pchip[aria-pressed="true"], .slidevault .pchip[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); border-color: var(--sv-brand); color: var(--sv-text); }
-.slidevault .fchip input:checked + span::before, .slidevault .pchip[aria-pressed="true"]::before { content: ""; width: 5px; height: 9px; border: solid var(--sv-brand-strong); border-width: 0 2px 2px 0; transform: rotate(45deg); margin: -3px 8px 0 0; display: inline-block; }
+.slidevault .fchip input:checked + span { background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); border-color: var(--sv-brand); color: var(--sv-text); }
+.slidevault .fchip input:checked + span::before { content: ""; width: 5px; height: 9px; border: solid var(--sv-brand-strong); border-width: 0 2px 2px 0; transform: rotate(45deg); margin: -3px 8px 0 0; display: inline-block; }
 .slidevault .cart-col { border-top: 3px solid var(--sv-brand); }
 
 /* contrast */
@@ -485,7 +483,7 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 @media (max-width: 960px) { .slidevault .try-list { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; } .slidevault .try-list li { flex: none; max-width: 260px; } }
 /* touch: 44px targets */
 @media (pointer: coarse) {
-  .slidevault .fchip span, .slidevault .pchip { min-height: 44px; }
+  .slidevault .fchip span { min-height: 44px; }
   .slidevault .pick { width: 44px; height: 44px; top: 2px; left: 2px; display: grid; place-items: center; }
   .slidevault .ci .btn, .slidevault .ci input { min-height: 44px; }
   .slidevault .sclear { width: 36px; height: 36px; }

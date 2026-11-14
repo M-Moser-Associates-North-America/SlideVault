@@ -30,6 +30,7 @@ import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './views';
 import { StoryboardView } from './StoryboardView';
 import './slidevault.css';
 import './slidevault-extras.css';
+import './styles/filter-bar.css';
 
 /**
  * The SlideVault workspace: renders inside whatever space its host gives it and talks to the
