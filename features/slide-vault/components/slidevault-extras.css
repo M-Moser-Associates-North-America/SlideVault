@@ -1655,7 +1655,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .sv-app[data-size="compact"] .slide-text-panel { margin-top: 16px; }
 
 /* The small "auto" mark on a field that was filled in from the file. */
-.slidevault .auto-tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--sv-brand-tint); color: var(--sv-brand-strong); font-size: 11px; font-weight: 700; letter-spacing: 0.03em; vertical-align: 1px; }
+.slidevault .auto-tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--sv-brand-tint); color: var(--sb-orange-text, #c22d07); font-size: 11px; font-weight: 700; letter-spacing: 0.03em; vertical-align: 1px; }
 
 /* ---- Phone pass 13: Home and results ---- */
 /* Only Filters, Year and Client sit in the row; the rest are in the Filters sheet. */
