@@ -100,6 +100,8 @@ export function installLongPressTips(): () => void {
     hovered = el ?? null;
     if (!el) return hideTip();
     const text = el.getAttribute('data-tip');
+    /* The preview's deck arrows on phones and tablets hide their label on purpose; don't bring it back on hover. */
+    if (el.closest('.lb-row[data-handheld]')) return hideTip();
     if (text && getComputedStyle(el, '::after').display === 'none') showTip(el, text);
   };
   const out = (e: PointerEvent) => {

@@ -2832,7 +2832,7 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault .btn[aria-pressed="true"]:not(.btn-primary) { background: var(--sv-brand-tint); }
 .slidevault .btn-primary:not(:disabled):not([aria-disabled="true"]):hover,
 .slidevault .btn-primary:not(:disabled):not([aria-disabled="true"]):focus-visible,
-.slidevault .btn-primary:not(:disabled):not([aria-disabled="true"]):active { background: var(--sv-brand-strong); border-color: var(--sv-brand-strong); color: #fff; opacity: 1; }
+.slidevault .btn-primary:not(:disabled):not([aria-disabled="true"]):active { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); opacity: .86; }
 .slidevault .btn-ghost:not(:disabled):hover, .slidevault .btn-ghost:not(:disabled):active, .slidevault .btn-ghost:not(:disabled):focus-visible { color: var(--sv-brand-strong); }
 .slidevault .deck-actions-row > .btn:not(.btn-primary):not(:disabled):hover, .slidevault .deck-actions > .btn:not(.btn-primary):not(:disabled):hover,
 .slidevault .deck-actions-row > .btn:not(.btn-primary):not(:disabled):active, .slidevault .deck-actions > .btn:not(.btn-primary):not(:disabled):active { border-color: var(--sv-brand); }
@@ -2848,7 +2848,7 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault a.btn.is-pending { pointer-events: none; opacity: .85; position: relative; }
 .slidevault a.btn.is-pending .ic { visibility: hidden; width: 16px; margin-right: -16px; }
 .slidevault a.btn.is-pending::before { content: ""; flex: none; width: 14px; height: 14px; border: 2px solid color-mix(in srgb, currentColor 25%, transparent); border-top-color: var(--sv-brand-strong); border-radius: 50%; animation: svBtnSpin .7s linear infinite; order: -1; }
-.slidevault a.btn.is-pending.btn-primary::before { border-top-color: #fff; }
+.slidevault a.btn.is-pending.btn-primary::before { border-top-color: var(--sv-action-fg); }
 @keyframes svBtnSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .slidevault a.btn.is-pending::before { animation-duration: 2s; } }
 
@@ -2908,7 +2908,7 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 
 /* Pressed look that stays (see tap-feedback.ts): the same orange as hover, on touch and on Enter or Space, so a slow page change still shows the press. */
 .slidevault .btn[data-tapped]:not(.btn-ghost):not(.btn-primary):not(.btn-danger):not(.btn-icon):not(.sb-launch-btn):not(:disabled) { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
-.slidevault .btn-primary[data-tapped]:not(:disabled) { background: var(--sv-brand-strong); border-color: var(--sv-brand-strong); color: #fff; opacity: 1; }
+.slidevault .btn-primary[data-tapped]:not(:disabled) { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); opacity: .86; }
 .slidevault .btn-ghost[data-tapped] { color: var(--sv-brand-strong); background: var(--sv-brand-tint); }
 .slidevault .btn.sb-launch-btn[data-tapped]:not(.is-glow) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
 .slidevault .tag[data-tapped], .slidevault .chip-btn[data-tapped], .slidevault .chip-x[data-tapped], .slidevault .fb-btn[data-tapped], .slidevault .try-chip[data-tapped] { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
@@ -3053,3 +3053,9 @@ dialog.slidevault.tag-sheet .tag-sheet-added { color: var(--sv-text); }
 dialog.slidevault.tag-sheet .meta { margin: 0; }
 /* The sheet sits clear of the screen's bottom edge (and the phone's home bar): room under the box and the matching tags. */
 dialog.slidevault.tag-sheet .tag-sheet-body { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+
+/* Dark mode: the loading shimmer is a faint light sweep, not a bright white bar. */
+.slidevault[data-theme="dark"] .skel::after, .slidevault [data-theme="dark"] .skel::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent); }
+
+/* Black (primary) buttons stay neutral, as the design system asks: on hover, focus or press they only lighten a little (also in the preview's bottom row). Orange is kept for white buttons, selection and focus rings. */
+.slidevault .lb-caption .btn-primary:hover:not(:disabled), .slidevault .lb-caption .btn-primary:active:not(:disabled) { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); opacity: .86; }
