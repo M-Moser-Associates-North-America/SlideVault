@@ -1,3 +1,5 @@
+import { workspaceBounds } from './size';
+
 /**
  * One small note drawn at the top of the feature and fixed to the screen, so a card's edge or a scrolling
  * row can never cut it off. It sits above the thing it names, or below when there is no room above.
@@ -35,8 +37,9 @@ export function showTip(target: HTMLElement, text: string) {
   const r = target.getBoundingClientRect();
   const w = tip.offsetWidth;
   const h = tip.offsetHeight;
-  const left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8);
-  const top = r.top - h - 8 >= 8 ? r.top - h - 8 : r.bottom + 8;
+  const area = workspaceBounds(target);
+  const left = Math.min(Math.max(area.left + 8, r.left + r.width / 2 - w / 2), area.right - w - 8);
+  const top = r.top - h - 8 >= area.top + 8 ? r.top - h - 8 : r.bottom + 8;
   tip.style.left = `${left}px`;
   tip.style.top = `${top}px`;
   tip.style.visibility = 'visible';

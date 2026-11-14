@@ -12,7 +12,7 @@ import { Icon } from './icons';
 import { plural, type Deck } from './library';
 import { hideTip, showTip } from './fixed-tip';
 import { peekHeight } from './scroll-peek';
-import { useWorkspaceCompact, useWorkspacePhoneLike } from './size';
+import { useWorkspaceCompact, useWorkspacePhoneLike, workspaceBounds } from './size';
 import { useAccount, useNotify, useRuntime, useSearch } from './state';
 import { cleanTag, type TagSuggestion } from './TagField';
 
@@ -188,12 +188,13 @@ function MoreTags({ names }: { names: string[] }) {
     const r = button.current.getBoundingClientRect();
     /* More tags than fit: stop halfway through the next pill, so it shows the list scrolls. */
     menu.current.style.maxHeight = '';
-    const room = Math.min(360, Math.round(window.innerHeight * 0.6));
+    const area = workspaceBounds(button.current);
+    const room = Math.min(360, Math.round(area.height * 0.6));
     menu.current.style.maxHeight = `${peekHeight(menu.current, room)}px`;
     const w = menu.current.offsetWidth;
     const h = menu.current.offsetHeight;
-    const left = r.left + w > window.innerWidth - 8 ? Math.max(8, r.right - w) : r.left;
-    const top = r.bottom + 6 + h > window.innerHeight - 8 ? Math.max(8, r.top - h - 6) : r.bottom + 6;
+    const left = r.left + w > area.right - 8 ? Math.max(area.left + 8, r.right - w) : r.left;
+    const top = r.bottom + 6 + h > area.bottom - 8 ? Math.max(area.top + 8, r.top - h - 6) : r.bottom + 6;
     setAt({ top, left });
   }, [open, names.length]);
 

@@ -18,7 +18,7 @@ import { useEdgeFade } from './edge-fade';
 import { useResultsSummary } from '../client/results-summary';
 import { useRoot } from './root';
 import { peekHeight } from './scroll-peek';
-import { useWorkspaceCompact, useWorkspaceFiltersRolled, useWorkspacePhoneUpright, useWorkspaceTabletLandscape } from './size';
+import { useWorkspaceCompact, useWorkspaceFiltersRolled, useWorkspacePhoneUpright, useWorkspaceTabletLandscape, workspaceBounds } from './size';
 import { useLibrary, useRuntime, useSearch } from './state';
 
 /**
@@ -250,7 +250,7 @@ export function FilterBar() {
     const pop = wrap.current?.querySelector<HTMLElement>('.fb-pop');
     if (!pop) return;
     const fit = () => {
-      const room = Math.max(220, window.innerHeight - pop.getBoundingClientRect().top - 16);
+      const room = Math.max(220, workspaceBounds(pop).bottom - pop.getBoundingClientRect().top - 16);
       pop.style.maxHeight = '';
       /* Options below the fold: stop halfway through the next one, so it shows there is more to scroll to. */
       pop.style.maxHeight = `${peekHeight(pop, room)}px`;

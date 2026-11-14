@@ -1333,7 +1333,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault .tag-suggested > * { flex: none; }
 }
 /* The full-screen slide. */
-dialog.slidevault.sv-zoom { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: #000; color: #fff; overflow: hidden; }
+dialog.slidevault.sv-zoom { position: fixed; inset: auto; left: var(--sv-x, 0px); top: var(--sv-y, 0px); width: var(--sv-w, 100vw); height: var(--sv-h, 100dvh); max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: #000; color: #fff; overflow: hidden; }
 dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .sv-zoom-stage { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; touch-action: none; user-select: none; }
 .slidevault .sv-zoom-stage img { width: 100%; height: 100%; object-fit: contain; transform-origin: center; will-change: transform; }
@@ -1484,7 +1484,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .more-menu-item { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
 .slidevault .more-menu-item:hover, .slidevault .more-menu-item:focus-visible { background: var(--sv-surface-sunken); }
 .slidevault .more-menu-item .ic { color: var(--sv-text-secondary); }
-.slidevault .deck-sticky { position: fixed; top: 0; left: 0; right: 0; z-index: 45; display: flex; align-items: center; gap: 10px; padding: 8px 16px; padding-top: calc(8px + env(safe-area-inset-top)); background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .deck-sticky { position: absolute; top: 0; left: 0; right: 0; z-index: 45; display: flex; align-items: center; gap: 10px; padding: 8px 16px; padding-top: calc(8px + env(safe-area-inset-top)); background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .deck-sticky .deck-jump-go { flex: 1; }
 .slidevault .slide-num { position: absolute; left: 8px; bottom: 8px; z-index: 2; min-width: 28px; padding: 3px 9px; border-radius: 999px; background: rgba(0, 0, 0, 0.62); color: #fff; font-size: 12px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; pointer-events: none; }
 .slidevault .deck-jump { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; font-size: var(--sv-text-small); font-weight: 600; }
