@@ -3059,3 +3059,10 @@ dialog.slidevault.tag-sheet .tag-sheet-body { padding-bottom: calc(40px + env(sa
 
 /* Black (primary) buttons stay neutral, as the design system asks: on hover, focus or press they only lighten a little (also in the preview's bottom row). Orange is kept for white buttons, selection and focus rings. */
 .slidevault .lb-caption .btn-primary:hover:not(:disabled), .slidevault .lb-caption .btn-primary:active:not(:disabled) { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); opacity: .86; }
+
+/* With chosen filters showing, the filter area ends with clear room before the page heading below it (a section, a results heading, a list). */
+.slidevault .fbar:has(.fb-chips):not(.is-stuck) { margin-bottom: 28px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar:has(.fb-chips) { margin-bottom: 24px; }
+/* A section's own page (a section chosen on Home): the heading, its one line, then room before the section cards. */
+.slidevault .seccards-browse > .h1 { margin: 0; }
+.slidevault .seccards-browse > .h1 + .meta { margin: 6px 0 22px; }
