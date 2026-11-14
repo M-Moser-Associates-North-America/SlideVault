@@ -2780,7 +2780,7 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault .sv-app[data-tl] .tag-suggest { font-size: 12px; padding: 0 8px 0 6px; }
 
 /* Deck page action buttons ("Add all", "Add a range", "Archive deck", "Group slides into a pack"): a lighter outline for now. */
-.slidevault .deck-actions-row > .btn, .slidevault .deck-actions > .btn { border-color: color-mix(in srgb, var(--sv-control-border) 45%, transparent); }
+.slidevault .deck-actions-row > .btn, .slidevault .deck-actions > .btn { border-color: var(--sv-btn-edge, #8e8e8e); }
 .slidevault .deck-actions-row > .btn:hover, .slidevault .deck-actions > .btn:hover { border-color: var(--sv-control-border); }
 .slidevault .deck-actions-row > .btn.btn-primary, .slidevault .deck-actions > .btn.btn-primary { border-color: var(--sv-action-bg); }
 
@@ -2855,12 +2855,17 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 /* A long press must not pop the phone's own menu or text selection on things that carry a note. */
 .slidevault [data-tip] { -webkit-touch-callout: none; }
 
-/* Touch screens (phones, tablets): a larger area around small controls responds to a tap, about 48px, without changing how they look. */
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.save-tg, .deck-arch)::before { content: ""; position: absolute; inset: -8px; }
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.row-info, .helpdot, .also)::before { content: ""; position: absolute; inset: -12px; }
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag::before { content: ""; position: absolute; inset: -12px -4px; }
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag-more { position: relative; }
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag-more::before { content: ""; position: absolute; inset: -12px -6px; }
+/* Touch screens only (a finger, not a mouse): a larger area around small controls responds to a tap, without changing how they look.
+   Each control is its own positioned box, so the extra area is measured from the control itself and can never spread over the card. */
+@media (pointer: coarse) {
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.save-tg, .deck-arch) { position: absolute; }
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.row-info, .helpdot, .also, .tag, .tag-more) { position: relative; }
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.save-tg, .deck-arch)::before { content: ""; position: absolute; inset: -8px; }
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.row-info, .helpdot, .also)::before { content: ""; position: absolute; inset: -5px; }
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag::before { content: ""; position: absolute; inset: -2px; }
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .vcard .tag::before { inset: -1px; }
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag-more::before { content: ""; position: absolute; inset: -4px -6px; }
+}
 
 /* Very large screens (1900px and up): the header and page content stop at 1960px and sit in the middle; the draft deck still reaches the screen's right edge. The base text is a notch bigger. */
 .slidevault .sv-app[data-xxl] .sv-top .sv-wrap, .slidevault .sv-app[data-xxl] .sv-shell { max-width: 1960px; }
@@ -2902,15 +2907,14 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault .sv-app[data-size="medium"] .sv-shell { display: block; padding: 0 20px; }
 
 /* Pressed look that stays (see tap-feedback.ts): the same orange as hover, on touch and on Enter or Space, so a slow page change still shows the press. */
-.slidevault [data-tapped]:not(input):not(select):not(textarea) { outline: 2px solid color-mix(in srgb, var(--sv-brand) 75%, transparent); outline-offset: 2px; }
 .slidevault .btn[data-tapped]:not(.btn-ghost):not(.btn-primary):not(.btn-danger):not(.btn-icon):not(.sb-launch-btn):not(:disabled) { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
 .slidevault .btn-primary[data-tapped]:not(:disabled) { background: var(--sv-brand-strong); border-color: var(--sv-brand-strong); color: #fff; opacity: 1; }
 .slidevault .btn-ghost[data-tapped] { color: var(--sv-brand-strong); background: var(--sv-brand-tint); }
 .slidevault .btn.sb-launch-btn[data-tapped]:not(.is-glow) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
 .slidevault .tag[data-tapped], .slidevault .chip-btn[data-tapped], .slidevault .chip-x[data-tapped], .slidevault .fb-btn[data-tapped], .slidevault .try-chip[data-tapped] { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
 .slidevault .btn-link[data-tapped], .slidevault .crumbs a[data-tapped] { color: var(--sv-brand-strong); text-decoration-thickness: 2px; }
-.slidevault .sv-nav a[data-tapped], .slidevault .sv-bottombar a[data-tapped], .slidevault .sv-bottombar button[data-tapped] { color: var(--sv-brand-strong); background: var(--sv-brand-tint); }
-.slidevault .vcard [data-tapped] { outline-offset: -2px; }
+/* Tabs: only the text turns orange when pressed; no box. */
+.slidevault .sv-nav a[data-tapped], .slidevault .sv-bottombar a[data-tapped], .slidevault .sv-bottombar button[data-tapped] { color: var(--sv-brand-strong); }
 
 /* Phone on its side: more room above the Search with AI and Storyboard row. */
 .slidevault .sv-app[data-size="compact"][data-land] .fbar { padding-top: 20px; }
@@ -2980,3 +2984,72 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head { margin-top: 28px; }
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head .res-title { font-size: 26px; line-height: 1.2; }
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .res-controls { margin-top: 14px; }
+
+/* Button edges: a mid-grey line that meets 3:1 on the page, with a very soft shadow. Dark mode uses the control border. */
+.slidevault { --sv-btn-edge: #8e8e8e; }
+.slidevault[data-theme="dark"], .slidevault [data-theme="dark"] { --sv-btn-edge: var(--sv-control-border); }
+.slidevault .btn-ghost, .slidevault .btn-icon.btn-ghost { box-shadow: none; }
+
+/* Slide cards: the tap area round a tag must not reach the title, the "Also in" link or the meta line above it, so only the pill itself (and a hair round it) answers. */
+.slidevault .vcard .tag::before { inset: -1px; }
+
+/* "We read this as" pills: more room before the slide cards below, and tucked closer under the heading (a phone held upright already has them close). */
+.slidevault .res-wrap .interp { margin: 0 0 22px; }
+.slidevault .sv-app:not([data-size="compact"]:not([data-land])) .res-wrap > .interp { margin-top: -8px; }
+
+/* "We read this as": one row of pills that scrolls sideways (with the faded edge), never wrapping onto a second line. */
+.slidevault .interp { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }
+.slidevault .interp::-webkit-scrollbar { display: none; }
+.slidevault .interp > * { flex: none; white-space: nowrap; }
+
+/* Notes above the results ("AI reading is unavailable right now…", "Nothing matched every filter…"): tucked under the heading, with room before the section pills and the cards. */
+.slidevault .res-wrap > p.meta[role="status"], .slidevault .res-wrap > p.meta:not([class*="step"]) { margin: 0 0 16px; line-height: 1.45; }
+.slidevault .sv-app:not([data-size="compact"]:not([data-land])) .res-wrap > p.meta[role="status"] { margin-top: -6px; }
+.slidevault .sv-app .res-wrap > .res-controls > .sec-pills { margin: 0 0 24px; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .res-controls > .sec-pills { margin: 0; }
+
+/* Results heading row: the heading and the Sort box share one horizontal axis (centred on each other), with a clear gap between where the heading ends and the Sort label starts. */
+.slidevault .sv-app .sv-wrap.res-wrap { align-items: center; column-gap: 32px; }
+.slidevault .sv-app .res-wrap > .page-head { align-self: center; min-width: 0; }
+.slidevault .sv-app .res-wrap > .res-controls > .refine { align-self: center; }
+.slidevault .sv-app .res-wrap > .page-head .res-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+/* Phone held upright: the note under the heading has air above it. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > p.meta[role="status"] { margin-top: 10px; }
+/* Heading and Sort are the same height, so their centres line up exactly. */
+.slidevault .sv-app .res-wrap > .page-head, .slidevault .sv-app .res-wrap > .res-controls > .refine { min-height: 44px; display: flex; align-items: center; }
+.slidevault .sv-app .res-wrap > .page-head > * { min-width: 0; max-width: 100%; }
+/* Phone held upright: the heading wraps as before (it is not squeezed beside Sort there). */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head { min-height: 0; display: flex; min-width: 0; width: 100%; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head .res-title { min-width: 0; width: 100%; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head .res-q { min-width: 0; flex: 0 1 auto; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head .res-title { white-space: normal; overflow: visible; text-overflow: clip; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .res-controls > .refine { min-height: 0; }
+
+/* Same box for the heading and Sort so their centres match; spacing below the row is padding, so it cannot shift one more than the other. */
+.slidevault .sv-app .sv-wrap.res-wrap > .page-head, .slidevault .sv-app .sv-wrap.res-wrap > .res-controls > .refine { margin: 0 !important; padding: 0 0 18px; box-sizing: border-box; min-height: 62px; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .sv-wrap.res-wrap > .page-head { padding: 0; min-height: 0; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .sv-wrap.res-wrap > .res-controls > .refine { padding: 0; min-height: 0; }
+
+/* Phone on its side: the results heading is bigger, and wraps to two lines (not cut off) when the search is long. */
+.slidevault .sv-app[data-size="compact"][data-land] .res-wrap > .page-head .res-title { font-size: 24px; line-height: 1.2; display: block; }
+.slidevault .sv-app[data-size="compact"][data-land] .res-wrap > .page-head .res-q { display: inline; white-space: normal; overflow: visible; text-overflow: clip; }
+.slidevault .sv-app[data-size="compact"][data-land] .res-wrap > .page-head .res-n { font-size: 24px; white-space: nowrap; }
+
+/* Preview deck arrows on phones and tablets: no "Previous / Next in deck" label (it showed as a dark box over the picture when the arrow had focus). Long press still shows it. */
+.slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-nav[data-tip]::after { display: none; }
+
+/* Download pop-up: a long file name fills each line and breaks inside itself ("M Moser_Newmark_Confidential…"), instead of leaving "M" alone on the first line. */
+.slidevault .dl-files li > span:not(.meta) { word-break: break-all; }
+.slidevault .dl-files li > .meta { flex: none; white-space: nowrap; }
+
+/* Phone "Add a tag" sheet. */
+dialog.slidevault.tag-sheet .tag-sheet-body { display: grid; gap: 12px; padding-bottom: 8px; }
+dialog.slidevault.tag-sheet .tag-sheet-form { display: flex; gap: 8px; }
+dialog.slidevault.tag-sheet .tag-sheet-form .input { flex: 1 1 auto; min-width: 0; min-height: 44px; font-size: 16px; }
+dialog.slidevault.tag-sheet .tag-sheet-form .btn { min-height: 44px; flex: none; }
+dialog.slidevault.tag-sheet .tag-sheet-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+dialog.slidevault.tag-sheet .tag-sheet-list .tag-add { min-height: 36px; padding: 0 12px 0 9px; font-size: 14px; }
+dialog.slidevault.tag-sheet .tag-sheet-added { color: var(--sv-text); }
+dialog.slidevault.tag-sheet .meta { margin: 0; }
+/* The sheet sits clear of the screen's bottom edge (and the phone's home bar): room under the box and the matching tags. */
+dialog.slidevault.tag-sheet .tag-sheet-body { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }

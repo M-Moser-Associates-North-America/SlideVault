@@ -789,18 +789,13 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
       )}
       {result && (
         <>
-          {result.reader === 'model' && !result.readerNote && (
-            <p className="meta">
-              <Icon name="sparkle" className="ic-sm" /> Read by AI.
-            </p>
-          )}
           {result.readerNote && (
             <p className="meta" role="status">
               <Icon name="alert" className="ic-sm" /> {result.readerNote}
             </p>
           )}
           {extraChips.length > 0 && (
-            <div className="interp">
+            <ScrollRow className="interp">
               <span className="meta">
                 <Icon name="sparkle" className="ic-sm" />
                 We read this as:
@@ -817,7 +812,7 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
                   </button>
                 ),
               )}
-            </div>
+            </ScrollRow>
           )}
           {result.relaxed && <p className="meta">Nothing matched every filter, so client, year and category are left out.</p>}
           {/* Results in groups, each with its own heading and room: Decks, then Sections (when asked for), then Slides. */}

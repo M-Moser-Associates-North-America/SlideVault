@@ -5,9 +5,13 @@
  */
 let tip: HTMLDivElement | null = null;
 let listening = false;
+let owner: HTMLElement | null = null;
+let watch: number | undefined;
 
 export function hideTip() {
   if (tip) tip.style.visibility = 'hidden';
+  owner = null;
+  window.clearInterval(watch);
 }
 
 export function showTip(target: HTMLElement, text: string) {
@@ -22,6 +26,9 @@ export function showTip(target: HTMLElement, text: string) {
   if (!listening) {
     listening = true;
     window.addEventListener('scroll', hideTip, true);
+    /* Any click, tap or key press (opening another page, a tab, a dialog) puts the note away. */
+    document.addEventListener('pointerdown', hideTip, true);
+    document.addEventListener('keydown', hideTip, true);
   }
   tip.textContent = text;
   tip.style.visibility = 'hidden';
@@ -33,6 +40,12 @@ export function showTip(target: HTMLElement, text: string) {
   tip.style.left = `${left}px`;
   tip.style.top = `${top}px`;
   tip.style.visibility = 'visible';
+  /* If the thing it names leaves the page (a new page has replaced it), the note goes too. */
+  owner = target;
+  window.clearInterval(watch);
+  watch = window.setInterval(() => {
+    if (!owner || !owner.isConnected) hideTip();
+  }, 200);
 }
 
 /**
@@ -53,10 +66,9 @@ export function installLongPressTips(): () => void {
     if (e.pointerType !== 'touch') return;
     hideTip();
     shown = false;
-    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault [data-tip], .slidevault [title]');
+    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault [data-tip]');
     if (!el) return;
-    /* A plain title note (hover only on a computer) is shown the same way on a touch screen. */
-    const text = el.getAttribute('data-tip') || el.getAttribute('title');
+    const text = el.getAttribute('data-tip');
     if (!text) return;
     start = { x: e.clientX, y: e.clientY };
     timer = window.setTimeout(() => {
@@ -64,16 +76,20 @@ export function installLongPressTips(): () => void {
       showTip(el, text);
       hideTimer = window.setTimeout(hideTip, 2600);
       start = null;
-    }, 500);
+    }, 650);
   };
   const move = (e: PointerEvent) => {
     if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) clear();
   };
+  /* Only things that do nothing when pressed (the little "i", a disabled button) lose their click after a long press; a button or link that does something still does it, so a slow tap is never lost. */
   const click = (e: MouseEvent) => {
     if (!shown) return;
     shown = false;
-    e.preventDefault();
-    e.stopPropagation();
+    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault [data-tip]');
+    if (el && (el.getAttribute('aria-disabled') === 'true' || el.matches('.row-info, .helpdot'))) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   };
   /* A mouse on a narrow window: where the page hides its own hover note (it would not fit), show it the same way. */
   let hovered: HTMLElement | null = null;
@@ -94,7 +110,7 @@ export function installLongPressTips(): () => void {
     }
   };
   const menu = (e: Event) => {
-    if ((e.target as Element | null)?.closest('.slidevault [data-tip], .slidevault [title]')) e.preventDefault();
+    if ((e.target as Element | null)?.closest('.slidevault [data-tip]')) e.preventDefault();
   };
   document.addEventListener('pointerdown', down, true);
   document.addEventListener('pointermove', move, true);

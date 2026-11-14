@@ -422,7 +422,9 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const toast = useCallback(
     (message: string, action?: ToastAction | ToastAction[]) => {
       const id = nextToast.current++;
-      setToasts((t) => [...t, { id, message, action }]);
+      /* A new note of the same kind ("Added. 3 slides ready" after "Added. 2 slides ready") replaces the old one instead of stacking up. */
+      const kind = (m: string) => m.split(/[.:]/)[0];
+      setToasts((t) => [...t.filter((x) => x.action || kind(x.message) !== kind(message)), { id, message, action }]);
       setTimeout(() => dismissToast(id), TOAST_MS);
     },
     [dismissToast],

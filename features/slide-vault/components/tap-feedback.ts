@@ -44,6 +44,8 @@ export function installTapFeedback(): () => void {
     }
   };
   const click = (e: MouseEvent) => {
+    /* A mouse already shows hover; the lasting pressed look is for touch and keyboard only. */
+    if ((e as PointerEvent).pointerType === 'mouse') return;
     const el = find(e.target);
     if (!el) return;
     mark(el);

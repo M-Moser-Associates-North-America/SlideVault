@@ -380,6 +380,128 @@ export function ConfirmDialog({ open, title, kind, subject, detail, lead, confir
  * and keeps the box open for the next one; Escape or clicking away closes it.
  */
 export function AddTagPill({ label, known, have, disabled, onAdd }: { label: string; known: TagSuggestion[]; have: string[]; disabled?: boolean; onAdd: (name: string) => void }) {
+  const phone = useWorkspaceCompact();
+  /* On a phone the tag row is one narrow scrolling line, so typing happens in a sheet from the bottom of the screen instead. */
+  if (phone) return <AddTagSheet label={label} known={known} have={have} disabled={disabled} onAdd={onAdd} />;
+  return <AddTagInline label={label} known={known} have={have} disabled={disabled} onAdd={onAdd} />;
+}
+
+/** Phones: "+ Add tag" opens a sheet with a full-width box and the matching tags to tap. Several tags can be added; the X or a tap outside closes it. */
+function AddTagSheet({ label, known, have, disabled, onAdd }: { label: string; known: TagSuggestion[]; have: string[]; disabled?: boolean; onAdd: (name: string) => void }) {
+  const { runtime } = useWorkspace();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [added, setAdded] = useState<string[]>([]);
+  const ref = useRef<HTMLDialogElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const pill = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  useDialogOpen(ref, open);
+  const typed = cleanTag(text);
+  const taken = (t: string) => [...have, ...added].some((h) => h.toLowerCase() === t.toLowerCase());
+  const q = typed.toLowerCase();
+  const options = [
+    ...(typed && !taken(typed) && !known.some((k) => k.tag.toLowerCase() === q) ? [{ tag: typed, create: true }] : []),
+    ...known.filter((k) => !taken(k.tag) && (!q || k.tag.toLowerCase().includes(q))).slice(0, 8).map((k) => ({ tag: k.tag, create: false })),
+  ];
+  const add = (name: string) => {
+    const t = cleanTag(name);
+    if (!t || taken(t)) return setText('');
+    const final = known.find((k) => k.tag.toLowerCase() === t.toLowerCase())?.tag ?? t; /* the library's own spelling wins */
+    onAdd(final);
+    setAdded((a) => [...a, final]);
+    setText('');
+    input.current?.focus();
+  };
+  const close = () => {
+    setOpen(false);
+    setText('');
+    setAdded([]);
+    pill.current?.focus();
+  };
+  return (
+    <>
+      <button
+        ref={pill}
+        type="button"
+        className="tag-add"
+        disabled={disabled}
+        aria-label={label}
+        aria-haspopup="dialog"
+        onClick={() => {
+          setOpen(true);
+          setTimeout(() => input.current?.focus(), 50);
+        }}
+      >
+        <Icon name="plus" className="ic-sm" />
+        Add tag
+      </button>
+      <dialog ref={ref} className="slidevault sv-dialog fb-sheet tag-sheet" data-theme={runtime.theme} aria-labelledby={titleId} onClose={close} onClick={(e) => backdropClose(close)(e)}>
+        {open && (
+          <>
+            <div className="dlg-head">
+              <h2 id={titleId}>Add a tag</h2>
+              <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={close}>
+                <Icon name="x" />
+              </button>
+            </div>
+            <div className="dlg-body tag-sheet-body">
+              <form
+                className="tag-sheet-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  add(text);
+                }}
+              >
+                <label className="sr-only" htmlFor={`${titleId}-in`}>
+                  {label}
+                </label>
+                <input
+                  id={`${titleId}-in`}
+                  ref={input}
+                  className="input"
+                  type="text"
+                  value={text}
+                  maxLength={80}
+                  placeholder="Tag name"
+                  enterKeyHint="done"
+                  autoComplete="off"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v.endsWith(',')) add(v.slice(0, -1));
+                    else setText(v);
+                  }}
+                />
+                <button type="submit" className="btn btn-primary" disabled={!typed || taken(typed)}>
+                  Add
+                </button>
+              </form>
+              {added.length > 0 && <p className="meta tag-sheet-added">Added: {added.join(', ')}</p>}
+              {options.length > 0 && (
+                <>
+                  <p className="meta">{typed ? 'Matching tags' : 'Tags already in use'}</p>
+                  <ul className="tag-sheet-list">
+                    {options.map((o) => (
+                      <li key={o.tag}>
+                        <button type="button" className="tag-add" onClick={() => add(o.tag)}>
+                          <Icon name="plus" className="ic-sm" />
+                          {o.create ? `Add “${o.tag}”` : o.tag}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </dialog>
+    </>
+  );
+}
+
+/** Wider screens: the pill turns into a small box right there in the row, with a list of matches under it. */
+function AddTagInline({ label, known, have, disabled, onAdd }: { label: string; known: TagSuggestion[]; have: string[]; disabled?: boolean; onAdd: (name: string) => void }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [active, setActive] = useState(-1);
