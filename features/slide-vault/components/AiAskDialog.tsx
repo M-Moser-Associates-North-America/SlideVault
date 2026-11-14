@@ -40,8 +40,8 @@ export function AiAskDialog() {
         <p className="ai-ask-words">“{aiAsk}”</p>
         <p className="ai-ask-text">
           {long
-            ? 'This reads like a longer request, which the AI is good at understanding. Do you want the AI to read it? Choosing Yes also ticks “Search with AI”.'
-            : 'This is a short search, and a regular search usually handles those well. The AI is meant for longer requests. Do you still want the AI to read it?'}
+            ? 'This looks like a longer request, which the AI handles well. Choosing Yes also ticks “Search with AI”.'
+            : 'Regular search usually handles short searches well. The AI works best on longer requests. Use it anyway?'}
         </p>
       </div>
       <div className="dlg-foot ai-ask-foot">

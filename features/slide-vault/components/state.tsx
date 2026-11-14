@@ -41,7 +41,8 @@ export type LibraryState = { status: 'loading' } | { status: 'ready'; slides: Sl
 
 export type SearchState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; result: SmartSearchResult } | { status: 'error'; message: string };
 
-export type Toast = { id: number; message: string; action?: { label: string; run: () => void } };
+export type ToastAction = { label: string; run: () => void };
+export type Toast = { id: number; message: string; action?: ToastAction | ToastAction[] };
 
 export type ArchiveDialogState = { deck: { id: string; title: string; slideCount: number }; restore: boolean; /** Opened from a slide's page: say so, and leave the page when the deck is gone */ fromSlide?: string };
 
@@ -136,7 +137,7 @@ type Workspace = {
   combine: boolean;
   setCombine: (on: boolean) => void;
   toasts: Toast[];
-  toast: (message: string, action?: { label: string; run: () => void }) => void;
+  toast: (message: string, action?: ToastAction | ToastAction[]) => void;
   dismissToast: (id: number) => void;
   announcement: string;
   announce: (message: string) => void;
@@ -419,13 +420,25 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const nextToast = useRef(1);
   const dismissToast = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
   const toast = useCallback(
-    (message: string, action?: { label: string; run: () => void }) => {
+    (message: string, action?: ToastAction | ToastAction[]) => {
       const id = nextToast.current++;
       setToasts((t) => [...t, { id, message, action }]);
       setTimeout(() => dismissToast(id), TOAST_MS);
     },
     [dismissToast],
   );
+
+  /* Losing the connection is said once, and so is getting it back, so a failed save or a picture that will not load is not a mystery. */
+  useEffect(() => {
+    const off = () => toast("You're offline. Some things won't load or save until you reconnect.");
+    const on = () => toast('Back online.');
+    window.addEventListener('offline', off);
+    window.addEventListener('online', on);
+    return () => {
+      window.removeEventListener('offline', off);
+      window.removeEventListener('online', on);
+    };
+  }, [toast]);
 
   const [announcement, setAnnouncement] = useState('');
   const announce = useCallback((message: string) => {
@@ -543,7 +556,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     async function run(deck: { id: string; title: string }, archived: boolean): Promise<boolean> {
       try {
         if (!(await archiveDeckApi(transport, deck.id, archived))) {
-          toast('Archiving needs the server, which does not have it yet. Nothing was changed.');
+          toast('Archiving is not available yet. Nothing was changed.');
           return false;
         }
       } catch (e) {
@@ -596,7 +609,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
       }
       try {
         if (await setPackStatusApi(transport, pack.id, status)) refreshLibrary();
-        else toast('Confirming a pack needs the server, which does not have it yet. Nothing was changed.');
+        else toast('Confirming a pack is not available yet. Nothing was changed.');
       } catch (e) {
         toast(e instanceof Error ? e.message : 'Could not change the pack. Nothing was changed.');
       }

@@ -3,7 +3,7 @@
 import { useHeroOut } from '../client/hero-visibility';
 import { Icon } from './icons';
 import { useRoot } from './root';
-import { useWorkspaceCompact } from './size';
+import { useWorkspacePhoneLike } from './size';
 import { useWorkspace } from './state';
 
 /**
@@ -12,7 +12,7 @@ import { useWorkspace } from './state';
  */
 export function CompactSearch() {
   const out = useHeroOut();
-  const compact = useWorkspaceCompact();
+  const compact = useWorkspacePhoneLike();
   const { query } = useWorkspace();
   const { scroll } = useRoot();
   /* Wider screens get the slim search above the sticky filter row instead (StickySearch). */

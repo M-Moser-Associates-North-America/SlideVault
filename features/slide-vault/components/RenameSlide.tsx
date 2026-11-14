@@ -77,7 +77,7 @@ export function SlideTitle({ slide, loaded }: { slide: SlideSummary; loaded?: Sl
         {slide.title}
       </h1>
       {canEdit && (
-        <button ref={pencil} type="button" className="title-edit" aria-label="Rename this slide" data-tip="Rename this slide" onClick={start}>
+        <button ref={pencil} type="button" className="title-edit" aria-label="Rename this slide" data-tip="Rename this slide" data-tip-pos="end" onClick={start}>
           <Icon name="pencil" />
         </button>
       )}
@@ -92,7 +92,7 @@ export function SlideTitle({ slide, loaded }: { slide: SlideSummary; loaded?: Sl
           <div className="dlg-body arch-body">
             <div className="notice info">
               <Icon name="alert" />
-              <span>This changes the name for everyone using SlideVault, not just you. Use it when the title was read wrongly from the file.</span>
+              <span>This renames the slide for everyone. Use it when the title was misread from the file.</span>
             </div>
             <div className="field" style={{ marginTop: 12 }}>
               <label htmlFor={`${id}-n`}>Slide name</label>

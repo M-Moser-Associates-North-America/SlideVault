@@ -141,7 +141,7 @@ export function PackDialog() {
               run(() => {
                 const all = [...sec.slides, ...outside];
                 updateSelection((cur) => [...cur, ...all.filter((x) => !cur.some((c) => c.id === x.id))]);
-                toast(`Added ${plural(all.filter((x) => !selection.some((c) => c.id === x.id)).length, 'slide')}: the section and the rest of its pack`);
+                toast(`Added ${plural(all.filter((x) => !selection.some((c) => c.id === x.id)).length, 'slide')}: the section and its pack`);
                 announce('Added the section and the rest of its pack to the draft deck');
               })
             }
@@ -314,7 +314,7 @@ export function GroupTool({ deckSlides, onDone }: { deckSlides: SlideSummary[]; 
   return (
     <>
       <p className="meta" style={{ marginTop: 12 }} role="status">
-        Click the slides in the order they should go. A slide can be in one pack at a time.
+        Click slides in order. A slide can be in only one pack.
       </p>
       <ul className="gt-grid">
         {deckSlides.map((s) => {

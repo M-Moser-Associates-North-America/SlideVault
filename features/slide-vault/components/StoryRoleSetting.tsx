@@ -28,7 +28,7 @@ export function StoryRoleSetting() {
         </h2>
       </div>
       <p className="meta" style={{ marginBottom: 6 }}>
-        Tunes your search results and storyboards to how you build proposals. It shows next to your name in the account menu.
+        Tunes results and storyboards to how you work. Shown next to your name.
       </p>
       <div className="sb-role-list" role="radiogroup" aria-labelledby="sb-roles-h">
         {ROLE_CHOICES.map((c) => (

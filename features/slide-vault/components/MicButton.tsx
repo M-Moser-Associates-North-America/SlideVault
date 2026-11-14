@@ -12,6 +12,9 @@ export function MicButton({ onText, disabled, className = 'btn btn-icon sb-mic',
   const [status, setStatus] = useState<SpeechStatus>('off');
   const [state, setState] = useState<'idle' | 'listening' | 'hearing'>('idle');
   const rec = useRef<Recording | null>(null);
+  /* "Coming soon": a small note by the button when it is tapped and voice isn't set up yet. */
+  const [soon, setSoon] = useState(false);
+  const soonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     void speechStatus(runtime).then(setStatus);
     return () => rec.current?.cancel();
@@ -22,7 +25,7 @@ export function MicButton({ onText, disabled, className = 'btn btn-icon sb-mic',
     const recheck = async () => {
       const now = await speechStatus(runtime);
       setStatus(now);
-      if (now === 'down') toast("Voice isn't answering on this computer right now. Type for now, or start the voice service and tap again.");
+      if (now === 'down') toast("Voice is not available right now. Type your search instead.");
     };
     return (
       <button type="button" className={className} aria-disabled="true" aria-label="Talk instead of typing (voice isn't answering right now)" data-tip="Voice isn't answering right now" data-tip-pos="end" onClick={() => void recheck()}>
@@ -33,10 +36,22 @@ export function MicButton({ onText, disabled, className = 'btn btn-icon sb-mic',
   if (status === 'off') {
     /* Home shows it greyed out until talking is set up here; the Storyboard hides it. */
     if (!showWhenOff) return null;
+    const tell = () => {
+      setSoon(true);
+      if (soonTimer.current) clearTimeout(soonTimer.current);
+      soonTimer.current = setTimeout(() => setSoon(false), 2500);
+    };
     return (
-      <button type="button" className={className} aria-disabled="true" aria-label="Talk instead of typing (not set up here yet)" data-tip="Voice search isn't set up here yet" data-tip-pos="end" onClick={() => toast("Voice search isn't set up here yet. For now, type your search.")}>
-        <Icon name="mic" />
-      </button>
+      <>
+        <button type="button" className={className} aria-disabled="true" aria-label="Talk instead of typing (coming soon)" data-tip="Voice search: coming soon" data-tip-pos="end" onClick={tell}>
+          <Icon name="mic" />
+        </button>
+        {soon && (
+          <span className="mic-soon" role="status">
+            Voice search: coming soon
+          </span>
+        )}
+      </>
     );
   }
 
@@ -60,7 +75,7 @@ export function MicButton({ onText, disabled, className = 'btn btn-icon sb-mic',
       rec.current = await startRecording(() => void toggle());
       setState('listening');
     } catch {
-      toast('The microphone is blocked. Allow it in the browser to talk instead of type.');
+      toast('The microphone is blocked. Allow it in your browser to speak.');
     }
   }
 

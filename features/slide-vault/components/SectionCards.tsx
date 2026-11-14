@@ -207,7 +207,7 @@ export function SectionBrowse({ kind }: { kind: string }) {
   return (
     <div className="sv-wrap seccards-browse">
       <h2 className="h1">{label}</h2>
-      <p className="meta">The {label.toLowerCase()} section of each deck. Open one to scroll through it, or add all of it to your draft deck.</p>
+      <p className="meta">The {label.toLowerCase()} section of each deck.</p>
       {list === 'error' && <p role="alert">Sections could not be loaded right now. Please try again.</p>}
       {list === null || (list !== 'error' && list.kind !== kind) ? (
         <div className="sv-loading" role="status">

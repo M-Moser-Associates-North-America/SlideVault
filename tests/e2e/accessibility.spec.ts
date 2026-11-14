@@ -446,10 +446,11 @@ test('sections: type a section, open it, see it framed in the deck strip, add it
   await expect(sectionCard).toContainText('3 slides in this section');
   expect(await axe(page)).toEqual([]);
 
-  // Open the section: counted "1 of 3 in section", the whole deck in the strip with the section in one frame.
+  // Open the section: counted "[1] of 3 in section" (the number is a typeable box), the whole deck in the strip with the section in one frame.
   await sectionCard.getByRole('button', { name: 'Open section' }).click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog.locator('.lb-results .counter')).toContainText('1 of 3 in section');
+  await expect(dialog.locator('.lb-results .counter')).toContainText('of 3 in section · Case studies');
+  await expect(dialog.locator('.lb-results .counter input')).toHaveValue('1');
   await expect(dialog.locator('.lb-frame')).toHaveCount(1);
   await expect(dialog.locator('.lb-frame .lb-thumb')).toHaveCount(3);
   expect(await dialog.locator('.lb-thumb').count()).toBe(deck.length);
@@ -459,7 +460,8 @@ test('sections: type a section, open it, see it framed in the deck strip, add it
   await page.keyboard.press('ArrowRight');
   await expect(dialog.locator('.lb-results .counter')).toContainText('Not in the Case studies section');
   await dialog.getByRole('button', { name: 'Back to the section' }).click();
-  await expect(dialog.locator('.lb-results .counter')).toContainText('1 of 3 in section');
+  await expect(dialog.locator('.lb-results .counter')).toContainText('of 3 in section · Case studies');
+  await expect(dialog.locator('.lb-results .counter input')).toHaveValue('1');
   expect(await axe(page)).toEqual([]);
   await page.keyboard.press('Escape');
 
@@ -729,16 +731,16 @@ test('upload: tags the AI fills in are marked "please check", can be removed, an
   await page.getByRole('button', { name: 'Fill the rest with AI' }).click();
   await expect(page.getByText('Added 1 deck tag and 1 slide tag the AI read from your slides.')).toBeVisible();
 
-  // Marked, with the same "please check" line as the other filled-in details.
+  // Marked with a sparkle and a line saying the AI suggested them (the confirmation before uploading still says "please check").
   await expect(page.locator('.tagchip.is-auto')).toHaveCount(1);
   await expect(page.locator('.upcard').nth(1).locator('.tag.is-auto')).toHaveCount(1);
-  await expect(page.getByText('Filled in from the AI (please check). Remove any that don’t fit.')).toBeVisible();
+  await expect(page.getByText('AI suggested these. Remove any that don’t fit.')).toBeVisible();
   expect(await axe(page)).toEqual([]);
 
   // Taking one off is one click and it is no longer "filled in"; the other is named before uploading.
   await page.getByRole('button', { name: 'Remove tag workplace strategy & data' }).click();
   await expect(page.locator('.tagchip.is-auto')).toHaveCount(0);
-  await expect(page.getByText('Filled in from the AI (please check). Remove any that don’t fit.')).toHaveCount(0);
+  await expect(page.getByText('AI suggested these. Remove any that don’t fit.')).toHaveCount(0);
   await page.getByRole('textbox', { name: 'Year' }).fill('2025');
   await page.getByRole('button', { name: 'Upload deck' }).click();
   await expect(page.getByRole('dialog').getByText('1 tag filled in by the AI: please check it before you upload')).toBeVisible();

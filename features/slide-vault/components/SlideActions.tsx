@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from 'react';
 import { sendSearchFeedback } from '../client/api';
 import { EngageUnavailable, useEngagement, type EngageApi } from '../client/engage-store';
 import { currentStoryRole } from '../client/role-store';
@@ -16,12 +16,22 @@ import { ConfirmDialog } from './TagBits';
    button that does nothing; Share works today. */
 
 const MAX_COMMENT = 1000;
+/** Vote counts and comments are switched off in the screens (decision 11 Nov: they go in the hand-off notes). Useful / Not useful on a search result stays. */
+const SHOW_VOTES_AND_COMMENTS = false;
 const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
+/** True when the last call was under 0.4 s ago (a double-tap); otherwise it notes the time and says no. */
+function tooSoon(last: { current: number }) {
+  const t = Date.now();
+  if (t - last.current < 400) return true;
+  last.current = t;
+  return false;
+}
 
 /** The up / down pill. A vote on a slide you found by searching also teaches that search (Useful / Not relevant, FD-59). */
 function VotePill({ slide, engage, small }: { slide: SlideSummary; engage: EngageApi; small?: boolean }) {
   const { runtime, toast, query, search } = useWorkspace();
-  const v = engage.votes;
+  const v = SHOW_VOTES_AND_COMMENTS ? engage.votes : undefined;
   const searched = search.status === 'ready' ? query.trim() : '';
   /* No vote counts from the server yet: the same arrows still teach the search you came from. */
   if (!v) return searched && !demoTagsOn() ? <FeedbackPill slide={slide} searched={searched} small={small} /> : null;
@@ -58,7 +68,7 @@ function VotePill({ slide, engage, small }: { slide: SlideSummary; engage: Engag
 export function CardVotes({ slide }: { slide: SlideSummary }) {
   const { runtime, query, search } = useWorkspace();
   const engage = useEngagement(runtime, slide);
-  if (!engage.votes && !(search.status === 'ready' && query.trim())) return null;
+  if (!(SHOW_VOTES_AND_COMMENTS && engage.votes) && !(search.status === 'ready' && query.trim())) return null;
   return <VotePill slide={slide} engage={engage} small />;
 }
 
@@ -116,7 +126,12 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
   const { runtime, toast } = useWorkspace();
   const key = answerKey(searched, slide.id);
   const shown = useSyncExternalStore(onAnswers, () => answerFor(key).shown, () => 0);
-  const cast = (value: 1 | -1) => {
+  const lastCast = useRef(0);
+  const cast = (value: 1 | -1, fromUndo = false) => {
+    /* A touch screen: two quick taps count as one, so a double-tap never flips the vote on and straight off again.
+       With a mouse or keyboard every click counts (a person can choose, and take back, as fast as they like). */
+    const touch = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    if (touch && !fromUndo && tooSoon(lastCast)) return;
     const now = answerFor(key);
     const next: Answer = now.shown === value ? 0 : value;
     const by = currentStoryRole();
@@ -126,6 +141,8 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
     const sentAfter: Answer = give ? next : next === 0 ? 0 : now.sent;
     answers.set(key, { shown: next, sent: sentAfter });
     answerListeners.forEach((l) => l());
+    /* A touch screen has no hover tips, so a tap says what the choice does, with Undo. */
+    if (touch && next !== 0) toast(next === 1 ? 'Useful: ranks it higher in similar searches.' : 'Not useful: ranks it lower in similar searches.', { label: 'Undo', run: () => { if (answerFor(key).shown === next) cast(next, true); } });
     if (!take && !give) return;
     take?.catch(() => undefined);
     if (!give) return remember(key, sentAfter);
@@ -133,7 +150,7 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
       (r) => {
         if (r && r.saved) {
           remember(key, next);
-          if (!toldThanks) {
+          if (!toldThanks && !touch) {
             toldThanks = true;
             toast('Thanks. Search will use this for similar searches.');
           }
@@ -141,7 +158,7 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
           answers.set(key, { shown: next, sent: 0 }); /* nothing was saved, so nothing to take back later */
           if (!toldOptedOut) {
             toldOptedOut = true;
-            toast('Not saved: learning from your activity is off. You can turn it on in Settings.');
+            toast('Not saved. Activity learning is off. Turn it on in Settings.');
           }
         }
       },
@@ -151,11 +168,11 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
   /* The Storyboard's Useful / Not useful row (same classes): ticks and crosses, small capitals, one on each side of a card. */
   return (
     <div className={`sb-verdict fb-verdict${small ? ' is-small' : ''}`} role="group" aria-label="Is this slide useful for your search?">
-      <button type="button" className="sb-icon-btn" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Useful: ranks this slide higher in similar searches." data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(1)}>
+      <button type="button" className="sb-icon-btn" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Ranks this higher in similar searches." data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(1)}>
         <Icon name="check" className="ic-sm" />
         Useful
       </button>
-      <button type="button" className="sb-icon-btn" aria-pressed={shown === -1} aria-label="Not useful for this search" data-tip="Not useful: ranks this slide lower in similar searches." data-tip-pos={small ? 'up end' : undefined} onClick={() => cast(-1)}>
+      <button type="button" className="sb-icon-btn" aria-pressed={shown === -1} aria-label="Not useful for this search" data-tip="Ranks this lower in similar searches." data-tip-pos={small ? 'up end' : undefined} onClick={() => cast(-1)}>
         <Icon name="x" className="ic-sm" />
         Not useful
       </button>
@@ -190,14 +207,14 @@ export function ShareIconButton({ slideId }: { slideId: string }) {
 }
 
 /** The full bar: vote pill, comments, Share (the slide page has Share in its Use this slide card instead: noShare). */
-export function SlideActions({ slide, commentsOpen, onComments, noShare }: { slide: SlideSummary; commentsOpen?: boolean; onComments: () => void; noShare?: boolean }) {
+export function SlideActions({ slide, commentsOpen, onComments, noShare, trailing }: { slide: SlideSummary; commentsOpen?: boolean; onComments: () => void; noShare?: boolean; /** something at the far end of the bar (the slide page's "also in other decks" icon) */ trailing?: ReactNode }) {
   const { runtime } = useWorkspace();
   const engage = useEngagement(runtime, slide);
   const share = useShareSlide(slide.id);
   return (
     <div className="slide-actions" role="group" aria-label="Slide actions">
       <VotePill slide={slide} engage={engage} />
-      {engage.commentCount !== undefined && (
+      {SHOW_VOTES_AND_COMMENTS && engage.commentCount !== undefined && (
         <button type="button" className="actpill" aria-expanded={!!commentsOpen} onClick={onComments}>
           <Icon name="comment" />
           <span>{engage.commentCount}</span>
@@ -210,17 +227,18 @@ export function SlideActions({ slide, commentsOpen, onComments, noShare }: { sli
           <span>Share</span>
         </button>
       )}
+      {trailing}
     </div>
   );
 }
 
 /** The slide page: the bar, and the comments opening under it. */
-export function SlideEngagement({ slide, loaded }: { slide: SlideSummary; loaded?: SlideDetail | null }) {
+export function SlideEngagement({ slide, loaded, trailing }: { slide: SlideSummary; loaded?: SlideDetail | null; trailing?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const merged = loaded ? { ...slide, votes: loaded.votes ?? slide.votes, commentCount: loaded.commentCount ?? slide.commentCount } : slide;
   return (
     <>
-      <SlideActions slide={merged} commentsOpen={open} onComments={() => setOpen((o) => !o)} noShare />
+      <SlideActions slide={merged} commentsOpen={open} onComments={() => setOpen((o) => !o)} noShare trailing={trailing} />
       {open && <CommentsSection slide={merged} />}
     </>
   );
@@ -311,7 +329,7 @@ function CommentsSection({ slide }: { slide: SlideSummary }) {
         {list === undefined ? (
           <li className="meta">Loading comments…</li>
         ) : list.length === 0 ? (
-          <li className="meta">No comments yet. Say how you used this slide, or what to watch for.</li>
+          <li className="meta">No comments yet.</li>
         ) : (
           list.map((c) => (
             <li key={c.id} className="comment">

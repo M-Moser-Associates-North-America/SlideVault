@@ -13,7 +13,7 @@ import './storyboard.css';
  * typed in search reads like a brief, the button lights up and offers to build a story from it,
  * carrying the words over so nothing is typed twice.
  */
-export function StoryLauncher() {
+export function StoryLauncher({ part = 'all' }: { part?: 'all' | 'button' | 'hint' }) {
   const { query, runtime } = useWorkspace();
   const brief = looksLikeBrief(query);
   /* The "New" badge stays until the Storyboard has been opened once in this browser. */
@@ -24,9 +24,12 @@ export function StoryLauncher() {
     if (brief) handOffBrief(query);
     runtime.navigate({ view: 'story' });
   };
+  const pill = part === 'button';
+  const descId = pill ? 'sb-launch-desc-pill' : 'sb-launch-desc';
   return (
-    <div className="sb-launch">
-      <button type="button" className={`btn sb-launch-btn${brief ? ' is-glow' : ''}`} onClick={open} aria-describedby={brief ? 'sb-launch-desc sb-launch-hint' : 'sb-launch-desc'}>
+    <div className={`sb-launch${pill ? ' is-pill' : ''}`}>
+      {part !== 'hint' && (
+      <button type="button" className={`btn sb-launch-btn${brief ? ' is-glow' : ''}`} onClick={open} aria-describedby={brief ? `${descId} sb-launch-hint` : descId}>
         <Icon name="sparkle" />
         <span className="sb-swap">
           <span className="sb-swap1">Storyboard</span>
@@ -34,12 +37,13 @@ export function StoryLauncher() {
             Build with AI
           </span>
         </span>
-        <span id="sb-launch-desc" className="sr-only">
+        <span id={descId} className="sr-only">
           Build with AI
         </span>
         {!opened.seen && !touring && <span className="sb-new">New</span>}
       </button>
-      {brief && (
+      )}
+      {brief && part !== 'button' && (
         <p className="sb-launch-hint" id="sb-launch-hint" role="status">
           <Icon name="sparkle" className="ic-sm" />
           This sounds like a client brief.{' '}

@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactElement, type RefObject } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactElement, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { getSlide, listTags, searchTagSuggestions, tagSuggestions, type TagSuggestionItem } from '../client/api';
 import { demoTagsOn, ranked, TagsUnavailable, useTags, type TagsApi } from '../client/tag-store';
 import type { FreeTag, SlideDetail, SlideStory, SlideSummary, TagRemoval } from '../contracts/dto';
+import { useEdgeFade } from './edge-fade';
+import { FoldPanel } from './fold-panel';
 import { Icon } from './icons';
 import { plural, type Deck } from './library';
+import { hideTip, showTip } from './fixed-tip';
+import { useWorkspaceCompact, useWorkspacePhoneLike } from './size';
 import { useWorkspace } from './state';
 import { cleanTag, type TagSuggestion } from './TagField';
 
@@ -95,8 +99,9 @@ export const hueOf = (tag: string) => [...tag.toLowerCase()].reduce((h, c) => (h
 function nameWhenCut(e: { currentTarget: HTMLElement }, text: string) {
   const b = e.currentTarget;
   const t = b.querySelector<HTMLElement>('.tag-t');
-  if (t && t.scrollWidth > t.clientWidth) b.setAttribute('data-tip', text);
-  else b.removeAttribute('data-tip');
+  b.removeAttribute('data-tip');
+  if (t && t.scrollWidth > t.clientWidth) showTip(b, text);
+  else hideTip();
 }
 
 /** A small pill. Click to search for it; hover or focus says who added it. */
@@ -105,7 +110,7 @@ export function TagChip({ tag, onNavigate }: { tag: FreeTag; onNavigate?: () => 
   const tipId = useId();
   return (
     <>
-      <button type="button" className="tag" data-h={hueOf(tag.tag)} aria-describedby={tipId} onClick={() => search(tag.tag)} onMouseEnter={(e) => nameWhenCut(e, tag.tag)} onFocus={(e) => nameWhenCut(e, tag.tag)}>
+      <button type="button" className="tag" data-h={hueOf(tag.tag)} aria-describedby={tipId} onClick={() => search(tag.tag)} onMouseEnter={(e) => nameWhenCut(e, tag.tag)} onFocus={(e) => nameWhenCut(e, tag.tag)} onMouseLeave={hideTip} onBlur={hideTip}>
         <span className="tag-t">{tag.tag}</span>
       </button>
       <span id={tipId} className="sr-only">
@@ -147,7 +152,7 @@ const matchesQuery = (text: string, query: string) => {
 export function TeamChip({ label, onNavigate }: { label: TeamLabel; onNavigate?: () => void }) {
   const search = useTagSearch(onNavigate);
   return (
-    <button type="button" className="tag tag-team" aria-label={`${label.text}. ${label.what}, reviewed by the team. Search for it.`} onClick={() => search(label.text)} onMouseEnter={(e) => nameWhenCut(e, label.text)} onFocus={(e) => nameWhenCut(e, label.text)}>
+    <button type="button" className="tag tag-team" aria-label={`${label.text}. ${label.what}, reviewed by the team. Search for it.`} onClick={() => search(label.text)} onMouseEnter={(e) => nameWhenCut(e, label.text)} onFocus={(e) => nameWhenCut(e, label.text)} onMouseLeave={hideTip} onBlur={hideTip}>
       <span className="tag-t">{label.text}</span>
     </button>
   );
@@ -259,13 +264,14 @@ function MoreTags({ names }: { names: string[] }) {
               <button
                 key={n}
                 type="button"
-                className="tagmenu-item"
+                className="tag tagmenu-item"
+                data-h={hueOf(n)}
                 onClick={() => {
                   close();
                   search(n);
                 }}
               >
-                {n}
+                <span className="tag-t">{n}</span>
               </button>
             ))}
           </div>,
@@ -284,6 +290,7 @@ function MoreTags({ names }: { names: string[] }) {
  */
 export function CompactTags({ slide }: { slide: SlideSummary }) {
   const { runtime, profile, query } = useWorkspace();
+  const compact = useWorkspaceCompact();
   const own = useTags(runtime, profile, 'slide', slide.id, slide.tags);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, slide.tags);
   type Item = { key: string; text: string; node: ReactElement };
@@ -295,11 +302,34 @@ export function CompactTags({ slide }: { slide: SlideSummary }) {
   const all = q ? [...items.filter((i) => matchesQuery(i.text, q)), ...items.filter((i) => !matchesQuery(i.text, q))] : items;
   /* A card without tags keeps an empty row when other cards on the page have tags, so everything below lines up. */
   if (all.length === 0) return <div className="tags-spacer" aria-hidden="true" />;
+  /* Phones: every tag, in one row that scrolls sideways (no "+N" to open). Tablets and desktop: two tags, then "+N". */
+  if (compact) return <ScrollingTags nodes={all.map((i) => i.node)} />;
   const more = all.slice(2);
   return (
     <div className="tags-compact" role="group" aria-label="Tags">
       {all.slice(0, 2).map((i) => i.node)}
       {more.length > 0 && <MoreTags names={more.map((i) => i.text)} />}
+    </div>
+  );
+}
+
+/** The preview's tags (the slide's own, the deck's, the team's): wrapped on wide screens, one row that scrolls sideways on a phone. */
+function TagLine({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEdgeFade(ref);
+  return (
+    <div className="tag-line" ref={ref}>
+      {children}
+    </div>
+  );
+}
+
+function ScrollingTags({ nodes }: { nodes: ReactElement[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEdgeFade(ref);
+  return (
+    <div className="tags-compact is-scroll" role="group" aria-label="Tags" ref={ref}>
+      {nodes}
     </div>
   );
 }
@@ -453,11 +483,16 @@ export function AddTagPill({ label, known, have, disabled, onAdd }: { label: str
  * click adds the tag the normal way; nothing is added until then (Alina: AI suggestions stay suggestions
  * until a person confirms). Tags already there are left out; nothing shows when there are none.
  */
-export function SuggestedTagChips({ suggestions, have, disabled, onAdd, label = 'Suggested tags' }: { suggestions: TagSuggestionItem[]; have: string[]; disabled?: boolean; onAdd: (tag: string) => void; label?: string }) {
-  const left = suggestions.filter((s) => !have.some((h) => h.toLowerCase() === s.tag.toLowerCase()));
-  if (!left.length) return null;
-  return (
-    <div className="tag-suggested" role="group" aria-label={label}>
+const MAX_SUGGESTED_TAGS = 3;
+
+export function SuggestedTagChips({ suggestions, have, disabled, onAdd, label = 'Suggested tags', lead }: { suggestions: TagSuggestionItem[]; have: string[]; disabled?: boolean; onAdd: (tag: string) => void; label?: string; /** shown first, in the same row (the "Add tag" pill); outside the scrolling part so its menu is never clipped */ lead?: ReactElement }) {
+  /* Only the three best fits (the list arrives best first), so the row stays short and a person is not made to pick through a long one. */
+  const left = suggestions.filter((s) => !have.some((h) => h.toLowerCase() === s.tag.toLowerCase())).slice(0, MAX_SUGGESTED_TAGS);
+  const row = useRef<HTMLDivElement>(null);
+  useEdgeFade(row);
+  if (!left.length) return lead ? <div className="tag-addrow">{lead}</div> : null;
+  const chips = (
+    <div className="tag-suggested" role="group" aria-label={label} ref={row}>
       <span className="meta">Suggested</span>
       {left.map((s) => (
         <button
@@ -474,6 +509,14 @@ export function SuggestedTagChips({ suggestions, have, disabled, onAdd, label = 
         </button>
       ))}
     </div>
+  );
+  return lead ? (
+    <div className="tag-addrow">
+      {lead}
+      {chips}
+    </div>
+  ) : (
+    chips
   );
 }
 
@@ -494,7 +537,7 @@ function useSlideTagSuggestions(slideId: string | undefined): TagSuggestionItem[
   const similar = slideId && got?.id === slideId ? got.list : [];
   /* What the search that found this slide was read as comes first (FD-97); then tags from similar slides in other decks. */
   const fromSearch = searchTagSuggestions(search.status === 'ready' ? search.result : null, slideId);
-  return [...fromSearch, ...similar.filter((s) => !fromSearch.some((f) => f.tag.toLowerCase() === s.tag.toLowerCase()))].slice(0, 6);
+  return [...fromSearch, ...similar.filter((s) => !fromSearch.some((f) => f.tag.toLowerCase() === s.tag.toLowerCase()))].slice(0, MAX_SUGGESTED_TAGS);
 }
 
 /**
@@ -542,7 +585,7 @@ export function LocalTagList({ label, value, onChange, inherited = [], inherited
  * The tags of one slide or deck: each as a pill with a remove button; an add box; the removal log
  * folded away underneath.
  */
-function TagList({ api, what, canEdit, onNavigate, suggestFor }: { api: TagsApi; what: 'slide' | 'deck'; canEdit: boolean; onNavigate?: () => void; /** a saved slide's id: show tag suggestions for it (FD-82) */ suggestFor?: string }) {
+function TagList({ api, what, canEdit, onNavigate, suggestFor, tail, addRow, lead }: { api: TagsApi; /** something fixed at the left end of the first row (the slide page: "also in other decks") */ lead?: ReactNode; what: 'slide' | 'deck'; canEdit: boolean; onNavigate?: () => void; /** more tag rows to show under these (the preview: the deck's tags and the team's labels) */ tail?: ReactElement | null; /** the "Add tag" pill goes in the suggestions row, under all the tags */ addRow?: boolean; /** a saved slide's id: show tag suggestions for it (FD-82) */ suggestFor?: string }) {
   const { toast, announce } = useWorkspace();
   const known = useKnownTags();
   const suggested = useSlideTagSuggestions(canEdit ? suggestFor : undefined);
@@ -599,7 +642,17 @@ function TagList({ api, what, canEdit, onNavigate, suggestFor }: { api: TagsApi;
 
   return (
     <div className="taglist">
-      {api.shown.length > 0 || canEdit ? (
+      {addRow ? (
+        (api.shown.length > 0 || tail || lead) && (
+          <div className="tag-first">
+            {lead}
+            <TagLine>
+              {api.shown.length > 0 && <ul className="tagrows">{api.shown.map(row)}</ul>}
+              {tail}
+            </TagLine>
+          </div>
+        )
+      ) : api.shown.length > 0 || canEdit ? (
         <ul className="tagrows">
           {api.shown.map(row)}
           {canEdit && (
@@ -611,8 +664,18 @@ function TagList({ api, what, canEdit, onNavigate, suggestFor }: { api: TagsApi;
       ) : (
         <p className="meta">No tags on this {what} yet.</p>
       )}
-      {canEdit && <SuggestedTagChips label={`Suggested tags for this ${what}`} suggestions={suggested} have={api.shown.map((t) => t.tag)} disabled={busy} onAdd={(name) => void add(name)} />}
-      {!canEdit && <p className="meta">Tags can only be changed by curators.</p>}
+      {!addRow && tail}
+      {canEdit && (
+        <SuggestedTagChips
+          label={`Suggested tags for this ${what}`}
+          suggestions={suggested}
+          have={api.shown.map((t) => t.tag)}
+          disabled={busy}
+          onAdd={(name) => void add(name)}
+          lead={addRow ? <AddTagPill label={`Add a tag to this ${what}`} known={known} have={api.shown.map((t) => t.tag)} disabled={busy} onAdd={(name) => void add(name)} /> : undefined}
+        />
+      )}
+      {!canEdit && <p className="meta">Only curators can change tags.</p>}
       {api.removed.length > 0 && (
         <details className="tagfold">
           <summary>Recently removed ({api.removed.length})</summary>
@@ -651,7 +714,7 @@ function TagList({ api, what, canEdit, onNavigate, suggestFor }: { api: TagsApi;
 const useCanEdit = () => useWorkspace().runtime.capabilities.has('metadata.edit');
 
 /** The slide page: the slide's own tags, the deck's tags beside them (changed on the deck page), and the labels. */
-export function SlideTagsPanel({ slide, loaded }: { slide: SlideSummary; loaded?: SlideDetail | null }) {
+export function SlideTagsPanel({ slide, loaded, also }: { slide: SlideSummary; loaded?: SlideDetail | null; /** the "also in other decks" icon, at the right of the heading */ also?: ReactNode }) {
   const { runtime, profile } = useWorkspace();
   const seed = useSeed(slide, loaded ? (loaded.tags ?? []) : undefined);
   const own = useTags(runtime, profile, 'slide', slide.id, seed, true);
@@ -659,11 +722,14 @@ export function SlideTagsPanel({ slide, loaded }: { slide: SlideSummary; loaded?
   const canEdit = useCanEdit();
   return (
     <section className="panel">
-      <h2>Tags</h2>
+      <div className="panel-h">
+        <h2>Tags</h2>
+        {also}
+      </div>
       <TagList api={own} what="slide" canEdit={canEdit} suggestFor={slide.id} />
       {deck.shown.length > 0 && (
         <div className="tags-fromdeck">
-          <p className="meta">From the deck (change them on the deck page)</p>
+          <p className="meta">From the deck</p>
           <div className="tags-compact">
             {deck.shown.map((t) => (
               <TagChip key={t.id} tag={t} />
@@ -676,17 +742,16 @@ export function SlideTagsPanel({ slide, loaded }: { slide: SlideSummary; loaded?
 }
 
 /** The preview: the slide's own tags, small. */
-export function PreviewTags({ slide, onNavigate }: { slide: SlideSummary; onNavigate: () => void }) {
+export function PreviewTags({ slide, onNavigate, lead }: { slide: SlideSummary; onNavigate: () => void; lead?: ReactNode }) {
   const { runtime, profile } = useWorkspace();
   const seed = useSeed(slide);
   const own = useTags(runtime, profile, 'slide', slide.id, seed);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, seed);
   const canEdit = useCanEdit();
   const team = teamLabels(slide.story);
-  if (seed === undefined && !demoTagsOn() && team.length === 0) return null;
-  return (
-    <div className="lb-tags">
-      {(seed !== undefined || demoTagsOn()) && <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} suggestFor={slide.id} />}
+  if (seed === undefined && !demoTagsOn() && team.length === 0 && !lead) return null;
+  const more = (
+    <>
       {deck.shown.length > 0 && (
         <div className="tags-compact" aria-label="Tags from the deck">
           {deck.shown.map((t) => (
@@ -701,8 +766,11 @@ export function PreviewTags({ slide, onNavigate }: { slide: SlideSummary; onNavi
           ))}
         </div>
       )}
-    </div>
+    </>
   );
+  /* The slide's tags, the deck's and the team's first; the "Add tag" pill and the suggestions share the last row. */
+  const withList = seed !== undefined || demoTagsOn();
+  return <div className="lb-tags">{withList ? <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} suggestFor={slide.id} tail={more} addRow lead={lead} /> : lead ? <div className="tag-first">{lead}<TagLine>{more}</TagLine></div> : <TagLine>{more}</TagLine>}</div>;
 }
 
 /** The deck page: the deck's tags, which every slide in it also shows. Read from any one slide's detail. */
@@ -721,10 +789,12 @@ export function DeckTags({ deck }: { deck: Deck }) {
   }, [runtime, first, deck.id]);
   const api = useTags(runtime, profile, 'deck', deck.id, seed?.id === deck.id ? seed.tags : first?.tags, true);
   const canEdit = useCanEdit();
+  const compact = useWorkspacePhoneLike();
+  /* Phone: the tags in one row that scrolls sideways, and the "Add tag" pill under them, as in the preview and on the slide page. */
   return (
     <div className="deck-tags">
-      <h2 className="h3">Tags</h2>
-      <TagList api={api} what="deck" canEdit={canEdit} />
+      <h2 className={compact ? 'sr-only' : 'h3'}>Tags</h2>
+      <TagList api={api} what="deck" canEdit={canEdit} addRow={compact} />
     </div>
   );
 }
@@ -732,7 +802,7 @@ export function DeckTags({ deck }: { deck: Deck }) {
 /* ---------------------------------------------------------------- Labels */
 
 /** The team's own labels for a slide (role, type, themes...), read only. A sparkle marks ones only the AI has read. */
-export function SlideLabelsPanel({ story }: { story: SlideStory | null | undefined }) {
+export function SlideLabelsPanel({ story, fold, open }: { story: SlideStory | null | undefined; open?: boolean; /** phone: a card that opens and closes */ fold?: boolean }) {
   if (!story) return null;
   const confirmed = story.status === 'confirmed';
   const rows: [string, string | null][] = [
@@ -747,9 +817,8 @@ export function SlideLabelsPanel({ story }: { story: SlideStory | null | undefin
   ];
   const shown = rows.filter((r): r is [string, string] => !!r[1]);
   if (shown.length === 0) return null;
-  return (
-    <section className="panel">
-      <h2>About this slide</h2>
+  const body = (
+    <>
       <dl className="trust">
         {shown.map(([k, v]) => (
           <div key={k} style={{ display: 'contents' }}>
@@ -762,6 +831,19 @@ export function SlideLabelsPanel({ story }: { story: SlideStory | null | undefin
         {!confirmed && <Icon name="sparkle" className="ic-sm" />}
         {confirmed ? 'From the team’s review' : story.uncertain ? 'Suggested by AI, and it was unsure' : 'Suggested by AI, not yet confirmed'}
       </p>
+    </>
+  );
+  if (fold) {
+    return (
+      <FoldPanel className="panel-about" open={open} title="About this slide" hint={shown[0] ? `${shown[0][0]}: ${shown[0][1]}` : undefined}>
+        {body}
+      </FoldPanel>
+    );
+  }
+  return (
+    <section className="panel panel-about">
+      <h2>About this slide</h2>
+      {body}
     </section>
   );
 }

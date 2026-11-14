@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { askBeforeLeavingUpload, startTour, useProfile, useRoleLabel } from '@/features/slide-vault';
+import { askBeforeLeavingUpload, firstNameOf, startTour, useProfile, useRoleLabel } from '@/features/slide-vault';
 import { useTheme } from './theme';
 import styles from './shell.module.css';
 
@@ -88,7 +88,8 @@ export function ShellHeader() {
               {open && (
                 <div className={styles.menu} role="menu" aria-label="Account" onKeyDown={onMenuKey}>
                   <p className={styles.menuHead}>
-                    Signed in as <strong>{profile}</strong> ({roleLabel})
+                    Signed in as <strong>{firstNameOf(profile) || profile}</strong>
+                    {roleLabel && !/no role/i.test(roleLabel) ? ` (${roleLabel})` : ''}
                   </p>
                   <button
                     type="button"
@@ -118,7 +119,7 @@ export function ShellHeader() {
                       <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
                       <path d="M10 12h4" />
                     </svg>
-                    Archived decks
+                    Archive
                   </button>
                   <button
                     type="button"
