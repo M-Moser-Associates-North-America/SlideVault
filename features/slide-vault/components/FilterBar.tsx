@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, countBy, createdByOf, filterCount, plural, SECTION_LABEL, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
 import { backdropClose, useDialogOpen } from './Dialogs';
@@ -16,6 +16,7 @@ import { StoryLauncher } from './StoryLauncher';
 import { useEdgeFade } from './edge-fade';
 import { useResultsSummary } from '../client/results-summary';
 import { useRoot } from './root';
+import { peekHeight } from './scroll-peek';
 import { useWorkspaceCompact, useWorkspaceFiltersRolled, useWorkspacePhoneUpright, useWorkspaceTabletLandscape } from './size';
 import { useWorkspace } from './state';
 
@@ -89,6 +90,15 @@ function Picker({
   const SHORT = 5;
   const folded = !!collapsible && !expanded && text.trim() === '' && shown.length > SHORT;
   const listed = folded ? shown.filter((o, i) => i < SHORT || showing.includes(o)) : shown;
+  /* A list taller than its box: stop halfway through the next option, so it is clear there is more to scroll to. */
+  const listRef = useRef<HTMLUListElement>(null);
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    list.style.maxHeight = '';
+    const max = parseFloat(getComputedStyle(list).maxHeight);
+    if (Number.isFinite(max) && max > 0) list.style.maxHeight = `${peekHeight(list, max)}px`;
+  }, [listed.length]);
   return (
     <div className="fb-picker">
       <div className="fb-picker-h">
@@ -103,7 +113,7 @@ function Picker({
         onChange={(e) => setText(e.target.value)}
         data-autofocus
       />
-      <ul className="fb-list" aria-label={label}>
+      <ul className="fb-list" ref={listRef} aria-label={label}>
         {listed.map((o, i) => (
           <li key={o}>
             <label htmlFor={`${id}-${i}`} className={counts && (counts.get(o) ?? 0) === 0 && !picked.includes(o) ? 'is-zero' : undefined}>
@@ -237,8 +247,10 @@ export function FilterBar() {
     const pop = wrap.current?.querySelector<HTMLElement>('.fb-pop');
     if (!pop) return;
     const fit = () => {
-      const room = window.innerHeight - pop.getBoundingClientRect().top - 16;
-      pop.style.maxHeight = `${Math.max(220, room)}px`;
+      const room = Math.max(220, window.innerHeight - pop.getBoundingClientRect().top - 16);
+      pop.style.maxHeight = '';
+      /* Options below the fold: stop halfway through the next one, so it shows there is more to scroll to. */
+      pop.style.maxHeight = `${peekHeight(pop, room)}px`;
     };
     fit();
     const stop = (e: Event) => {
@@ -290,8 +302,8 @@ export function FilterBar() {
 
   const yearOn = filters.yfrom !== null || filters.yto !== null;
   const moreCount = (filters.bestOnly ? 1 : 0) + filters.createdBy.length + filters.uploadedBy.length + filters.tag.length;
-  /* On the results page the section pills show the chosen section, so it is not repeated as a chip or counted on the Filters button. */
-  const secOnResults = searched !== '';
+  /* The section is chosen here on every page (there is no separate bar of section pills), so it counts and shows as a chip like any other filter. */
+  const secOnResults = false;
   const items: { key: Key; label: string; icon: IconName; active: number }[] = [
     { key: 'year', label: 'Year', icon: 'calendar', active: yearOn || fromYear ? 1 : 0 },
     { key: 'client', label: 'Client', icon: 'building', active: filters.client.length + (fromClient ? 1 : 0) },

@@ -254,11 +254,12 @@ export function hiddenGap(slides: SlideSummary[]): number {
 
 /** Names for the standard deck sections (server/services/sections.ts SectionKind); "other" isn't offered. */
 export const SECTION_LABEL: Record<string, string> = {
+  /* In the order they usually run in a proposal: who we are, what we heard, how we'd do it, who'd do it, proof, price, then the back matter. */
   firm: 'Firm overview',
-  'case-studies': 'Case studies',
+  understanding: 'Understanding',
   approach: 'Approach',
   team: 'Team',
+  'case-studies': 'Case studies',
   fees: 'Fees',
-  understanding: 'Understanding',
   appendix: 'Appendix',
 };

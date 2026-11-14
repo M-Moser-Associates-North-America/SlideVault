@@ -10,6 +10,7 @@ import { FoldPanel } from './fold-panel';
 import { Icon } from './icons';
 import { plural, type Deck } from './library';
 import { hideTip, showTip } from './fixed-tip';
+import { peekHeight } from './scroll-peek';
 import { useWorkspaceCompact, useWorkspacePhoneLike } from './size';
 import { useWorkspace } from './state';
 import { cleanTag, type TagSuggestion } from './TagField';
@@ -183,6 +184,10 @@ function MoreTags({ names }: { names: string[] }) {
   useLayoutEffect(() => {
     if (!open || !button.current || !menu.current) return setAt(null);
     const r = button.current.getBoundingClientRect();
+    /* More tags than fit: stop halfway through the next pill, so it shows the list scrolls. */
+    menu.current.style.maxHeight = '';
+    const room = Math.min(360, Math.round(window.innerHeight * 0.6));
+    menu.current.style.maxHeight = `${peekHeight(menu.current, room)}px`;
     const w = menu.current.offsetWidth;
     const h = menu.current.offsetHeight;
     const left = r.left + w > window.innerWidth - 8 ? Math.max(8, r.right - w) : r.left;

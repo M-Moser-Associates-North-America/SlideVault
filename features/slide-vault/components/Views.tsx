@@ -23,7 +23,6 @@ import {
   folderLabel,
   removeHint,
   plural,
-  SECTION_LABEL,
   slideMatches,
   UNKNOWN_CLIENT,
   yearOf,
@@ -628,7 +627,7 @@ function BrowseBody({ id, slides, decks }: { id: string; slides: SlideSummary[];
  * for a list that no search produced: same heading, filter pills, sort, section pills and cards, just without the "why it fits" lines.
  */
 export function ResultsView({ browse }: { browse?: string } = {}) {
-  const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch, dismissAutoSection } = useWorkspace();
+  const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch } = useWorkspace();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>(browse?.startsWith('popular') ? 'popular' : browse?.startsWith('recent') ? 'newest' : 'best');
   const browseKind = browse?.split(':')[0];
   const browseValue = browse ? browse.split(':').slice(1).join(':') : '';
@@ -699,19 +698,6 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
   /* By section (FD-57; Alina, 28 Oct: "searching for the slides in that particular section… between
      different decks"): each result knows its deck section, so the results can be narrowed to one kind. */
   const pickedSection = filters.section[0] ?? autoSection ?? null;
-  /* Back to all sections: a section picked by hand is cleared, and the one the search asked for is turned off for this search. */
-  const clearSection = () => {
-    patchFilters({ section: [] });
-    dismissAutoSection();
-  };
-  const sectionCounts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const i of shown) {
-      const k = i.slide.section?.kind;
-      if (k && SECTION_LABEL[k]) m.set(k, (m.get(k) ?? 0) + 1);
-    }
-    return [...m].sort((a, b) => b[1] - a[1]);
-  }, [shown]);
   const visible = pickedSection ? shown.filter((i) => i.slide.section?.kind === pickedSection) : shown;
   const slides = visible.map((i) => i.slide);
   const deckCount = new Set(slides.map((s) => s.provenance.sourceId)).size;
@@ -724,17 +710,7 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
   /* Client, year and slide type already light up in the filter row above. */
   const extraChips = result ? result.chips.filter((c) => !shownInFilterRow(c)) : [];
 
-  const secPills =
-    shown.length > 0 && sectionCounts.length > 1 ? (
-                <ScrollRow className="sec-pills" role="group" aria-label="Narrow to one section">
-                  <span className="meta">By section:</span>
-                  {sectionCounts.map(([kind, n]) => (
-                    <button key={kind} type="button" className="chip-x" aria-pressed={pickedSection === kind} onClick={() => (pickedSection === kind ? clearSection() : patchFilters({ section: [kind] }))}>
-                      {SECTION_LABEL[kind]} <span className="n">{n}</span>
-                    </button>
-                  ))}
-                </ScrollRow>
-    ) : null;
+  /* The section a result belongs to is chosen with the Section filter in the filter row (no separate bar of section pills). */
   return (
     <div className={`sv-wrap res-wrap${browse ? ' res-browse' : ''}`}>
       <div className="page-head">
@@ -833,7 +809,6 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
             <span className="spacer" />
         {compact && <ColumnsToggle dense={dense} setDense={setDense} />}
           </div>
-          {secPills}
           </div>
           {shown.length === 0 && found && found.decks.length > 0 && filterCount(filters) === 0 ? null : shown.length === 0 ? (
             <StateBlock
