@@ -476,7 +476,7 @@ export function FilterBar() {
     <>
     <div ref={sentinel} className="fbar-sentinel" aria-hidden="true" />
     <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}${heroOut && !compact ? ' has-search' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
-      {heroOut && !compact && <StickySearch />}
+      {heroOut && !compact && <StickySearch place="bar" />}
       {compact && upright && searched === '' && runtime.location.view !== 'browse' && (
         <div className="fb-tools">
           <StoryLauncher part="button" />
@@ -550,7 +550,7 @@ export function FilterBar() {
       </div>
       {compact && rowOut && sheet === null && (
         <div className="fb-pin-bar">
-          {(tabletLand || !summary) && <StickySearch eye={false} placeholder={tabletLand ? undefined : 'Search slides'} />}
+          {(tabletLand || !summary) && <StickySearch place="pin" eye={false} placeholder={tabletLand ? undefined : 'Search slides'} />}
           {summary && !tabletLand ? (
             <span className="pin-sum">
               <strong>{summary.count} slides</strong>
