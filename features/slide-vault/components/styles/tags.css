@@ -1,0 +1,211 @@
+/* Tags (TagBits.tsx, TagField.tsx)
+   Tag pills, +N list, Add tag, suggested tags, the phone Add tag sheet, tag fields.
+*/
+
+/* Detail screens */
+.slidevault .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Upload: category pills and the tag box */
+.slidevault .tagfield-wrap { position: relative; }
+.slidevault .tagfield { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 46px; padding: 6px 10px; border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius, 12px); background: var(--sv-surface); cursor: text; }
+.slidevault .tagfield:focus-within { border-color: var(--sv-brand); }
+.slidevault .tagfield.is-disabled { opacity: .6; }
+.slidevault .tagfield-chips { display: contents; list-style: none; margin: 0; padding: 0; }
+.slidevault .tagchip { display: inline-flex; align-items: center; gap: 2px; min-height: 30px; padding: 0 4px 0 12px; border-radius: 999px; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); font-size: var(--sv-text-small); color: var(--sv-text); }
+.slidevault .tagchip-x { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: pointer; }
+.slidevault .tagchip-x:hover:not(:disabled) { background: var(--sv-border); color: var(--sv-text); }
+.slidevault .tagchip-x .ic { width: 14px; height: 14px; }
+.slidevault .tagfield input { flex: 1 1 140px; min-width: 120px; height: 32px; border: none; outline: none; background: transparent; color: var(--sv-text); font: inherit; padding: 0; }
+.slidevault .tagfield input:focus-visible { outline: none; }
+.slidevault .tagfield-list { position: absolute; z-index: 20; left: -1px; right: -1px; top: calc(100% + 4px); margin: 0; padding: 6px; list-style: none; border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius, 12px); background: var(--sv-surface); box-shadow: var(--sv-shadow-card); max-height: 260px; overflow: auto; }
+.slidevault .tagfield-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 8px; cursor: pointer; font-size: var(--sv-text-small); }
+.slidevault .tagfield-opt:hover, .slidevault .tagfield-opt.is-active { background: var(--sv-surface-sunken); }
+.slidevault .tagfield-opt.is-active { box-shadow: inset 0 0 0 2px var(--sv-brand); }
+.slidevault .tagfield-popular { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .tagfield-popular ul { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.slidevault .tagquick { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 12px 0 8px; border: 1px dashed var(--sv-border-strong); border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); cursor: pointer; }
+.slidevault .tagquick:hover { background: var(--sv-surface-sunken); border-style: solid; }
+.slidevault .tagquick .ic { width: 14px; height: 14px; color: var(--sv-text-secondary); }
+.slidevault .tagfield-add { display: inline-flex; align-items: center; gap: 8px; }
+
+/* Upload: progress bar, the slides of the deck being uploaded, and the submit area at the bottom */
+.slidevault .upcard .tagfield-wrap.is-compact { width: 100%; }
+.slidevault .tagfield-wrap.is-compact .tagfield { min-height: 38px; padding: 4px 8px; }
+.slidevault .tagfield-wrap.is-compact .tagfield input { height: 28px; font-size: 13.5px; min-width: 70px; }
+.slidevault .tagfield-wrap.is-compact .tagchip { min-height: 26px; font-size: 13px; }
+
+/* Tags (FD-72): quiet grey pills; orange only on hover and focus */
+.slidevault .tag-t { display: block; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .tags-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; } /* where else the slide lives: a quiet marker on the meta line, not another row */
+.slidevault .tag-team { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text-secondary); } /* the team's own labels: no colour, so they never look like a colleague's tag */
+.slidevault .tagmenu { position: fixed; z-index: 90; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: max-content; min-width: 0; max-width: min(340px, calc(100vw - 16px)); max-height: min(60vh, 360px); overflow-y: auto; padding: 6px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: 12px; box-shadow: var(--sv-shadow-panel); color: var(--sv-text); }
+.slidevault .tagmenu .tag { flex: none; max-width: 100%; }
+.slidevault .tagmenu .tag-t { max-width: 280px; }
+.slidevault .tag-more { background: none; border: 0; font: inherit; }
+.slidevault .tag-more { display: inline-flex; align-items: center; min-height: 24px; padding: 0 6px; border-radius: 999px; color: var(--sv-text-secondary); font-size: 12.5px; cursor: pointer; }
+.slidevault .tag-more:hover, .slidevault .tag-more:focus-visible { color: var(--sv-brand-strong); }
+.slidevault .taglist { display: grid; gap: 10px; }
+.slidevault .tagrows { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.slidevault .tagrow { display: inline-flex; align-items: center; gap: 0; }
+.slidevault .tagrow.is-hidden .tag { opacity: .7; }
+.slidevault .tagx { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 26px; min-height: 26px; padding: 0 4px; border: 0; border-radius: 999px; background: transparent; color: var(--sv-text-secondary); font: inherit; font-size: 12px; cursor: pointer; }
+.slidevault .tagx .ic { width: 14px; height: 14px; }
+.slidevault .tagx:hover, .slidevault .tagx:focus-visible { background: var(--sv-brand-tint); color: var(--sv-brand-strong); }
+.slidevault .tagfold summary { cursor: pointer; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .tagfold summary:hover { color: var(--sv-brand-strong); }
+.slidevault .tagfold[open] summary { margin-bottom: 6px; }
+.slidevault .tagremoved { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; font-size: var(--sv-text-small); }
+.slidevault .tagremoved li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.slidevault .tags-fromdeck { margin-top: 12px; }
+.slidevault .deck-tags { margin-top: 14px; max-width: 640px; }
+
+/* Card: same zones in the same places. Title (two lines), meta, one line of tags, then a footer pinned to the bottom */
+.slidevault .vcard .tags-compact { flex-wrap: nowrap; margin-top: 0; min-width: 0; }
+.slidevault .vcard .tags-compact .tag { min-width: 0; flex: 0 1 auto; }
+.slidevault .vcard .tags-compact .tag-t { max-width: none; }
+.slidevault .vcard .tag-more { flex: none; } /* the tooltip is a sentence, not small capitals */
+.slidevault .tags-spacer { display: none; height: 24px; }
+.slidevault .sv-main:has(.vcard .tags-compact) .tags-spacer { display: block; }
+
+/* Add tag: a small dashed pill in the row with the tags; it becomes a small box in place */
+.slidevault .tag-add { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; padding: 0 10px 0 7px; border: 1px dashed var(--sv-border-strong); border-radius: 999px; background: transparent; color: color-mix(in srgb, var(--sv-text-secondary) 65%, var(--sv-text)); font: inherit; font-size: 12.5px; line-height: 1; cursor: pointer; transition: border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .tag-add .ic { width: 13px; height: 13px; }
+.slidevault .tag-add:hover:not(:disabled), .slidevault .tag-add:focus-visible { border-style: solid; border-color: var(--sv-brand); color: var(--sv-brand-strong); }
+.slidevault .tag-input-wrap { position: relative; display: inline-block; }
+.slidevault .tag-input { width: 150px; min-height: 26px; padding: 0 12px; border: 1px solid var(--sv-brand); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: 12.5px; outline: none; }
+.slidevault .tag-sugg { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 80; min-width: 190px; max-width: 280px; margin: 0; padding: 4px; list-style: none; background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 12px; box-shadow: var(--sv-shadow-popover); }
+.slidevault .tag-sugg li { padding: 6px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; overflow-wrap: anywhere; }
+.slidevault .tag-sugg li:hover, .slidevault .tag-sugg li[aria-selected="true"] { background: var(--sv-brand-tint); }
+
+/* Suggested tags (FD-82): the same dashed pill as "+ Add tag", in a row of their own after "Suggested". */
+.slidevault .tag-suggested { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.slidevault .tagrows .tag-suggested { margin-top: 0; }
+.slidevault .tag-suggested > .meta { font-size: 12px; } /* "Fill the rest with AI": an orange outline, orange sparkle and AI, as in "Search with AI" */
+.slidevault .tagchip.is-auto { gap: 4px; } /* a tag filled in for the person: a small orange sparkle before it, to check and remove if wrong */
+.slidevault .tagchip.is-auto .ic { color: var(--sv-brand-strong); width: 12px; height: 12px; flex: none; }
+
+/* Card tags on a phone: all of them, in one row that scrolls sideways, each in full. */
+.slidevault .vcard .tags-compact.is-scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }
+.slidevault .vcard .tags-compact.is-scroll::-webkit-scrollbar { display: none; }
+.slidevault .vcard .tags-compact.is-scroll .tag { flex: none; max-width: none; } /* the heart sits beside Share in the preview on every screen */ @media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .tag-suggested { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.slidevault .tag-suggested::-webkit-scrollbar { display: none; }
+.slidevault .tag-suggested > * { flex: none; } }
+
+/* ---- Phone pass 3 ---- */
+.slidevault .tag-addrow { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; min-width: 0; }
+.slidevault .tag-addrow > .tag-suggested { flex: 1 1 0; min-width: 0; margin-top: 0; }
+.slidevault .tag-addrow > :first-child:not(.tag-suggested) { flex: none; }
+.slidevault .tag-addrow > .tag-suggested > .meta { white-space: nowrap; }
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .tag-addrow { align-items: center; } }
+
+/* ---- Phone pass 5: the preview ---- */
+.slidevault .tag-line { display: grid; gap: 10px; min-width: 0; }
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .tag-line { display: flex; align-items: center; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }
+.slidevault .tag-line::-webkit-scrollbar { display: none; }
+.slidevault .tag-line .tagrows, .slidevault .tag-line .tags-compact { display: contents; }
+.slidevault .tag-line .tagrow, .slidevault .tag-line .tag { flex: none; max-width: none; }
+.slidevault .tag-line .tag-t { max-width: none; } }
+
+/* ---- Phone pass 10: results, Useful / Not useful ---- */
+.slidevault .tag-suggested > .meta { font-style: italic; }
+
+/* ---- Phone pass 11: the deck page ---- */
+.slidevault .sv-app[data-size="compact"] .deck-tags { margin-top: 16px; }
+
+/* Deck page on a phone turned sideways: less space above the title; "Created / Uploaded" on one line; "Go to slide" on the left of the tags. */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .deck-tagbar > .deck-tags { flex: 1 1 0; min-width: 0; max-width: none; margin-top: 0; } }
+/* "Also in N other decks" joins the tag row (left end, fixed) on a phone on its side. */
+.slidevault .tag-first { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.slidevault .tag-first > .tag-line { flex: 1 1 0; min-width: 0; }
+.slidevault .tag-lead { display: inline-flex; flex: none; }
+
+/* Tips that a scrolling row or the window edge would cut off are left out where the control explains itself: the suggested-tag chips (inside a sideways-scrolling row) and the deck arrows under the preview picture (they have a name for screen readers). */
+.slidevault .sv-app[data-size="compact"] .tag-suggested [data-tip]::after,
+.slidevault .sv-app[data-size="medium"] .tag-suggested [data-tip]::after { display: none; }
+/* Deck page on a phone on its side: one row. "Go to slide" at the left, the tags scrolling in the middle (Add tag first), and the one / two column button at the right end. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .deck-tagbar > .deck-tags { order: 1; } }
+
+/* Deck page: the tags appear once. Normally under the buttons; on a phone on its side in the buttons' row (Add tag, a thin divider, then the tags scrolling). */
+.slidevault .deck-tags-main { display: contents; }
+.slidevault .deck-tags-inline { display: none; }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .deck-tags-inline { display: block; flex: 1 1 0; min-width: 0; }
+.slidevault .sv-app[data-size="compact"] .deck-tags-inline .deck-tags { margin: 0; max-width: none; }
+.slidevault .sv-app[data-size="compact"] .deck-tags-inline .taglist { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.slidevault .sv-app[data-size="compact"] .deck-tags-inline .tag-addrow { order: 0; flex: none; margin: 0; }
+.slidevault .sv-app[data-size="compact"] .deck-tags-inline .tag-first { order: 1; flex: 1 1 0; min-width: 0; } }
+/* Deck page on a phone on its side: the suggested tags sit in the "Go to slide" row (scrolling, same chips as portrait), between the number box and the column button. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .deck-tags-main { display: block; order: 1; flex: 1 1 0; min-width: 0; }
+.slidevault .sv-app[data-size="compact"] .deck-tags-main .deck-tags { margin: 0; max-width: none; }
+.slidevault .sv-app[data-size="compact"] .deck-tags-main .tag-first, .slidevault .sv-app[data-size="compact"] .deck-tags-main .tag-addrow > :first-child:not(.tag-suggested), .slidevault .sv-app[data-size="compact"] .deck-tags-main .tagfold, .slidevault .sv-app[data-size="compact"] .deck-tags-main .meta:not(.tag-suggested > .meta) { display: none; }
+.slidevault .sv-app[data-size="compact"] .deck-tags-main .tag-addrow { margin: 0; }
+.slidevault .sv-app[data-size="compact"] .deck-tags-inline .tag-suggested { display: none; } }
+
+/* ======== Tablet held upright (FD-106): the phone-on-its-side page layouts (Home, results, slide page, deck page) with the tabs along the bottom. The slide preview keeps the desktop layout. ======== */
+.slidevault .sv-app[data-size="medium"] .tag-suggested { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.slidevault .sv-app[data-size="medium"] .tag-suggested::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="medium"] .tag-suggested > * { flex: none; }
+.slidevault .sv-app[data-size="medium"] .tag-addrow { align-items: center; }
+/* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
+.slidevault .sv-app[data-size="medium"] .tag-line { display: flex; align-items: center; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }
+.slidevault .sv-app[data-size="medium"] .tag-line::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="medium"] .tag-line .tagrows, .slidevault .sv-app[data-size="medium"] .tag-line .tags-compact { display: contents; }
+.slidevault .sv-app[data-size="medium"] .tag-line .tagrow, .slidevault .sv-app[data-size="medium"] .tag-line .tag { flex: none; max-width: none; }
+.slidevault .sv-app[data-size="medium"] .tag-line .tag-t { max-width: none; }
+.slidevault .sv-app[data-size="medium"] .deck-tags { margin-top: 16px; }
+.slidevault .sv-app[data-size="medium"] .deck-tagbar > .deck-tags { flex: 1 1 0; min-width: 0; max-width: none; margin-top: 0; }
+.slidevault .sv-app[data-size="medium"] .deck-tagbar > .deck-tags { order: 1; }
+.slidevault .sv-app[data-size="medium"] .deck-tags-inline { display: block; flex: 1 1 0; min-width: 0; }
+.slidevault .sv-app[data-size="medium"] .deck-tags-inline .deck-tags { margin: 0; max-width: none; }
+.slidevault .sv-app[data-size="medium"] .deck-tags-inline .taglist { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.slidevault .sv-app[data-size="medium"] .deck-tags-inline .tag-addrow { order: 0; flex: none; margin: 0; }
+.slidevault .sv-app[data-size="medium"] .deck-tags-inline .tag-first { order: 1; flex: 1 1 0; min-width: 0; }
+.slidevault .sv-app[data-size="medium"] .deck-tags-main { display: block; order: 1; flex: 1 1 0; min-width: 0; }
+.slidevault .sv-app[data-size="medium"] .deck-tags-main .deck-tags { margin: 0; max-width: none; }
+.slidevault .sv-app[data-size="medium"] .deck-tags-main .tag-first, .slidevault .sv-app[data-size="medium"] .deck-tags-main .tag-addrow > :first-child:not(.tag-suggested), .slidevault .sv-app[data-size="medium"] .deck-tags-main .tagfold, .slidevault .sv-app[data-size="medium"] .deck-tags-main .meta:not(.tag-suggested > .meta) { display: none; }
+.slidevault .sv-app[data-size="medium"] .deck-tags-main .tag-addrow { margin: 0; }
+.slidevault .sv-app[data-size="medium"] .deck-tags-inline .tag-suggested { display: none; }
+
+/* A suggested tag is one pill on one line, however long its words. */
+.slidevault .tag-suggest { max-width: 100%; white-space: nowrap; }
+/* Desktop slide page, Tags card: "Also in N other decks" (icon and number) at the right of the heading. */
+.slidevault .panel-h + .taglist { margin-top: 10px; }
+
+/* More air between the buttons row and the "Go to slide" / tags row on the deck page. */
+.slidevault .sv-app[data-size="wide"] .deck-tags-main { margin-top: 6px; }
+
+/* Tablet on its side: the suggested tags wrap (no sideways scrolling) and the pills are a touch snugger, so a typical set fits on two lines in the narrow Tags card. */
+.slidevault .sv-app[data-tl] .tag-suggested { gap: 4px; }
+.slidevault .sv-app[data-tl] .tag-suggest { font-size: 12px; padding: 0 8px 0 6px; }
+
+/* Deck page heading (desktop and tablets): more air between title, pills, count line, buttons and Tags. */
+.slidevault .sv-app:is([data-size="wide"], [data-size="medium"]) .deck-tags { margin-top: 26px; }
+
+/* Deck page, desktop and tablet on its side: "Tags", the deck's tags and the "Add tag" pill share one row. Add tag stays the last pill; a full row continues on the next line. */
+.slidevault .sv-app[data-size="wide"] .deck-tags { display: flex; align-items: flex-start; gap: 14px; max-width: 840px; }
+.slidevault .sv-app[data-size="wide"] .deck-tags > h2 { flex: none; margin: 0; line-height: 24px; }
+.slidevault .sv-app[data-size="wide"] .deck-tags > .taglist { flex: 1 1 0; min-width: 0; }
+
+/* Touch screens only (a finger, not a mouse): a larger area around small controls responds to a tap, without changing how they look.
+   Each control is its own positioned box, so the extra area is measured from the control itself and can never spread over the card. */
+
+@media (pointer: coarse) {
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag-more::before { content: ""; position: absolute; inset: -4px -6px; } }
+
+/* Phone "Add a tag" sheet. */
+dialog.slidevault.tag-sheet .tag-sheet-body { display: grid; gap: 12px; }
+dialog.slidevault.tag-sheet .tag-sheet-form { display: flex; gap: 8px; }
+dialog.slidevault.tag-sheet .tag-sheet-form .btn { min-height: 44px; flex: none; }
+dialog.slidevault.tag-sheet .tag-sheet-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+dialog.slidevault.tag-sheet .tag-sheet-list .tag-add { min-height: 36px; padding: 0 12px 0 9px; font-size: 14px; }
+dialog.slidevault.tag-sheet .tag-sheet-added { color: var(--sv-text); }
+dialog.slidevault.tag-sheet .meta { margin: 0; }
+/* The sheet sits clear of the screen's bottom edge (and the phone's home bar): room under the box and the matching tags. */
+dialog.slidevault.tag-sheet .tag-sheet-body { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }

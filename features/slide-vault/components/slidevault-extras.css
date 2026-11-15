@@ -607,27 +607,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .catpill .ic { color: var(--sv-brand-strong); }
 .slidevault .catother-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; max-width: 460px; }
 .slidevault .catother { flex: 1; min-width: 0; max-width: 320px; margin-top: 0; }
-.slidevault .tagfield-wrap { position: relative; }
-.slidevault .tagfield { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 46px; padding: 6px 10px; border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius, 12px); background: var(--sv-surface); cursor: text; }
-.slidevault .tagfield:focus-within { border-color: var(--sv-brand); }
-.slidevault .tagfield.is-disabled { opacity: .6; }
-.slidevault .tagfield-chips { display: contents; list-style: none; margin: 0; padding: 0; }
-.slidevault .tagchip { display: inline-flex; align-items: center; gap: 2px; min-height: 30px; padding: 0 4px 0 12px; border-radius: 999px; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); font-size: var(--sv-text-small); color: var(--sv-text); }
-.slidevault .tagchip-x { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: pointer; }
-.slidevault .tagchip-x:hover:not(:disabled) { background: var(--sv-border); color: var(--sv-text); }
-.slidevault .tagchip-x .ic { width: 14px; height: 14px; }
-.slidevault .tagfield input { flex: 1 1 140px; min-width: 120px; height: 32px; border: none; outline: none; background: transparent; color: var(--sv-text); font: inherit; padding: 0; }
-.slidevault .tagfield input:focus-visible { outline: none; }
-.slidevault .tagfield-list { position: absolute; z-index: 20; left: -1px; right: -1px; top: calc(100% + 4px); margin: 0; padding: 6px; list-style: none; border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius, 12px); background: var(--sv-surface); box-shadow: var(--sv-shadow-card); max-height: 260px; overflow: auto; }
-.slidevault .tagfield-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 8px; cursor: pointer; font-size: var(--sv-text-small); }
-.slidevault .tagfield-opt:hover, .slidevault .tagfield-opt.is-active { background: var(--sv-surface-sunken); }
-.slidevault .tagfield-opt.is-active { box-shadow: inset 0 0 0 2px var(--sv-brand); }
-.slidevault .tagfield-popular { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
-.slidevault .tagfield-popular ul { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
-.slidevault .tagquick { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 12px 0 8px; border: 1px dashed var(--sv-border-strong); border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); cursor: pointer; }
-.slidevault .tagquick:hover { background: var(--sv-surface-sunken); border-style: solid; }
-.slidevault .tagquick .ic { width: 14px; height: 14px; color: var(--sv-text-secondary); }
-.slidevault .tagfield-add { display: inline-flex; align-items: center; gap: 8px; }
 
 /* Upload: progress bar, the slides of the deck being uploaded, and the submit area at the bottom */
 .slidevault .upbar-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
@@ -655,10 +634,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .upcard-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; min-width: 0; }
 .slidevault .upcard-title { margin: 0; font-size: 14.5px; line-height: 1.3; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .slidevault .upcard-text { margin: 0; font-size: 13px; line-height: 1.4; color: var(--sv-text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.slidevault .upcard .tagfield-wrap.is-compact { width: 100%; }
-.slidevault .tagfield-wrap.is-compact .tagfield { min-height: 38px; padding: 4px 8px; }
-.slidevault .tagfield-wrap.is-compact .tagfield input { height: 28px; font-size: 13.5px; min-width: 70px; }
-.slidevault .tagfield-wrap.is-compact .tagchip { min-height: 26px; font-size: 13px; }
 .slidevault .upgrid-more { margin-top: 16px; }
 .slidevault .upsubmit { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--sv-border); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .slidevault .upsubmit .upbar-wrap { margin-top: 0; width: 100%; max-width: 520px; }
@@ -666,7 +641,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 
 /* Tags (FD-72): quiet grey pills; orange only on hover and focus */
 .slidevault .tag { --tag-rgb: 100, 116, 139; display: inline-flex; align-items: center; max-width: 100%; min-height: 24px; padding: 0 9px; border: 1px solid rgba(var(--tag-rgb), .75); border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: 12.5px; line-height: 1; cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
-.slidevault .tag-t { display: block; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slidevault .tag[data-h="0"] { --tag-rgb: 59, 130, 246; }
 .slidevault .tag[data-h="1"] { --tag-rgb: 20, 184, 166; }
 .slidevault .tag[data-h="2"] { --tag-rgb: 34, 160, 90; }
@@ -674,34 +648,12 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .tag[data-h="4"] { --tag-rgb: 219, 80, 140; }
 .slidevault .tag[data-h="5"] { --tag-rgb: 100, 116, 139; }
 .slidevault .tag:hover, .slidevault .tag:focus-visible { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
-.slidevault .tags-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
 .slidevault .tag[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; transform: none; max-width: 220px; }
 .slidevault .meta-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .slidevault .meta-wrap { display: block; flex: 1; min-width: 0; }
 .slidevault .meta-wrap[data-tip]::after { max-width: 100%; } /* wraps inside the card, never past its edge */
 .slidevault .meta-row .also { flex: none; align-self: center; min-height: 24px; padding: 0 8px; border-color: transparent; background: none; color: var(--sv-text-secondary); font-weight: 500; } /* where else the slide lives: a quiet marker on the meta line, not another row */
-.slidevault .meta-row .also:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
-.slidevault .tag-team { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text-secondary); } /* the team's own labels: no colour, so they never look like a colleague's tag */
-.slidevault .tagmenu { position: fixed; z-index: 90; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: max-content; min-width: 0; max-width: min(340px, calc(100vw - 16px)); max-height: min(60vh, 360px); overflow-y: auto; padding: 6px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: 12px; box-shadow: var(--sv-shadow-panel); color: var(--sv-text); }
-.slidevault .tagmenu .tag { flex: none; max-width: 100%; }
-.slidevault .tagmenu .tag-t { max-width: 280px; }
-.slidevault .tag-more { background: none; border: 0; font: inherit; }
-.slidevault .tag-more { display: inline-flex; align-items: center; min-height: 24px; padding: 0 6px; border-radius: 999px; color: var(--sv-text-secondary); font-size: 12.5px; cursor: pointer; }
-.slidevault .tag-more:hover, .slidevault .tag-more:focus-visible { color: var(--sv-brand-strong); }
-.slidevault .taglist { display: grid; gap: 10px; }
-.slidevault .tagrows { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.slidevault .tagrow { display: inline-flex; align-items: center; gap: 0; }
-.slidevault .tagrow.is-hidden .tag { opacity: .7; }
-.slidevault .tagx { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 26px; min-height: 26px; padding: 0 4px; border: 0; border-radius: 999px; background: transparent; color: var(--sv-text-secondary); font: inherit; font-size: 12px; cursor: pointer; }
-.slidevault .tagx .ic { width: 14px; height: 14px; }
-.slidevault .tagx:hover, .slidevault .tagx:focus-visible { background: var(--sv-brand-tint); color: var(--sv-brand-strong); }
-.slidevault .tagfold summary { cursor: pointer; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
-.slidevault .tagfold summary:hover { color: var(--sv-brand-strong); }
-.slidevault .tagfold[open] summary { margin-bottom: 6px; }
-.slidevault .tagremoved { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; font-size: var(--sv-text-small); }
-.slidevault .tagremoved li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
-.slidevault .tags-fromdeck { margin-top: 12px; }
-.slidevault .deck-tags { margin-top: 14px; max-width: 640px; }
+.slidevault .meta-row .also:hover { background: var(--sv-surface-sunken); color: var(--sv-text); } /* the team's own labels: no colour, so they never look like a colleague's tag */
 .slidevault .deck-tags .h3 { margin: 0 0 8px; font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .labels-source { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; }
 
@@ -759,10 +711,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 
 /* Card: same zones in the same places. Title (two lines), meta, one line of tags, then a footer pinned to the bottom */
 .slidevault .vcard .card-body { container-type: inline-size; }
-.slidevault .vcard .tags-compact { flex-wrap: nowrap; margin-top: 0; min-width: 0; }
-.slidevault .vcard .tags-compact .tag { min-width: 0; flex: 0 1 auto; }
-.slidevault .vcard .tags-compact .tag-t { max-width: none; }
-.slidevault .vcard .tag-more { flex: none; }
 .slidevault .card-foot { margin-top: auto; padding-top: 2px; display: flex; align-items: center; gap: 8px; min-height: 28px; min-width: 0; } /* just tall enough for the small arrows or the Also-in chip (was 36px, from when votes with counts lived here) */
 .slidevault .card .card-body { padding-bottom: 10px; }
 .slidevault .card-foot:empty { display: none; }
@@ -772,19 +720,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .fb-verdict.is-small { justify-content: space-between; }
 .slidevault .fb-verdict.is-small .sb-icon-btn { padding: 4px 2px; }
 .slidevault .fb-verdict .sb-icon-btn:disabled { opacity: 1; }
-.slidevault .fb-verdict .sb-icon-btn[data-tip]::after { text-transform: none; letter-spacing: normal; font-size: 12.5px; font-weight: 500; } /* the tooltip is a sentence, not small capitals */
-.slidevault .tags-spacer { display: none; height: 24px; }
-.slidevault .sv-main:has(.vcard .tags-compact) .tags-spacer { display: block; }
-
-/* Add tag: a small dashed pill in the row with the tags; it becomes a small box in place */
-.slidevault .tag-add { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; padding: 0 10px 0 7px; border: 1px dashed var(--sv-border-strong); border-radius: 999px; background: transparent; color: color-mix(in srgb, var(--sv-text-secondary) 65%, var(--sv-text)); font: inherit; font-size: 12.5px; line-height: 1; cursor: pointer; transition: border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
-.slidevault .tag-add .ic { width: 13px; height: 13px; }
-.slidevault .tag-add:hover:not(:disabled), .slidevault .tag-add:focus-visible { border-style: solid; border-color: var(--sv-brand); color: var(--sv-brand-strong); }
-.slidevault .tag-input-wrap { position: relative; display: inline-block; }
-.slidevault .tag-input { width: 150px; min-height: 26px; padding: 0 12px; border: 1px solid var(--sv-brand); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: 12.5px; outline: none; }
-.slidevault .tag-sugg { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 80; min-width: 190px; max-width: 280px; margin: 0; padding: 4px; list-style: none; background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: 12px; box-shadow: var(--sv-shadow-popover); }
-.slidevault .tag-sugg li { padding: 6px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; overflow-wrap: anywhere; }
-.slidevault .tag-sugg li:hover, .slidevault .tag-sugg li[aria-selected="true"] { background: var(--sv-brand-tint); }
+.slidevault .fb-verdict .sb-icon-btn[data-tip]::after { text-transform: none; letter-spacing: normal; font-size: 12.5px; font-weight: 500; }
 
 /* Slide title with a pencil */
 .slidevault .slide-title-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
@@ -838,17 +774,14 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .dlg-head-tools { display: flex; align-items: center; gap: 2px; flex: none; }
 
 /* Suggested tags (FD-82): the same dashed pill as "+ Add tag", in a row of their own after "Suggested". */
-.slidevault .tag-suggested { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
-.slidevault .tagrows .tag-suggested { margin-top: 0; }
-.slidevault .tag-suggested > .meta { font-size: 12px; }
 .slidevault .up-ai { margin-top: 12px; }
 .slidevault .up-ai .btn .ic { margin-right: 4px; }
 .slidevault .btn-ai { border-color: var(--sv-brand); } /* "Fill the rest with AI": an orange outline, orange sparkle and AI, as in "Search with AI" */
 .slidevault .btn-ai .ic { color: var(--sv-brand-strong); }
 .slidevault .btn-ai b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; }
 .slidevault .btn-ai:hover:not(:disabled) { background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); }
-.slidevault .tagchip.is-auto, .slidevault .tag.is-auto { gap: 4px; } /* a tag filled in for the person: a small orange sparkle before it, to check and remove if wrong */
-.slidevault .tagchip.is-auto .ic, .slidevault .tag.is-auto .ic { color: var(--sv-brand-strong); width: 12px; height: 12px; flex: none; }
+.slidevault .tag.is-auto { gap: 4px; } /* a tag filled in for the person: a small orange sparkle before it, to check and remove if wrong */
+.slidevault .tag.is-auto .ic { color: var(--sv-brand-strong); width: 12px; height: 12px; flex: none; }
 
 /* Asking before a short search uses the AI: a centered card over a faded page, like the tour (FD-79) */
 dialog.slidevault.sv-dialog.ai-ask { width: min(420px, calc(100% - 32px)); margin: auto; }
@@ -904,11 +837,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault [data-fade="start end"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
 /* The search text ends in an ellipsis instead of being cut mid-letter. */
 .slidevault .home-hero-field input { text-overflow: ellipsis; }
-
-/* Card tags on a phone: all of them, in one row that scrolls sideways, each in full. */
-.slidevault .vcard .tags-compact.is-scroll { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }
-.slidevault .vcard .tags-compact.is-scroll::-webkit-scrollbar { display: none; }
-.slidevault .vcard .tags-compact.is-scroll .tag { flex: none; max-width: none; }
 /* Client, year and project type: up to two lines instead of one cut-off line. */
 .slidevault .sv-app[data-size="compact"] .card-body .meta.clip { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
@@ -927,24 +855,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault .fb-verdict .sb-icon-btn[data-tip]::after { display: none; }
   .slidevault .save-tg { width: 32px; height: 32px; }
   .slidevault .save-tg .ic { width: 17px; height: 17px; }
-} /* the heart sits beside Share in the preview on every screen */
-@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  /* Result by result moves to the arrows beside the title; the bar keeps only the count. */
-  /* Tap the slide to see it full screen. */
-  /* Deck arrows leave the picture and sit in a bar under it. */
-  /* Suggested tags: one line, scrolling sideways. */
-  .slidevault .tag-suggested { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
-  .slidevault .tag-suggested::-webkit-scrollbar { display: none; }
-  .slidevault .tag-suggested > * { flex: none; }
-}
-
-/* ---- Phone pass 3 ---- */
-.slidevault .tag-addrow { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; min-width: 0; }
-.slidevault .tag-addrow > .tag-suggested { flex: 1 1 0; min-width: 0; margin-top: 0; }
-.slidevault .tag-addrow > :first-child:not(.tag-suggested) { flex: none; }
-.slidevault .tag-addrow > .tag-suggested > .meta { white-space: nowrap; }
-@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  .slidevault .tag-addrow { align-items: center; }
 }
 
 /* ---- Phone pass 4: the slide page ---- */
@@ -960,14 +870,8 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="compact"] .navgroup .back-results { padding-top: 1px; }
 
 /* ---- Phone pass 5: the preview ---- */
-.slidevault .tag-line { display: grid; gap: 10px; min-width: 0; }
 @media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   /* All the tags in one row that scrolls sideways. */
-  .slidevault .tag-line { display: flex; align-items: center; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }
-  .slidevault .tag-line::-webkit-scrollbar { display: none; }
-  .slidevault .tag-line .tagrows, .slidevault .tag-line .tags-compact { display: contents; }
-  .slidevault .tag-line .tagrow, .slidevault .tag-line .tag { flex: none; max-width: none; }
-  .slidevault .tag-line .tag-t { max-width: none; }
   /* The window is the same height for every slide; the buttons stay at the bottom and the details scroll. */
   dialog.slidevault.sv-dialog.wide { height: min(calc(var(--sv-h, 100%) - 32px), 612px); }
   .slidevault dialog.sv-dialog.wide .dlg-body { padding-inline: 16px; }
@@ -1001,9 +905,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="compact"] .stack-panels > .panel-about { order: 2; }
 .slidevault .sv-app[data-size="compact"] .stack-panels > .panel-details { order: 3; }
 .slidevault .sv-app[data-size="compact"] .slide-text-panel { order: 4; }
-
-/* ---- Phone pass 10: results, Useful / Not useful ---- */
-.slidevault .tag-suggested > .meta { font-style: italic; }
 /* No example searches above the results, on any screen. */
 .slidevault .home-try.in-results { display: none; }
 /* Useful / Not useful: tips open above the pair, as wide as the pair, so no card or window cuts them off. */
@@ -1057,7 +958,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="compact"] .deck-actions { margin-top: 14px; flex-wrap: nowrap; gap: 8px; }
 .slidevault .sv-app[data-size="compact"] .deck-actions > .btn:not(.btn-icon) { flex: 1 1 0; min-width: 0; justify-content: center; }
 .slidevault .sv-app[data-size="compact"] .deck-actions .more-menu { flex: none; }
-.slidevault .sv-app[data-size="compact"] .deck-tags { margin-top: 16px; }
 .slidevault .sv-app[data-size="compact"] .grid.is-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .slidevault .sv-app[data-size="compact"] .grid > [data-card] { scroll-margin-top: 12px; }
 .slidevault .sv-app[data-size="compact"] .deck-head > div { min-width: 0; max-width: 100%; }
@@ -1243,7 +1143,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault .sv-app[data-size="compact"] .deck-tagbar { display: flex; gap: 16px; }
   .slidevault .sv-app[data-size="compact"] .deck-tagbar > .deck-jump { order: 0; flex: none; margin-top: 0; padding: 0; height: 24px; }
   .slidevault .sv-app[data-size="compact"] .deck-tagbar .deck-jump-go { white-space: nowrap; }
-  .slidevault .sv-app[data-size="compact"] .deck-tagbar > .deck-tags { flex: 1 1 0; min-width: 0; max-width: none; margin-top: 0; }
 }
 /* Small phones on their side (iPhone SE 667×375, small Android 640×360, 568×320): the preview's right-hand column is narrow, so it gets a little more width, tighter spacing and buttons without icons, so nothing is cut off or pushed onto another line. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
@@ -1310,10 +1209,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 @media (orientation: landscape) and (max-height: 400px) and (max-width: 1000px) { .slidevault .sv-app[data-size="compact"] .slide-title-row { --ttl-fs: 18px; } }
 .slidevault .slide-title-row .h1 { font-size: var(--ttl-fs); line-height: var(--ttl-lh); }
 .slidevault .slide-title-row .title-edit { height: calc(var(--ttl-fs) * var(--ttl-lh)); margin-top: 0; align-self: flex-start; }
-/* "Also in N other decks" joins the tag row (left end, fixed) on a phone on its side. */
-.slidevault .tag-first { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.slidevault .tag-first > .tag-line { flex: 1 1 0; min-width: 0; }
-.slidevault .tag-lead { display: inline-flex; flex: none; }
 /* Create: the two cards side by side, and My decks: working drafts in two columns, on a phone on its side and on tablets. */
 .slidevault .sv-app[data-size="medium"] .create-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; }
 .slidevault .sv-app[data-size="medium"] .draft-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1345,10 +1240,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault .tour-acts { margin-top: 10px; }
   .slidevault .tour-acts .btn { min-height: 34px; height: 34px; }
 }
-
-/* Tips that a scrolling row or the window edge would cut off are left out where the control explains itself: the suggested-tag chips (inside a sideways-scrolling row) and the deck arrows under the preview picture (they have a name for screen readers). */
-.slidevault .sv-app[data-size="compact"] .tag-suggested [data-tip]::after,
-.slidevault .sv-app[data-size="medium"] .tag-suggested [data-tip]::after { display: none; }
 /* Balance pass: each part of the deck line ("Created by … · date") stays together and wraps as a whole, and the slide page's Use this slide buttons are equal halves on every phone. */
 .slidevault .sv-app[data-size="compact"] .deck-meta .dm { display: inline-block; }
 .slidevault .sv-app[data-size="compact"] .deck-meta .dm:not(:last-child)::after { margin: 0 6px; }
@@ -1367,22 +1258,15 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .sv-app[data-size="compact"] .deck-tagbar > .deck-jump { display: contents; }
   .slidevault .sv-app[data-size="compact"] .deck-tagbar .deck-jump-go { order: 0; flex: none; align-self: center; }
-  .slidevault .sv-app[data-size="compact"] .deck-tagbar > .deck-tags { order: 1; }
   .slidevault .sv-app[data-size="compact"] .deck-tagbar .cols-toggle { order: 2; flex: none; align-self: center; }
   .slidevault .sv-app[data-size="compact"] .deck-tagbar { align-items: center; }
 }
 
 /* Deck page: the tags appear once. Normally under the buttons; on a phone on its side in the buttons' row (Add tag, a thin divider, then the tags scrolling). */
-.slidevault .deck-tags-main { display: contents; }
-.slidevault .deck-sep, .slidevault .deck-tags-inline { display: none; }
+.slidevault .deck-sep { display: none; }
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .sv-app[data-size="compact"] .deck-actions { flex-wrap: nowrap; align-items: center; }
   .slidevault .sv-app[data-size="compact"] .deck-sep { display: block; flex: none; align-self: center; width: 1px; height: 28px; margin: 0 8px; background: var(--sv-border-strong); }
-  .slidevault .sv-app[data-size="compact"] .deck-tags-inline { display: block; flex: 1 1 0; min-width: 0; }
-  .slidevault .sv-app[data-size="compact"] .deck-tags-inline .deck-tags { margin: 0; max-width: none; }
-  .slidevault .sv-app[data-size="compact"] .deck-tags-inline .taglist { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .slidevault .sv-app[data-size="compact"] .deck-tags-inline .tag-addrow { order: 0; flex: none; margin: 0; }
-  .slidevault .sv-app[data-size="compact"] .deck-tags-inline .tag-first { order: 1; flex: 1 1 0; min-width: 0; }
 }
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .sv-app[data-size="compact"] .deck-tagbar .cols-toggle { margin-left: auto; }
@@ -1436,14 +1320,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .also-list .also-txt { min-width: 0; }
 .slidevault .also-list .also-name { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slidevault .also-list .also-txt .meta { overflow-wrap: anywhere; }
-/* Deck page on a phone on its side: the suggested tags sit in the "Go to slide" row (scrolling, same chips as portrait), between the number box and the column button. */
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  .slidevault .sv-app[data-size="compact"] .deck-tags-main { display: block; order: 1; flex: 1 1 0; min-width: 0; }
-  .slidevault .sv-app[data-size="compact"] .deck-tags-main .deck-tags { margin: 0; max-width: none; }
-  .slidevault .sv-app[data-size="compact"] .deck-tags-main .tag-first, .slidevault .sv-app[data-size="compact"] .deck-tags-main .tag-addrow > :first-child:not(.tag-suggested), .slidevault .sv-app[data-size="compact"] .deck-tags-main .tagfold, .slidevault .sv-app[data-size="compact"] .deck-tags-main .meta:not(.tag-suggested > .meta) { display: none; }
-  .slidevault .sv-app[data-size="compact"] .deck-tags-main .tag-addrow { margin: 0; }
-  .slidevault .sv-app[data-size="compact"] .deck-tags-inline .tag-suggested { display: none; }
-}
 /* Archive on a phone on its side, and on tablets: the deck cards in two columns, not one stretched row. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .sv-app[data-size="compact"] .arch-page .arch-rows { margin-top: 14px; gap: 12px; }
@@ -1457,10 +1333,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 
 /* ======== Tablet held upright (FD-106): the phone-on-its-side page layouts (Home, results, slide page, deck page) with the tabs along the bottom. The slide preview keeps the desktop layout. ======== */
 .slidevault .sv-app[data-size="medium"] .card-body .meta.clip { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.slidevault .sv-app[data-size="medium"] .tag-suggested { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
-.slidevault .sv-app[data-size="medium"] .tag-suggested::-webkit-scrollbar { display: none; }
-.slidevault .sv-app[data-size="medium"] .tag-suggested > * { flex: none; }
-.slidevault .sv-app[data-size="medium"] .tag-addrow { align-items: center; }
 .slidevault .sv-app[data-size="medium"] .slide-stepper { flex-wrap: nowrap; justify-content: center !important; gap: 10px !important; }
 /* Same small grey arrows as the slide preview, next to the position text. */
 .slidevault .sv-app[data-size="medium"] .slide-stepper > .btn-icon { min-height: 0; padding: 0; box-shadow: none; color: var(--sv-text-secondary); }
@@ -1473,11 +1345,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="medium"] .navgroup { flex-wrap: nowrap; align-items: flex-start; }
 .slidevault .sv-app[data-size="medium"] .navgroup .crumbs { flex: 1 1 0; }
 .slidevault .sv-app[data-size="medium"] .navgroup .back-results { padding-top: 1px; }
-.slidevault .sv-app[data-size="medium"] .tag-line { display: flex; align-items: center; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }
-.slidevault .sv-app[data-size="medium"] .tag-line::-webkit-scrollbar { display: none; }
-.slidevault .sv-app[data-size="medium"] .tag-line .tagrows, .slidevault .sv-app[data-size="medium"] .tag-line .tags-compact { display: contents; }
-.slidevault .sv-app[data-size="medium"] .tag-line .tagrow, .slidevault .sv-app[data-size="medium"] .tag-line .tag { flex: none; max-width: none; }
-.slidevault .sv-app[data-size="medium"] .tag-line .tag-t { max-width: none; }
 .slidevault .sv-app[data-size="medium"] .lbl-long { display: none; }
 .slidevault .sv-app[data-size="medium"] .lbl-short { display: inline; }
 .slidevault .sv-app[data-size="medium"] .fb-verdict { margin-top: 4px; }
@@ -1501,7 +1368,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="medium"] .deck-actions { margin-top: 14px; gap: 8px; }
 .slidevault .sv-app[data-size="medium"] .deck-actions > .btn:not(.btn-icon) { min-width: 0; justify-content: center; }
 .slidevault .sv-app[data-size="medium"] .deck-actions .more-menu { flex: none; }
-.slidevault .sv-app[data-size="medium"] .deck-tags { margin-top: 16px; }
 .slidevault .sv-app[data-size="medium"] .grid > [data-card] { scroll-margin-top: 12px; }
 .slidevault .sv-app[data-size="medium"] .deck-head > div { min-width: 0; max-width: 100%; }
 .slidevault .sv-app[data-size="medium"] .deck-head h1 { overflow-wrap: anywhere; word-break: break-word; }
@@ -1547,7 +1413,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="medium"] .deck-tagbar { display: flex; gap: 16px; }
 .slidevault .sv-app[data-size="medium"] .deck-tagbar > .deck-jump { order: 0; flex: none; margin-top: 0; padding: 0; height: 24px; }
 .slidevault .sv-app[data-size="medium"] .deck-tagbar .deck-jump-go { white-space: nowrap; }
-.slidevault .sv-app[data-size="medium"] .deck-tagbar > .deck-tags { flex: 1 1 0; min-width: 0; max-width: none; margin-top: 0; }
 .slidevault .sv-app[data-size="medium"] .res-controls { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0 0 10px; }
 .slidevault .sv-app[data-size="medium"] .res-controls > .refine { flex: none; margin: 0; }
 .slidevault .sv-app[data-size="medium"] .res-controls { margin-top: 12px; }
@@ -1571,25 +1436,14 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="medium"] .profile-wrap { margin-left: 0; margin-right: 0; }
 .slidevault .sv-app[data-size="medium"] .deck-tagbar > .deck-jump { display: contents; }
 .slidevault .sv-app[data-size="medium"] .deck-tagbar .deck-jump-go { order: 0; flex: none; align-self: center; }
-.slidevault .sv-app[data-size="medium"] .deck-tagbar > .deck-tags { order: 1; }
 .slidevault .sv-app[data-size="medium"] .deck-tagbar .cols-toggle { order: 2; flex: none; align-self: center; }
 .slidevault .sv-app[data-size="medium"] .deck-tagbar { align-items: center; }
 .slidevault .sv-app[data-size="medium"] .deck-actions { flex-wrap: nowrap; align-items: center; }
 .slidevault .sv-app[data-size="medium"] .deck-sep { display: block; flex: none; align-self: center; width: 1px; height: 28px; margin: 0 8px; background: var(--sv-border-strong); }
-.slidevault .sv-app[data-size="medium"] .deck-tags-inline { display: block; flex: 1 1 0; min-width: 0; }
-.slidevault .sv-app[data-size="medium"] .deck-tags-inline .deck-tags { margin: 0; max-width: none; }
-.slidevault .sv-app[data-size="medium"] .deck-tags-inline .taglist { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.slidevault .sv-app[data-size="medium"] .deck-tags-inline .tag-addrow { order: 0; flex: none; margin: 0; }
-.slidevault .sv-app[data-size="medium"] .deck-tags-inline .tag-first { order: 1; flex: 1 1 0; min-width: 0; }
 .slidevault .sv-app[data-size="medium"] .deck-tagbar .cols-toggle { margin-left: auto; }
 .slidevault .sv-app[data-size="medium"] .deck-actions > .btn, .slidevault .sv-app[data-size="medium"] .deck-actions > div:not(.deck-tags-inline) { flex: none; }
 .slidevault .sv-app[data-size="medium"] .deck-actions .btn-primary { flex: none; }
 .slidevault .sv-app[data-size="medium"] .deck-actions > .btn:not(.btn-icon) { flex: none; }
-.slidevault .sv-app[data-size="medium"] .deck-tags-main { display: block; order: 1; flex: 1 1 0; min-width: 0; }
-.slidevault .sv-app[data-size="medium"] .deck-tags-main .deck-tags { margin: 0; max-width: none; }
-.slidevault .sv-app[data-size="medium"] .deck-tags-main .tag-first, .slidevault .sv-app[data-size="medium"] .deck-tags-main .tag-addrow > :first-child:not(.tag-suggested), .slidevault .sv-app[data-size="medium"] .deck-tags-main .tagfold, .slidevault .sv-app[data-size="medium"] .deck-tags-main .meta:not(.tag-suggested > .meta) { display: none; }
-.slidevault .sv-app[data-size="medium"] .deck-tags-main .tag-addrow { margin: 0; }
-.slidevault .sv-app[data-size="medium"] .deck-tags-inline .tag-suggested { display: none; }
 
 /* Tablet upright: the filter row, Filters button, example searches and Home rows follow the phone. */
   .slidevault .sv-app[data-size="medium"] .home-hero-try { flex-wrap: nowrap; }
@@ -1660,9 +1514,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="wide"] .slide-detail > div:not(.stack-panels) > :first-child { grid-column: 1; grid-row: 1; min-width: 0; }
 .slidevault .sv-app[data-size="wide"] .slide-detail .slide-main { grid-column: 1; grid-row: 2; min-width: 0; }
 .slidevault .sv-app[data-size="wide"] .slide-detail > .stack-panels { grid-column: 2; grid-row: 2; min-width: 0; }
-
-/* A suggested tag is one pill on one line, however long its words. */
-.slidevault .tag-suggest { max-width: 100%; white-space: nowrap; }
 /* Desktop slide page: a slimmer right-hand column, and "Use this slide" as an even two-by-two block of buttons. */
 .slidevault .sv-app[data-size="wide"] .slide-detail { grid-template-columns: minmax(0, 1fr) clamp(320px, 30%, 380px); }
 .slidevault .sv-app[data-size="wide"] .panel-use .row-flex { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1671,7 +1522,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 /* Desktop slide page, Tags card: "Also in N other decks" (icon and number) at the right of the heading. */
 .slidevault .panel-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .slidevault .panel-h h2 { margin: 0; }
-.slidevault .panel-h + .taglist { margin-top: 10px; }
 /* Tablet held upright preview: room between the picture and the deck arrows, and "Open deck" written out. */
 @media (orientation: portrait) and (min-width: 701px) and (max-width: 1100px) {
   .slidevault .sv-app[data-size="medium"] dialog.sv-dialog .lb-open-deck .lbl-long, .slidevault dialog.sv-dialog .lb-open-deck .lbl-long { display: inline; }
@@ -1685,7 +1535,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 
 /* More air between the buttons row and the "Go to slide" / tags row on the deck page. */
 .slidevault .sv-app[data-size="compact"] .deck-tagbar, .slidevault .sv-app[data-size="medium"] .deck-tagbar { margin-top: 22px; }
-.slidevault .sv-app[data-size="wide"] .deck-tags-main { margin-top: 6px; }
 
 /* Upload on an upright tablet and on a phone on its side: a narrower form, centred, so the white drop box has room on both sides. */
 .slidevault .sv-app[data-size="medium"] .sv-shell.narrow .center .sv-main .sv-wrap.upload-wrap { max-width: 660px; margin-left: auto; margin-right: auto; }
@@ -1802,10 +1651,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault .sv-app[data-size="compact"] .slide-stepper { justify-content: center !important; gap: 10px !important; }
 }
 
-/* Tablet on its side: the suggested tags wrap (no sideways scrolling) and the pills are a touch snugger, so a typical set fits on two lines in the narrow Tags card. */
-.slidevault .sv-app[data-tl] .tag-suggested { gap: 4px; }
-.slidevault .sv-app[data-tl] .tag-suggest { font-size: 12px; padding: 0 8px 0 6px; }
-
 /* Deck page action buttons ("Add all", "Add a range", "Archive deck", "Group slides into a pack"): a lighter outline for now. */
 .slidevault .deck-actions-row > .btn, .slidevault .deck-actions > .btn { border-color: var(--sv-btn-edge, #8e8e8e); }
 .slidevault .deck-actions-row > .btn:hover, .slidevault .deck-actions > .btn:hover { border-color: var(--sv-control-border); }
@@ -1839,12 +1684,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app:is([data-size="wide"], [data-size="medium"]) .sv-wrap > .page-head.deck-head { row-gap: 20px; }
 .slidevault .sv-app:is([data-size="wide"], [data-size="medium"]) .deck-head .deck-badges { margin-top: 14px; }
 .slidevault .sv-app:is([data-size="wide"], [data-size="medium"]) .deck-head .lede { margin-top: 18px; }
-.slidevault .sv-app:is([data-size="wide"], [data-size="medium"]) .deck-tags { margin-top: 26px; }
-
-/* Deck page, desktop and tablet on its side: "Tags", the deck's tags and the "Add tag" pill share one row. Add tag stays the last pill; a full row continues on the next line. */
-.slidevault .sv-app[data-size="wide"] .deck-tags { display: flex; align-items: flex-start; gap: 14px; max-width: 840px; }
-.slidevault .sv-app[data-size="wide"] .deck-tags > h2 { flex: none; margin: 0; line-height: 24px; }
-.slidevault .sv-app[data-size="wide"] .deck-tags > .taglist { flex: 1 1 0; min-width: 0; }
 
 /* Tags: one quiet grey outline for every pill (no colour per tag); orange on hover, focus or when selected. */
 .slidevault .tag[data-h] { --tag-rgb: 100, 116, 139; }
@@ -1886,7 +1725,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.row-info, .helpdot, .also)::before { content: ""; position: absolute; inset: -5px; }
   .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag::before { content: ""; position: absolute; inset: -2px; }
   .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .vcard .tag::before { inset: -1px; }
-  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag-more::before { content: ""; position: absolute; inset: -4px -6px; }
 }
 
 /* Very large screens (1900px and up): the header and page content stop at 1960px and sit in the middle; the draft deck still reaches the screen's right edge. The base text is a notch bigger. */
@@ -2011,16 +1849,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .dl-files li > .meta { flex: none; white-space: nowrap; }
 
 /* Phone "Add a tag" sheet. */
-dialog.slidevault.tag-sheet .tag-sheet-body { display: grid; gap: 12px; }
-dialog.slidevault.tag-sheet .tag-sheet-form { display: flex; gap: 8px; }
 dialog.slidevault.tag-sheet .tag-sheet-form .input { flex: 1 1 auto; min-width: 0; min-height: 44px; font-size: 16px; }
-dialog.slidevault.tag-sheet .tag-sheet-form .btn { min-height: 44px; flex: none; }
-dialog.slidevault.tag-sheet .tag-sheet-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-dialog.slidevault.tag-sheet .tag-sheet-list .tag-add { min-height: 36px; padding: 0 12px 0 9px; font-size: 14px; }
-dialog.slidevault.tag-sheet .tag-sheet-added { color: var(--sv-text); }
-dialog.slidevault.tag-sheet .meta { margin: 0; }
-/* The sheet sits clear of the screen's bottom edge (and the phone's home bar): room under the box and the matching tags. */
-dialog.slidevault.tag-sheet .tag-sheet-body { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
 
 /* Dark mode: the loading shimmer is a faint light sweep, not a bright white bar. */
 .slidevault[data-theme="dark"] .skel::after, .slidevault [data-theme="dark"] .skel::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent); }

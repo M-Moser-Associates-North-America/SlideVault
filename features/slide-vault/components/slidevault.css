@@ -132,7 +132,6 @@
 .slidevault .trust dt { color: var(--sv-text-secondary); }
 .slidevault .trust dd { font-weight: 500; overflow-wrap: anywhere; }
 .slidevault .unknown { font-style: italic; color: var(--sv-text-secondary); font-weight: 400; }
-.slidevault .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .slidevault .big-preview { border-radius: var(--sv-radius-card); overflow: hidden; border: 1px solid var(--sv-border); }
 .slidevault .divider { border: 0; border-top: 1px solid var(--sv-border); margin: 16px 0; }
 .slidevault .slide-text { font-size: var(--sv-text-small); background: var(--sv-surface-sunken); border-radius: 10px; padding: 12px 14px; }
