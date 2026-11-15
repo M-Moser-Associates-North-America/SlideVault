@@ -187,8 +187,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .tile b { font-size: 15px; }
 
 /* Search results */
-.slidevault .interp { display: flex; gap: 8px; align-items: center; margin: 12px 0 4px; }
-.slidevault .interp .meta { display: inline-flex; align-items: center; gap: 6px; }
 .slidevault .chip-x { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 8px 0 12px; border-radius: var(--sv-radius-pill); border: 1px solid var(--sv-border-strong); font-size: 13px; cursor: pointer; text-decoration: none; }
 .slidevault .chip-x .k { color: var(--sv-text-secondary); }
 .slidevault a.chip-x { color: var(--sv-text); }
@@ -325,7 +323,7 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 ------------------------------------------------------------------- */
 /* orange accents (selection, focus and small brand marks only) */
 .slidevault .row-head h2::before { content: ""; width: 4px; height: .85em; background: var(--sv-brand); border-radius: 2px; margin-right: 10px; vertical-align: -1px; }
-.slidevault .interp .meta .ic, .slidevault .matched .ic { color: var(--sv-brand-strong); }
+.slidevault .matched .ic { color: var(--sv-brand-strong); }
 .slidevault .chip-x { background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); border-color: color-mix(in srgb, var(--sv-brand) 40%, transparent); }
 .slidevault .chip-x:hover { background: color-mix(in srgb, var(--sv-brand) 16%, var(--sv-surface)); }
 .slidevault .matched { background: color-mix(in srgb, var(--sv-brand) 8%, var(--sv-surface)); border-radius: 8px; padding: 9px 11px; margin: 6px 0; line-height: 1.45; }
