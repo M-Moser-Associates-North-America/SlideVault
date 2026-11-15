@@ -153,16 +153,6 @@
 .slidevault .fb-check input { accent-color: var(--sv-brand); width: 16px; height: 16px; }
 .slidevault .fb-check { display: flex; align-items: center; gap: 10px; font-size: var(--sv-text-small); cursor: pointer; }
 
-/* ---- Tabs styled like the mockup: icon + label, thin line under the whole row, orange underline on the current tab ---- */
-.slidevault .sv-top { box-shadow: none; border-bottom: 1px solid var(--sv-border); }
-.slidevault .sv-brandrow { padding: 0; }
-.slidevault .sv-nav ul { gap: 22px; }
-.slidevault .sv-nav a { min-height: 46px; padding: 0 4px; border-radius: 0; font-size: 15.5px; font-weight: 500; color: var(--sv-text-secondary); }
-.slidevault .sv-nav a:hover { background: transparent; color: var(--sv-text); }
-.slidevault .sv-nav a[aria-current="page"] { color: var(--sv-text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--sv-brand); }
-.slidevault .sv-nav a .ic { color: var(--sv-text-secondary); }
-.slidevault .sv-nav a[aria-current="page"] .ic { color: var(--sv-brand); }
-
 /* ---- Room at the sides and under the Try chips (the mockup centres its content, so on a laptop its side margin is well over 40px) ---- */
 .slidevault { --sv-side: 40px; }
 /* Side gutters grow with the space (4% of the width, between 40px and 120px), so large screens use their width instead of leaving wide empty margins. */
@@ -171,7 +161,6 @@
 /* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
 @keyframes svFade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 /* container width: wide */
-  .slidevault .sv-app[data-size="wide"] .sv-top .sv-wrap { padding: 0 var(--sv-side); }
   .slidevault .sv-app[data-size="wide"] .sv-shell { --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 2200px) / 2 + var(--sv-side))); }
 /* container width: wide */
   .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 0 0 var(--sv-side); grid-template-columns: 272px minmax(0, 1fr) 264px; }
@@ -187,7 +176,6 @@
 .slidevault .row-info[data-tip]::after { white-space: normal; width: 230px; font-weight: 500; line-height: 1.4; text-align: left; }
 
 /* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
-.slidevault .sv-brandrow { justify-content: space-between; flex-wrap: nowrap; }
 .slidevault .compact-search { display: inline-flex; align-items: center; gap: 8px; width: min(320px, calc(var(--sv-w, 800px) * 0.4)); height: 34px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13.5px; cursor: text; text-align: left; animation: svFade 0.18s ease-out; }
 .slidevault .compact-search:hover { border-color: var(--sv-text-secondary); }
 .slidevault .compact-search .ic { width: 16px; height: 16px; flex: none; }
@@ -200,10 +188,6 @@
 .slidevault .chip-x.from-search { border-style: dashed; }
 .slidevault .chip-x.from-search .ic-sm { color: var(--sv-brand); width: 13px; height: 13px; }
 .slidevault .interp[hidden] { display: none; }
-
-/* ---- Upload tab when you don't have permission: still there, greyed, with the reason on hover ---- */
-.slidevault .sv-nav a.is-locked { opacity: 0.6; cursor: not-allowed; }
-.slidevault .sv-nav a.is-locked .ic { color: var(--sv-text-secondary); }
 
 /* ---- Working drafts list on My decks ---- */
 .slidevault .draft-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
@@ -234,7 +218,6 @@
 .slidevault .tour-nav { display: flex; gap: 8px; }
 /* container width: compact */
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart .txt { order: 0; flex: none; min-width: 0; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .sv-main { padding-bottom: 96px; }
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts.lift { bottom: calc(84px + env(safe-area-inset-bottom)); }
 /* container width: compact */
   .slidevault .sv-app[data-size="compact"] .draft-item { flex-wrap: wrap; }
@@ -268,35 +251,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 
 /* Phone tabs along the bottom (the default; "top" keeps them up with the page). The bar is part of the workspace and
    sits inside it, not on the window. The draft deck is its fifth item, so the black button is not needed. */
-.slidevault .sv-bottombar { display: none; }
-.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-bottombar { display: block; position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--sv-surface); border-top: 1px solid var(--sv-border); box-shadow: 0 -8px 20px -14px rgba(20, 20, 20, 0.35); }
-.slidevault .sv-bottombar ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.slidevault .sv-bottombar a, .slidevault .sv-bottombar .bb-deck { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; padding: 0; border: 0; background: none; color: var(--sv-text-secondary); font: 600 11px var(--sv-font-sans); letter-spacing: 0; text-decoration: none; cursor: pointer; }
-.slidevault .sv-bottombar .ic { width: 22px; height: 22px; }
-.slidevault .sv-bottombar a[aria-current="page"], .slidevault .sv-bottombar .bb-deck[aria-expanded="true"] { color: var(--sv-text); }
-.slidevault .sv-bottombar a[aria-current="page"] .ic, .slidevault .sv-bottombar .bb-deck[aria-expanded="true"] .ic { color: var(--sv-brand); }
-.slidevault .sv-bottombar a[aria-current="page"]::before { content: ""; position: absolute; top: -1px; left: 22%; right: 22%; height: 3px; border-radius: 0 0 3px 3px; background: var(--sv-brand); }
-.slidevault .sv-bottombar a:focus-visible, .slidevault .sv-bottombar .bb-deck:focus-visible { outline: 2px solid var(--sv-focus); outline-offset: -4px; border-radius: 8px; }
-.slidevault .sv-bottombar .bb-n { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; display: inline-grid; place-items: center; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 11px; font-weight: 700; }
-.slidevault .sv-bottombar .is-locked { opacity: 0.6; }
-.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-top { display: none; }
-.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-main { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
 .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts.lift { bottom: calc(76px + env(safe-area-inset-bottom)); }
-
-/* The Draft deck item in the bottom bar is the same black button as on larger screens. */
-.slidevault .sv-bottombar .bb-deck { background: var(--sv-action-bg); color: var(--sv-action-fg); }
-.slidevault .sv-bottombar .bb-deck:hover { opacity: 0.88; }
-.slidevault .sv-bottombar .bb-deck[aria-expanded="true"] { color: var(--sv-action-fg); }
-.slidevault .sv-bottombar .bb-deck[aria-expanded="true"] .ic { color: var(--sv-action-fg); }
-.slidevault .sv-bottombar .bb-deck:focus-visible { outline: 2px solid var(--sv-brand); }
-.slidevault .sv-bottombar .bb-deck .bb-n { left: calc(50% + 8px); }
-/* Bottom bar: the Draft deck section is filled in from its dividing line to the end of the bar, top to bottom, not a card on top of it. */
-.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-bottombar { padding-bottom: 0; }
-.slidevault .sv-bottombar a, .slidevault .sv-bottombar .bb-deck { height: calc(60px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); }
-.slidevault .sv-bottombar li:last-child { padding: 0; }
-.slidevault .sv-bottombar .bb-deck { border-radius: 0; box-shadow: none; }
-.slidevault .sv-bottombar .bb-deck:focus-visible { border-radius: 0; outline-offset: -4px; outline-color: var(--sv-brand); }
-.slidevault .sv-bottombar .bb-deck .bb-n { top: 7px; }
 
 /* Stepping through a deck: the old slide leaves and the new one enters from the side; the page stays put. */
 .slidevault .slide-stage { position: relative; overflow: hidden; }
@@ -326,20 +281,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 
 /* A simple orange ring that revolves around the Draft deck button until clicked (client/draft-nudge.ts). */
 @property --sv-spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
-.slidevault .bb-deck.is-nudge { position: relative; }
-.slidevault .bb-deck.is-nudge::after {
-  content: ""; position: absolute; inset: -5px; padding: 3px; border-radius: 999px; pointer-events: none;
-  background: conic-gradient(from var(--sv-spin), transparent 0deg 200deg, var(--sv-brand) 360deg);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  animation: svSpin 1.8s linear infinite;
-}
-.slidevault .bb-deck.is-nudge::after { border-radius: 16px; inset: 0; }
-.slidevault .sv-app[data-size="compact"] .bb-deck.is-nudge::after { border-radius: 0; }
 @keyframes svSpin { to { --sv-spin: 360deg; } }
-@media (prefers-reduced-motion: reduce) {
-  .slidevault .bb-deck.is-nudge::after { animation: none; background: var(--sv-brand); }
-}
 /* "New" badge on the Storyboard button, until it has been opened once. */
 .slidevault .sb-launch-btn { position: relative; }
 .slidevault .sb-new { position: absolute; top: -8px; right: 10px; padding: 1px 8px; border-radius: 999px; background: var(--sv-brand-tint); color: var(--sv-text); border: 1px solid var(--sv-brand); font-size: 11px; font-weight: 700; letter-spacing: 0.02em; line-height: 16px; }
@@ -357,10 +299,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
   .slidevault .btn.sb-launch-btn:not(.is-glow):hover .ic { color: #fff; }
   .slidevault .btn.sb-launch-btn:hover .sb-new { background: #fff; color: var(--sv-text); }
 }
-
-/* The revolving ring holds still while the pointer is over the button. */
-.slidevault .bb-deck.is-nudge:active::after { animation-play-state: paused; }
-@media (hover: hover) { .slidevault .bb-deck.is-nudge:hover::after { animation-play-state: paused; } }
 
 /* Tour: close X on the card, and the "paused" note shown while the tour waits. */
 .slidevault .tour-pop { position: relative; }
@@ -547,17 +485,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .deck-tags .h3 { margin: 0 0 8px; font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .labels-source { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; }
 
-/* Back and Forward, top right of the tabs row. Quiet until hovered, then Moser orange. Hidden on phones (the phone's back gesture does it). */
-.slidevault .sv-brandrow-end { display: flex; align-items: center; gap: 12px; margin-left: auto; }
-.slidevault .hist-btns { display: inline-flex; gap: 6px; }
-.slidevault .hist-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--sv-border); border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
-.slidevault .hist-btn .ic { width: 18px; height: 18px; }
-.slidevault .hist-btn:hover:not(:disabled) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
-.slidevault .hist-btn:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
-.slidevault .hist-btn:disabled { opacity: .35; cursor: default; }
-@media (max-width: 600px) { .slidevault .hist-btns { display: none; } }
-@media (prefers-reduced-motion: reduce) { .slidevault .hist-btn { transition: none; } }
-
 /* Slide votes, comments and Share (FD-72): grey pills, orange on hover */
 .slidevault .slide-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
 .slidevault .slide-actions.is-card { margin-top: 8px; }
@@ -626,12 +553,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .tag.is-static:hover { border-color: rgba(var(--tag-rgb), .75); background: transparent; }
 .slidevault .tag.is-deck { opacity: .8; border-style: dashed; }
 
-/* Tabs turn orange (words and icon) on hover and keyboard focus; a locked tab stays quiet */
-.slidevault .sv-nav a:not(.is-locked):hover, .slidevault .sv-nav a:not(.is-locked):focus-visible { color: var(--sv-brand-strong); background: transparent; }
-.slidevault .sv-bottombar a:hover, .slidevault .sv-bottombar a:focus-visible { color: var(--sv-brand-strong); }
-.slidevault .sv-bottombar a:hover .ic, .slidevault .sv-bottombar a:focus-visible .ic { color: var(--sv-brand-strong); }
-.slidevault .sv-nav a:not(.is-locked):hover .ic, .slidevault .sv-nav a:not(.is-locked):focus-visible .ic { color: var(--sv-brand-strong); }
-
 /* Draft deck: one tag on every ticked slide (FD-58) */
 .slidevault .cart-tagall .input { flex: 1 1 auto; min-width: 0; height: 32px; }
 
@@ -685,12 +606,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 /* Tablets held upright get the phone's bottom bar too (Schiffon, 6 Nov: "we just want bottom rows", as in the
    nav-bottom mockups). The draft deck already opens as the same side sheet on both, so the bar's fifth item
    opens it; the top tabs and the black pill step aside, as on a phone. */
-.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .sv-bottombar { display: block; position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--sv-surface); border-top: 1px solid var(--sv-border); box-shadow: 0 -8px 20px -14px rgba(20, 20, 20, 0.35); }
-.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .sv-top { display: none; }
-.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .sv-main { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
 .slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts.lift { bottom: calc(76px + env(safe-area-inset-bottom)); }
-/* A tablet has room for a centred bar: five items no wider than a thumb's reach each. */
-.slidevault .sv-app[data-size="medium"] .sv-bottombar ul { max-width: 640px; margin: 0 auto; }
 /* The (i) tip under a row title opens at the row's left edge and is never wider than the row, so it can't run off the screen. */
 .slidevault .sv-app[data-size="compact"] .row-head { position: relative; }
 .slidevault .sv-app[data-size="compact"] .row-title, .slidevault .sv-app[data-size="compact"] .row-info { position: static; }
@@ -721,9 +637,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="compact"] .card-body .meta.clip { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
 /* Phone: the Draft deck count pops once when it changes (replaces the orange ring on the bottom tab). */
-@media (prefers-reduced-motion: no-preference) {
-  .slidevault .sv-bottombar .bb-n { animation: bbBump 0.24s ease-out; }
-}
 @keyframes bbBump { 0% { transform: scale(0.6); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
 
 /* Touch screens: the sideways-scroll arrows are not needed (swipe), and the Save heart is a little bigger. */
@@ -738,12 +651,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="compact"] .slide-stepper { flex-wrap: nowrap; justify-content: space-between !important; gap: 8px !important; }
 .slidevault .sv-app[data-size="compact"] .slide-stepper-text { text-align: center; }
 /* The breadcrumb wraps onto a second line instead of running under the text beside it. */
-.slidevault .sv-app[data-size="compact"] .navgroup .crumbs { overflow: visible; }
-.slidevault .sv-app[data-size="compact"] .navgroup .crumbs ol { flex-wrap: wrap; overflow: visible; }
-.slidevault .sv-app[data-size="compact"] .navgroup .crumbs li { white-space: normal; overflow-wrap: anywhere; }
-.slidevault .sv-app[data-size="compact"] .navgroup .crumbs [aria-current] { display: inline; max-width: none; overflow: visible; text-overflow: clip; white-space: normal; }
-.slidevault .sv-app[data-size="compact"] .navgroup { flex-wrap: nowrap; align-items: flex-start; }
-.slidevault .sv-app[data-size="compact"] .navgroup .crumbs { flex: 1 1 0; }
 .slidevault .sv-app[data-size="compact"] .navgroup .back-results { padding-top: 1px; }
 
 /* ---- Phone pass 5: the preview ---- */
@@ -806,8 +713,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 /* A narrow card (two across on a phone): the ticks and crosses go and the words stay, so both words fit on one line. */
 @media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) { .slidevault .fb-verdict { flex: 1 1 0; min-width: 0; } }
 @container (max-width: 190px) { .slidevault .fb-verdict .sb-icon-btn .ic-sm { display: none; } }
-/* With the example searches gone, the results heading needs its own room under the filter row. */
-.slidevault .sv-app .sv-wrap > .page-head { margin-top: 22px; }
 
 /* The number you can type in, in "Result [1] of 95" and "Slide [68] of 75 in this deck". */
 .slidevault .num-jump { box-sizing: content-box; height: 22px; padding: 0 2px; margin: 0 2px; font-size: 0.88em; line-height: 1; border: 1px solid var(--sv-border-strong); border-radius: 6px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; vertical-align: baseline; }
@@ -886,9 +791,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault .matched .why-more[aria-expanded="true"] .ic { transform: rotate(180deg); }
 }
 
-/* ---- Phone pass 13: the draft deck is a bottom sheet, half the screen ---- */
-.slidevault .sv-bottombar .bb-n.is-zero { background: var(--sv-surface-sunken); color: var(--sv-text-secondary); box-shadow: inset 0 0 0 1px var(--sv-border-strong); }
-
 /* ---- Phone pass 13: working drafts swipe to delete; tap areas; viewer loading ---- */
 .slidevault .draft-list { overflow-x: clip; }
 .slidevault .draft-item { position: relative; touch-action: pan-y; }
@@ -951,17 +853,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 /* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   /* The tabs become a vertical rail. */
-  .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-bottombar { top: 0; right: auto; bottom: 0; width: calc(64px + env(safe-area-inset-left)); padding: 0 0 0 env(safe-area-inset-left); border-top: 0; border-right: 1px solid var(--sv-border); box-shadow: none; }
-  .slidevault .sv-bottombar ul { display: flex; flex-direction: column; height: 100%; }
-  .slidevault .sv-bottombar li, .slidevault .sv-bottombar li:last-child { flex: 1 1 0; min-height: 0; }
-  .slidevault .sv-bottombar a, .slidevault .sv-bottombar .bb-deck { height: 100%; padding-bottom: 0; gap: 2px; font-size: 10px; }
-  .slidevault .sv-bottombar .ic { width: 20px; height: 20px; }
-  .slidevault .sv-bottombar a[aria-current="page"]::before { top: 20%; bottom: 20%; left: 0; right: auto; width: 3px; height: auto; border-radius: 0 3px 3px 0; }
-  .slidevault .sv-bottombar .bb-n, .slidevault .sv-bottombar .bb-deck .bb-n { top: 6px; left: calc(50% + 6px); }
-  .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-scroll { padding-left: calc(64px + env(safe-area-inset-left)); }
-  .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .sv-main { padding-bottom: 24px; }
   .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts.lift { bottom: 12px; }
-  .slidevault .sv-wrap { padding-left: 16px; padding-right: calc(16px + env(safe-area-inset-right)); }
   /* Home and results: the search sits on one line with its label; the grid fills the width. */
   .slidevault .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
   .slidevault .sv-app[data-size="compact"] .grid.is-dense { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
@@ -1003,7 +895,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .deck-tagbar { display: contents; }
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .sv-app[data-size="compact"] .sv-wrap > .deck-head { margin-top: 2px; }
-  .slidevault .sv-app[data-size="compact"] .sv-wrap > .crumbs, .slidevault .sv-app[data-size="compact"] .crumbs { margin-bottom: 4px; }
   .slidevault .sv-app[data-size="compact"] .deck-tagbar { display: flex; gap: 16px; }
   .slidevault .sv-app[data-size="compact"] .deck-tagbar > .deck-jump { order: 0; flex: none; margin-top: 0; padding: 0; height: 24px; }
   .slidevault .sv-app[data-size="compact"] .deck-tagbar .deck-jump-go { white-space: nowrap; }
@@ -1114,7 +1005,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="compact"] .draft-acts { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
 /* Phone on its side: the narrow pages (Settings, Create, Upload) line up with every other page's left edge instead of floating in the middle. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  .slidevault .sv-shell.narrow .center .sv-main .sv-wrap, .slidevault .sv-app[data-size="compact"] .profile-wrap { margin-left: 0; margin-right: 0; }
+  .slidevault .sv-app[data-size="compact"] .profile-wrap { margin-left: 0; margin-right: 0; }
 }
 /* Upload: the same space above the title as the Archive, Settings and My decks pages. */
 .slidevault .sv-app .sv-wrap.upload-wrap > .h1:first-child { margin-top: 22px; }
@@ -1195,12 +1086,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="medium"] .slide-stepper > .btn-icon { min-height: 0; padding: 0; box-shadow: none; color: var(--sv-text-secondary); }
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
 .slidevault .sv-app[data-size="medium"] .slide-stepper-text { text-align: center; }
-.slidevault .sv-app[data-size="medium"] .navgroup .crumbs { overflow: visible; }
-.slidevault .sv-app[data-size="medium"] .navgroup .crumbs ol { flex-wrap: wrap; overflow: visible; }
-.slidevault .sv-app[data-size="medium"] .navgroup .crumbs li { white-space: normal; overflow-wrap: anywhere; }
-.slidevault .sv-app[data-size="medium"] .navgroup .crumbs [aria-current] { display: inline; max-width: none; overflow: visible; text-overflow: clip; white-space: normal; }
-.slidevault .sv-app[data-size="medium"] .navgroup { flex-wrap: nowrap; align-items: flex-start; }
-.slidevault .sv-app[data-size="medium"] .navgroup .crumbs { flex: 1 1 0; }
 .slidevault .sv-app[data-size="medium"] .navgroup .back-results { padding-top: 1px; }
 .slidevault .sv-app[data-size="medium"] .lbl-long { display: none; }
 .slidevault .sv-app[data-size="medium"] .lbl-short { display: inline; }
@@ -1265,7 +1150,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="medium"] .hero-add { left: 10px; }
 .slidevault .sv-app[data-size="medium"] .hero-corner, .slidevault .sv-app[data-size="medium"] .hero-zoom { right: 10px; }
 .slidevault .sv-app[data-size="medium"] .h1 { font-size: 22px; }
-.slidevault .sv-app[data-size="medium"] .crumbs { margin-bottom: 4px; }
 .slidevault .sv-app[data-size="medium"] .deck-tagbar { display: flex; gap: 16px; }
 .slidevault .sv-app[data-size="medium"] .deck-tagbar > .deck-jump { order: 0; flex: none; margin-top: 0; padding: 0; height: 24px; }
 .slidevault .sv-app[data-size="medium"] .deck-tagbar .deck-jump-go { white-space: nowrap; }
@@ -1411,8 +1295,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 
 /* First / last slide: the arrow stays, greyed out, so the position text does not move. */
 .slidevault .slide-stepper > .btn-icon.is-off { pointer-events: none; }
-/* Slide page on an upright tablet: a little more air between the breadcrumb and the heading. */
-.slidevault .sv-app[data-size="medium"] .slide-detail .crumbs, .slidevault .sv-app[data-size="medium"] .navrow { padding-bottom: 8px; }
 
 /* Slide page on an upright tablet: "Use this slide" buttons are normal-sized and sit together on the left, not stretched across the card. */
 .slidevault .sv-app[data-size="medium"] .panel-use .row-flex { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1423,9 +1305,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 }
 .slidevault .sv-app[data-tl]:not(:has(.cart-min)) .toasts { right: 16px; }
 .slidevault .sv-app[data-tl]:has(.cart-min) .toasts { bottom: 92px; }
-
-/* Tablet on its side: the Home / Create / Upload / My decks row scrolls away with the page (it is only sticky on desktop), and the pinned search bar takes the top edge. */
-.slidevault .sv-app[data-tl] .sv-top { position: static; }
 
 /* Slide page deck arrows: the same faint round buttons as the preview's, where they already are. */
 .slidevault .slide-stepper > .btn-icon { width: 30px; height: 30px; min-height: 0; padding: 0; border-radius: 50%; box-shadow: none; color: var(--sv-text-secondary); position: relative; }
@@ -1527,7 +1406,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 }
 
 /* Very large screens (1900px and up): the header and page content stop at 1960px and sit in the middle; the draft deck still reaches the screen's right edge. The base text is a notch bigger. */
-.slidevault .sv-app[data-xxl] .sv-top .sv-wrap, .slidevault .sv-app[data-xxl] .sv-shell { max-width: 1960px; }
+.slidevault .sv-app[data-xxl] .sv-shell { max-width: 1960px; }
 .slidevault .sv-app[data-xxl][data-size="wide"] .sv-shell { --gut: max(var(--sv-side, 28px), calc((var(--sv-w, 1280px) - 1960px) / 2 + var(--sv-side, 28px))); }
 .slidevault[data-xxl], .slidevault .sv-app[data-xxl] { --sv-text-body: 16px; --sv-text-small: 14.5px; --sv-text-meta: 13.5px; --sv-text-subheading: 20px; }
 .slidevault[data-xxl] .h1, .slidevault .sv-app[data-xxl] .h1 { font-size: 34px; }
@@ -1537,7 +1416,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .row .state .ic-big { width: 28px; height: 28px; color: var(--sv-text-secondary); }
 .slidevault .row .state h2 { font-size: 16px; margin: 8px 0 4px; }
 .slidevault .row .state p { margin-bottom: 14px; }
-.slidevault[data-xxl] .sv-top .sv-wrap { max-width: 1960px; }
 /* The app header (it belongs to the application shell, so its class is hashed) stops at the same width. */
 .slidevault .sv-app[data-xxl] [class*="headerInner"] { max-width: 1960px; }
 
@@ -1558,12 +1436,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .btn-ghost[data-tapped] { color: var(--sv-brand-strong); background: var(--sv-brand-tint); }
 .slidevault .btn.sb-launch-btn[data-tapped]:not(.is-glow) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
 .slidevault .tag[data-tapped], .slidevault .chip-x[data-tapped] { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
-.slidevault .btn-link[data-tapped], .slidevault .crumbs a[data-tapped] { color: var(--sv-brand-strong); text-decoration-thickness: 2px; }
-/* Tabs: only the text turns orange when pressed; no box. */
-.slidevault .sv-nav a[data-tapped], .slidevault .sv-bottombar a[data-tapped], .slidevault .sv-bottombar button[data-tapped] { color: var(--sv-brand-strong); }
-
-/* Desktop and larger screens: the header and the Home / Create tabs scroll away with the page, they are not pinned. */
-.slidevault .sv-app[data-size="wide"] .sv-top { position: static; }
+.slidevault .btn-link[data-tapped] { color: var(--sv-brand-strong); text-decoration-thickness: 2px; }
 
 /* Results pages, every screen: the Sort box sits on the same row as the heading, right-aligned (the section pills, when there are any, are a row of their own below). */
 .slidevault .sv-app .sv-wrap.res-wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; }

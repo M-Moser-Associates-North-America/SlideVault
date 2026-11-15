@@ -14,11 +14,6 @@
 .slidevault .ic-sm { width: 14px; height: 14px; }
 .slidevault .sv-app { position: relative; background: var(--sv-bg); height: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 /* The one scrolling area of the workspace: everything that scrolls, sticks or measures scroll uses this element, not the window. */
-.slidevault .sv-scroll { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; background: var(--sv-bg); }
-.slidevault .sv-wrap { width: 100%; max-width: 1320px; margin: 0 auto; padding: 0 40px; }
-@media (max-width: 900px) { .slidevault .sv-wrap { padding: 0 20px; } }
-@media (max-width: 480px) { .slidevault .sv-wrap { padding: 0 16px; } }
-.slidevault .sv-main { flex: 1; outline: none; }
 .slidevault .meta { font-size: var(--sv-text-meta); color: var(--sv-text-secondary); }
 .slidevault .muted { color: var(--sv-text-secondary); }
 .slidevault .stack > * + * { margin-top: 12px; }
@@ -83,14 +78,6 @@
 }
 @keyframes sv-shimmer { to { transform: translateX(100%); } }
 @keyframes sv-spin { to { transform: rotate(360deg); } }
-/* Breadcrumbs */
-.slidevault .crumbs { margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
-.slidevault .crumbs ol { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0; padding: 0; font-size: var(--sv-text-small); min-width: 0; }
-.slidevault .crumbs li { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
-.slidevault .crumbs li + li::before { content: "›"; color: var(--sv-text-secondary); padding: 0 6px; }
-.slidevault .crumbs a { color: var(--sv-text); text-decoration: underline; text-decoration-color: var(--sv-border-strong); text-underline-offset: 3px; }
-.slidevault .crumbs a:hover { text-decoration-color: currentColor; }
-.slidevault .crumbs [aria-current] { font-weight: 600; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ------------------------------------------------------------------
    Cards, thumbnails
@@ -170,7 +157,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault [data-tip-pos~="start"]::after { left: 0; transform: none; }
 .slidevault [data-tip-pos~="up"]::after { top: auto; bottom: calc(100% + 8px); }
 .slidevault [data-tip-pos~="left"]::after { top: 50%; left: auto; right: calc(100% + 8px); transform: translateY(-50%); }
-@media (max-width: 700px) { .slidevault .sv-nav [data-tip]::after { display: none; } }
 /* Navigation bar: back / forward and breadcrumbs */
 .slidevault .back-results { font-size: var(--sv-text-small); }
 /* Access control: one clean 40px frame, same size as the theme button */
@@ -178,34 +164,12 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 /* ------------------------------------------------------------------
    v3: Library is home. One slim header, compact search top right.
 ------------------------------------------------------------------- */
-.slidevault .sv-top { position: sticky; top: 0; z-index: 30; background: var(--sv-surface); }
-.slidevault .sv-brandrow { display: flex; align-items: center; gap: 8px 14px; }
-.slidevault .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--sv-text); margin-right: 10px; flex: none; }
-.slidevault .sv-nav { min-width: 0; }
-.slidevault .sv-nav ul { list-style: none; display: flex; margin: 0; padding: 0; }
-.slidevault .sv-nav a { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; white-space: nowrap; }
-.slidevault .sv-nav a .ic { width: 19px; height: 19px; }
 .slidevault .tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.slidevault .navrow { padding-top: 10px; padding-bottom: 2px; }
-.slidevault .navgroup { display: flex; align-items: center; gap: 8px 12px; min-width: 0; }
-.slidevault .navgroup .crumbs { margin: 0; min-width: 0; flex: 1 1 0; overflow: hidden; }
-.slidevault .navgroup .crumbs nav { min-width: 0; max-width: 100%; }
-.slidevault .navgroup .crumbs ol { flex-wrap: nowrap; overflow: hidden; }
-.slidevault .navgroup .crumbs li { white-space: nowrap; }
-.slidevault .navgroup .crumbs li:last-child { min-width: 0; }
-.slidevault .navgroup .crumbs [aria-current] { display: block; overflow: hidden; text-overflow: ellipsis; max-width: 46ch; }
 .slidevault .back-results { white-space: nowrap; flex: none; }
 .slidevault[data-role="viewer"] [data-editor-only] { display: none; }
 @media (max-width: 900px) {
-  .slidevault .brand { order: 1; margin-right: 0; }
   .slidevault .tools { order: 2; margin-left: auto; }
-  .slidevault .sv-nav { order: 4; flex-basis: 100%; }
-  .slidevault .sv-nav ul { overflow-x: auto; }
 }
-@media (max-width: 900px) { .slidevault .sv-top { position: static; } }
-@media (max-width: 480px) { .slidevault .sv-nav a .ic { display: none; } }
-
-.slidevault .sv-main { padding: 12px 0 48px; }
 .slidevault .page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
 .slidevault .page-head .lede { color: var(--sv-text-secondary); }
 
@@ -267,14 +231,10 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 /* ------------------------------------------------------------------
    v3 three-column layout: filters + search (left), content, cart (right)
 ------------------------------------------------------------------- */
-.slidevault .sv-top .sv-wrap { max-width: 2200px; padding: 0 28px; }
 .slidevault .sv-shell { width: 100%; max-width: 2200px; margin: 0 auto; padding: 0 28px; flex: 1; display: grid; grid-template-columns: 272px minmax(0, 1fr) 248px; gap: 24px; align-items: start; }
-.slidevault .sv-shell .sv-wrap { max-width: none; padding: 0; }
 /* full-bleed: the colour runs to the window edge behind the column */
 .slidevault .sv-shell { --gut: max(28px, calc((var(--sv-w, 1280px) - 2200px) / 2 + 28px)); }
 .slidevault .center { min-width: 0; }
-.slidevault .sv-shell .navrow { padding-top: 16px; }
-.slidevault .sv-shell .navrow[hidden] { display: none; }
 
 .slidevault .top-search { display: flex; align-items: center; gap: 6px; }
 .slidevault .top-search .sbox { position: relative; flex: 1; min-width: 0; }
@@ -342,14 +302,12 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 248px; }
 .slidevault .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; }
 .slidevault .narrow .center { padding: 0 24px; }
-.slidevault .narrow .center > .sv-main { padding-top: 40px; }
-.slidevault .sv-shell.narrow .center .sv-main .sv-wrap { max-width: 720px; margin: 0 auto; }
 .slidevault .narrow .notice { max-width: none !important; }
 .slidevault .sv-shell.narrow .center .sv-main .sv-wrap.upload-wrap { max-width: 720px; }
-@media (max-width: 960px) { .slidevault .narrow .center { padding: 0; } .slidevault .narrow .center > .sv-main { padding-top: 20px; } }
+@media (max-width: 960px) { .slidevault .narrow .center { padding: 0; } }
 .slidevault .toasts.lift { bottom: 16px; }
 
-@media (max-width: 1100px) { .slidevault .sv-shell { --gut: 20px; grid-template-columns: 220px minmax(0, 1fr) 220px; gap: 20px; padding: 0 20px; } .slidevault .sv-shell.cart-min { grid-template-columns: 220px minmax(0, 1fr) 72px; } .slidevault .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 220px; } .slidevault .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; } .slidevault .sv-top .sv-wrap { padding: 0 20px; } }
+@media (max-width: 1100px) { .slidevault .sv-shell { --gut: 20px; grid-template-columns: 220px minmax(0, 1fr) 220px; gap: 20px; padding: 0 20px; } .slidevault .sv-shell.cart-min { grid-template-columns: 220px minmax(0, 1fr) 72px; } .slidevault .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 220px; } .slidevault .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; } }
 @media (max-width: 960px) {
   .slidevault .sv-shell { display: block; padding: 0 20px; }
   .slidevault .filters:not([open]) > .f-body { display: none; }
@@ -358,16 +316,14 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
   .slidevault .filters[open] > summary::after { transform: rotate(-135deg); margin-bottom: 0; }
   .slidevault .f-clear { margin-left: auto; }
   .slidevault .cart .txt { order: 2; flex: 1; min-width: 150px; }
-  .slidevault .sv-main { padding-bottom: 110px; }
   .slidevault .toasts.lift { bottom: 96px; }
 }
-@media (max-width: 480px) { .slidevault .sv-shell { padding: 0 16px; } .slidevault .sv-top .sv-wrap { padding: 0 16px; } }
+@media (max-width: 480px) { .slidevault .sv-shell { padding: 0 16px; } }
 
 /* ------------------------------------------------------------------
    v3 polish: colour, contrast, hierarchy
 ------------------------------------------------------------------- */
 /* orange accents (selection, focus and small brand marks only) */
-.slidevault .sv-nav a[aria-current="page"] { background: transparent; border-radius: 0; }
 .slidevault .row-head h2::before { content: ""; width: 4px; height: .85em; background: var(--sv-brand); border-radius: 2px; margin-right: 10px; vertical-align: -1px; }
 .slidevault .interp .meta .ic, .slidevault .matched .ic { color: var(--sv-brand-strong); }
 .slidevault .chip-x { background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); border-color: color-mix(in srgb, var(--sv-brand) 40%, transparent); }
@@ -382,7 +338,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .f-title { font-weight: 600; }
 
 /* hierarchy and rhythm */
-.slidevault .sv-shell .center > .sv-main { padding-top: 16px; }
 .slidevault .page-head .lede { margin-top: 2px; }
 .slidevault .row { margin-top: 22px; }
 /* Try asking: directly under the search box */

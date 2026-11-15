@@ -38,6 +38,7 @@ import './styles/preview.css';
 import './styles/tags.css';
 import './styles/cards.css';
 import './styles/home.css';
+import './styles/header.css';
 
 /**
  * The SlideVault workspace: renders inside whatever space its host gives it and talks to the
