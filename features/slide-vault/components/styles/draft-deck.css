@@ -7,15 +7,14 @@
 /* ------------------------------------------------------------------
    v3 three-column layout: filters + search (left), content, cart (right)
 ------------------------------------------------------------------- */
-.slidevault .cart-col { position: sticky; top: 61px; margin-top: 0; min-height: calc(var(--sv-h, 100%) - 61px); max-height: calc(var(--sv-h, 100%) - 61px); overflow-y: auto; overflow-x: hidden; padding: 24px 22px 24px 0; border-radius: 0; scrollbar-width: thin; }
+.slidevault .cart-col { position: sticky; margin-top: 0; min-height: calc(var(--sv-h, 100%) - 61px); border-radius: 0; scrollbar-width: thin; }
 /* full-bleed: the colour runs to the window edge behind the column */
-.slidevault .cart-col { background: var(--cart-bg); margin-right: calc(-1 * var(--gut)); padding: 24px var(--gut) 24px 22px; --cart-bg: var(--sv-surface-sunken); }
 
 /* Cart: thin and quiet */
-.slidevault .cart { display: flex; flex-direction: column; gap: 10px; }
-.slidevault .cart-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.slidevault .cart-h { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--sv-text-secondary); margin: 0; }
-.slidevault .cart-items { list-style: none; margin: 0; display: grid; gap: 8px; max-height: calc(var(--sv-h, 100%) - 340px); overflow-y: auto; scrollbar-width: thin; }
+.slidevault .cart { display: flex; flex-direction: column; }
+.slidevault .cart-top { display: flex; justify-content: space-between; gap: 8px; }
+.slidevault .cart-h { text-transform: uppercase; color: var(--sv-text-secondary); margin: 0; }
+.slidevault .cart-items { list-style: none; margin: 0; display: grid; scrollbar-width: thin; }
 .slidevault .ci { display: grid; align-items: center; position: relative; cursor: grab; }
 .slidevault .ci.drop-before::before, .slidevault .ci.drop-after::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: var(--sv-brand); }
 .slidevault .ci.drop-before::before { top: -6px; }
@@ -25,26 +24,20 @@
 .slidevault .grip:hover { color: var(--sv-text); }
 .slidevault .ci .t { position: relative; }
 .slidevault .ci-n { position: absolute; left: 2px; top: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font: 700 10px/15px var(--sv-font-sans); text-align: center; }
-.slidevault .cart-items { padding: 6px 0; }
-.slidevault .ci-hint { margin: -2px 0 0; font-size: 12px; color: var(--sv-text-secondary); }
+.slidevault .ci-hint { font-size: 12px; color: var(--sv-text-secondary); }
 .slidevault .ci.off { opacity: .55; }
 .slidevault .ci input { accent-color: var(--sv-brand); margin: 0; }
-.slidevault .ci .t { aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); }
+.slidevault .ci .t { aspect-ratio: 16/9; overflow: hidden; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); }
 .slidevault .ci .t svg { width: 100%; height: 100%; display: block; }
 .slidevault .ci-txt { min-width: 0; display: flex; flex-direction: column; }
 .slidevault .ci-txt a, .slidevault .ci-txt .meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; line-height: 1.3; }
 .slidevault .ci-txt a { font-weight: 600; color: var(--sv-text); text-decoration: none; }
 .slidevault .ci-txt a:hover { text-decoration: underline; }
 .slidevault .ci .btn { width: 28px; min-height: 28px; height: 28px; }
-.slidevault .cart-acts { display: flex; gap: 6px; flex-wrap: wrap; }
-.slidevault .cart-acts .btn-primary { flex: 1 1 100%; order: -1; }
-.slidevault .cart-empty .meta { font-size: 12.5px; }
-.slidevault .cart-empty-body { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 36px 8px 0; }
-.slidevault .ce-ic { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--sv-surface); border: 1px dashed var(--sv-border-strong); color: var(--sv-text-secondary); margin-bottom: 6px; }
-.slidevault .ce-ic .ic { width: 26px; height: 26px; }
+.slidevault .cart-empty-body { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.slidevault .ce-ic { display: grid; place-items: center; border-radius: 50%; color: var(--sv-text-secondary); margin-bottom: 6px; }
 .slidevault .cart-tools { display: flex; align-items: center; gap: 2px; }
 .slidevault .cart-min .cart { display: none; }
-.slidevault .cart-min .cart-col { padding-left: 14px; }
 @media (max-width: 960px) {
 .slidevault .cart-col { position: static; min-height: 0; max-height: none; overflow: visible; }
 .slidevault .cart-col:has(.cart-empty) { display: none; }
@@ -54,18 +47,13 @@
 .slidevault .cart-min .cart { display: flex; }
 .slidevault .cart-tg { display: none; }
 .slidevault .cart-top { order: 1; }
-.slidevault .cart-acts { order: 3; flex-wrap: nowrap; }
-.slidevault .cart-acts .btn-primary { flex: none; order: 0; } }
-/* orange accents (selection, focus and small brand marks only) */
-.slidevault .cart-col { border-top: 3px solid var(--sv-brand); }
-@media (max-width: 960px) {
-.slidevault .cart-col { border-top: 0; } }
+.slidevault .cart-acts { order: 3; }
+.slidevault .cart-acts .btn-primary { }; }
 /* touch: 44px targets */
 @media (pointer: coarse) {
 .slidevault .ci .btn, .slidevault .ci input { min-height: 44px; } }
 
 /* Cart rows: every control is at least 24×24 (WCAG 2.2 target size), the prototype's grip and tick were smaller. */
-.slidevault .ci { grid-template-columns: 24px 24px 44px minmax(0, 1fr) 28px; gap: 4px; }
 .slidevault .grip { width: 24px; height: 28px; }
 .slidevault .ci input { width: 24px; height: 24px; }
 
@@ -74,7 +62,7 @@
 .slidevault .cart-zip .btn { gap: 4px 6px; flex-wrap: wrap; height: auto; min-height: 32px; max-width: 100%; justify-content: flex-start; }
 
 /* ---- Draft deck: Clear and Save as draft sit under the list; Clear asks first ---- */
-.slidevault .cart-list-acts { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; }
+.slidevault .cart-list-acts { display: flex; align-items: center; gap: 4px; }
 .slidevault .cart-list-acts .btn .ic { width: 15px; height: 15px; }
 .slidevault .cart-confirm { display: flex; align-items: center; gap: 8px; }
 .slidevault .cart-confirm .cc-q { font-size: var(--sv-text-small); font-weight: 600; margin-right: 2px; }
@@ -88,9 +76,7 @@
  * body holding the slides as white cards, and a footer. Closed: a black pill at the bottom right
  * that says "Draft deck" (with an orange count). Same functions as before; only the look changed.
  * Phones keep the older bottom bar (slidevault.css), so the new parts only apply from 1101px up. */
-.slidevault .cart-pill { display: none; }
 /* container width: medium */
-.slidevault .sv-app[data-size="medium"] .cart-head, .slidevault .sv-app[data-size="medium"] .cart-body, .slidevault .sv-app[data-size="medium"] .cart-foot { display: contents; }
 .slidevault .sv-app[data-size="medium"] .cart-title, .slidevault .sv-app[data-size="medium"] .cart-name { display: none; }
 .slidevault .sv-app[data-size="wide"] .cart-col { padding: 0; min-height: 0; background: var(--sv-surface); border-top: 0; border-left: 1px solid var(--sv-brand); box-shadow: -8px 0 24px -12px rgba(20, 20, 20, 0.22); overflow: hidden; margin-right: calc(-1 * max(0px, (var(--sv-w, 1280px) - 2200px) / 2)); }
 .slidevault .sv-app[data-size="wide"] .cart-min .cart-col { padding: 0; width: 0; min-height: 0; max-height: 0; border: 0; background: none; overflow: visible; margin-right: 0; }
@@ -134,7 +120,6 @@
 
 /* Draft deck, dark mode: the grey secondary text and the name placeholder were hard to read on the dark panel. */
 .slidevault[data-theme="dark"] .cart-col, .dark .slidevault:not([data-theme="light"]) .cart-col { --sv-text-secondary: #d6d6da; }
-.slidevault[data-theme="dark"] .cart-name input::placeholder, .dark .slidevault:not([data-theme="light"]) .cart-name input::placeholder { color: #c9c9ce; opacity: 1; }
 /* container width: compact */
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-col,.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-col:has(.cart-empty) {
     display: block; position: absolute; top: 0; bottom: 0; right: 0; left: auto; transform: none;
@@ -152,7 +137,7 @@
   }
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-head,.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-body,.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-foot { display: block; }
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-body { overscroll-behavior: contain; }
-.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-items { display: grid; max-height: none; }
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-items { display: grid; }
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-tg { display: inline-flex; }
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-head { padding-top: calc(18px + env(safe-area-inset-top)); }
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
@@ -164,7 +149,6 @@
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .grip { touch-action: none; width: 26px; height: 44px; cursor: grab; }
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-body .ci { grid-template-columns: 26px 20px 62px minmax(0, 1fr) 28px; }
 /* container width: compact */
-.slidevault .sv-app[data-size="compact"] .draft-item .cart-confirm { flex: 1 1 100%; }
 
 /* Draft deck button, a little higher on phones. */
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-pill { bottom: calc(32px + env(safe-area-inset-bottom)); }
@@ -189,7 +173,6 @@
 .slidevault .cart-zip .meta { margin: 6px 0 0 26px; font-size: 12.5px; }
 
 /* A simple orange ring that revolves around the Draft deck button until clicked (client/draft-nudge.ts). */
-.slidevault .cart-pill.is-nudge { position: relative; }
 .slidevault .cart-pill.is-nudge::after {
   content: ""; position: absolute; inset: -5px; padding: 3px; border-radius: 999px; pointer-events: none;
   background: conic-gradient(from var(--sv-spin), transparent 0deg 200deg, var(--sv-brand) 360deg);
@@ -206,8 +189,6 @@
 @media (hover: hover) {
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:hover { opacity: 1; background: var(--sv-brand); color: #fff; }
 .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:hover .pill-n { background: #fff; color: var(--sv-brand-strong, var(--sv-brand)); } }
-@media (prefers-reduced-motion: reduce) {
-.slidevault .sv-app .cart-pill { transition: none; } }
 
 /* The revolving ring holds still while the pointer is over the button. */
 .slidevault .cart-pill.is-nudge:active::after { animation-play-state: paused; }
@@ -266,10 +247,6 @@
 .slidevault .sv-app[data-size="compact"] .cart-head .cart-acts .btn .ic { display: none; }
 .slidevault .sv-app[data-size="compact"] .cart-foot { padding: 6px 14px; } }
 
-/* Working drafts in two columns: the buttons sit under the name, left aligned with it (not under the folder icon). */
-.slidevault .sv-app[data-size="medium"] .draft-item .cart-confirm { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
-/* Working drafts on a portrait phone too: the buttons sit under the name, left aligned with it. */
-.slidevault .sv-app[data-size="compact"] .draft-item .cart-confirm { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
 
 /* Phone held upright: the draft deck slides in from the right as a full-height panel, like on a tablet (it was a sheet from the bottom). */
 
