@@ -27,7 +27,7 @@ export function StickySearch({ eye = true, placeholder = 'Search slides, clients
           <Icon name="x" />
         </button>
       </form>
-      {eye && <HiddenToggle />}
+      {eye && <HiddenToggle place="search" />}
     </div>
   );
 }

@@ -204,7 +204,7 @@ function HomeHeader() {
             <Icon name="search" />
           </button>
         </span>
-        {!compact && <HiddenToggle />}
+        {!compact && <HiddenToggle place="hero" />}
       </form>
       {/* On a phone the eye and the Storyboard button sit in the row under the search bar (FilterBar); only the brief hint stays here. */}
       <StoryLauncher part={compact ? 'hint' : 'all'} />

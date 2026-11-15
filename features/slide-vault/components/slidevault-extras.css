@@ -258,53 +258,17 @@
 .slidevault { --sv-side: 40px; }
 /* Side gutters grow with the space (4% of the width, between 40px and 120px), so large screens use their width instead of leaving wide empty margins. */
 .slidevault .sv-app[data-size="wide"], .slidevault .sv-app[data-size="wide"] .slidevault { --sv-side: clamp(40px, calc(var(--sv-w, 1280px) * 0.04), 120px); }
-/* container width: wide */
-
-/* ---- Slide selection column: slimmer, and flush with the right edge (no extra side gutter inside it) ---- */
-/* container width: wide */
-
-
-/* ---- First-visit tip ---- */
-
-/* ---- Loading placeholders shaped like the rows ---- */
-
-/* ---- Calmer row headings: plain title, details tucked behind a small info icon ---- */
 
 /* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
 @keyframes svFade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
-
-/* ---- Filter choices read from the typed sentence ---- */
-
-/* ---- Status badge: icon + plain words, so colour is never the only clue ---- */
-
-/* ---- Filter options that would leave nothing are greyed out (still clickable) ---- */
-
-/* ---- Upload tab when you don't have permission: still there, greyed, with the reason on hover ---- */
-
-/* ---- Draft deck: Clear and Save as draft sit under the list; Clear asks first ---- */
-
-/* ---- Working drafts list on My decks ---- */
-
-/* ---- The corner tick: always faintly visible, brighter on hover, solid orange once chosen ---- */
-
-/* ---- Draft deck, in the look of the reference mockup's proposal tray --------------------------
- * Open: a white side panel with a small caps label, a large title, two buttons on top, a sunken
- * body holding the slides as white cards, and a footer. Closed: a black pill at the bottom right
- * that says "Draft deck" (with an orange count). Same functions as before; only the look changed.
- * Phones keep the older bottom bar (slidevault.css), so the new parts only apply from 1101px up. */
 /* container width: wide */
   .slidevault .sv-app[data-size="wide"] .sv-top .sv-wrap { padding: 0 var(--sv-side); }
   .slidevault .sv-app[data-size="wide"] .sv-shell { --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 2200px) / 2 + var(--sv-side))); }
 
 .slidevault .home-try { margin-bottom: 36px; }
-
-/* ---- Slide selection column: slimmer, and flush with the right edge (no extra side gutter inside it) ---- */
 /* container width: wide */
   .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 0 0 var(--sv-side); grid-template-columns: 272px minmax(0, 1fr) 264px; }
   .slidevault .sv-app[data-size="wide"] .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
-
-
-/* ---- First-visit tip ---- */
 
 /* ---- Loading placeholders shaped like the rows ---- */
 .slidevault .skel-rows { display: grid; gap: 36px; margin-top: 8px; }
@@ -335,8 +299,6 @@
 .slidevault .chip-x.from-search { border-style: dashed; }
 .slidevault .chip-x.from-search .ic-sm { color: var(--sv-brand); width: 13px; height: 13px; }
 .slidevault .interp[hidden] { display: none; }
-
-/* ---- Status badge: icon + plain words, so colour is never the only clue ---- */
 
 /* ---- Upload tab when you don't have permission: still there, greyed, with the reason on hover ---- */
 .slidevault .sv-nav a.is-locked { opacity: 0.6; cursor: not-allowed; }
@@ -391,10 +353,6 @@
   .slidevault .sv-app[data-size="wide"] .toasts.lift, .slidevault .sv-app[data-size="wide"] .toasts { bottom: 16px; }
   .slidevault .sv-app[data-size="wide"]:has(.cart-min) .toasts { bottom: 92px; }
   .slidevault .sv-app[data-size="wide"]:not(:has(.cart-min)) .toasts { right: 376px; }
-
-
-/* The draft deck's inside (header, list, footer, black pill): the same on desktop and phones.
-   Tablet widths keep the older layout until they are reworked. */
 /* container width: compact/wide */
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-head { padding: 22px 22px 18px; border-bottom: 1px solid var(--sv-border); }
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-top { align-items: center; }
@@ -434,11 +392,6 @@
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 3px; }
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill .ic { width: 20px; height: 20px; }
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-pill .pill-n { min-width: 22px; height: 22px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--sv-brand); color: #fff; font-size: 12px; font-weight: 700; }
-
-
-/* The browse tiles fade at the edge like the card rows above them, to show there is more to scroll to. */
-
-/* ---- Quick tour: dimmed page, a spotlight on one thing, a plain-words note beside it ---- */
 /* Tour card (React Joyride places it; these rules only style it). */
 .slidevault .tour-pop { width: 340px; max-width: 100%; padding: 18px 20px 16px; background: var(--sv-surface); color: var(--sv-text); border: 1px solid var(--sv-border-strong); border-radius: 16px; box-shadow: var(--sv-shadow-panel); }
 .slidevault .tour-n { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
@@ -450,9 +403,6 @@
 /* Draft deck, dark mode: the grey secondary text and the name placeholder were hard to read on the dark panel. */
 .slidevault[data-theme="dark"] .cart-col, .dark .slidevault:not([data-theme="light"]) .cart-col { --sv-text-secondary: #d6d6da; }
 .slidevault[data-theme="dark"] .cart-name input::placeholder, .dark .slidevault:not([data-theme="light"]) .cart-name input::placeholder { color: #c9c9ce; opacity: 1; }
-
-/* Phones: the draft deck is a sidebar on the right. Closed, it is off screen and the black pill
-   opens it; open, it covers the right side and dims the page. It starts closed on phones. */
 /* container width: compact */
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-col, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-col:has(.cart-empty) {
     display: block; position: absolute; top: 0; bottom: 0; right: 0; left: auto; transform: none;
@@ -486,9 +436,6 @@
 /* container width: compact */
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .grip { touch-action: none; width: 26px; height: 44px; cursor: grab; }
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart-body .ci { grid-template-columns: 26px 20px 62px minmax(0, 1fr) 28px; }
-
-
-/* Phones: the search label sits above the box, and the example searches are one row you swipe. */
 /* container width: compact */
   .slidevault .sv-app[data-size="compact"] .home-hero { padding-top: 20px; }
   .slidevault .sv-app[data-size="compact"] .home-hero-search { flex-direction: column; gap: 8px; }
@@ -500,9 +447,6 @@
   .slidevault .sv-app[data-size="compact"] .home-hero-try ul { flex-wrap: nowrap; overflow-x: auto; min-width: 0; padding-bottom: 4px; scrollbar-width: none; }
   .slidevault .sv-app[data-size="compact"] .home-hero-try ul::-webkit-scrollbar { display: none; }
   .slidevault .sv-app[data-size="compact"] .home-hero-try ul li { flex: none; }
-
-
-/* Phones: a working draft's buttons drop under its name instead of squeezing it. */
 /* container width: compact */
   .slidevault .sv-app[data-size="compact"] .draft-item { flex-wrap: wrap; }
   .slidevault .sv-app[data-size="compact"] .draft-txt { flex: 1 1 0; }
@@ -607,21 +551,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .sv-app[data-size="compact"] .row-scroller .card-title { font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.6em; }
 .slidevault .sv-app[data-size="compact"] .row-scroller .meta { font-size: 12px; }
 .slidevault .sv-app[data-size="compact"] .row-scroller .matched { display: none; }
-
-/* The "Hidden slides" eye inside the search bar (same look as the search button), and the slim search above the sticky filter row. */
-.slidevault .hid-wrap { position: relative; flex: none; display: inline-flex; }
-.slidevault .hid-toggle { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--sv-border-strong); border-radius: 50%; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; box-shadow: var(--sv-shadow-card); }
-.slidevault .hid-toggle .ic { color: inherit; width: 18px; height: 18px; }
-.slidevault .hid-toggle:hover { border-color: var(--sv-text-secondary); }
-.slidevault .hid-toggle:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
-.slidevault .hid-toggle.on { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
-.slidevault .fb-search-wrap .hid-toggle { width: 40px; height: 40px; box-shadow: none; }
 /* Tooltip: shows at once on hover or keyboard focus. */
-.slidevault .hid-tip { position: absolute; top: calc(100% + 10px); right: 0; z-index: 60; width: 248px; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--sv-action-bg); color: var(--sv-action-fg); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22); text-align: left; opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity 0.12s, transform 0.12s, visibility 0.12s; pointer-events: none; }
-.slidevault .hid-tip strong { font-size: 14px; font-weight: 700; line-height: 1.25; }
-.slidevault .hid-tip span { font-size: 13px; font-weight: 400; line-height: 1.4; opacity: 0.9; }
-.slidevault .hid-wrap:hover .hid-tip, .slidevault .hid-wrap:has(:focus-visible) .hid-tip { opacity: 1; visibility: visible; transform: none; }
-@media (prefers-reduced-motion: reduce) { .slidevault .hid-tip { transition: none; transform: none; } }
 .slidevault .fb-search-wrap { display: flex; align-items: center; gap: 10px; max-width: 840px; margin-bottom: 10px; animation: svFade 0.18s ease-out; }
 .slidevault .fb-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); }
 .slidevault .fb-search:focus-within { border-color: var(--sv-brand); }
@@ -633,10 +563,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .fb-clear .ic { width: 13px; height: 13px; }
 .slidevault .fb-search input { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; font: inherit; font-size: 14px; color: var(--sv-text); outline: none; }
 @media (prefers-reduced-motion: reduce) { .slidevault .fb-search-wrap { animation: none; } }
-/* On Home the eye is as tall as the whole search bar: a circle that matches the bar's full height. */
-.slidevault .home-hero-search .hid-wrap { width: 60px; height: 60px; } /* the bar's full height: 44px button + 7px padding each side + 1px border each side */
-.slidevault .home-hero-search .hid-toggle { width: 100%; height: 100%; }
-.slidevault .home-hero-search .hid-toggle .ic { width: 20px; height: 20px; }
 /* Home: the search bar gives up width so the eye and the Storyboard button both fit beside it. */
 .slidevault .home-hero:has(.sb-launch) > .home-hero-search { flex: 1 1 360px; min-width: 0; }
 .slidevault .home-hero-search .home-hero-field input { min-width: 0; }
@@ -735,7 +661,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 
 /* Card titles stop at two lines. One very long title used to stretch every card in its row (all cards in a
    row share the tallest height), leaving the rest mostly empty. The full title is in the tooltip. */
-.slidevault .card-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.7em; } /* two lines of room (line-height 1.35), so one-line and two-line titles line up */
+.slidevault .card-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.7em; }
 
 /* Archive (FD-32): the Archived badge, and the small archive button on a deck card. */
 .slidevault .badge-archived { background: var(--sv-surface); border: 1px dashed var(--sv-border-strong); color: var(--sv-text); }
@@ -1080,8 +1006,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .cart-tagall { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; }
 .slidevault .cart-tagall .input { flex: 1 1 auto; min-width: 0; height: 32px; }
 
-/* Search results narrowed by deck section (FD-57) */
-
 /* Section cards (FD-57): one card per deck section, above the slide cards when a "By section" pill is picked */
 .slidevault .seccards { margin: 0 0 18px; }
 .slidevault .seccards-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 12px; }
@@ -1117,17 +1041,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .state .btn + .btn { margin-left: 8px; } /* two buttons in an empty state: a gap, not touching */
 .slidevault .slide-actions:empty { display: none; } /* the slide page's bar has nothing in it when there are no votes or comments */
 .slidevault .dlg-head-tools { display: flex; align-items: center; gap: 2px; flex: none; }
-
-/* "Deeper AI search": the short-search note on the results page (FD-79) */
-/* "Search with AI": a checkbox with its words, first in the filter row (FD-79) */
-.slidevault .ai-check-wrap { height: 34px; align-items: center; }
-.slidevault .ai-check { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 8px; border-radius: 999px; background: transparent; color: var(--sv-text); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.12s; }
-.slidevault .ai-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--sv-brand-strong); cursor: pointer; flex: none; }
-.slidevault .ai-check input:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
-.slidevault .ai-tip { top: calc(100% + 6px); left: 0; right: auto; width: max-content; max-width: 240px; padding: 7px 11px; font-size: 13px; line-height: 1.35; }
-.slidevault .ai-check b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; } /* "AI" in orange: the part that sets it apart from the grey filter labels */
-.slidevault .ai-check:hover, .slidevault .ai-check:has(input:checked) { background: color-mix(in srgb, var(--sv-brand) 9%, transparent); } /* a faint orange wash on hover and when on */
-@media (prefers-reduced-motion: reduce) { .slidevault .ai-check { transition: none; } }
 
 /* Suggested tags (FD-82): the same dashed pill as "+ Add tag", in a row of their own after "Suggested". */
 .slidevault .tag-suggested { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
@@ -1166,10 +1079,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
    label keeps the row above. */
 .slidevault .sv-app[data-size="compact"] .home-hero-search { display: grid; align-items: center; column-gap: 8px; row-gap: 8px; }
 .slidevault .sv-app[data-size="compact"] .home-hero-search > :not(.home-hero-field):not(.hid-wrap) { grid-column: 1 / -1; }
-.slidevault .sv-app[data-size="compact"] .home-hero-search .hid-wrap { width: 52px; height: 52px; }
 .slidevault .sv-app[data-size="compact"] .home-hero-field { padding-top: 3px; padding-bottom: 3px; }
-
-/* ---- Phone pass 1 (FD-99) ---- */
 /* The (i) tip under a row title opens at the row's left edge and is never wider than the row, so it can't run off the screen. */
 .slidevault .sv-app[data-size="compact"] .row-head { position: relative; }
 .slidevault .sv-app[data-size="compact"] .row-title, .slidevault .sv-app[data-size="compact"] .row-info { position: static; }
@@ -1196,8 +1106,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault dialog.sv-dialog.wide .lb-stage { max-height: calc(var(--sv-h, 393px) - 110px); }
   .slidevault dialog.sv-dialog.wide .lb-deck { display: none; }
 }
-
-/* ---- Phone pass 2 (FD-100) ---- */
 /* A row that scrolls sideways fades on the side where more is hidden (edge-fade.ts sets data-fade). */
 .slidevault [data-fade~="end"]:not([data-fade~="start"]) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
 .slidevault [data-fade~="start"]:not([data-fade~="end"]) { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
@@ -1214,9 +1122,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 
 /* Phone: the search bar has its own full row; under it the AI tick, the eye and a small Storyboard button share one row. */
 .slidevault .sv-app[data-size="compact"] .home-hero-search { grid-template-columns: minmax(0, 1fr); }
-.slidevault .fb-tools .hid-wrap { position: static; }
-.slidevault .fb-tools .hid-tip { left: 0; right: auto; width: min(280px, 100%); }
-.slidevault .fb-tools .hid-toggle { width: 40px; height: 40px; box-shadow: none; }
 .slidevault .fb-tools .sb-launch { width: auto; z-index: auto; }
 .slidevault .fb-tools .btn.sb-launch-btn { height: 36px; padding: 0 14px 0 12px; font-size: 13px; font-weight: 600; width: auto; box-shadow: none; }
 .slidevault .fb-tools .sb-launch-btn .sb-new { top: -3px; right: -3px; width: 10px; height: 10px; padding: 0; overflow: hidden; font-size: 0; color: transparent; background: var(--sv-brand); border: 2px solid var(--sv-bg); }
@@ -1277,7 +1182,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .sv-zoom-hint { position: absolute; left: 0; right: 0; bottom: 16px; margin: 0; text-align: center; font-size: 13px; color: rgba(255, 255, 255, 0.75); pointer-events: none; }
 
 /* ---- Phone pass 3 ---- */
-.slidevault .fb-pin-bar .hid-tip { display: none; }
 .slidevault .tag-addrow { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; min-width: 0; }
 .slidevault .tag-addrow > .tag-suggested { flex: 1 1 0; min-width: 0; margin-top: 0; }
 .slidevault .tag-addrow > :first-child:not(.tag-suggested) { flex: none; }
@@ -1342,8 +1246,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 @media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .lb-caption .row-flex:has(> .lb-pack, > .lb-section) > .btn:not(.lb-open-deck) .ic { display: none; }
 }
-
-/* ---- Phone pass 7: the preview header ---- */
 /* "Also in N other decks": the folders icon and number in the header's tool row on every screen (the tooltip says it in words). */
 .slidevault .lb-also-chip { display: inline-flex; align-items: center; gap: 4px; min-width: 36px; padding: 0 8px; font-weight: 600; }
 .slidevault .lb-also-chip .ic { width: 18px; height: 18px; }
@@ -1389,7 +1291,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
   .slidevault .fb-verdict, .slidevault .fb-verdict.is-small { flex-wrap: nowrap; justify-content: space-between; gap: 0 8px; }
   .slidevault .fb-verdict.is-small .sb-icon-btn { font-size: 10.5px; letter-spacing: 0.05em; gap: 3px; }
   .slidevault .fb-verdict.is-small .sb-icon-btn .ic-sm { width: 12px; height: 12px; }
-  /* By section pills scroll sideways. */
   /* Sort and "Add all" share one row. */
   .slidevault .refine .spacer { display: none; }
   .slidevault .refine > label { flex: none; }
@@ -1474,8 +1375,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 
 /* The small "auto" mark on a field that was filled in from the file. */
 .slidevault .auto-tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--sv-brand-tint); color: var(--sb-orange-text, #c22d07); font-size: 11px; font-weight: 700; letter-spacing: 0.03em; vertical-align: 1px; }
-
-/* ---- Phone pass 13: Home and results ---- */
 /* Only Filters, Year and Client sit in the row; the rest are in the Filters sheet. */
 .slidevault .mic-soon { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; padding: 6px 12px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12.5px; font-weight: 500; white-space: nowrap; pointer-events: none; }
 .slidevault .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -1553,11 +1452,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
   /* The words "I'm looking for" go once there are results. */
   .slidevault .home-hero.has-results .home-hero-prefix { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .slidevault .home-hero.has-results { padding-top: 14px; }
-  /* The AI tick and the eye live in the filter row. */
-  .slidevault .fbar-row .hid-wrap { flex: none; }
-  .slidevault .fbar-row .hid-toggle { width: 34px; height: 34px; box-shadow: none; }
-  .slidevault .fbar-row .hid-toggle .ic { width: 16px; height: 16px; }
-  .slidevault .fbar-row .hid-tip { display: none; }
   /* Heading with the slide count; the old count line stays for screen readers only. */
   .slidevault .res-title { display: flex; align-items: baseline; gap: 0; }
   .slidevault .res-title .res-q { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1611,11 +1505,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 }
 .slidevault .upsubmit[hidden] { display: none; }
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  /* Storyboard shares the filter row. */
-  /* Order: Search with AI, hidden eye, Storyboard, then Filters, Year, Client. */
-  .slidevault .sv-app[data-size="compact"] .fbar-row > .ai-check-wrap { order: 1; }
-  .slidevault .sv-app[data-size="compact"] .fbar-row > .hid-wrap:not(.ai-check-wrap) { order: 2; }
-  /* Slide page: the slide on the left, its cards on the right. */
   /* The heading sits over the slide only; the cards on the right start level with the top of the slide. */
   .slidevault .sv-app[data-size="compact"] .slide-detail { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); column-gap: 14px; row-gap: 0; align-items: start; }
   .slidevault .sv-app[data-size="compact"] .slide-detail > div { display: contents; }
@@ -1695,11 +1584,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
   .slidevault .sv-app[data-size="compact"] .cart-foot .txt { display: none; }
   /* Slide page heading a little smaller, so it does not take four lines. */
   .slidevault .sv-app[data-size="compact"] .h1 { font-size: 18px; }
-  /* Deck page: "Created … · Uploaded …" breaks evenly. */
-}
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
-  /* Home: Search with AI, eye, Storyboard, Filters, Year and Client stay on one row. */
-  .slidevault .sv-app[data-size="compact"] .fbar .ai-check { font-size: 13px; }
 }
 /* Deck page: "105 slides · Created by … · Uploaded by …" runs on one line and wraps between the parts when it has to, on every screen. */
 .slidevault .deck-meta { display: block; margin-top: 8px; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
@@ -1774,7 +1658,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
     /* Sticky bars: one slim row. */
   .slidevault .deck-sticky { padding-top: 4px; padding-bottom: 4px; gap: 8px; font-size: 13px; }
   .slidevault .deck-sticky .btn { min-height: 30px; height: 30px; }
-  /* The smaller-cards button only makes the columns narrower; every card still shows its title, source, tags, why it fits and Useful / Not useful, as on a portrait phone. */
   /* Preview: when the comments are open they sit over the tags and the free space, scrolling inside, so Add and Download stay where they are. */
   .slidevault dialog.sv-dialog.wide .dlg-body > .comments { grid-column: 2; grid-row: 3 / 5; z-index: 5; align-self: stretch; min-height: 0; overflow: auto; background: var(--sv-surface); margin: 0; }
 }
@@ -1893,8 +1776,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 /* The smallest phones on their side (iPhone SE and under, about 570 wide): the Home filter row stays on one line. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 600px) {
   .slidevault .sv-app[data-size="compact"] .fbar .btn.sb-launch-btn { padding: 0 10px 0 8px; font-size: 12.5px; }
-  .slidevault .sv-app[data-size="compact"] .fbar .ai-check { font-size: 12px; gap: 6px; }
-  .slidevault .sv-app[data-size="compact"] .fbar .hid-toggle { width: 30px; height: 30px; }
 }
 /* Archive on a phone on its side, and on tablets: the deck cards in two columns, not one stretched row. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
@@ -1982,10 +1863,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .sv-app[data-size="medium"] .res-wrap > .summary-row { order: -1; justify-content: flex-start; }
 .slidevault .sv-app[data-size="medium"] .res-wrap > .summary-row .summary { text-align: left; }
 .slidevault .sv-app[data-size="medium"] .home-hero.has-results .home-hero-prefix { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.slidevault .sv-app[data-size="medium"] .fbar-row .hid-wrap { flex: none; }
-.slidevault .sv-app[data-size="medium"] .fbar-row .hid-toggle { width: 34px; height: 34px; box-shadow: none; }
-.slidevault .sv-app[data-size="medium"] .fbar-row .hid-toggle .ic { width: 16px; height: 16px; }
-.slidevault .sv-app[data-size="medium"] .fbar-row .hid-tip { display: none; }
 .slidevault .sv-app[data-size="medium"] .res-title { display: flex; align-items: baseline; gap: 0; }
 .slidevault .sv-app[data-size="medium"] .res-title .res-q { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slidevault .sv-app[data-size="medium"] .res-title .res-n { flex: none; white-space: pre; color: var(--sv-text-secondary); font-weight: 500; }
@@ -1996,8 +1873,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .sv-app[data-size="medium"] .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
 .slidevault .sv-app[data-size="medium"] .grid.is-dense { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
 .slidevault .sv-app[data-size="medium"] .grid.is-dense .matched .why-text:not(.is-open) { -webkit-line-clamp: 2; }
-.slidevault .sv-app[data-size="medium"] .fbar-row > .ai-check-wrap { order: 1; }
-.slidevault .sv-app[data-size="medium"] .fbar-row > .hid-wrap:not(.ai-check-wrap) { order: 2; }
 .slidevault .sv-app[data-size="medium"] .hero-wrap { margin: 10px 0 0; border-radius: 12px; overflow: hidden; }
 .slidevault .sv-app[data-size="medium"] .hero-add { left: 10px; }
 .slidevault .sv-app[data-size="medium"] .hero-corner, .slidevault .sv-app[data-size="medium"] .hero-zoom { right: 10px; }
@@ -2063,10 +1938,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .sv-app[data-size="medium"] .row-scroller .matched { display: none; }
 .slidevault .sv-app[data-size="medium"] .home-hero-search { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; row-gap: 8px; }
 .slidevault .sv-app[data-size="medium"] .home-hero-search > :not(.home-hero-field):not(.hid-wrap) { grid-column: 1 / -1; }
-.slidevault .sv-app[data-size="medium"] .home-hero-search .hid-wrap { width: 52px; height: 52px; }
 .slidevault .sv-app[data-size="medium"] .home-hero-field { padding-top: 3px; padding-bottom: 3px; }
-
-/* ---- Phone pass 1 (FD-99) ---- */
 /* The (i) tip under a row title opens at the row's left edge and is never wider than the row, so it can't run off the screen. */
 .slidevault .sv-app[data-size="medium"] .row-head { position: relative; }
 .slidevault .sv-app[data-size="medium"] .row-title, .slidevault .sv-app[data-size="medium"] .row-info { position: static; }
@@ -2267,12 +2139,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 
 /* Tablet on its side: Home and the filter row follow the upright tablet (one Filters button, one row of Try examples, Storyboard beside Search with AI), because the draft deck panel leaves little width. */
 .slidevault .sv-app[data-tl] .home-hero.has-results .home-hero-prefix { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.slidevault .sv-app[data-tl] .fbar-row .hid-wrap { flex: none; }
-.slidevault .sv-app[data-tl] .fbar-row .hid-toggle { width: 34px; height: 34px; box-shadow: none; }
-.slidevault .sv-app[data-tl] .fbar-row .hid-toggle .ic { width: 16px; height: 16px; }
-.slidevault .sv-app[data-tl] .fbar-row .hid-tip { display: none; }
-.slidevault .sv-app[data-tl] .fbar-row > .ai-check-wrap { order: 1; }
-.slidevault .sv-app[data-tl] .fbar-row > .hid-wrap:not(.ai-check-wrap) { order: 2; }
 .slidevault .sv-app[data-tl] .home-hero-try { flex-wrap: nowrap; }
 .slidevault .sv-app[data-tl] .home-hero-try > span { flex: none; }
 .slidevault .sv-app[data-tl] .home-hero-try ul { flex-wrap: nowrap; overflow-x: auto; min-width: 0; padding-bottom: 4px; scrollbar-width: none; }
@@ -2280,7 +2146,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .sv-app[data-tl] .home-hero-try ul li { flex: none; }
 .slidevault .sv-app[data-tl] .home-hero-search { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; row-gap: 8px; }
 .slidevault .sv-app[data-tl] .home-hero-search > :not(.home-hero-field):not(.hid-wrap) { grid-column: 1 / -1; }
-.slidevault .sv-app[data-tl] .home-hero-search .hid-wrap { width: 52px; height: 52px; }
 .slidevault .sv-app[data-tl] .home-hero-field { padding-top: 3px; padding-bottom: 3px; }
 .slidevault .sv-app[data-tl] .home-hero.has-results { padding-top: 28px; }
 .slidevault .sv-app[data-tl] .home-hero-prefix { font-size: 24px; }
@@ -2321,7 +2186,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-next { border-radius: 50%; background: color-mix(in srgb, var(--sv-text) 6%, transparent); border: 1px solid color-mix(in srgb, var(--sv-text) 10%, transparent); }
 .slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-prev:disabled,
 .slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-next:disabled { background: transparent; border-color: transparent; }
-/* Deck arrows turn orange on hover, keyboard focus and tap. */
 
 /* Circles a little smaller on phones and tablets. */
 .slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-prev,
@@ -2346,7 +2210,6 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
   .slidevault dialog.sv-dialog .lb-row[data-tablet] > .lb-next { justify-self: end; margin-right: 10px; }
   .slidevault dialog.sv-dialog .lb-row[data-tablet] > .lb-nav:disabled { opacity: 0.4; background: color-mix(in srgb, var(--sv-surface) 45%, transparent); border-color: transparent; }
 }
-/* On the picture, the arrow solidifies when touched. */
 /* A 44px touch target around the 30px circle (the stage's zoom button sits underneath, so a near miss does not open full screen). */
 .slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-nav::before { content: ""; position: absolute; inset: -7px; border-radius: 50%; }
 

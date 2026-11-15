@@ -484,7 +484,7 @@ export function FilterBar() {
       )}
       <div className="fbar-row" ref={rowRef} role="toolbar" aria-label="Filter slides">
         <DeeperAiToggle />
-        {compact && <HiddenToggle />}
+        {compact && <HiddenToggle place="row" />}
         <button type="button" className={`fb-btn fb-all${activeTotal ? ' on' : ''}`} aria-haspopup="dialog" onClick={() => setSheet('all')}>
           <Icon name="sliders" />
           <span className="fb-lbl">Filters</span>

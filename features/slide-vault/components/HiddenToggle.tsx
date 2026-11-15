@@ -8,12 +8,14 @@ import { useLibrary } from './state';
  * An eye button beside the search bar. Off (the default): slides that were hidden in their original
  * deck stay out of search and the library (FD-27). On: they appear, each marked "Hidden in source".
  * The tooltip is our own (the browser's is slow and easy to miss): a heading, then one plain line.
+ * `place` picks its size for where it sits (styles/search-toggles.css): the big Home search ('hero'),
+ * the slim search ('search') or the phone and tablet filter row ('row').
  */
-export function HiddenToggle() {
+export function HiddenToggle({ place }: { place: 'hero' | 'search' | 'row' }) {
   const { includeHidden, setIncludeHidden } = useLibrary();
   const tipId = useId();
   return (
-    <span className="hid-wrap">
+    <span className={`hid-wrap in-${place}`}>
       <button type="button" role="switch" aria-checked={includeHidden} aria-label="Show hidden slides" aria-describedby={tipId} className={`hid-toggle${includeHidden ? ' on' : ''}`} onClick={() => setIncludeHidden(!includeHidden)}>
         <Icon name={includeHidden ? 'eye' : 'eyeOff'} />
       </button>

@@ -140,6 +140,9 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
   .slidevault .sv-main:has(.res-wrap) .fbar { padding-top: 6px; }
 }
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  /* Order in the row: Search with AI, the eye, then the rest. */
+  .slidevault .sv-app[data-size="compact"] .fbar-row > .ai-check-wrap { order: 1; }
+  .slidevault .sv-app[data-size="compact"] .fbar-row > .hid-wrap:not(.ai-check-wrap) { order: 2; }
   .slidevault .sv-app[data-size="compact"] .fbar-row > :not(.hid-wrap) { order: 4; }
 }
 /* Small phones on their side (667×375, 640×360, 568×320): the Filters button gets narrower. */
@@ -159,6 +162,9 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault .sv-app:is([data-size="medium"], [data-tl]) .sv-main:has(.res-wrap) .fbar { padding-top: 22px; }
 /* Home: the filter row starts on the same line as "I'm looking for" (the tick box sits 8px inside its row). */
 .slidevault .sv-app:is([data-size="medium"], [data-tl]) .sv-main:not(:has(.res-wrap)) .fbar { padding-left: 6px; }
+/* Order in the row: Search with AI, the eye, then the rest. */
+.slidevault .sv-app:is([data-size="medium"], [data-tl]) .fbar-row > .ai-check-wrap { order: 1; }
+.slidevault .sv-app:is([data-size="medium"], [data-tl]) .fbar-row > .hid-wrap:not(.ai-check-wrap) { order: 2; }
 .slidevault .sv-app:is([data-size="medium"], [data-tl]) .fbar-row > :not(.hid-wrap) { order: 4; }
 .slidevault .sv-app:is([data-size="medium"], [data-tl]) .sv-main:has(.res-wrap) .fb-chips { margin-top: 6px; }
 
