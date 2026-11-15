@@ -22,7 +22,8 @@
 
 /* ===== The eye ===== */
 .slidevault .hid-toggle { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--sv-border-strong); border-radius: 50%; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; box-shadow: var(--sv-shadow-card); }
-.slidevault .hid-toggle .ic { color: inherit; width: 18px; height: 18px; }
+/* One class more than Home's .home-hero-search .ic, so the eye icon keeps the button's colour whatever the file order. */
+.slidevault .hid-wrap .hid-toggle .ic { color: inherit; width: 18px; height: 18px; }
 .slidevault .hid-toggle:hover { border-color: var(--sv-text-secondary); }
 .slidevault .hid-toggle:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
 .slidevault .hid-toggle.on { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }

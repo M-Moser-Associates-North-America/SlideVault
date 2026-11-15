@@ -150,7 +150,7 @@ dialog.slidevault.sv-dialog[open] { display: flex; flex-direction: column; }
 dialog.slidevault.sv-dialog::backdrop { background: rgba(10,10,14,.6); }
 dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .dlg-head { padding: 18px 20px 10px 24px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.slidevault .dlg-head h2 { font-size: 18px; }
+.slidevault .sv-dialog .dlg-head h2 { font-size: 18px; }
 .slidevault .dlg-body { padding: 4px 24px 16px; overflow: auto; min-height: 0; }
 .slidevault .dlg-foot { padding: 12px 24px 20px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--sv-border); }
 .slidevault .lb-stage { position: relative; background: var(--sv-surface-sunken); border-radius: 14px; overflow: hidden; aspect-ratio: 16/9; margin: 0 auto; }
