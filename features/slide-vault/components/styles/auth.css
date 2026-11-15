@@ -1,0 +1,74 @@
+/* Sign-in (AuthView.tsx)
+   The sign-in screen.
+*/
+
+
+/*
+ * Fake sign-in + profile pick, pulled pixel-for-pixel from reference/SlideVault.html's own
+ * login card (its doSignIn doesn't check a password either -- this matches that, not a shortcut).
+ */
+.slidevault .auth-screen {
+  height: 100%;
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: radial-gradient(120% 140% at 50% -10%, color-mix(in srgb, var(--sv-brand) 10%, var(--sv-bg)) 0%, var(--sv-bg) 60%);
+}
+.slidevault .auth-col { transform-origin: center; width: 100%; max-width: 412px; display: flex; flex-direction: column; align-items: center; }
+.slidevault .auth-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 30px; }
+.slidevault .auth-brand .ic { width: 30px; height: 30px; color: var(--sv-text); }
+.slidevault .auth-wordmark { font-family: var(--sv-font-sans); font-size: 30px; line-height: 1; letter-spacing: 0.01em; font-weight: 700; color: var(--sv-text); }
+.slidevault .auth-card { width: 100%; background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: var(--sv-radius-panel); box-shadow: var(--sv-shadow-panel); padding: 40px 40px 34px; }
+.slidevault .auth-head { text-align: center; margin-bottom: 28px; }
+.slidevault .auth-eyebrow { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .auth-title { margin: 10px 0 6px; font-size: 23px; font-weight: 600; letter-spacing: -0.02em; color: var(--sv-text); }
+.slidevault .auth-sub { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--sv-text-secondary); }
+.slidevault .auth-form { display: flex; flex-direction: column; gap: 16px; }
+.slidevault .auth-field { display: flex; flex-direction: column; gap: 7px; }
+.slidevault .auth-field > span { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .auth-field input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--sv-border-strong);
+  background: var(--sv-surface);
+  border-radius: var(--sv-radius-control);
+  padding: 0 14px;
+  font-family: var(--sv-font-sans);
+  font-size: 14px;
+  color: var(--sv-text);
+  outline: none;
+}
+.slidevault .auth-field input:focus-visible { border-color: var(--sv-brand); }
+.slidevault .auth-pw { position: relative; }
+.slidevault .auth-pw input { padding-right: 44px; }
+.slidevault .auth-pw-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--sv-text-secondary); cursor: pointer; border-radius: 8px; }
+.slidevault .auth-pw-toggle:hover { color: var(--sv-text); }
+.slidevault .auth-pw-toggle .ic { width: 18px; height: 18px; }
+.slidevault .auth-sim { text-align: center; margin: 4px 0 16px; padding: 14px 16px; border-radius: 12px; background: var(--sv-surface-sunken); }
+.slidevault .auth-sim-note { margin: 6px 0 0; font-size: 13.5px; font-style: italic; color: var(--sv-text-secondary); }
+.slidevault .auth-submit { width: 100%; justify-content: center; height: 46px; font-size: 14.5px; margin-top: 4px; }
+.slidevault .auth-switch { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--sv-border); text-align: center; font-size: 13px; color: var(--sv-text-secondary); }
+.slidevault .auth-switch-cta { border: none; background: transparent; color: var(--sv-link); font-weight: 600; cursor: pointer; font-family: var(--sv-font-sans); font-size: 13px; padding: 0; }
+.slidevault .auth-foot { margin-top: 22px; display: flex; gap: 26px; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
+
+/* Sign-in in a narrow space: the logo sits inside the card and everything fits one screen. */
+.slidevault .auth-screen[data-size="compact"] { padding: calc(env(safe-area-inset-top) + 64px) 24px max(20px, env(safe-area-inset-bottom)); align-items: stretch; background: var(--sv-surface); }
+/* No card on a phone: the screen is the card. Logo at the top, the form centred in the space left, links at the foot. */
+.slidevault .auth-screen[data-size="compact"] .auth-col { transform-origin: top center; max-width: 420px; min-height: 100%; margin: 0 auto; justify-content: flex-start; background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0; }
+.slidevault .auth-screen[data-size="compact"] .auth-card { margin: auto 0; }
+.slidevault .auth-screen[data-size="compact"] .auth-brand { margin-bottom: 0; }
+.slidevault .auth-screen[data-size="compact"] .auth-brand .ic { width: 26px; height: 26px; }
+.slidevault .auth-screen[data-size="compact"] .auth-wordmark { font-size: 24px; }
+.slidevault .auth-screen[data-size="compact"] .auth-card { padding: 0; border: 0; border-radius: 0; box-shadow: none; background: none; }
+.slidevault .auth-screen[data-size="compact"] .auth-head { margin-bottom: 20px; }
+.slidevault .auth-screen[data-size="compact"] .auth-title { margin: 8px 0 6px; font-size: 24px; }
+.slidevault .auth-screen[data-size="compact"] .auth-sim { margin: 0 0 18px; padding: 10px 14px; }
+.slidevault .auth-screen[data-size="compact"] .auth-sim-note { margin-top: 2px; font-size: 12.5px; }
+.slidevault .auth-screen[data-size="compact"] .auth-form { gap: 16px; }
+.slidevault .auth-screen[data-size="compact"] .auth-field { gap: 5px; }
+.slidevault .auth-screen[data-size="compact"] .auth-submit { height: 48px; margin-top: 4px; }
+.slidevault .auth-screen[data-size="compact"] .auth-switch { margin-top: 20px; padding-top: 18px; }
+.slidevault .auth-screen[data-size="compact"] .auth-foot { margin-top: 0; gap: 22px; }
