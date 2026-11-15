@@ -43,6 +43,7 @@ import './styles/results.css';
 import './styles/deck-page.css';
 import './styles/slide-page.css';
 import './styles/upload.css';
+import './styles/archive.css';
 
 /**
  * The SlideVault workspace: renders inside whatever space its host gives it and talks to the
