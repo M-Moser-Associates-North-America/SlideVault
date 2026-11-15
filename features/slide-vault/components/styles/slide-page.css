@@ -1,0 +1,217 @@
+/* Slide page (views/slide.tsx, SlideActions.tsx)
+   The slide page: stepper, details, actions, comments, title.
+*/
+
+/* Detail screens */
+.slidevault .slide-detail { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 900px) {
+.slidevault .slide-detail { grid-template-columns: minmax(0, 1fr); } }
+.slidevault .panel { background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: var(--sv-radius-card); padding: 20px; box-shadow: var(--sv-shadow-card); min-width: 0; }
+.slidevault .panel h2 { font-size: 15px; margin-bottom: 10px; }
+.slidevault .big-preview { border-radius: var(--sv-radius-card); overflow: hidden; border: 1px solid var(--sv-border); }
+.slidevault .slide-text { font-size: var(--sv-text-small); background: var(--sv-surface-sunken); border-radius: 10px; padding: 12px 14px; }
+
+/* Stepping through a deck: the old slide leaves and the new one enters from the side; the page stays put. */
+.slidevault .slide-stage { position: relative; overflow: hidden; }
+.slidevault .slide-layer { position: absolute; inset: 0; }
+.slidevault .slide-in-next { animation: sv-in-next 280ms cubic-bezier(0.2, 0, 0, 1) both; }
+.slidevault .slide-in-prev { animation: sv-in-prev 280ms cubic-bezier(0.2, 0, 0, 1) both; }
+.slidevault .slide-out-next { animation: sv-out-next 280ms cubic-bezier(0.2, 0, 0, 1) both; pointer-events: none; }
+.slidevault .slide-out-prev { animation: sv-out-prev 280ms cubic-bezier(0.2, 0, 0, 1) both; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+.slidevault .slide-in-next, .slidevault .slide-in-prev, .slidevault .slide-out-next, .slidevault .slide-out-prev { animation: none; }
+.slidevault .slide-out-next, .slidevault .slide-out-prev { display: none; } }
+
+/* Slide votes, comments and Share (FD-72): grey pills, orange on hover */
+.slidevault .slide-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.slidevault .slide-actions.is-card { margin-top: 8px; }
+.slidevault .vp { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--sv-text-secondary); cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .votepill.is-small .vp { width: 26px; height: 26px; }
+.slidevault .vp .ic { width: 18px; height: 18px; }
+.slidevault .votepill.is-small .vp .ic { width: 15px; height: 15px; }
+.slidevault .vp.is-up { color: var(--sv-brand-strong); }
+.slidevault .vp:hover, .slidevault .vp:focus-visible { background: color-mix(in srgb, var(--sv-brand) 18%, transparent); color: var(--sv-brand-strong); }
+.slidevault .vp[aria-pressed="true"].is-up { background: color-mix(in srgb, var(--sv-brand) 26%, transparent); color: var(--sv-brand-strong); box-shadow: inset 0 0 0 1px var(--sv-brand); }
+.slidevault .vp[aria-pressed="true"].is-up .ic { stroke-width: 2.6; }
+.slidevault .vp[aria-pressed="true"].is-down { background: var(--sv-action-bg); color: var(--sv-action-fg); }
+.slidevault .vp-n { min-width: 2ch; padding: 0 2px; text-align: center; font-size: 14px; font-weight: 600; color: var(--sv-text); }
+.slidevault .votepill.is-small .vp-n { font-size: 13px; }
+.slidevault .comments { margin-top: 14px; display: grid; gap: 12px; }
+.slidevault .comment-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.slidevault .comment { display: grid; grid-template-columns: 32px 1fr; gap: 10px; }
+.slidevault .comment-head { margin: 0 0 2px; font-size: var(--sv-text-small); display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; }
+.slidevault .comment-del { margin-left: 8px; font-size: var(--sv-text-small); }
+.slidevault .comment-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.slidevault .composer { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; }
+.slidevault .composer-box { display: flex; align-items: flex-end; gap: 6px; min-height: 36px; padding: 3px 6px 3px 14px; border: 1px solid var(--sv-border-strong); border-radius: 20px; background: var(--sv-surface); transition: border-color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .composer-box:hover, .slidevault .composer-box:focus-within { border-color: var(--sv-brand); }
+.slidevault .composer-box textarea { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--sv-text); font: inherit; font-size: 14px; line-height: 1.4; resize: none; padding: 6px 0; max-height: 110px; }
+.slidevault .composer-post { border: 0; border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 700; padding: 5px 12px; margin-bottom: 1px; cursor: pointer; }
+.slidevault .composer-post:hover:not(:disabled), .slidevault .composer-post:focus-visible { background: var(--sv-brand-tint); color: var(--sv-brand-strong); }
+/* Useful on the left, Not useful on the right of the card, as in the Storyboard (FD-81) */
+.slidevault .fb-verdict { margin-top: 0; flex: 1 1 170px; flex-wrap: nowrap; }
+.slidevault .fb-verdict.is-small { justify-content: space-between; }
+
+/* Slide title with a pencil */
+.slidevault .slide-title-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+.slidevault .title-edit { flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin-top: 4px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: color-mix(in srgb, var(--sv-text-secondary) 55%, transparent); cursor: pointer; transition: color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .title-edit .ic { width: 18px; height: 18px; }
+.slidevault .title-edit:hover, .slidevault .title-edit:focus-visible { color: var(--sv-brand-strong); }
+.slidevault .title-edit-note { margin: 6px 0 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); } /* two buttons in an empty state: a gap, not touching */
+.slidevault .slide-actions:empty { display: none; }
+
+/* ---- Phone pass 4: the slide page ---- */
+.slidevault .sv-app[data-size="compact"] .slide-stepper { flex-wrap: nowrap; justify-content: space-between !important; gap: 8px !important; }
+.slidevault .sv-app[data-size="compact"] .slide-stepper-text { text-align: center; }
+
+/* ---- Phone pass 8: more room around the thumbnail ---- */
+
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .fb-verdict { margin-top: 4px; } }
+
+/* ---- Phone pass 9: the slide page ---- */
+.slidevault .sv-app[data-size="compact"] .slide-detail { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+.slidevault .sv-app[data-size="compact"] .slide-detail > div, .slidevault .sv-app[data-size="compact"] .slide-detail .slide-main { display: contents; }
+.slidevault .sv-app[data-size="compact"] .slide-detail .big-preview { margin-top: 18px; }
+/* Cards below the slide, in this order: Use this slide, About this slide, Details, Text on the slide. */
+.slidevault .sv-app[data-size="compact"] .stack-panels > .panel-about { order: 2; }
+.slidevault .sv-app[data-size="compact"] .stack-panels > .panel-details { order: 3; }
+.slidevault .sv-app[data-size="compact"] .slide-text-panel { order: 4; }
+/* Useful / Not useful: tips open above the pair, as wide as the pair, so no card or window cuts them off. */
+.slidevault .fb-verdict { position: relative; }
+/* Wider screens: the pair sits in the middle with room between, away from the card's edges. */
+@media (min-width: 701px) {
+.slidevault .fb-verdict, .slidevault .fb-verdict.is-small { justify-content: center; gap: 4px 32px; } }
+/* Phone: Useful at one side, Not useful at the other. */
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .fb-verdict, .slidevault .fb-verdict.is-small { flex-wrap: nowrap; justify-content: space-between; gap: 0 8px; } }
+/* A narrow card (two across on a phone): the ticks and crosses go and the words stay, so both words fit on one line. */
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .fb-verdict { flex: 1 1 0; min-width: 0; } }
+
+/* ---- Phone pass 12: the slide page ---- */
+.slidevault .sv-app[data-size="compact"] .hero-wrap .big-preview { margin-top: 0; }
+.slidevault .sv-app[data-size="compact"] .hero-wrap .slide-stage { border-radius: 0; border-left: 0; border-right: 0; }
+/* Cards that open and close (About, Details, Slide text). */
+.slidevault .sv-app[data-size="compact"] .slide-text-panel { margin-top: 16px; }
+
+/* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .slide-detail { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); column-gap: 14px; row-gap: 0; align-items: start; }
+.slidevault .sv-app[data-size="compact"] .slide-detail > div { display: contents; }
+.slidevault .sv-app[data-size="compact"] .slide-detail > div > :first-child { grid-column: 1; grid-row: 1; min-width: 0; }
+.slidevault .sv-app[data-size="compact"] .slide-detail .slide-main { display: block; grid-column: 1; grid-row: 2; min-width: 0; } }
+
+/* Phone landscape preview, fixed layout: results row level with the top of the slide, Add / Download level with the bottom of the deck arrows,
+   the free space in between. No line above the buttons. Tags as in portrait: the tag row, then Add tag with the suggestions beside it. */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault dialog.sv-dialog.wide .dlg-body > .slide-actions { grid-row: 2; margin-top: 0; } }
+
+/* Slide page on a phone on its side: the cards on the right are a compact column that scales with its own width, so a small phone looks like a smaller iPhone 15. */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .stack-panels .panel:not(.fold) { padding: 12px 14px; }
+.slidevault .sv-app[data-size="compact"] .stack-panels .panel { border-radius: 16px; }
+.slidevault .sv-app[data-size="compact"] .stack-panels .panel-use h2 { font-size: 15px; margin-bottom: 8px; }
+.slidevault .sv-app[data-size="compact"] .stack-panels .panel-use .row-flex { gap: 6px; }
+.slidevault .sv-app[data-size="compact"] .stack-panels .panel-use .btn { height: 34px; padding-inline: 10px; font-size: 13px; } }
+
+@container (max-width: 250px) {
+.slidevault .panel-use .btn .ic { display: none; }
+.slidevault .panel-use .btn { padding-inline: 8px; font-size: 12.5px; } }
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .panel-use .row-flex > .btn { padding-inline: 8px; }
+.slidevault .sv-app[data-size="compact"] .panel-use .row-flex > .btn .ic { display: none; } }
+
+/* Slide page title and its pencil: the pencil is exactly as tall as one line of the title and centred in it, so it sits on the first line's horizontal axis at every size. */
+.slidevault .slide-title-row { --ttl-fs: 30px; --ttl-lh: 1.2; }
+.slidevault .sv-app[data-size="compact"] .slide-title-row { --ttl-fs: 22px; }
+@media (max-width: 480px) {
+.slidevault .slide-title-row { --ttl-fs: 24px; }
+.slidevault .sv-app[data-size="compact"] .slide-title-row { --ttl-fs: 22px; } }
+@media (orientation: landscape) and (max-height: 400px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .slide-title-row { --ttl-fs: 18px; } }
+.slidevault .slide-title-row .title-edit { height: calc(var(--ttl-fs) * var(--ttl-lh)); margin-top: 0; align-self: flex-start; }
+
+/* ---- Phone on its side, round 3 ---- */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .panel-use .row-flex > .btn { white-space: normal; text-align: center; line-height: 1.15; height: auto; min-height: 38px; padding: 4px 6px; font-size: clamp(11px, 4.6cqw, 13.5px); }
+.slidevault dialog.sv-dialog.wide .dlg-body > .comments { grid-column: 2; grid-row: 3 / 5; z-index: 5; align-self: stretch; min-height: 0; overflow: auto; background: var(--sv-surface); margin: 0; } }
+/* Balance pass: each part of the deck line ("Created by … · date") stays together and wraps as a whole, and the slide page's Use this slide buttons are equal halves on every phone. */
+.slidevault .sv-app[data-size="compact"] .panel-use .row-flex { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.slidevault .sv-app[data-size="compact"] .panel-use .row-flex > .btn { justify-content: center; min-width: 0; }
+
+/* ======== Tablet held upright (FD-106): the phone-on-its-side page layouts (Home, results, slide page, deck page) with the tabs along the bottom. The slide preview keeps the desktop layout. ======== */
+.slidevault .sv-app[data-size="medium"] .slide-stepper { flex-wrap: nowrap; justify-content: center !important; gap: 10px !important; }
+/* Same small grey arrows as the slide preview, next to the position text. */
+.slidevault .sv-app[data-size="medium"] .slide-stepper > .btn-icon { min-height: 0; padding: 0; box-shadow: none; color: var(--sv-text-secondary); }
+/* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
+.slidevault .sv-app[data-size="medium"] .slide-stepper-text { text-align: center; }
+.slidevault .sv-app[data-size="medium"] .fb-verdict { margin-top: 4px; }
+.slidevault .sv-app[data-size="medium"] .slide-detail { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+.slidevault .sv-app[data-size="medium"] .slide-detail > div, .slidevault .sv-app[data-size="medium"] .slide-detail .slide-main { display: contents; }
+.slidevault .sv-app[data-size="medium"] .slide-detail .big-preview { margin-top: 18px; }
+.slidevault .sv-app[data-size="medium"] .stack-panels > .panel-about { order: 2; }
+.slidevault .sv-app[data-size="medium"] .stack-panels > .panel-details { order: 3; }
+.slidevault .sv-app[data-size="medium"] .slide-text-panel { order: 4; }
+.slidevault .sv-app[data-size="medium"] .fb-verdict, .slidevault .sv-app[data-size="medium"] .fb-verdict.is-small { flex-wrap: nowrap; justify-content: space-between; gap: 0 8px; }
+.slidevault .sv-app[data-size="medium"] .fb-verdict { flex: 1 1 0; min-width: 0; }
+.slidevault .sv-app[data-size="medium"] .hero-wrap .big-preview { margin-top: 0; }
+.slidevault .sv-app[data-size="medium"] .hero-wrap .slide-stage { border-radius: 0; border-left: 0; border-right: 0; }
+.slidevault .sv-app[data-size="medium"] .slide-text-panel { margin-top: 16px; }
+.slidevault .sv-app[data-size="medium"] .stack-panels .panel:not(.fold) { padding: 12px 14px; }
+.slidevault .sv-app[data-size="medium"] .stack-panels .panel { border-radius: 16px; }
+.slidevault .sv-app[data-size="medium"] .stack-panels .panel-use h2 { font-size: 15px; margin-bottom: 8px; }
+.slidevault .sv-app[data-size="medium"] .stack-panels .panel-use .row-flex { gap: 6px; }
+.slidevault .sv-app[data-size="medium"] .stack-panels .panel-use .btn { height: 34px; padding-inline: 10px; font-size: 13px; }
+.slidevault .sv-app[data-size="medium"] .panel-use .row-flex > .btn .ic { display: none; }
+.slidevault .sv-app[data-size="medium"] .slide-title-row { --ttl-fs: 22px; }
+.slidevault .sv-app[data-size="medium"] .panel-use .row-flex > .btn { white-space: normal; text-align: center; line-height: 1.15; height: auto; min-height: 38px; padding: 4px 6px; font-size: clamp(11px, 4.6cqw, 13.5px); }
+.slidevault .sv-app[data-size="medium"] .panel-use .row-flex { grid-template-columns: 1fr 1fr; }
+.slidevault .sv-app[data-size="medium"] .panel-use .row-flex > .btn { justify-content: center; min-width: 0; }
+
+/* Desktop slide page: the right-hand cards start level with the top of the slide picture, not with the heading above it. */
+.slidevault .sv-app[data-size="wide"] .slide-detail { row-gap: 0; }
+.slidevault .sv-app[data-size="wide"] .slide-detail > div:not(.stack-panels) { display: contents; }
+.slidevault .sv-app[data-size="wide"] .slide-detail > div:not(.stack-panels) > :first-child { grid-column: 1; grid-row: 1; min-width: 0; }
+.slidevault .sv-app[data-size="wide"] .slide-detail .slide-main { grid-column: 1; grid-row: 2; min-width: 0; }
+/* Desktop slide page: a slimmer right-hand column, and "Use this slide" as an even two-by-two block of buttons. */
+.slidevault .sv-app[data-size="wide"] .slide-detail { grid-template-columns: minmax(0, 1fr) clamp(320px, 30%, 380px); }
+.slidevault .sv-app[data-size="wide"] .panel-use .row-flex { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.slidevault .sv-app[data-size="wide"] .panel-use .row-flex > .btn { justify-content: center; min-width: 0; white-space: nowrap; padding-inline: 10px; }
+.slidevault .sv-app[data-size="wide"] .panel-use .row-flex > .btn .ic { display: none; }
+
+/* First / last slide: the arrow stays, greyed out, so the position text does not move. */
+.slidevault .slide-stepper > .btn-icon.is-off { pointer-events: none; }
+
+/* Slide page on an upright tablet: "Use this slide" buttons are normal-sized and sit together on the left, not stretched across the card. */
+.slidevault .sv-app[data-size="medium"] .panel-use .row-flex { display: flex; flex-wrap: wrap; gap: 8px; }
+.slidevault .sv-app[data-size="medium"] .panel-use .row-flex > .btn { flex: 0 0 auto; width: auto; padding-inline: 14px; }
+
+/* Slide page deck arrows: the same faint round buttons as the preview's, where they already are. */
+.slidevault .slide-stepper > .btn-icon { width: 30px; height: 30px; min-height: 0; padding: 0; border-radius: 50%; box-shadow: none; color: var(--sv-text-secondary); position: relative; }
+.slidevault .slide-stepper > .btn-icon .ic { width: 18px; height: 18px; }
+.slidevault .slide-stepper > .btn-icon::before { content: ""; position: absolute; inset: -7px; border-radius: 50%; }
+.slidevault .slide-stepper > .btn-icon.is-off { opacity: 0.3; }
+.slidevault .sv-app[data-size="medium"] .slide-stepper > .btn-icon { width: 30px; height: 30px; border-radius: 50%; }
+.slidevault .sv-app[data-size="medium"] .slide-stepper > .btn-icon .ic { width: 18px; height: 18px; }
+
+/* One look for every deck arrow (preview and slide page): the round white-ish card of the tablet-on-its-side preview, orange on hover or press. */
+.slidevault .slide-stepper > .btn-icon,
+.slidevault .sv-app[data-size="medium"] .slide-stepper > .btn-icon { background: color-mix(in srgb, var(--sv-surface) 62%, transparent); border: 1px solid color-mix(in srgb, var(--sv-text) 14%, transparent); }
+.slidevault .slide-stepper > .btn-icon.is-off,
+.slidevault .sv-app[data-size="medium"] .slide-stepper > .btn-icon.is-off { background: transparent; border-color: transparent; }
+.slidevault .slide-stepper > a.btn-icon:hover,
+.slidevault .slide-stepper > a.btn-icon:focus-visible,
+.slidevault .slide-stepper > a.btn-icon:active,
+.slidevault .sv-app[data-size="medium"] .slide-stepper > a.btn-icon:hover,
+.slidevault .sv-app[data-size="medium"] .slide-stepper > a.btn-icon:active { color: var(--sv-brand-strong); background: color-mix(in srgb, var(--sv-brand-strong) 12%, var(--sv-surface)); border-color: color-mix(in srgb, var(--sv-brand-strong) 40%, transparent); }
+
+/* Phone on its side. Slide page: the arrows sit close to "x/y in deck". Preview: the arrows sit at the two ends of the picture, below it, with "x/y in deck" between them. */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .slide-stepper { justify-content: center !important; gap: 10px !important; } }
