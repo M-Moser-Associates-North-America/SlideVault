@@ -1,0 +1,71 @@
+/* Upload (UploadView.tsx and friends)
+   Upload page, cards, grid, bar, drop zone.
+*/
+
+.slidevault .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.slidevault .steps li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; }
+.slidevault .dropzone { border: 2px dashed var(--sv-control-border); border-radius: var(--sv-radius-card); padding: 28px 20px; text-align: center; background: var(--sv-surface); }
+.slidevault .dropzone.over { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
+.slidevault .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 560px) {
+.slidevault .form-grid { grid-template-columns: 1fr; } }
+/* Cards keep a card's width (up to 360px) instead of stretching across the page, and sit side by side when there are several. */
+.slidevault .upload-wrap { max-width: 860px; }
+
+/* Cart: thin and quiet */
+.slidevault .sv-shell.narrow .center .sv-main .sv-wrap.upload-wrap { max-width: 720px; }
+
+/* The filter group list used inside the rail's second block. */
+.slidevault .dropzone[aria-disabled="true"] { opacity: .8; }
+
+/* Upload: category pills and the tag box */
+.slidevault .up-ok { color: var(--svp-success-text); font-style: italic; }
+.slidevault .up-todo { color: var(--svp-danger-text); font-style: italic; }
+
+/* Upload: progress bar, the slides of the deck being uploaded, and the submit area at the bottom */
+.slidevault .upbar-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.slidevault .upbar-label { margin: 0; font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .upbar { position: relative; height: 10px; border-radius: 999px; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); overflow: hidden; }
+.slidevault .upbar > span { display: block; height: 100%; border-radius: 999px; background: var(--sv-brand); transition: width .2s ease; }
+.slidevault .upbar.is-indeterminate > span { width: 35%; animation: upbarSlide 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+.slidevault .upbar.is-indeterminate > span { animation: none; width: 100%; opacity: .5; }
+.slidevault .upbar > span { transition: none; } }
+.slidevault .upgrid { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--sv-border); }
+.slidevault .upgrid-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.slidevault .upgrid-head .meta { margin: 4px 0 0; max-width: 60ch; }
+.slidevault .upgrid-bulk { position: sticky; top: 8px; z-index: 15; display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-top: 14px; padding: 10px 14px; border: 1px solid var(--sv-brand); border-radius: 14px; background: var(--sv-brand-tint); box-shadow: var(--sv-shadow-card); }
+.slidevault .upgrid-bulk-field { flex: 1 1 220px; min-width: 200px; }
+.slidevault .upgrid-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.slidevault .upcard { position: relative; display: flex; flex-direction: column; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
+.slidevault .upcard.is-selected { border-color: var(--sv-brand); box-shadow: 0 0 0 1px var(--sv-brand); }
+.slidevault .upcard-thumb { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 9; border-radius: 13px 13px 0 0; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); border-bottom: 1px solid var(--sv-border); }
+.slidevault .upcard.is-hidden .upcard-thumb { background-image: repeating-linear-gradient(135deg, transparent 0 10px, var(--sv-border) 10px 11px); }
+.slidevault .upcard-thumb .ic { width: 28px; height: 28px; }
+.slidevault .upcard-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 13px 13px 0 0; }
+.slidevault .upcard-num { z-index: 1; position: absolute; left: 10px; bottom: 8px; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--sv-surface); border: 1px solid var(--sv-border); color: var(--sv-text); }
+.slidevault .upcard-pick { position: absolute; z-index: 1; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); cursor: pointer; }
+.slidevault .upcard-pick input { width: 18px; height: 18px; margin: 0; cursor: pointer; accent-color: var(--sv-brand); }
+.slidevault .upcard-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; min-width: 0; }
+.slidevault .upcard-title { margin: 0; font-size: 14.5px; line-height: 1.3; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.slidevault .upcard-text { margin: 0; font-size: 13px; line-height: 1.4; color: var(--sv-text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.slidevault .upgrid-more { margin-top: 16px; }
+.slidevault .upsubmit { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--sv-border); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.slidevault .upsubmit .upbar-wrap { margin-top: 0; width: 100%; max-width: 520px; }
+.slidevault .upsubmit .meta { margin: 0; }
+/* Upload cards: thumbnails wait with a spinner, then fade the picture in; static tags (not saved yet) */
+.slidevault .upcard-thumb .spin { color: var(--sv-text-secondary); }
+.slidevault .upcard-thumb img { opacity: 0; transition: opacity var(--sv-duration) var(--sv-ease-out); background: transparent; }
+.slidevault .upcard-thumb img.is-loaded { opacity: 1; background: #fff; }
+
+/* Suggested tags (FD-82): the same dashed pill as "+ Add tag", in a row of their own after "Suggested". */
+.slidevault .up-ai { margin-top: 12px; }
+.slidevault .up-ai .btn .ic { margin-right: 4px; }
+
+/* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
+.slidevault .upsubmit[hidden] { display: none; }
+
+/* Upload on an upright tablet and on a phone on its side: a narrower form, centred, so the white drop box has room on both sides. */
+.slidevault .sv-app[data-size="medium"] .sv-shell.narrow .center .sv-main .sv-wrap.upload-wrap { max-width: 660px; margin-left: auto; margin-right: auto; }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .sv-shell.narrow .center .sv-main .sv-wrap.upload-wrap { max-width: 560px; margin-left: auto; margin-right: auto; } }

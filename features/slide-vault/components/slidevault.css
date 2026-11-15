@@ -128,17 +128,10 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .dlg-body { padding: 4px 24px 16px; overflow: auto; min-height: 0; }
 .slidevault .dlg-foot { padding: 12px 24px 20px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--sv-border); }
 .slidevault .counter { font-variant-numeric: tabular-nums; font-size: var(--sv-text-small); font-weight: 600; }
-
-.slidevault .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.slidevault .steps li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; }
 .slidevault .steps li.now { background: var(--sv-surface-sunken); font-weight: 700; }
 .slidevault .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .slidevault .stat { background: var(--sv-surface-sunken); border-radius: 12px; padding: 12px 14px; }
 .slidevault .stat b { display: block; font-size: 20px; }
-.slidevault .dropzone { border: 2px dashed var(--sv-control-border); border-radius: var(--sv-radius-card); padding: 28px 20px; text-align: center; background: var(--sv-surface); }
-.slidevault .dropzone.over { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
-.slidevault .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 560px) { .slidevault .form-grid { grid-template-columns: 1fr; } }
 .slidevault .form-grid .full { grid-column: 1 / -1; }
 .slidevault .radio-row { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .slidevault .radio-row label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--sv-text-small); min-height: 32px; cursor: pointer; }
@@ -218,8 +211,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .tier-table th { font-size: 12px; color: var(--sv-text-secondary); }
 
 /* Create placeholder */
-/* Cards keep a card's width (up to 360px) instead of stretching across the page, and sit side by side when there are several. */
-.slidevault .upload-wrap { max-width: 860px; }
 
 /* ------------------------------------------------------------------
    v3 three-column layout: filters + search (left), content, cart (right)
@@ -296,7 +287,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; }
 .slidevault .narrow .center { padding: 0 24px; }
 .slidevault .narrow .notice { max-width: none !important; }
-.slidevault .sv-shell.narrow .center .sv-main .sv-wrap.upload-wrap { max-width: 720px; }
 @media (max-width: 960px) { .slidevault .narrow .center { padding: 0; } }
 .slidevault .toasts.lift { bottom: 16px; }
 

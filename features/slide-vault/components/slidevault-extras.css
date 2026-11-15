@@ -21,9 +21,6 @@
 
 .slidevault .btn:disabled { opacity: .45; cursor: not-allowed; }
 
-/* The filter group list used inside the rail's second block. */
-.slidevault .dropzone[aria-disabled="true"] { opacity: .8; }
-
 /* Card badges and notes. */
 .slidevault .card-note { display: flex; align-items: center; gap: 6px; font-size: var(--sv-text-meta); color: var(--sv-text); }
 .slidevault .card-note .ic { color: var(--sv-brand-strong); }
@@ -407,8 +404,8 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .field > .field-label { font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .field-opt { font-weight: 400; color: var(--sv-text-secondary); margin-left: 4px; }
 .slidevault .field-hint { margin: 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
-.slidevault .field-hint.is-auto, .slidevault .up-ok { color: var(--svp-success-text); font-style: italic; }
-.slidevault .field-hint.is-missing, .slidevault .up-todo { color: var(--svp-danger-text); font-style: italic; }
+.slidevault .field-hint.is-auto { color: var(--svp-success-text); font-style: italic; }
+.slidevault .field-hint.is-missing { color: var(--svp-danger-text); font-style: italic; }
 .slidevault .req { color: var(--svp-danger-text); font-weight: 700; margin-left: 2px; }
 .slidevault .catpills { display: flex; flex-wrap: wrap; gap: 8px; }
 .slidevault .catpill { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-size: var(--sv-text-small); font-weight: 500; cursor: pointer; }
@@ -420,35 +417,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .catother { flex: 1; min-width: 0; max-width: 320px; margin-top: 0; }
 
 /* Upload: progress bar, the slides of the deck being uploaded, and the submit area at the bottom */
-.slidevault .upbar-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
-.slidevault .upbar-label { margin: 0; font-size: var(--sv-text-small); font-weight: 600; }
-.slidevault .upbar { position: relative; height: 10px; border-radius: 999px; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); overflow: hidden; }
-.slidevault .upbar > span { display: block; height: 100%; border-radius: 999px; background: var(--sv-brand); transition: width .2s ease; }
-.slidevault .upbar.is-indeterminate > span { width: 35%; animation: upbarSlide 1.2s ease-in-out infinite; }
 @keyframes upbarSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
-@media (prefers-reduced-motion: reduce) { .slidevault .upbar.is-indeterminate > span { animation: none; width: 100%; opacity: .5; } .slidevault .upbar > span { transition: none; } }
-.slidevault .upgrid { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--sv-border); }
-.slidevault .upgrid-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.slidevault .upgrid-head .meta { margin: 4px 0 0; max-width: 60ch; }
-.slidevault .upgrid-bulk { position: sticky; top: 8px; z-index: 15; display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-top: 14px; padding: 10px 14px; border: 1px solid var(--sv-brand); border-radius: 14px; background: var(--sv-brand-tint); box-shadow: var(--sv-shadow-card); }
-.slidevault .upgrid-bulk-field { flex: 1 1 220px; min-width: 200px; }
-.slidevault .upgrid-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 14px; }
-.slidevault .upcard { position: relative; display: flex; flex-direction: column; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
-.slidevault .upcard.is-selected { border-color: var(--sv-brand); box-shadow: 0 0 0 1px var(--sv-brand); }
-.slidevault .upcard-thumb { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 9; border-radius: 13px 13px 0 0; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); border-bottom: 1px solid var(--sv-border); }
-.slidevault .upcard.is-hidden .upcard-thumb { background-image: repeating-linear-gradient(135deg, transparent 0 10px, var(--sv-border) 10px 11px); }
-.slidevault .upcard-thumb .ic { width: 28px; height: 28px; }
-.slidevault .upcard-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 13px 13px 0 0; }
-.slidevault .upcard-num { z-index: 1; position: absolute; left: 10px; bottom: 8px; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--sv-surface); border: 1px solid var(--sv-border); color: var(--sv-text); }
-.slidevault .upcard-pick { position: absolute; z-index: 1; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); cursor: pointer; }
-.slidevault .upcard-pick input { width: 18px; height: 18px; margin: 0; cursor: pointer; accent-color: var(--sv-brand); }
-.slidevault .upcard-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; min-width: 0; }
-.slidevault .upcard-title { margin: 0; font-size: 14.5px; line-height: 1.3; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.slidevault .upcard-text { margin: 0; font-size: 13px; line-height: 1.4; color: var(--sv-text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.slidevault .upgrid-more { margin-top: 16px; }
-.slidevault .upsubmit { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--sv-border); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-.slidevault .upsubmit .upbar-wrap { margin-top: 0; width: 100%; max-width: 520px; }
-.slidevault .upsubmit .meta { margin: 0; }
 
 /* Tags (FD-72): quiet grey pills; orange only on hover and focus */
 .slidevault .tag { --tag-rgb: 100, 116, 139; display: inline-flex; align-items: center; max-width: 100%; min-height: 24px; padding: 0 9px; border: 1px solid rgba(var(--tag-rgb), .75); border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: 12.5px; line-height: 1; cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
@@ -497,9 +466,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* Slide title with a pencil */
 .slidevault .slide-title-row .h1 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 /* Upload cards: thumbnails wait with a spinner, then fade the picture in; static tags (not saved yet) */
-.slidevault .upcard-thumb .spin { color: var(--sv-text-secondary); }
-.slidevault .upcard-thumb img { opacity: 0; transition: opacity var(--sv-duration) var(--sv-ease-out); background: transparent; }
-.slidevault .upcard-thumb img.is-loaded { opacity: 1; background: #fff; }
 .slidevault .tag.is-static { cursor: default; }
 .slidevault .tag.is-static:hover { border-color: rgba(var(--tag-rgb), .75); background: transparent; }
 .slidevault .tag.is-deck { opacity: .8; border-style: dashed; }
@@ -531,8 +497,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .dlg-head-tools { display: flex; align-items: center; gap: 2px; flex: none; }
 
 /* Suggested tags (FD-82): the same dashed pill as "+ Add tag", in a row of their own after "Suggested". */
-.slidevault .up-ai { margin-top: 12px; }
-.slidevault .up-ai .btn .ic { margin-right: 4px; }
 .slidevault .btn-ai { border-color: var(--sv-brand); } /* "Fill the rest with AI": an orange outline, orange sparkle and AI, as in "Search with AI" */
 .slidevault .btn-ai .ic { color: var(--sv-brand-strong); }
 .slidevault .btn-ai b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; }
@@ -754,7 +718,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   /* Preview: the slide on the left; title, actions and details on the right. Result arrows are icons here. */
   .slidevault dialog.sv-dialog.wide .dlg-body { padding: 4px 20px 6px; }
 }
-.slidevault .upsubmit[hidden] { display: none; }
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   /* The heading sits over the slide only; the cards on the right start level with the top of the slide. */
   .slidevault .sv-app[data-size="compact"] .slide-detail > .stack-panels { display: block; grid-column: 2; grid-row: 2; min-width: 0; padding-top: 10px; }
@@ -981,12 +944,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .trust dd.break-name .arch-link { word-break: normal; }
 .slidevault .panel-h .also-words { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; font-weight: 600; white-space: nowrap; }
 .slidevault .panel-h .also-words .ic { width: 16px; height: 16px; }
-
-/* Upload on an upright tablet and on a phone on its side: a narrower form, centred, so the white drop box has room on both sides. */
-.slidevault .sv-app[data-size="medium"] .sv-shell.narrow .center .sv-main .sv-wrap.upload-wrap { max-width: 660px; margin-left: auto; margin-right: auto; }
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  .slidevault .sv-app[data-size="compact"] .sv-shell.narrow .center .sv-main .sv-wrap.upload-wrap { max-width: 560px; margin-left: auto; margin-right: auto; }
-}
 
 /* Settings and Profile: a narrower centred column on an upright tablet and on a phone on its side, so text and boxes do not run edge to edge. */
 .slidevault .sv-app[data-size="medium"] .sv-shell.narrow .center .sv-main .sv-wrap.profile-wrap { margin-left: auto; margin-right: auto; }
