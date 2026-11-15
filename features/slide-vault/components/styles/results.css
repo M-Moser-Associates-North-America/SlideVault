@@ -66,7 +66,7 @@
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
 .slidevault .sv-app[data-size="compact"] .deck-tagbar .cols-toggle { margin-left: auto; } }
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
-.slidevault .sv-app[data-size="medium"] .res-title { font-size: 18px; line-height: 1.3; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.slidevault .sv-app[data-size="medium"] .res-title { line-height: 1.3; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .slidevault .sv-app[data-size="medium"] .res-wrap .summary-row { margin: 6px 0 10px; }
 .slidevault .sv-app[data-size="medium"] .res-wrap { display: flex; flex-direction: column; }
 .slidevault .sv-app[data-size="medium"] .res-wrap > .page-head { order: -2; }
