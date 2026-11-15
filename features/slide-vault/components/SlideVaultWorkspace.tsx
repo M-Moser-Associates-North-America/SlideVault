@@ -48,6 +48,7 @@ import './styles/profile.css';
 import './styles/auth.css';
 import './styles/tour.css';
 import './styles/packs.css';
+import './styles/create.css';
 
 /**
  * The SlideVault workspace: renders inside whatever space its host gives it and talks to the
