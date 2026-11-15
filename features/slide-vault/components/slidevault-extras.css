@@ -31,7 +31,6 @@
 .slidevault .dropzone[aria-disabled="true"] { opacity: .8; }
 
 /* Card badges and notes. */
-.slidevault .thumb-badge { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .slidevault .card-note { display: flex; align-items: center; gap: 6px; font-size: var(--sv-text-meta); color: var(--sv-text); }
 .slidevault .card-note .ic { color: var(--sv-brand-strong); }
 .slidevault .also-list .t { display: block; }
@@ -261,12 +260,6 @@
   .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 0 0 var(--sv-side); grid-template-columns: 272px minmax(0, 1fr) 264px; }
   .slidevault .sv-app[data-size="wide"] .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
 
-/* ---- Loading placeholders shaped like the rows ---- */
-.slidevault .skel-rows { display: grid; gap: 36px; margin-top: 8px; }
-.slidevault .skel-title { width: 220px; height: 22px; margin-bottom: 16px; }
-.slidevault .skel-cards { display: flex; gap: 18px; overflow: hidden; }
-.slidevault .skel-cards .skel-card { flex: 0 0 260px; height: 250px; }
-
 /* ---- Calmer row headings: plain title, details tucked behind a small info icon ---- */
 .slidevault .row-head h2::before { display: none; }
 .slidevault .row-head h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0; }
@@ -301,13 +294,6 @@
 .slidevault .draft-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); flex: none; }
 .slidevault .draft-txt { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .slidevault .draft-acts { display: flex; gap: 6px; flex: none; }
-
-/* ---- The corner tick: always faintly visible, brighter on hover, solid orange once chosen ---- */
-.slidevault .pick { opacity: 0.8; }
-.slidevault .vcard:hover .pick, .slidevault .pick:focus-within, .slidevault .vcard.is-selected .pick { opacity: 1; }
-.slidevault .pick .box { border-color: rgba(255, 255, 255, 0.95); background: rgba(0, 0, 0, 0.32); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
-.slidevault .pick .pick-tip { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; padding: 5px 9px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none; }
-.slidevault .pick:hover .pick-tip, .slidevault .pick input:focus-visible ~ .pick-tip { display: block; }
 
 /* container width: wide */
   .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 360px; column-gap: 0; }
@@ -555,7 +541,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .arch-page .arch-row { padding: 16px 18px; gap: 20px; }
 .slidevault .arch-page .arch-info { display: flex; flex-direction: column; gap: 6px; }
 .slidevault .arch-page .arch-info .meta { margin: 0; }
-.slidevault .arch-page .skel, .slidevault .arch-page .state { margin-top: 28px; }
+.slidevault .arch-page .state { margin-top: 28px; }
 
 /* Pack and archive questions on a phone: the main button on top and full width, the others under it. */
 @media (max-width: 480px) {
@@ -710,7 +696,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .toasts[popover]:not(:popover-open) { display: none; }
 
 /* Card: same zones in the same places. Title (two lines), meta, one line of tags, then a footer pinned to the bottom */
-.slidevault .vcard .card-body { container-type: inline-size; }
 .slidevault .card-foot { margin-top: auto; padding-top: 2px; display: flex; align-items: center; gap: 8px; min-height: 28px; min-width: 0; } /* just tall enough for the small arrows or the Also-in chip (was 36px, from when votes with counts lived here) */
 .slidevault .card .card-body { padding-bottom: 10px; }
 .slidevault .card-foot:empty { display: none; }
@@ -948,7 +933,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .more-menu-item .ic { color: var(--sv-text-secondary); }
 .slidevault .deck-sticky { position: absolute; top: 0; left: 0; right: 0; z-index: 45; display: flex; align-items: center; gap: 10px; padding: 8px 16px; padding-top: calc(8px + env(safe-area-inset-top)); background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .deck-sticky .deck-jump-go { flex: 1; }
-.slidevault .slide-num { position: absolute; left: 8px; bottom: 8px; z-index: 2; min-width: 28px; padding: 3px 9px; border-radius: 999px; background: rgba(0, 0, 0, 0.62); color: #fff; font-size: 12px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; pointer-events: none; }
 .slidevault .deck-jump { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .sv-app[data-size="compact"] .deck-head h1 { font-size: 24px; line-height: 1.2; }
 .slidevault .sv-app[data-size="compact"] .deck-badges { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin-top: 12px; }
@@ -966,11 +950,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .range-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface); font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .range-add .num-jump { width: 52px; height: 32px; }
 /* Pictures show a soft shimmer until they arrive, then fade in. */
-.slidevault .thumb img { opacity: 0; transition: opacity 0.25s ease-out, transform var(--sv-duration) var(--sv-ease-out); }
-.slidevault .thumb img.is-loaded { opacity: 1; }
-@media (prefers-reduced-motion: no-preference) {
-  .slidevault .thumb:has(> img:not(.is-loaded))::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sv-surface) 55%, transparent), transparent); transform: translateX(-100%); animation: sv-shimmer 1.4s ease-in-out infinite; pointer-events: none; }
-}
 .slidevault .meta-wrap[hidden] { display: none; }
 
 /* ---- Phone pass 12: the slide page ---- */
@@ -1285,15 +1264,8 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault .also-line { text-decoration: none; min-height: 28px; padding: 2px 8px 2px 0; }
   .slidevault .also-line:hover::after, .slidevault .also-line:focus-visible::after { display: block !important; top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; }
 }
-/* A preview that could not load: a quiet note in its place, never a broken-image icon. */
-.slidevault .thumb-missing { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 100%; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); font-size: var(--sv-text-small); font-weight: 600; text-align: center; padding: 8px; }
-.slidevault .thumb-missing .ic { width: 22px; height: 22px; }
 /* Loading placeholders never make the page wider than the screen (the page could be dragged sideways while it loaded). */
-.slidevault .skel-rows, .slidevault .skel-rows > *, .slidevault .skel-cards { min-width: 0; max-width: 100%; }
 .slidevault .deck-meta .dm { max-width: 100%; overflow-wrap: anywhere; }
-/* In the small mosaics (deck cards, the Archive) a missing preview is just the icon: there is no room for words. */
-.slidevault .mosaic .thumb-missing span, .slidevault .arch-mosaic .thumb-missing span { display: none; }
-.slidevault .mosaic .thumb-missing .ic, .slidevault .arch-mosaic .thumb-missing .ic { width: 14px; height: 14px; }
 /* The deck page's button row on a phone on its side: the buttons keep their own width however many tags there are. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .sv-app[data-size="compact"] .deck-actions > .btn, .slidevault .sv-app[data-size="compact"] .deck-actions > div:not(.deck-tags-inline) { flex: none; }
@@ -1488,9 +1460,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="medium"] .home-hero { padding-top: 40px; }
 .slidevault .sv-app[data-size="medium"] .home-hero:not(.has-results) .home-hero-search { padding-left: 14px; }
 
-/* Card meta line (client · year · type) keeps two lines of room wherever it may wrap, so tags and "Why it fits" line up across a row whether the title and meta take one line or two. */
-.slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .vcard .card-body .meta.clip { line-height: 1.4; min-height: 2.8em; }
-
 /* Tablet upright results: no column button, and more air between the rows. */
 .slidevault .sv-app[data-size="medium"] .res-wrap .refine > .cols-toggle { display: none; }
 .slidevault .sv-app[data-size="medium"] .sv-wrap.res-wrap > .page-head { margin-top: 22px; }
@@ -1581,9 +1550,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .cols-toggle { display: none; }
 }
-
-/* The card's hover note for a cut-off line sits above that line, inside the card, so the card's rounded edge never clips it. */
-.slidevault .vcard .meta-wrap[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; transform: none; width: max-content; max-width: min(100%, 280px); white-space: normal; line-height: 1.35; }
 
 /* A See all / tile page has its breadcrumb row above the search, so the search itself needs less room above it. */
 .slidevault .sv-app .sv-main:has(.res-browse) .home-hero { padding-top: 6px; }
@@ -1724,7 +1690,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.save-tg, .deck-arch)::before { content: ""; position: absolute; inset: -8px; }
   .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.row-info, .helpdot, .also)::before { content: ""; position: absolute; inset: -5px; }
   .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag::before { content: ""; position: absolute; inset: -2px; }
-  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .vcard .tag::before { inset: -1px; }
 }
 
 /* Very large screens (1900px and up): the header and page content stop at 1960px and sit in the middle; the draft deck still reaches the screen's right edge. The base text is a notch bigger. */
@@ -1774,9 +1739,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app .res-wrap > .res-controls > .refine { grid-column: 2; grid-row: 1; margin: 0 0 18px; padding: 0; }
 /* Tablet on its side: no "Sort" word before the box, as on the upright tablet. */
 .slidevault .sv-app[data-tl] .refine .refine-lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-
-/* Slide cards: a little more room under the tag pills. */
-.slidevault .vcard .card-body { padding-bottom: 14px; }
 /* Results page on a tablet on its side: the breadcrumb sits 40px above the search bar. */
 .slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .home-hero { margin-top: -4px; }
 /* Deck page, upright tablet: more room under the buttons before "Go to slide". */
@@ -1800,9 +1762,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault { --sv-btn-edge: #8e8e8e; }
 .slidevault[data-theme="dark"], .slidevault [data-theme="dark"] { --sv-btn-edge: var(--sv-control-border); }
 .slidevault .btn-ghost, .slidevault .btn-icon.btn-ghost { box-shadow: none; }
-
-/* Slide cards: the tap area round a tag must not reach the title, the "Also in" link or the meta line above it, so only the pill itself (and a hair round it) answers. */
-.slidevault .vcard .tag::before { inset: -1px; }
 
 /* "We read this as" pills: more room before the slide cards below, and tucked closer under the heading (a phone held upright already has them close). */
 .slidevault .res-wrap .interp { margin: 0 0 22px; }
@@ -1850,9 +1809,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 
 /* Phone "Add a tag" sheet. */
 dialog.slidevault.tag-sheet .tag-sheet-form .input { flex: 1 1 auto; min-width: 0; min-height: 44px; font-size: 16px; }
-
-/* Dark mode: the loading shimmer is a faint light sweep, not a bright white bar. */
-.slidevault[data-theme="dark"] .skel::after, .slidevault [data-theme="dark"] .skel::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent); }
 /* A section's own page (a section chosen on Home): the heading, its one line, then room before the section cards. */
 .slidevault .seccards-browse > .h1 { margin: 0; }
 .slidevault .seccards-browse > .h1 + .meta { margin: 6px 0 22px; }

@@ -78,9 +78,7 @@
 .slidevault .state h2 { font-size: 18px; margin: 10px 0 6px; }
 .slidevault .state p { color: var(--sv-text-secondary); max-width: 520px; margin: 0 auto 16px; }
 .slidevault .state.error { border-style: solid; border-color: var(--sv-danger); }
-.slidevault .skel { background: var(--sv-surface-sunken); border-radius: 8px; position: relative; overflow: hidden; }
 @media (prefers-reduced-motion: no-preference) {
-  .slidevault .skel::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); animation: sv-shimmer 1.1s var(--sv-ease-out) 3; }
   .slidevault .spin { animation: sv-spin 1s linear infinite; }
 }
 @keyframes sv-shimmer { to { transform: translateX(100%); } }
@@ -99,11 +97,6 @@
 ------------------------------------------------------------------- */
 .slidevault .card { background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: var(--sv-radius-card); box-shadow: var(--sv-shadow-card); overflow: hidden; display: flex; flex-direction: column; min-width: 0; position: relative; }
 .slidevault .card.is-selected { border-color: var(--sv-brand); box-shadow: 0 0 0 1px var(--sv-brand), var(--sv-shadow-card); }
-.slidevault .thumb { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--sv-surface-sunken); border: 0; padding: 0; margin: 0; cursor: pointer; position: relative; overflow: hidden; }
-.slidevault .thumb svg { width: 100%; height: 100%; display: block; }
-.slidevault .thumb .zoom { position: absolute; right: 8px; bottom: 8px; width: 30px; height: 30px; border-radius: 8px; background: rgba(0,0,0,.6); color: #fff; display: grid; place-items: center; opacity: 0; transition: opacity var(--sv-duration-fast); }
-.slidevault .thumb:hover .zoom, .slidevault .thumb:focus-visible .zoom { opacity: 1; }
-.slidevault .thumb:focus-visible { outline-offset: -3px; }
 .slidevault .card-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
 .slidevault .card-title { font-weight: 600; font-size: 14.5px; color: var(--sv-text); text-decoration: none; line-height: 1.35; overflow-wrap: anywhere; }
 .slidevault a.card-title { color: var(--sv-text); }
@@ -222,22 +215,10 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .row-head { align-items: center; }
 .slidevault .row-head .acts { display: flex; gap: 4px; align-items: center; }
 .slidevault .row-scroller { grid-auto-columns: 262px; padding-top: 10px; }
-.slidevault .vcard { transition: transform var(--sv-duration) var(--sv-ease-out), box-shadow var(--sv-duration) var(--sv-ease-out); }
-@media (hover: hover) { .slidevault .vcard:hover { transform: translateY(-3px); box-shadow: var(--sv-shadow-panel); } }
-.slidevault .thumbwrap { position: relative; }
-.slidevault .pick { position: absolute; top: 8px; left: 8px; z-index: 2; width: 28px; height: 28px; cursor: pointer; transition: opacity var(--sv-duration-fast); }
-.slidevault .pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
-.slidevault .pick .box { width: 28px; height: 28px; border-radius: 8px; border: 2px solid #fff; color: #fff; display: grid; place-items: center; }
-.slidevault .pick .box .ic { width: 16px; height: 16px; opacity: 0; }
-.slidevault .pick input:checked + .box { background: var(--sv-brand); border-color: var(--sv-brand); }
-.slidevault .pick input:checked + .box .ic { opacity: 1; }
-.slidevault .pick input:focus-visible + .box { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
-.slidevault .thumb-badge { position: absolute; top: 8px; right: 8px; z-index: 2; }
 .slidevault .thumb-badge .badge { background: var(--sv-surface); }
 .slidevault .card-body .meta.clip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slidevault .also { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--sv-border-strong); background: var(--sv-surface); font-size: 12px; font-weight: 600; cursor: pointer; }
 .slidevault .also:hover { background: var(--sv-surface-sunken); }
-.slidevault .tiles { display: flex; gap: 10px; overflow-x: auto; padding: 6px 2px 12px; scrollbar-width: thin; }
 .slidevault .tile { padding: 14px 16px; border-radius: 14px; border: 1px solid var(--sv-border); background: var(--sv-surface); color: var(--sv-text); text-decoration: none; display: flex; flex-direction: column; gap: 2px; box-shadow: var(--sv-shadow-card); }
 .slidevault a.tile { color: var(--sv-text); }
 .slidevault .tile:hover { background: var(--sv-surface-sunken); }
@@ -257,7 +238,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
 .slidevault .how { margin-top: 28px; padding: 14px 18px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
 .slidevault .how ol { margin: 8px 0 0 18px; padding: 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); display: grid; gap: 4px; }
-.slidevault .skel-card { height: 250px; border-radius: 16px; }
 .slidevault .thinking { display: flex; align-items: center; gap: 10px; font-size: var(--sv-text-small); font-weight: 600; margin: 14px 0; }
 
 /* Slide and deck detail */
@@ -355,9 +335,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .y-link { display: inline-block; margin-top: 10px; font-size: 13px; background: none; border: 0; padding: 0; cursor: pointer; }
 .slidevault .yr { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .slidevault .yr .select { flex: 1; min-width: 0; }
-.slidevault .pickchip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 8px 0 12px; border-radius: 999px; border: 1px solid var(--sv-brand); background: var(--sv-surface); color: var(--sv-text); font: 600 13px var(--sv-font-sans); cursor: pointer; }
-.slidevault .pickchip .ic { width: 14px; height: 14px; color: var(--sv-text-secondary); }
-.slidevault .pickchip:hover { background: var(--sv-surface-sunken); }
 .slidevault .f-note { font-size: var(--sv-text-small); color: var(--sv-text-secondary); margin: 12px 0 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 /* Cart: thin and quiet */
@@ -432,6 +409,5 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 /* touch: 44px targets */
 @media (pointer: coarse) {
   .slidevault .fchip span { min-height: 44px; }
-  .slidevault .pick { width: 44px; height: 44px; top: 2px; left: 2px; display: grid; place-items: center; }
   .slidevault .sclear { width: 36px; height: 36px; }
 }
