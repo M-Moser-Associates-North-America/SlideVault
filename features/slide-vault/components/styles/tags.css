@@ -209,3 +209,6 @@ dialog.slidevault.tag-sheet .tag-sheet-added { color: var(--sv-text); }
 dialog.slidevault.tag-sheet .meta { margin: 0; }
 /* The sheet sits clear of the screen's bottom edge (and the phone's home bar): room under the box and the matching tags. */
 dialog.slidevault.tag-sheet .tag-sheet-body { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+
+/* The Add tag sheet sits inside a slide-page panel, whose heading rule (15px) would otherwise shrink the sheet's title. */
+.slidevault .panel dialog.sv-dialog .dlg-head h2 { font-size: 18px; }

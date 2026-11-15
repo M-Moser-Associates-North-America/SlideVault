@@ -694,7 +694,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="wide"] .slide-detail > .stack-panels { grid-column: 2; grid-row: 2; min-width: 0; }
 /* Desktop slide page, Tags card: "Also in N other decks" (icon and number) at the right of the heading. */
 .slidevault .panel-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.slidevault .panel-h h2 { margin: 0; }
+.slidevault .panel .panel-h h2 { margin: 0; }
 /* Tablet held upright preview: room between the picture and the deck arrows, and "Open deck" written out. */
 @media (orientation: portrait) and (min-width: 701px) and (max-width: 1100px) {
   .slidevault .sv-app[data-size="medium"] dialog.sv-dialog .lb-open-deck .lbl-long, .slidevault dialog.sv-dialog .lb-open-deck .lbl-long { display: inline; }

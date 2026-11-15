@@ -76,7 +76,7 @@
 /* Cards below the slide, in this order: Use this slide, About this slide, Details, Text on the slide. */
 .slidevault .sv-app[data-size="compact"] .stack-panels > .panel-about { order: 2; }
 .slidevault .sv-app[data-size="compact"] .stack-panels > .panel-details { order: 3; }
-.slidevault .sv-app[data-size="compact"] .slide-text-panel { order: 4; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .slide-text-panel { order: 4; }
 /* Useful / Not useful: tips open above the pair, as wide as the pair, so no card or window cuts them off. */
 .slidevault .fb-verdict { position: relative; }
 /* Wider screens: the pair sits in the middle with room between, away from the card's edges. */
@@ -93,7 +93,7 @@
 .slidevault .sv-app[data-size="compact"] .hero-wrap .big-preview { margin-top: 0; }
 .slidevault .sv-app[data-size="compact"] .hero-wrap .slide-stage { border-radius: 0; border-left: 0; border-right: 0; }
 /* Cards that open and close (About, Details, Slide text). */
-.slidevault .sv-app[data-size="compact"] .slide-text-panel { margin-top: 16px; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .slide-text-panel { margin-top: 16px; }
 
 /* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
 
