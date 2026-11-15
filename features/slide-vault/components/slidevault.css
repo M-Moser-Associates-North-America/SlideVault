@@ -298,11 +298,10 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .sv-top .sv-wrap { max-width: 2200px; padding: 0 28px; }
 .slidevault .sv-shell { width: 100%; max-width: 2200px; margin: 0 auto; padding: 0 28px; flex: 1; display: grid; grid-template-columns: 272px minmax(0, 1fr) 248px; gap: 24px; align-items: start; }
 .slidevault .sv-shell .sv-wrap { max-width: none; padding: 0; }
-.slidevault .rail, .slidevault .cart-col { position: sticky; top: 61px; margin-top: 0; min-height: calc(var(--sv-h, 100%) - 61px); max-height: calc(var(--sv-h, 100%) - 61px); overflow-y: auto; overflow-x: hidden; padding: 24px 22px 24px 0; border-radius: 0; scrollbar-width: thin; }
+.slidevault .rail { position: sticky; top: 61px; margin-top: 0; min-height: calc(var(--sv-h, 100%) - 61px); max-height: calc(var(--sv-h, 100%) - 61px); overflow-y: auto; overflow-x: hidden; padding: 24px 22px 24px 0; border-radius: 0; scrollbar-width: thin; }
 /* full-bleed: the colour runs to the window edge behind the column */
 .slidevault .sv-shell { --gut: max(28px, calc((var(--sv-w, 1280px) - 2200px) / 2 + 28px)); }
 .slidevault .rail { background: var(--rail-bg); margin-left: calc(-1 * var(--gut)); padding-left: var(--gut); --rail-bg: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); --rail-line: color-mix(in srgb, var(--sv-brand) 28%, transparent); }
-.slidevault .cart-col { background: var(--cart-bg); margin-right: calc(-1 * var(--gut)); padding: 24px var(--gut) 24px 22px; --cart-bg: var(--sv-surface-sunken); }
 .slidevault .rail { display: flex; flex-direction: column; gap: 18px; }
 .slidevault .center { min-width: 0; }
 .slidevault .sv-shell .navrow { padding-top: 16px; }
@@ -368,41 +367,10 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .f-note { font-size: var(--sv-text-small); color: var(--sv-text-secondary); margin: 12px 0 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 /* Cart: thin and quiet */
-.slidevault .cart { display: flex; flex-direction: column; gap: 10px; }
-.slidevault .cart-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.slidevault .cart-h { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--sv-text-secondary); margin: 0; }
 .slidevault .cart-h .count { margin-left: 6px; color: var(--sv-text); }
-.slidevault .cart-items { list-style: none; margin: 0; display: grid; gap: 8px; max-height: calc(var(--sv-h, 100%) - 340px); overflow-y: auto; scrollbar-width: thin; }
-.slidevault .ci { display: grid; align-items: center; position: relative; cursor: grab; }
 .slidevault .ci.dragging { opacity: .35; }
-.slidevault .ci.drop-before::before, .slidevault .ci.drop-after::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: var(--sv-brand); }
-.slidevault .ci.drop-before::before { top: -6px; }
-.slidevault .ci.drop-after::after { bottom: -6px; }
-.slidevault .grip { padding: 0; border: 0; background: none; color: var(--sv-text-secondary); cursor: grab; display: grid; place-items: center; border-radius: 4px; }
-.slidevault .grip .ic { width: 14px; height: 14px; }
-.slidevault .grip:hover { color: var(--sv-text); }
-.slidevault .ci .t { position: relative; }
-.slidevault .ci-n { position: absolute; left: 2px; top: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font: 700 10px/15px var(--sv-font-sans); text-align: center; }
-.slidevault .cart-items { padding: 6px 0; }
-.slidevault .ci-hint { margin: -2px 0 0; font-size: 12px; color: var(--sv-text-secondary); }
-.slidevault .ci.off { opacity: .55; }
-.slidevault .ci input { accent-color: var(--sv-brand); margin: 0; }
-.slidevault .ci .t { aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); }
-.slidevault .ci .t svg { width: 100%; height: 100%; display: block; }
-.slidevault .ci-txt { min-width: 0; display: flex; flex-direction: column; }
-.slidevault .ci-txt a, .slidevault .ci-txt .meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; line-height: 1.3; }
-.slidevault .ci-txt a { font-weight: 600; color: var(--sv-text); text-decoration: none; }
-.slidevault .ci-txt a:hover { text-decoration: underline; }
-.slidevault .ci .btn { width: 28px; min-height: 28px; height: 28px; }
 .slidevault .cart .txt { font-size: 12.5px; color: var(--sv-text-secondary); margin: 0; }
 .slidevault .cart .txt strong { color: var(--sv-text); }
-.slidevault .cart-acts { display: flex; gap: 6px; flex-wrap: wrap; }
-.slidevault .cart-acts .btn-primary { flex: 1 1 100%; order: -1; }
-.slidevault .cart-empty .meta { font-size: 12.5px; }
-.slidevault .cart-empty-body { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 36px 8px 0; }
-.slidevault .ce-ic { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--sv-surface); border: 1px dashed var(--sv-border-strong); color: var(--sv-text-secondary); margin-bottom: 6px; }
-.slidevault .ce-ic .ic { width: 26px; height: 26px; }
-.slidevault .cart-tools { display: flex; align-items: center; gap: 2px; }
 .slidevault .sv-shell { transition: grid-template-columns var(--sv-duration) var(--sv-ease-out); }
 .slidevault .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
 .slidevault .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 248px; }
@@ -414,14 +382,12 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .narrow .notice { max-width: none !important; }
 .slidevault .sv-shell.narrow .center .sv-main .sv-wrap.upload-wrap { max-width: 720px; }
 @media (max-width: 960px) { .slidevault .narrow .center { padding: 0; } .slidevault .narrow .center > .sv-main { padding-top: 20px; } }
-.slidevault .cart-min .cart { display: none; }
-.slidevault .cart-min .cart-col { padding-left: 14px; }
 .slidevault .toasts.lift { bottom: 16px; }
 
 @media (max-width: 1100px) { .slidevault .sv-shell { --gut: 20px; grid-template-columns: 220px minmax(0, 1fr) 220px; gap: 20px; padding: 0 20px; } .slidevault .sv-shell.cart-min { grid-template-columns: 220px minmax(0, 1fr) 72px; } .slidevault .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 220px; } .slidevault .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; } .slidevault .sv-top .sv-wrap { padding: 0 20px; } }
 @media (max-width: 960px) {
   .slidevault .sv-shell { display: block; padding: 0 20px; }
-  .slidevault .rail, .slidevault .cart-col { position: static; min-height: 0; max-height: none; overflow: visible; }
+  .slidevault .rail { position: static; min-height: 0; max-height: none; overflow: visible; }
   .slidevault .rail { margin: 12px -20px 0; padding: 16px 20px; }
   .slidevault .rail { padding-top: 12px; gap: 10px; }
   .slidevault .filters:not([open]) > .f-body { display: none; }
@@ -429,16 +395,7 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
   .slidevault .filters > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--sv-text-secondary); border-bottom: 2px solid var(--sv-text-secondary); transform: rotate(45deg); margin: 0 4px 4px auto; }
   .slidevault .filters[open] > summary::after { transform: rotate(-135deg); margin-bottom: 0; }
   .slidevault .f-clear { margin-left: auto; }
-  .slidevault .cart-col:has(.cart-empty) { display: none; }
-  .slidevault .cart-col { position: absolute; top: auto; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 40; width: min(700px, calc(var(--sv-w, 1280px) - 24px)); max-height: none; padding: 0; background: none; margin: 0; }
-  .slidevault .cart { border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius-card); background: var(--sv-surface); box-shadow: var(--sv-shadow-panel); padding: 10px 12px; flex-direction: row; flex-wrap: wrap; align-items: center; }
-  .slidevault .cart-items { display: none; }
-  .slidevault .cart-min .cart { display: flex; }
-  .slidevault .cart-tg { display: none; }
-  .slidevault .cart-top { order: 1; }
   .slidevault .cart .txt { order: 2; flex: 1; min-width: 150px; }
-  .slidevault .cart-acts { order: 3; flex-wrap: nowrap; }
-  .slidevault .cart-acts .btn-primary { flex: none; order: 0; }
   .slidevault .sv-main { padding-bottom: 110px; }
   .slidevault .toasts.lift { bottom: 96px; }
 }
@@ -457,7 +414,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .matched b { margin-bottom: 4px; }
 .slidevault .fchip input:checked + span { background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); border-color: var(--sv-brand); color: var(--sv-text); }
 .slidevault .fchip input:checked + span::before { content: ""; width: 5px; height: 9px; border: solid var(--sv-brand-strong); border-width: 0 2px 2px 0; transform: rotate(45deg); margin: -3px 8px 0 0; display: inline-block; }
-.slidevault .cart-col { border-top: 3px solid var(--sv-brand); }
 
 /* contrast */
 .slidevault .rail { --sv-text-secondary: color-mix(in srgb, var(--sv-text) 84%, transparent); --sv-placeholder: color-mix(in srgb, var(--sv-text) 72%, transparent); }
@@ -469,8 +425,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .page-head .lede { margin-top: 2px; }
 .slidevault .row { margin-top: 22px; }
 .slidevault .try { margin-top: 10px; }
-
-@media (max-width: 960px) { .slidevault .cart-col { border-top: 0; } }
 /* Try asking: directly under the search box */
 .slidevault .rail-try { margin: -4px 0 18px; }
 .slidevault .try-h { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 10px; }
@@ -485,6 +439,5 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 @media (pointer: coarse) {
   .slidevault .fchip span { min-height: 44px; }
   .slidevault .pick { width: 44px; height: 44px; top: 2px; left: 2px; display: grid; place-items: center; }
-  .slidevault .ci .btn, .slidevault .ci input { min-height: 44px; }
   .slidevault .sclear { width: 36px; height: 36px; }
 }

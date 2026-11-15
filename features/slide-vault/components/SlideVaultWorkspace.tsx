@@ -33,6 +33,7 @@ import './slidevault-extras.css';
 import './styles/search-toggles.css';
 import './styles/sticky-search.css';
 import './styles/filter-bar.css';
+import './styles/draft-deck.css';
 
 /**
  * The SlideVault workspace: renders inside whatever space its host gives it and talks to the
