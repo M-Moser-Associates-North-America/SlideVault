@@ -33,6 +33,7 @@ import './slidevault-extras.css';
 import './styles/search-toggles.css';
 import './styles/sticky-search.css';
 import './styles/filter-bar.css';
+import './styles/section-conflict.css';
 import './styles/draft-deck.css';
 import './styles/preview.css';
 import './styles/tags.css';
