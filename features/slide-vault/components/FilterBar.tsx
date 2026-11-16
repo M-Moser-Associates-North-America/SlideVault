@@ -10,6 +10,7 @@ import { Link } from './parts';
 import type { SlideSummary, SmartSearchChip } from '../contracts/dto';
 import { rowReading } from './search-reading';
 import { SectionConflictDialog } from './SectionConflictDialog';
+import { useAutoClose } from './use-auto-close';
 import { SLIDE_TYPES, hasSlideType } from './search-rules';
 import { useHeroOut } from '../client/hero-visibility';
 import { StickySearch } from './StickySearch';
@@ -241,6 +242,8 @@ export function FilterBar() {
     });
   }, []);
 
+  const { cancelAutoClose, closeSoon } = useAutoClose(close);
+
   useEffect(() => {
     if (!open) return;
     /* Anywhere outside the open filter (its button and card), on the rest of the bar too, closes it; touch included. */
@@ -437,7 +440,7 @@ export function FilterBar() {
             else if (filters.section.includes(kind)) takeOffSection(kind);
             else if (sectionsInWords.length > 0 && !sectionsInWords.includes(kind)) setAskSection(kind);
             else patchFilters({ section: [kind] });
-            if (!compact) setTimeout(() => close(true), 160); /* one choice: the tick shows first, then the card closes */
+            if (!compact) closeSoon(); /* one choice: the tick shows first, then the card closes */
           }}
         />
       );
@@ -498,7 +501,14 @@ export function FilterBar() {
   }, [leaving, chipIds]);
   const n = filterCount(filters) - (secOnResults ? filters.section.length : 0);
   const activeTotal = items.reduce((sum, it) => sum + it.active, 0);
-  const openOne = (key: Key) => (compact ? setSheet(key) : setOpen(open === key ? null : key));
+  const openOne = useCallback(
+    (key: Key) => {
+      cancelAutoClose();
+      if (compact) setSheet(key);
+      else setOpen(open === key ? null : key);
+    },
+    [compact, open, cancelAutoClose],
+  );
 
   return (
     <>
