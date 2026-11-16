@@ -286,7 +286,7 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 248px; }
 .slidevault .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; }
 .slidevault .narrow .center { padding: 0 24px; }
-.slidevault .narrow .notice { max-width: none !important; }
+.slidevault .narrow .notice { max-width: none; }
 @media (max-width: 960px) { .slidevault .narrow .center { padding: 0; } }
 .slidevault .toasts.lift { bottom: 16px; }
 
@@ -317,7 +317,7 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .fchip input:checked + span::before { content: ""; width: 5px; height: 9px; border: solid var(--sv-brand-strong); border-width: 0 2px 2px 0; transform: rotate(45deg); margin: -3px 8px 0 0; display: inline-block; }
 
 /* contrast */
-.slidevault .fg > legend, .slidevault .fg > summary, .slidevault .fg-l { font-size: 12.5px !important; }
+.slidevault .fg > legend, .slidevault .fg > summary, .slidevault .fg-l { font-size: 12.5px; }
 .slidevault .f-title { font-weight: 600; }
 
 /* hierarchy and rhythm */

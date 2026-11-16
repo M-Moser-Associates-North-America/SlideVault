@@ -182,7 +182,7 @@ export function SlideView({ id }: { id: string }) {
             </>
           )}
           </div>
-          <div className="row-flex slide-stepper" style={{ marginTop: 12, justifyContent: 'center', gap: 14 }}>
+          <div className="row-flex slide-stepper" style={{ marginTop: 12 }}>
             {i > 0 ? (
               <Link className={buttonClass({ size: 'sm', iconOnly: true })} to={{ view: 'slide', id: sibs[i - 1].id }} aria-label="Previous slide in this deck" title="Previous slide">
                 <Icon name="left" />

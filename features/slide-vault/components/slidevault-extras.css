@@ -587,13 +587,13 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .also-line:hover, .slidevault .also-line:focus-visible { color: var(--sv-text); text-decoration-color: currentColor; }
 
 /* The words already say it, so no tip; on a portrait phone the line is too wide, so it is just the icon and the number, with the tip. */
-.slidevault .also-line::after { display: none !important; }
+.slidevault .also-line::after { display: none; }
 .slidevault .also-line .also-n { display: none; }
 @media (max-width: 700px) and (orientation: portrait) {
   .slidevault .also-line .also-words { display: none; }
   .slidevault .also-line .also-n { display: inline; font-variant-numeric: tabular-nums; }
   .slidevault .also-line { text-decoration: none; min-height: 28px; padding: 2px 8px 2px 0; }
-  .slidevault .also-line:hover::after, .slidevault .also-line:focus-visible::after { display: block !important; top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; }
+  .slidevault .also-line:hover::after, .slidevault .also-line:focus-visible::after { display: block; top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; }
 }
 /* Loading placeholders never make the page wider than the screen (the page could be dragged sideways while it loaded). */
 .slidevault .deck-meta .dm { max-width: 100%; overflow-wrap: anywhere; }
@@ -821,7 +821,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .res-controls > .refine { min-height: 0; }
 
 /* Same box for the heading and Sort so their centres match; spacing below the row is padding, so it cannot shift one more than the other. */
-.slidevault .sv-app .sv-wrap.res-wrap > .res-controls > .refine { margin: 0 !important; padding: 0 0 18px; box-sizing: border-box; min-height: 62px; }
+.slidevault .sv-app .sv-wrap.res-wrap > .res-controls > .refine { margin: 0; padding: 0 0 18px; box-sizing: border-box; min-height: 62px; }
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .sv-wrap.res-wrap > .res-controls > .refine { padding: 0; min-height: 0; }
 
 /* Download pop-up: a long file name fills each line and breaks inside itself ("M Moser_Newmark_Confidential…"), instead of leaving "M" alone on the first line. */

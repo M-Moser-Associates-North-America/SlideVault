@@ -61,7 +61,8 @@
 .slidevault .slide-actions:empty { display: none; }
 
 /* ---- Phone pass 4: the slide page ---- */
-.slidevault .sv-app[data-size="compact"] .slide-stepper { flex-wrap: nowrap; justify-content: space-between !important; gap: 8px !important; }
+.slidevault .slide-stepper { justify-content: center; gap: 14px; }
+.slidevault .sv-app[data-size="compact"] .slide-stepper { flex-wrap: nowrap; justify-content: space-between; gap: 8px; }
 .slidevault .sv-app[data-size="compact"] .slide-stepper-text { text-align: center; }
 
 /* ---- Phone pass 8: more room around the thumbnail ---- */
@@ -146,7 +147,7 @@
 .slidevault .sv-app[data-size="compact"] .panel-use .row-flex > .btn { justify-content: center; min-width: 0; }
 
 /* ======== Tablet held upright (FD-106): the phone-on-its-side page layouts (Home, results, slide page, deck page) with the tabs along the bottom. The slide preview keeps the desktop layout. ======== */
-.slidevault .sv-app[data-size="medium"] .slide-stepper { flex-wrap: nowrap; justify-content: center !important; gap: 10px !important; }
+.slidevault .sv-app[data-size="medium"] .slide-stepper { flex-wrap: nowrap; justify-content: center; gap: 10px; }
 /* Same small grey arrows as the slide preview, next to the position text. */
 .slidevault .sv-app[data-size="medium"] .slide-stepper > .btn-icon { min-height: 0; padding: 0; box-shadow: none; color: var(--sv-text-secondary); }
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
@@ -214,4 +215,4 @@
 /* Phone on its side. Slide page: the arrows sit close to "x/y in deck". Preview: the arrows sit at the two ends of the picture, below it, with "x/y in deck" between them. */
 
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-.slidevault .sv-app[data-size="compact"] .slide-stepper { justify-content: center !important; gap: 10px !important; } }
+.slidevault .sv-app[data-size="compact"] .slide-stepper { justify-content: center; gap: 10px; } }
