@@ -75,6 +75,8 @@ type Workspace = {
   dismissAutoSection: () => void;
   /** The deck sections the words ask for, whether or not the person has turned them off (to tell when a picked section disagrees with the words) */
   sectionsInWords: string[];
+  /** A search is on its way (after the first results): the screen shows it is updating */
+  refreshing: boolean;
   /** Switch a chip's reading off for this search: the typed words stay, the results follow (FD-107) */
   ignoreChip: (chip: SmartSearchChip, alsoCalled?: string) => void;
   /** The server has an AI reader, so "Deeper AI search" is offered at all (FD-79) */
@@ -197,7 +199,7 @@ type Workspace = {
  */
 export type RuntimeGroup = Pick<Workspace, 'runtime'>;
 export type LibraryGroup = Pick<Workspace, 'library' | 'reloadLibrary' | 'includeHidden' | 'setIncludeHidden' | 'includeArchived' | 'setIncludeArchived' | 'archiveDeck' | 'renameSlide' | 'packs' | 'makePack' | 'ungroupPack' | 'renamePack' | 'setPackStatus'>;
-export type SearchGroup = Pick<Workspace, 'aiAvailable' | 'deeperAi' | 'setDeeperAi' | 'aiAsk' | 'aiAskKind' | 'answerAiAsk' | 'query' | 'setQuery' | 'typeQuery' | 'searched' | 'submitSearch' | 'retrySearch' | 'search' | 'filters' | 'patchFilters' | 'clearFilters' | 'sectionsFromSearch' | 'autoSection' | 'dismissAutoSection' | 'sectionsInWords' | 'ignoreChip'>;
+export type SearchGroup = Pick<Workspace, 'aiAvailable' | 'deeperAi' | 'setDeeperAi' | 'aiAsk' | 'aiAskKind' | 'answerAiAsk' | 'query' | 'setQuery' | 'typeQuery' | 'searched' | 'submitSearch' | 'retrySearch' | 'search' | 'filters' | 'patchFilters' | 'clearFilters' | 'sectionsFromSearch' | 'autoSection' | 'dismissAutoSection' | 'sectionsInWords' | 'ignoreChip' | 'refreshing'>;
 export type DraftGroup = Pick<Workspace, 'selection' | 'updateSelection' | 'excluded' | 'setIncluded' | 'cartMin' | 'setCartMin' | 'draftTitle' | 'setDraftTitle' | 'combine' | 'setCombine' | 'addPackToDraft' | 'removePackFromDraft' | 'drafts' | 'saveDraft' | 'replaceDraft' | 'draftOrigin' | 'deleteDraft' | 'loadDraft'>;
 export type OverlaysGroup = Pick<Workspace, 'preview' | 'openPreview' | 'closePreview' | 'movePreview' | 'goToPreview' | 'downloadSlides' | 'openDownload' | 'closeDownload' | 'alsoFor' | 'openAlso' | 'closeAlso' | 'archiveDialog' | 'openArchiveDialog' | 'closeArchiveDialog' | 'packDialog' | 'openPackDialog' | 'closePackDialog'>;
 export type NotifyGroup = Pick<Workspace, 'toast' | 'dismissToast' | 'announce'>;
@@ -402,17 +404,27 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   /* Only a submitted search runs (FD-89), so the AI may read it when the person has ticked "Search with AI". */
   /* Chips crossed out for this search: their words stay in the box, the server is told not to read them (FD-107). */
   const { ignore, ignoreChip } = useIgnoredReadings(submitted);
+  const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     const q = submitted;
-    if (!q) return;
+    if (!q) {
+      setRefreshing(false);
+      return;
+    }
+    setRefreshing(true);
     const controller = new AbortController();
     const timer = setTimeout(() => {
       smartSearch(transport, q, true, controller.signal, { includeHidden, role: currentStoryRole(), ai: aiOn && declineAiFor !== q ? undefined : false, forceAi: aiOn && forceAiFor === q, ignore })
         .then((result) => {
           if (typeof result.aiAvailable === 'boolean') setAiAvailable(result.aiAvailable);
+          setRefreshing(false);
           setSearch({ status: 'ready', result: demoTitles.size ? { ...result, items: result.items.map((i) => ({ ...i, slide: withDemoTitle(i.slide) })) } : result });
         })
-        .catch((e: Error) => e.name !== 'AbortError' && setSearch({ status: 'error', message: e.message }));
+        .catch((e: Error) => {
+          if (e.name === 'AbortError') return;
+          setRefreshing(false);
+          setSearch({ status: 'error', message: e.message });
+        });
     }, SEARCH_DELAY_MS);
     return () => {
       clearTimeout(timer);
@@ -719,7 +731,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const shownSearch = useMemo<SearchState>(() => (aiAsk ? { status: 'loading' } : search), [aiAsk, search]);
   const runtimeValue = useMemo<RuntimeGroup>(() => ({ runtime }), [runtime]);
   const libraryValue = useMemo<LibraryGroup>(() => ({ library, reloadLibrary, includeHidden, setIncludeHidden, includeArchived, setIncludeArchived, archiveDeck, renameSlide, packs, makePack, ungroupPack, renamePack, setPackStatus }), [library, reloadLibrary, includeHidden, setIncludeHidden, includeArchived, setIncludeArchived, archiveDeck, renameSlide, packs, makePack, ungroupPack, renamePack, setPackStatus]);
-  const searchValue = useMemo<SearchGroup>(() => ({ aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, searched: submitted, submitSearch, retrySearch, search: shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip }), [aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, submitted, submitSearch, retrySearch, shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip]);
+  const searchValue = useMemo<SearchGroup>(() => ({ aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, searched: submitted, submitSearch, retrySearch, search: shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, refreshing }), [aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, submitted, submitSearch, retrySearch, shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, refreshing]);
   const draftValue = useMemo<DraftGroup>(() => ({ selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft }), [selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft]);
   const overlaysValue = useMemo<OverlaysGroup>(() => ({ preview, openPreview, closePreview, movePreview, goToPreview, downloadSlides, openDownload, closeDownload, alsoFor, openAlso, closeAlso, archiveDialog, openArchiveDialog, closeArchiveDialog, packDialog, openPackDialog, closePackDialog }), [preview, openPreview, closePreview, movePreview, goToPreview, downloadSlides, openDownload, closeDownload, alsoFor, openAlso, closeAlso, archiveDialog, openArchiveDialog, closeArchiveDialog, packDialog, openPackDialog, closePackDialog]);
   const notifyValue = useMemo<NotifyGroup>(() => ({ toast, dismissToast, announce }), [toast, dismissToast, announce]);

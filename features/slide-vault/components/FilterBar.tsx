@@ -221,6 +221,8 @@ export function FilterBar() {
   const switchOff = (chip: SmartSearchChip, alsoCalled?: string) => ignoreChip(chip, alsoCalled);
   /* A section picked by hand that is not the one the words ask for: asked first (SectionConflictDialog). */
   const [askSection, setAskSection] = useState<string | null>(null);
+  /* The chip just crossed out: it shows a spinner at once, then goes when the new results are in. */
+  const [leaving, setLeaving] = useState<string | null>(null);
   /* Taking off a section the words also ask for must stick: without this the words would bring it straight back. */
   const takeOffSection = (kind: string) => {
     patchFilters({ section: [] });
@@ -241,17 +243,19 @@ export function FilterBar() {
 
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(null);
+    /* Anywhere outside the open filter (its button and card), on the rest of the bar too, closes it; touch included. */
+    const onDown = (e: PointerEvent) => {
+      const item = wrap.current?.querySelector('.fb-pop')?.closest('.fb-item');
+      if (!item || !item.contains(e.target as Node)) setOpen(null);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close(true);
     };
-    document.addEventListener('mousedown', onDown);
+    document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey);
     wrap.current?.querySelector<HTMLElement>('.fb-pop [data-autofocus]')?.focus();
     return () => {
-      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('pointerdown', onDown);
       document.removeEventListener('keydown', onKey);
     };
   }, [open, close]);
@@ -485,6 +489,13 @@ export function FilterBar() {
     );
   };
 
+  const chipIds = chips.map((c) => c.id).join('|');
+  useEffect(() => {
+    if (!leaving) return;
+    const gone = !chipIds.split('|').includes(leaving);
+    const t = setTimeout(() => setLeaving(null), gone ? 0 : 8000);
+    return () => clearTimeout(t);
+  }, [leaving, chipIds]);
   const n = filterCount(filters) - (secOnResults ? filters.section.length : 0);
   const activeTotal = items.reduce((sum, it) => sum + it.active, 0);
   const openOne = (key: Key) => (compact ? setSheet(key) : setOpen(open === key ? null : key));
@@ -544,14 +555,18 @@ export function FilterBar() {
             <li key={c.id}>
               <button
                 type="button"
-                className={`chip-x${c.fromSearch ? ' from-search' : ''}`}
+                className={`chip-x${c.fromSearch ? ' from-search' : ''}${leaving === c.id ? ' is-leaving' : ''}`}
                 aria-label={`Remove ${c.kind}: ${c.text}${c.fromSearch ? ' (read from your search)' : ''}`}
+                aria-busy={leaving === c.id}
                 title={c.fromSearch ? 'Read from your search' : undefined}
-                onClick={c.remove}
+                onClick={() => {
+                  setLeaving(c.id);
+                  c.remove();
+                }}
               >
                 {c.fromSearch && <Icon name="sparkle" className="ic-sm" />}
                 <span className="k">{c.kind}:</span> {c.text}
-                <Icon name="x" />
+                {leaving === c.id ? <Icon name="spinner" className="ic-sm spin" /> : <Icon name="x" />}
               </button>
             </li>
           ))}

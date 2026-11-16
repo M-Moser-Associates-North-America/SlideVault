@@ -20,7 +20,7 @@ import { Row, useReadyLibrary, ColumnsToggle } from './shared';
  * for a list that no search produced: same heading, filter pills, sort, section pills and cards, just without the "why it fits" lines.
  */
 export function ResultsView({ browse }: { browse?: string } = {}) {
-  const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch, sectionsInWords, ignoreChip } = useSearch();
+  const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch, sectionsInWords, ignoreChip, refreshing } = useSearch();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>(browse?.startsWith('popular') ? 'popular' : browse?.startsWith('recent') ? 'newest' : 'best');
   const browseKind = browse?.split(':')[0];
   const browseValue = browse ? browse.split(':').slice(1).join(':') : '';
@@ -107,11 +107,16 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
 
   /* The section a result belongs to is chosen with the Section filter in the filter row (no separate bar of section pills). */
   return (
-    <div className={`sv-wrap res-wrap${browse ? ' res-browse' : ''}`}>
+    <div className={`sv-wrap res-wrap${browse ? ' res-browse' : ''}${refreshing && !browse ? ' is-refreshing' : ''}`} aria-busy={refreshing && !browse}>
       <div className="page-head">
         <h1 className="h1 res-title" tabIndex={-1}>
           <span className="res-q">{browse ? (tileKind ? 'Results' : browseTitle(browse)) : `Results for “${q}”`}</span>
           {result && shown.length > 0 && <span className="res-n"> · {plural(visible.length, 'slide')}</span>}
+          {refreshing && !browse && result && (
+            <span className="res-updating" role="status">
+              <Icon name="spinner" className="ic-sm spin" /> Updating…
+            </span>
+          )}
 </h1>
       </div>
       {/* Honest misses (FD-34): a name or year asked for that no deck goes by */}

@@ -154,3 +154,7 @@
 .slidevault .sv-app[data-size="compact"][data-land] .res-wrap > .page-head .res-title { font-size: 24px; line-height: 1.2; display: block; }
 .slidevault .sv-app[data-size="compact"][data-land] .res-wrap > .page-head .res-q { display: inline; white-space: normal; overflow: visible; text-overflow: clip; }
 .slidevault .sv-app[data-size="compact"][data-land] .res-wrap > .page-head .res-n { font-size: 24px; white-space: nowrap; }
+
+/* A new search is on its way (a chip crossed out, the words changed): the old results fade and the heading says so. */
+.slidevault .res-wrap.is-refreshing :is(.grid, .summary-row, .seccards) { opacity: 0.45; transition: opacity 0.15s; }
+.slidevault .res-updating { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; font-size: var(--sv-text-small); font-weight: 500; color: var(--sv-text-secondary); white-space: nowrap; vertical-align: middle; }

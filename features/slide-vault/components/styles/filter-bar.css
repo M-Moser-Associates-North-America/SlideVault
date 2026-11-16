@@ -207,3 +207,6 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 /* In the row (a phone on its side and tablets). */
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row .btn.sb-launch-btn { order: 4; height: 36px; min-height: 36px; padding: 0 14px 0 12px; font-size: 13px; font-weight: 700; width: auto; }
 .slidevault .fbar-row .sb-launch-btn .sb-new { top: -3px; right: -3px; width: 10px; height: 10px; padding: 0; overflow: hidden; font-size: 0; color: transparent; background: var(--sv-brand); border: 2px solid var(--sv-bg); }
+
+/* A chip just crossed out: dimmed, with a spinner in place of its x, until the new results are in. */
+.slidevault .fb-chips .chip-x.is-leaving { opacity: 0.55; pointer-events: none; }
