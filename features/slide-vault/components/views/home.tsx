@@ -235,7 +235,7 @@ export function HomeView() {
         </h1>
       )}
       <SearchHeader />
-      {searching ? <ResultsView /> : filters.section.length > 0 ? <SectionBrowse kind={filters.section[0]} /> : <LibraryView />}
+      {searching ? <ResultsView /> : filters.section.length > 0 ? <SectionBrowse kinds={filters.section} /> : <LibraryView />}
     </>
   );
 }

@@ -12,7 +12,7 @@ import { Button } from './ui/Button';
  * cursor back in the search box so the words can be redone. The words themselves are never changed here.
  * Short and centred, the two choices at opposite edges (styles/section-conflict.css); Escape or a press outside means Recheck.
  */
-export function SectionConflictDialog({ picked, inWords, onProceed, onRecheck }: { picked: string | null; inWords: string[]; onProceed: () => void; onRecheck: () => void }) {
+export function SectionConflictDialog({ picked, inWords, onProceed, onRecheck }: { picked: string[] | null; inWords: string[]; onProceed: () => void; onRecheck: () => void }) {
   const { runtime } = useRuntime();
   const ref = useRef<HTMLDialogElement>(null);
   const proceedRef = useRef<HTMLButtonElement>(null);
@@ -30,10 +30,10 @@ export function SectionConflictDialog({ picked, inWords, onProceed, onRecheck }:
         {picked !== null && (
           <>
             <p>
-              Your search says <em>{inWords.map(name).join(' or ')}</em>, but you picked <em>{name(picked)}</em>.
+              Your search says <em>{inWords.map(name).join(' or ')}</em>, but you picked <em>{picked.map(name).join(' or ')}</em>.
             </p>
             <p>
-              Proceed to see only <strong>{name(picked)} slides</strong>.
+              Proceed to see only <strong>{picked.map(name).join(' or ')} slides</strong>.
             </p>
           </>
         )}

@@ -90,8 +90,9 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
   }, [result, filters, sort]);
   /* By section (FD-57; Alina, 28 Oct: "searching for the slides in that particular section… between
      different decks"): each result knows its deck section, so the results can be narrowed to one kind. */
-  const pickedSection = filters.section[0] ?? autoSection ?? null;
-  const visible = pickedSection ? shown.filter((i) => i.slide.section?.kind === pickedSection) : shown;
+  /* Several sections can be picked: a slide is shown when it is in any of them. */
+  const pickedSections = filters.section.length ? filters.section : autoSection ? [autoSection] : [];
+  const visible = pickedSections.length ? shown.filter((i) => pickedSections.includes(i.slide.section?.kind ?? '')) : shown;
   const slides = visible.map((i) => i.slide);
   const deckCount = new Set(slides.map((s) => s.provenance.sourceId)).size;
   useEffect(() => {
@@ -234,7 +235,7 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
               )}
             </StateBlock>
           ) : visible.length === 0 ? (
-            <StateBlock icon="search" title={`No ${SECTION_LABEL[pickedSection ?? ''] ?? ''} slides in these results`} text="Another section may have what you need.">
+            <StateBlock icon="search" title={`No ${pickedSections.map((k) => SECTION_LABEL[k] ?? k).join(' or ')} slides in these results`} text="Another section may have what you need.">
               <Button onClick={() => patchFilters({ section: [] })}>Clear Section filter</Button>
             </StateBlock>
           ) : (

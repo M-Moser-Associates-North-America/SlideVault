@@ -195,18 +195,21 @@ export function SectionCards({ results, only, heading }: { results: SlideSummary
 }
 
 /** Browse one kind of section across every deck, with no search (the Section filter on Home, FD-80). The other filters still apply. */
-export function SectionBrowse({ kind }: { kind: string }) {
+/** The same sections of every deck, for one or several kinds (a slide is in any of them). */
+export function SectionBrowse({ kinds }: { kinds: string[] }) {
   const { runtime } = useRuntime();
   const { filters } = useSearch();
+  const kind = kinds.join('|');
   const [list, setList] = useState<{ kind: string; groups: SectionGroup[] } | 'error' | null>(null);
   useEffect(() => {
     const ctl = new AbortController();
-    listSections(runtime, kind, ctl.signal)
-      .then((rows) => setList(rows ? { kind, groups: rows.map((r) => groupOf(r.cover, [r.cover], r.slideCount, r.name)) } : 'error'))
+    Promise.all(kinds.map((k) => listSections(runtime, k, ctl.signal)))
+      .then((all) => setList(all.every((rows) => rows) ? { kind, groups: all.flatMap((rows) => (rows ?? []).map((r) => groupOf(r.cover, [r.cover], r.slideCount, r.name))) } : 'error'))
       .catch(() => undefined);
     return () => ctl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, kind]);
-  const label = SECTION_LABEL[kind] ?? kind;
+  const label = kinds.map((k) => SECTION_LABEL[k] ?? k).join(' and ');
   const groups = useMemo(() => (list && list !== 'error' && list.kind === kind ? list.groups.filter((g) => slideMatches(g.cover, filters)) : []), [list, kind, filters]);
   const loaded = list !== null && list !== 'error' && list.kind === kind;
   return (

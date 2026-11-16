@@ -11,7 +11,6 @@ import type { SlideSummary, SmartSearchChip } from '../contracts/dto';
 import { rowReading } from './search-reading';
 import { FilterChips, type FilterChip } from './FilterChips';
 import { SectionConflictDialog } from './SectionConflictDialog';
-import { useAutoClose } from './use-auto-close';
 import { SLIDE_TYPES, hasSlideType } from './search-rules';
 import { useHeroOut } from '../client/hero-visibility';
 import { StickySearch } from './StickySearch';
@@ -222,11 +221,12 @@ export function FilterBar() {
   /* Crossing out a chip, or unticking its box, switches that reading off for this search. The typed words never change. */
   const switchOff = (chip: SmartSearchChip, alsoCalled?: string) => ignoreChip(chip, alsoCalled);
   /* A section picked by hand that is not the one the words ask for: asked first (SectionConflictDialog). */
-  const [askSection, setAskSection] = useState<string | null>(null);
+  const [askSection, setAskSection] = useState<string[] | null>(null);
   /* Taking off a section the words also ask for must stick: without this the words would bring it straight back. */
   const takeOffSection = (kind: string) => {
-    patchFilters({ section: [] });
-    if (sectionsInWords.includes(kind)) dismissAutoSection();
+    const rest = filters.section.filter((x) => x !== kind);
+    patchFilters({ section: rest });
+    if (rest.length === 0 && sectionsInWords.includes(kind)) dismissAutoSection();
   };
   const recheckWords = () => {
     setAskSection(null);
@@ -241,7 +241,6 @@ export function FilterBar() {
     });
   }, []);
 
-  const { cancelAutoClose, closeSoon } = useAutoClose(close);
 
   useEffect(() => {
     if (!open) return;
@@ -429,17 +428,22 @@ export function FilterBar() {
         <Picker
           collapsible={compact}
           label="Section"
-          single
           options={Object.values(SECTION_LABEL)}
           picked={(filters.section.length ? filters.section : autoSection ? [autoSection] : []).map((k) => SECTION_LABEL[k] ?? k)}
           onToggle={(label) => {
-            // The section the search asked for is ticked already: ticking it again turns it off for this search.
+            // Several sections can be ticked: the slides are from any of them. The section the search asked for is ticked already:
+            // ticking it again turns it off for this search, and ticking another one adds it.
             const kind = kindOf(label);
-            if (!filters.section.length && autoSection === kind) dismissAutoSection();
-            else if (filters.section.includes(kind)) takeOffSection(kind);
-            else if (sectionsInWords.length > 0 && !sectionsInWords.includes(kind)) setAskSection(kind);
-            else patchFilters({ section: [kind] });
-            if (!compact) closeSoon(); /* one choice: the tick shows first, then the card closes */
+            const current = filters.section.length ? filters.section : autoSection ? [autoSection] : [];
+            if (current.includes(kind)) {
+              if (filters.section.length) takeOffSection(kind);
+              else dismissAutoSection();
+            } else {
+              const next = [...current, kind];
+              // None of the ticked sections is one the words ask for: ask first (SectionConflictDialog).
+              if (sectionsInWords.length > 0 && !next.some((k) => sectionsInWords.includes(k))) setAskSection(next);
+              else patchFilters({ section: next });
+            }
           }}
         />
       );
@@ -493,14 +497,7 @@ export function FilterBar() {
 
   const n = filterCount(filters) - (secOnResults ? filters.section.length : 0);
   const activeTotal = items.reduce((sum, it) => sum + it.active, 0);
-  const openOne = useCallback(
-    (key: Key) => {
-      cancelAutoClose();
-      if (compact) setSheet(key);
-      else setOpen(open === key ? null : key);
-    },
-    [compact, open, cancelAutoClose],
-  );
+  const openOne = (key: Key) => (compact ? setSheet(key) : setOpen(open === key ? null : key));
 
   return (
     <>
@@ -618,7 +615,7 @@ export function FilterBar() {
         picked={askSection}
         inWords={sectionsInWords}
         onProceed={() => {
-          if (askSection) patchFilters({ section: [askSection] });
+          if (askSection) patchFilters({ section: askSection });
           setAskSection(null);
         }}
         onRecheck={recheckWords}
