@@ -9,6 +9,7 @@ import { DeeperAiToggle } from './DeeperAiToggle';
 import { Link } from './parts';
 import type { SlideSummary, SmartSearchChip } from '../contracts/dto';
 import { rowReading } from './search-reading';
+import { FilterChips, type FilterChip } from './FilterChips';
 import { SectionConflictDialog } from './SectionConflictDialog';
 import { useAutoClose } from './use-auto-close';
 import { SLIDE_TYPES, hasSlideType } from './search-rules';
@@ -222,8 +223,6 @@ export function FilterBar() {
   const switchOff = (chip: SmartSearchChip, alsoCalled?: string) => ignoreChip(chip, alsoCalled);
   /* A section picked by hand that is not the one the words ask for: asked first (SectionConflictDialog). */
   const [askSection, setAskSection] = useState<string | null>(null);
-  /* The chip just crossed out: it shows a spinner at once, then goes when the new results are in. */
-  const [leaving, setLeaving] = useState<string | null>(null);
   /* Taking off a section the words also ask for must stick: without this the words would bring it straight back. */
   const takeOffSection = (kind: string) => {
     patchFilters({ section: [] });
@@ -342,7 +341,7 @@ export function FilterBar() {
     filters.yfrom !== null && filters.yto === null && YEAR_PRESETS.some(([k]) => filters.yfrom === nowYear - k + 1)
       ? (YEAR_PRESETS.find(([k]) => filters.yfrom === nowYear - k + 1) as [number, string])[1]
       : `${filters.yfrom ?? 'Any'} to ${filters.yto ?? 'now'}`;
-  const chips: { id: string; kind: string; text: string; remove: () => void; fromSearch?: boolean }[] = [
+  const chips: FilterChip[] = [
     ...(yearOn ? [{ id: 'year', kind: 'Year', text: yearText, remove: () => patchFilters({ yfrom: null, yto: null }) }] : []),
     ...filters.client.map((v) => ({ id: `c-${v}`, kind: 'Client', text: v, remove: () => patchFilters({ client: filters.client.filter((x) => x !== v) }) })),
     ...filters.category.map((v) => ({ id: `p-${v}`, kind: 'Project type', text: v, remove: () => patchFilters({ category: filters.category.filter((x) => x !== v) }) })),
@@ -492,13 +491,6 @@ export function FilterBar() {
     );
   };
 
-  const chipIds = chips.map((c) => c.id).join('|');
-  useEffect(() => {
-    if (!leaving) return;
-    const gone = !chipIds.split('|').includes(leaving);
-    const t = setTimeout(() => setLeaving(null), gone ? 0 : 8000);
-    return () => clearTimeout(t);
-  }, [leaving, chipIds]);
   const n = filterCount(filters) - (secOnResults ? filters.section.length : 0);
   const activeTotal = items.reduce((sum, it) => sum + it.active, 0);
   const openOne = useCallback(
@@ -558,36 +550,7 @@ export function FilterBar() {
           </button>
         )}
       {chips.length > 0 && (
-        <ul className="fb-chips" aria-label="Filters on" ref={chipsRef}>
-          {/* A thin vertical line (phones and tablets) marks where the filter buttons end and the chosen filters start. */}
-          <li className="fb-sep" aria-hidden="true" />
-          {chips.map((c) => (
-            <li key={c.id}>
-              <button
-                type="button"
-                className={`chip-x${c.fromSearch ? ' from-search' : ''}${leaving === c.id ? ' is-leaving' : ''}`}
-                aria-label={`Remove ${c.kind}: ${c.text}${c.fromSearch ? ' (read from your search)' : ''}`}
-                aria-busy={leaving === c.id}
-                title={c.fromSearch ? 'Read from your search' : undefined}
-                onClick={() => {
-                  setLeaving(c.id);
-                  c.remove();
-                }}
-              >
-                {c.fromSearch && <Icon name="sparkle" className="ic-sm" />}
-                <span className="k">{c.kind}:</span> {c.text}
-                {leaving === c.id ? <Icon name="spinner" className="ic-sm spin" /> : <Icon name="x" />}
-              </button>
-            </li>
-          ))}
-          {n > 0 && (
-            <li className="fb-chips-clear">
-              <button type="button" className="btn-link fb-clear-all" onClick={clearFilters}>
-                Clear all
-              </button>
-            </li>
-          )}
-        </ul>
+        <FilterChips chips={chips} showClearAll={n > 0} onClearAll={clearFilters} listRef={chipsRef} />
       )}
       </div>
       {compact && rowOut && sheet === null && (

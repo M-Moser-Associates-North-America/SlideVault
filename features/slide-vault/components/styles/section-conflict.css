@@ -1,6 +1,8 @@
 /* The question when a section picked by hand is not the one the words ask for (SectionConflictDialog.tsx).
-   Everything is centred; Recheck sits at the left edge of the card and Proceed at the right. */
+   A small card of its own: narrower than the Filters sheet behind it on phones and tablets, sized from the workspace like
+   the other dialogs. Everything is centred; Recheck sits at the left edge of the card and Proceed at the right. */
 .slidevault dialog.conflict-dialog .dlg-head { justify-content: center; text-align: center; }
 .slidevault dialog.conflict-dialog .dlg-body { text-align: center; }
 .slidevault dialog.conflict-dialog .dlg-body p + p { margin-top: 8px; }
 .slidevault dialog.conflict-dialog .dlg-foot { justify-content: space-between; }
+dialog.slidevault.sv-dialog.conflict-dialog { width: min(400px, calc(var(--sv-w, 400px) - 48px)); }
