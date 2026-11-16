@@ -105,6 +105,7 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
   /* The search found slides, and the filters are what left none. */
   const byFilters = !browse && !!result && result.items.length > 0 && filterCount(filters) > 0;
   const pickedElsewhere = !browse && filters.section.length > 0 && sectionsInWords.length > 0 && !sectionsInWords.some((k) => filters.section.includes(k));
+  /* The Sections block follows the sections ticked (any of them), as the slides below do. */
   const sectionMode = !pickedElsewhere && (!!autoSection || sectionsFromSearch.length > 0);
   /* Client, year and slide type already light up in the filter row above. */
   const extraChips = result ? result.chips.filter((c) => !shownInFilterRow(c)) : [];
@@ -198,7 +199,7 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
           )}
           {result.relaxed && <p className="meta">Nothing matched every filter, so client, year and category are left out.</p>}
           {/* Results in groups, each with its own heading and room: Decks, then Sections (when asked for), then Slides. */}
-          {sectionMode && <SectionCards heading="Sections" results={shown.map((i) => i.slide)} only={autoSection ? [autoSection] : sectionsFromSearch} />}
+          {sectionMode && <SectionCards heading="Sections" results={shown.map((i) => i.slide)} only={filters.section.length ? filters.section : autoSection ? [autoSection] : sectionsFromSearch} />}
           {shown.length > 0 && (sectionMode || (found && found.decks.length > 0)) && <h2 className="h2 res-h">Slides</h2>}
           <div className="res-controls">
           <div className="refine">
