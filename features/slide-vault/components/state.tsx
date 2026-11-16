@@ -80,7 +80,7 @@ type Workspace = {
   /** A search is on its way (after the first results): the screen shows it is updating */
   refreshing: boolean;
   /** Switch a chip's reading off for this search: the typed words stay, the results follow (FD-107) */
-  ignoreChip: (chip: SmartSearchChip, alsoCalled?: string) => void;
+  ignoreChip: (chip: SmartSearchChip, alsoCalled?: string) => boolean;
   /** The server has an AI reader, so "Deeper AI search" is offered at all (FD-79) */
   aiAvailable: boolean;
   /** "Deeper AI search" is ticked: submitted sentences and questions are read by the AI. Off until the person turns it on; remembered on this device. */
@@ -241,6 +241,8 @@ export function useWorkspace(): Workspace {
 }
 
 const SEARCH_DELAY_MS = 250;
+/* Crossing out several chips in a row is one search: each click restarts this wait, so quick clicks are sent together. */
+const CROSS_OUT_DELAY_MS = 500;
 const TOAST_MS = 5000;
 
 /** A pretend-data switch turned on by ?name=1 in the address and kept for the browser tab. Off unless asked for. */
@@ -427,7 +429,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
           setRefreshing(false);
           setSearch({ status: 'error', message: e.message });
         });
-    }, SEARCH_DELAY_MS);
+    }, ignore.length ? CROSS_OUT_DELAY_MS : SEARCH_DELAY_MS);
     return () => {
       clearTimeout(timer);
       controller.abort();

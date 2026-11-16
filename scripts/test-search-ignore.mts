@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { ignoredWords, parseIgnore, withoutIgnored } from '../features/slide-vault/server/services/search-ignore';
 import { searchIntent } from '../features/slide-vault/server/services/slide-intent';
 import { standInPlan } from '../features/slide-vault/server/ai/search-plan';
+import { wordsBehindChip } from '../features/slide-vault/components/search-reading';
+import { parseQuery } from '../features/slide-vault/components/search-rules';
 
 assert.deepEqual(parseIgnore(null), []);
 assert.deepEqual(parseIgnore('case studies| 2024 |case studies||'), ['case studies', '2024']);
@@ -22,4 +24,12 @@ assert.equal(searchIntent(withoutIgnored('bank case studies section', ['case stu
 const ctx = { clients: [], categories: [], labels: { types: [], themes: [], sectors: [] }, thisYear: 2026 };
 assert.ok(standInPlan('bank case studies section', ctx as never).topics.length > 0, 'the rules read a topic');
 assert.equal(standInPlan(withoutIgnored('bank case studies section', ['case studies']), ctx as never).topics.length, 0, 'ignored: no topic');
+
+// Which typed words made a chip: asked of the rules themselves, so it works when the chip's name shares nothing with the words.
+const chipFor = (q: string, kind: string) => { const c = parseQuery(q, []).chips.find((x) => x.kind === kind)!; return { kind, label: c.label } as never; };
+assert.deepEqual(wordsBehindChip('bank past projects', chipFor('bank past projects', 'Topic'), 'Portfolio'), ['projects'], '"past projects" is read as the Portfolio topic by the word projects');
+assert.deepEqual(wordsBehindChip('bank portfolio', chipFor('bank portfolio', 'Topic'), 'Portfolio'), ['portfolio']);
+assert.deepEqual(wordsBehindChip('bank case studies section', chipFor('bank case studies section', 'Topic'), 'Case study'), ['case studies'], 'plural and the chip name differ from the typed words');
+assert.deepEqual(wordsBehindChip('team intro 2025', chipFor('team intro 2025', 'Year')), ['2025']);
+assert.deepEqual(wordsBehindChip('bank', { kind: 'Topic', label: 'Something else' } as never), [], 'nothing in the words can be tied to this chip');
 console.log('search-ignore: all checks passed');

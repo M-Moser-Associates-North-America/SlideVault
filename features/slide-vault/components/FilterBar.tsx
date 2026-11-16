@@ -21,7 +21,7 @@ import { useResultsSummary } from '../client/results-summary';
 import { useRoot } from './root';
 import { peekHeight } from './scroll-peek';
 import { useWorkspaceCompact, useWorkspaceFiltersRolled, useWorkspacePhoneUpright, useWorkspaceTabletLandscape, workspaceBounds } from './size';
-import { useLibrary, useRuntime, useSearch } from './state';
+import { useLibrary, useNotify, useRuntime, useSearch } from './state';
 
 /**
  * The slim filter row under the Home search box: one icon per filter. Hovering shows the name,
@@ -153,6 +153,7 @@ function NotYet({ label }: { label: string }) {
 
 export function FilterBar() {
   const { runtime } = useRuntime();
+  const { toast } = useNotify();
   const { library, includeArchived, setIncludeArchived } = useLibrary();
   const { filters, patchFilters, clearFilters, query, search, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, searchRun, searched } = useSearch();
   const [open, setOpen] = useState<Key | null>(null);
@@ -222,7 +223,7 @@ export function FilterBar() {
   const fromYear = pYear && filters.yfrom === null && filters.yto === null ? pYear : null;
   const fromTypes = pTypes.filter((t) => !filters.slideType.includes(t.label));
   /* Crossing out a chip, or unticking its box, switches that reading off for this search. The typed words never change. */
-  const switchOff = (chip: SmartSearchChip, alsoCalled?: string) => ignoreChip(chip, alsoCalled);
+  const switchOff = (chip: SmartSearchChip, alsoCalled?: string): boolean => ignoreChip(chip, alsoCalled);
   /* A year picked by hand takes over from a year read from the words (the words stay). From and To are put in order when the box is left. */
   const setYears = (patch: { yfrom?: number | null; yto?: number | null }) => {
     if (fromYear) switchOff(fromYear);
@@ -577,7 +578,7 @@ export function FilterBar() {
           </button>
         )}
       {chips.length > 0 && (
-        <FilterChips chips={chips} showClearAll={n > 0} onClearAll={clearFilters} listRef={chipsRef} />
+        <FilterChips chips={chips} showClearAll={n > 0} onClearAll={clearFilters} onCannotRemove={() => toast('That one cannot be taken off from here. Change your words to drop it.')} listRef={chipsRef} />
       )}
       </div>
       {compact && rowOut && sheet === null && (

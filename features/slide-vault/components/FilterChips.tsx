@@ -3,13 +3,14 @@
 import { useEffect, useState, type Ref } from 'react';
 import { Icon } from './icons';
 
-export type FilterChip = { id: string; kind: string; text: string; remove: () => void; fromSearch?: boolean };
+/** `remove` answers false when nothing could be taken off (a reading that no typed word can be tied to). */
+export type FilterChip = { id: string; kind: string; text: string; remove: () => boolean | void; fromSearch?: boolean };
 
 /**
  * The chosen filters as one row of chips, with "Clear all" at the end. Crossing a chip out answers at once: it dims and
  * shows a spinner where its x was, until the new results are in and the chip is gone (or a few seconds pass).
  */
-export function FilterChips({ chips, showClearAll, onClearAll, listRef }: { chips: FilterChip[]; showClearAll: boolean; onClearAll: () => void; listRef?: Ref<HTMLUListElement> }) {
+export function FilterChips({ chips, showClearAll, onClearAll, onCannotRemove, listRef }: { chips: FilterChip[]; showClearAll: boolean; onClearAll: () => void; onCannotRemove: () => void; listRef?: Ref<HTMLUListElement> }) {
   const [leaving, setLeaving] = useState<string | null>(null);
   const chipIds = chips.map((c) => c.id).join('|');
   useEffect(() => {
@@ -31,8 +32,8 @@ export function FilterChips({ chips, showClearAll, onClearAll, listRef }: { chip
             aria-busy={leaving === c.id}
             title={c.fromSearch ? 'Read from your search' : undefined}
             onClick={() => {
-              setLeaving(c.id);
-              c.remove();
+              if (c.remove() === false) onCannotRemove();
+              else setLeaving(c.id);
             }}
           >
             {c.fromSearch && <Icon name="sparkle" className="ic-sm" />}

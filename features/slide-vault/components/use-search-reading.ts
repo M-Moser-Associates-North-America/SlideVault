@@ -14,9 +14,10 @@ export function useIgnoredReadings(searched: string, run: number) {
   const [off, setOff] = useState<{ run: number; phrases: string[] }>({ run: -1, phrases: [] });
   const ignore = useMemo(() => (off.run === run ? off.phrases : []), [off, run]);
   const ignoreChip = useCallback(
-    (chip: SmartSearchChip, alsoCalled?: string) => {
+    (chip: SmartSearchChip, alsoCalled?: string): boolean => {
       const runs = wordsBehindChip(searched, chip, alsoCalled);
       if (runs.length) setOff((cur) => ({ run, phrases: [...new Set([...(cur.run === run ? cur.phrases : []), ...runs])] }));
+      return runs.length > 0;
     },
     [searched, run],
   );

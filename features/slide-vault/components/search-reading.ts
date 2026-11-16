@@ -1,5 +1,5 @@
 import type { SmartSearchChip, SmartSearchResult } from '../contracts/dto';
-import { slideTypeForTopic } from './search-rules';
+import { parseQuery, slideTypeForTopic } from './search-rules';
 
 /**
  * How the server read the search (GET /smart-search chips), shared by the filter row and the
@@ -32,38 +32,39 @@ const stem = (w: string) => {
   return x.endsWith('ies') && x.length > 4 ? `${x.slice(0, -3)}y` : x.endsWith('s') && !x.endsWith('ss') && x.length > 3 ? x.slice(0, -1) : x;
 };
 
-/** The search text without a chip's words (plural or singular), to find which words made the chip. */
-export function withoutChip(q: string, chip: SmartSearchChip): string {
-  const words = (chip.kind === 'Collection' ? ['best', 'of', 'the', 'best'] : chip.label.split(/\s+/)).map(stem);
-  return q
-    .split(/\s+/)
-    .filter((w) => !words.includes(stem(w)))
-    .join(' ');
+/** Runs of neighbouring typed words ("case studies") whose words are in `drop`. */
+function runsOf(typed: string[], drop: Set<string>): string[] {
+  const runs: string[] = [];
+  let run: string[] = [];
+  for (const w of typed) {
+    if (drop.has(stem(w))) run.push(w);
+    else {
+      if (run.length) runs.push(run.join(' '));
+      run = [];
+    }
+  }
+  if (run.length) runs.push(run.join(' '));
+  return runs;
 }
 
 /**
  * The words in the search that made a chip, as runs of neighbouring words ("case studies"), so the chip can be switched
- * off without touching what was typed. Tries what the chip is called, then `alsoCalled` (the slide type's own name),
- * because the search may name a reading differently from the words ("Proof and references" for "case studies").
+ * off without touching what was typed. The rules that read the search know which words each reading took (parseQuery's
+ * `strip`: "projects" made the Portfolio topic in "past projects"), so ask them first. If they do not know it (a reading
+ * the AI made), try what the chip is called, then `alsoCalled` (the slide type's own name), matching plural and singular.
+ * Empty when nothing in the search can be tied to the chip.
  */
 export function wordsBehindChip(q: string, chip: SmartSearchChip, alsoCalled?: string): string[] {
   const typed = q.split(/\s+/).filter(Boolean);
+  const read = parseQuery(q, []).chips.find((c) => c.label === chip.label && (c.kind === chip.kind || c.kind === 'Topic'));
+  if (read && read.strip.length) {
+    const runs = runsOf(typed, new Set(read.strip.flatMap((s) => s.split(/\s+/)).map(stem)));
+    if (runs.length) return runs;
+  }
   for (const label of [chip.label, alsoCalled]) {
     if (!label) continue;
-    const kept = withoutChip(q, { ...chip, label }).split(/\s+/).filter(Boolean);
-    if (kept.length === typed.length) continue;
-    const runs: string[] = [];
-    let run: string[] = [];
-    let k = 0;
-    for (const w of typed) {
-      if (kept[k] === w) {
-        k++;
-        if (run.length) runs.push(run.join(' '));
-        run = [];
-      } else run.push(w);
-    }
-    if (run.length) runs.push(run.join(' '));
-    return runs;
+    const runs = runsOf(typed, new Set(label.split(/\s+/).map(stem)));
+    if (runs.length) return runs;
   }
   return [];
 }

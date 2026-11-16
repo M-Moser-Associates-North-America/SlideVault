@@ -12,7 +12,7 @@ import { setResultsSummary } from '../../client/results-summary';
 import { ScrollRow } from '../scroll-row';
 import { useWorkspacePhoneLike } from '../size';
 import { shownInFilterRow } from '../search-reading';
-import { useSearch } from '../state';
+import { useNotify, useSearch } from '../state';
 import { Row, useReadyLibrary, ColumnsToggle } from './shared';
 
 /**
@@ -21,6 +21,7 @@ import { Row, useReadyLibrary, ColumnsToggle } from './shared';
  */
 export function ResultsView({ browse }: { browse?: string } = {}) {
   const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch, sectionsInWords, ignoreChip, refreshing } = useSearch();
+  const { toast } = useNotify();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>(browse?.startsWith('popular') ? 'popular' : browse?.startsWith('recent') ? 'newest' : 'best');
   const browseKind = browse?.split(':')[0];
   const browseValue = browse ? browse.split(':').slice(1).join(':') : '';
@@ -185,7 +186,9 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
                     <span className="k">{c.kind}:</span> {c.label}
                   </span>
                 ) : (
-                  <button key={`${c.kind}:${c.label}`} type="button" className="chip-x" aria-label={`Remove ${c.kind}: ${c.label}`} onClick={() => ignoreChip(c)}>
+                  <button key={`${c.kind}:${c.label}`} type="button" className="chip-x" aria-label={`Remove ${c.kind}: ${c.label}`} onClick={() => {
+                      if (!ignoreChip(c)) toast('That one cannot be taken off from here. Change your words to drop it.');
+                    }}>
                     <span className="k">{c.kind}:</span> {c.label}
                     <Icon name="x" />
                   </button>
