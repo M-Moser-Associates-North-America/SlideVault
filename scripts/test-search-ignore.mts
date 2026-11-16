@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { ignoredWords, parseIgnore, withoutIgnored } from '../features/slide-vault/server/services/search-ignore';
 import { searchIntent } from '../features/slide-vault/server/services/slide-intent';
 import { standInPlan } from '../features/slide-vault/server/ai/search-plan';
+import { smartSearch } from '../features/slide-vault/server/services/smart-search';
 import { wordsBehindChip } from '../features/slide-vault/components/search-reading';
 import { parseQuery } from '../features/slide-vault/components/search-rules';
 
@@ -32,4 +33,20 @@ assert.deepEqual(wordsBehindChip('bank portfolio', chipFor('bank portfolio', 'To
 assert.deepEqual(wordsBehindChip('bank case studies section', chipFor('bank case studies section', 'Topic'), 'Case study'), ['case studies'], 'plural and the chip name differ from the typed words');
 assert.deepEqual(wordsBehindChip('team intro 2025', chipFor('team intro 2025', 'Year')), ['2025']);
 assert.deepEqual(wordsBehindChip('bank', { kind: 'Topic', label: 'Something else' } as never), [], 'nothing in the words can be tied to this chip');
+
+// The AI path: the route hands the reader the request without the ignored words, and the words are still searched.
+{
+  const seen: string[] = [];
+  const reader = { name: 'stand-in-model', read: async (q: string, c: never) => { seen.push(q); return { ...standInPlan(q, c), summary: 'what the model understood' }; } };
+  const deps = { context: async () => ({ clients: [], categories: [] }), search: async () => [], reader, thisYear: 2026 } as never;
+  const q = 'show me the case studies we have done for bank clients';
+  const whole = await smartSearch(q, 10, deps, { read: true, force: true });
+  assert.equal(whole.reader, 'model'); assert.equal(seen[0], q, 'without ignore the reader gets the whole request');
+  assert.ok(whole.chips.some((c) => c.kind === 'Topic'), 'the model reading shows the topic chip');
+  const ignore = ['case studies']; const masked = withoutIgnored(q, ignore);
+  const off = await smartSearch(masked, 10, deps, { read: true, force: true, alsoWords: ignoredWords(ignore) });
+  assert.equal(off.reader, 'model'); assert.ok(!/case studies/.test(seen[1]), 'the reader never sees the ignored words: ' + seen[1]);
+  assert.ok(!off.chips.some((c) => c.kind === 'Topic'), 'no topic chip once its words are ignored');
+  assert.ok(off.plan.keywords.includes('case') && off.plan.keywords.includes('studies'), 'the ignored words are still searched as plain words');
+}
 console.log('search-ignore: all checks passed');

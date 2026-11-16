@@ -11,6 +11,8 @@ import { Button } from './ui/Button';
  * then Team). Proceed keeps the filter and narrows the words' results to it; Recheck changes nothing and puts the
  * cursor back in the search box so the words can be redone. The words themselves are never changed here.
  * Short and centred, the two choices at opposite edges (styles/section-conflict.css); Escape or a press outside means Recheck.
+ * Closing it after Proceed (the card shuts because `picked` went away) must not count as Recheck, so the close event only
+ * counts while a question is still showing.
  */
 export function SectionConflictDialog({ picked, inWords, onProceed, onRecheck }: { picked: string[] | null; inWords: string[]; onProceed: () => void; onRecheck: () => void }) {
   const { runtime } = useRuntime();
@@ -22,7 +24,7 @@ export function SectionConflictDialog({ picked, inWords, onProceed, onRecheck }:
   }, [picked]);
   const name = (k: string) => SECTION_LABEL[k] ?? k;
   return (
-    <dialog ref={ref} className="slidevault sv-dialog conflict-dialog" data-theme={runtime.theme} aria-labelledby="sv-conflict-title" onClose={onRecheck} onClick={backdropClose(onRecheck)}>
+    <dialog ref={ref} className="slidevault sv-dialog conflict-dialog" data-theme={runtime.theme} aria-labelledby="sv-conflict-title" onClose={() => picked !== null && onRecheck()} onClick={backdropClose(onRecheck)}>
       <div className="dlg-head">
         <h2 id="sv-conflict-title">Your words and the filter don’t match</h2>
       </div>
