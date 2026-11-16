@@ -101,6 +101,8 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
   }, [slides.length, sort]);
   /* Only what the search itself asked for brings in the Sections block; tapping a section pill just narrows the slides, so nothing above them moves. */
   /* The Section filter was set by hand to a section the words do not ask for: the cards for the section in the words step aside. */
+  /* The search found slides, and the filters are what left none. */
+  const byFilters = !browse && !!result && result.items.length > 0 && filterCount(filters) > 0;
   const pickedElsewhere = !browse && filters.section.length > 0 && sectionsInWords.length > 0 && !sectionsInWords.some((k) => filters.section.includes(k));
   const sectionMode = !pickedElsewhere && (!!autoSection || sectionsFromSearch.length > 0);
   /* Client, year and slide type already light up in the filter row above. */
@@ -214,10 +216,10 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
           {shown.length === 0 && found && found.decks.length > 0 && filterCount(filters) === 0 ? null : shown.length === 0 ? (
             <StateBlock
               icon="search"
-              title={browse ? 'No slides here' : `No slides found matching “${q}”`}
+              title={browse ? 'No slides here' : byFilters ? 'No slides match these filters' : `No slides found matching “${q}”`}
               text={
                 filterCount(filters) > 0
-                  ? `${found && found.decks.length > 0 ? 'The deck above matches your search, but none of its slides fit the filters. ' : ''}${removeHint(filters)}`
+                  ? `${byFilters && result ? `Your search found ${plural(result.items.length, 'slide')}, but none fit the filters. ` : ''}${found && found.decks.length > 0 ? 'The deck above matches your search, but none of its slides fit the filters. ' : ''}${removeHint(filters)}`
                   : browse
                     ? 'Nothing is in this list yet.'
                     : 'Try fewer words, or say it a different way. For example, “team intro” instead of “introduction to our team”.'

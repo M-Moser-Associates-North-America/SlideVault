@@ -154,7 +154,7 @@ function NotYet({ label }: { label: string }) {
 export function FilterBar() {
   const { runtime } = useRuntime();
   const { library, includeArchived, setIncludeArchived } = useLibrary();
-  const { filters, patchFilters, clearFilters, query, search, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, searched } = useSearch();
+  const { filters, patchFilters, clearFilters, query, search, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, searchRun, searched } = useSearch();
   const [open, setOpen] = useState<Key | null>(null);
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
   const compact = useWorkspaceFiltersRolled();
@@ -184,7 +184,10 @@ export function FilterBar() {
      would leave nothing are greyed out. */
   const clients = useMemo(() => [...countBy(slides, clientOf).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
   const categories = useMemo(() => [...countBy(slides, categoryOf).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
-  const without = useCallback((omit: Partial<Filters>) => slides.filter((s) => slideMatches(s, { ...filters, ...omit })), [slides, filters]);
+  /* The numbers beside the options are what ticking them leaves of what the search found (the whole library when nothing is searched). */
+  const found = useMemo(() => (searched.trim() && search.status === 'ready' ? search.result.items.map((i) => i.slide) : null), [searched, search]);
+  const countable = found ?? slides;
+  const without = useCallback((omit: Partial<Filters>) => countable.filter((s) => slideMatches(s, { ...filters, ...omit })), [countable, filters]);
   const clientCounts = useMemo(() => countBy(without({ client: [] }), clientOf), [without]);
   const categoryCounts = useMemo(() => countBy(without({ category: [] }), categoryOf), [without]);
   /* Who made and who uploaded a deck: real values only, so these lists exist only once the server sends them. */
@@ -220,8 +223,18 @@ export function FilterBar() {
   const fromTypes = pTypes.filter((t) => !filters.slideType.includes(t.label));
   /* Crossing out a chip, or unticking its box, switches that reading off for this search. The typed words never change. */
   const switchOff = (chip: SmartSearchChip, alsoCalled?: string) => ignoreChip(chip, alsoCalled);
+  /* A year picked by hand takes over from a year read from the words (the words stay). From and To are put in order when the box is left. */
+  const setYears = (patch: { yfrom?: number | null; yto?: number | null }) => {
+    if (fromYear) switchOff(fromYear);
+    patchFilters(patch);
+  };
+  const orderYears = () => {
+    if (filters.yfrom !== null && filters.yto !== null && filters.yfrom > filters.yto) patchFilters({ yfrom: filters.yto, yto: filters.yfrom });
+  };
   /* A section picked by hand that is not the one the words ask for: asked first (SectionConflictDialog). */
   const [askSection, setAskSection] = useState<string[] | null>(null);
+  /* The press of search (searchRun) for which the question about a hand-picked section has been answered. */
+  const [answeredRun, setAnsweredRun] = useState(-1);
   /* Taking off a section the words also ask for must stick: without this the words would bring it straight back. */
   const takeOffSection = (kind: string) => {
     const rest = filters.section.filter((x) => x !== kind);
@@ -230,6 +243,7 @@ export function FilterBar() {
   };
   const recheckWords = () => {
     setAskSection(null);
+    setAnsweredRun(searchRun);
     setSheet(null); /* on a phone the Filters sheet is open behind the question: close it so the search box can be reached */
     setTimeout(() => document.querySelector<HTMLInputElement>('.slidevault .home-hero input')?.focus(), 80);
   };
@@ -375,7 +389,7 @@ export function FilterBar() {
             {YEAR_PRESETS.map(([k, label]) => {
               const on = filters.yfrom === nowYear - k + 1 && filters.yto === null;
               return (
-                <button key={k} type="button" className={`pchip${(yearCounts.get(k) ?? 0) === 0 && !on ? ' is-zero' : ''}`} aria-pressed={on} onClick={() => patchFilters(on ? { yfrom: null, yto: null } : { yfrom: nowYear - k + 1, yto: null })} data-autofocus={k === 2 ? true : undefined}>
+                <button key={k} type="button" className={`pchip${(yearCounts.get(k) ?? 0) === 0 && !on ? ' is-zero' : ''}`} aria-pressed={on} onClick={() => setYears(on ? { yfrom: null, yto: null } : { yfrom: nowYear - k + 1, yto: null })} data-autofocus={k === 2 ? true : undefined}>
                   {label} <span className="fb-n">({plural(yearCounts.get(k) ?? 0, 'slide')})</span>
                 </button>
               );
@@ -391,7 +405,8 @@ export function FilterBar() {
                 max={nowYear}
                 placeholder="1981"
                 value={filters.yfrom ?? ''}
-                onChange={(e) => patchFilters({ yfrom: e.target.value === '' ? null : Number(e.target.value) })}
+                onChange={(e) => setYears({ yfrom: e.target.value === '' ? null : Number(e.target.value) })}
+                onBlur={orderYears}
               />
             </label>
             <label>
@@ -403,7 +418,8 @@ export function FilterBar() {
                 max={nowYear}
                 placeholder={String(nowYear)}
                 value={filters.yto ?? ''}
-                onChange={(e) => patchFilters({ yto: e.target.value === '' ? null : Number(e.target.value) })}
+                onChange={(e) => setYears({ yto: e.target.value === '' ? null : Number(e.target.value) })}
+                onBlur={orderYears}
               />
             </label>
           </div>
@@ -417,7 +433,14 @@ export function FilterBar() {
           options={clients}
           picked={fromClient ? [...filters.client, fromClient.label] : filters.client}
           counts={clientCounts}
-          onToggle={(v) => (fromClient && v === fromClient.label ? switchOff(fromClient) : patchFilters({ client: toggle(filters.client, v) }))}
+          onToggle={(v) => {
+            if (fromClient && v === fromClient.label) switchOff(fromClient);
+            else if (fromClient && !filters.client.includes(v)) {
+              // Another client next to the one in the words: slides from either. The words' reading steps aside (the words stay).
+              patchFilters({ client: [...new Set([fromClient.label, ...filters.client, v])] });
+              switchOff(fromClient);
+            } else patchFilters({ client: toggle(filters.client, v) });
+          }}
         />
       );
     if (key === 'category')
@@ -459,7 +482,11 @@ export function FilterBar() {
           onToggle={(v) => {
             const fromSearchType = fromTypes.find((t) => t.label === v);
             if (fromSearchType) switchOff(fromSearchType.chip, fromSearchType.label);
-            else patchFilters({ slideType: toggle(filters.slideType, v) });
+            else if (fromTypes.length > 0 && !filters.slideType.includes(v)) {
+              // Another kind next to the ones in the words: slides of any of them. The words' reading steps aside (the words stay).
+              patchFilters({ slideType: [...new Set([...fromTypes.map((t) => t.label), ...filters.slideType, v])] });
+              fromTypes.forEach((t) => switchOff(t.chip, t.label));
+            } else patchFilters({ slideType: toggle(filters.slideType, v) });
           }}
         />
       );
@@ -495,6 +522,9 @@ export function FilterBar() {
     );
   };
 
+  /* Asked when a section is ticked that the words do not ask for, and again each time search is pressed while the ticked sections still disagree with the words. */
+  const clashes = filters.section.length > 0 && sectionsInWords.length > 0 && !filters.section.some((k) => sectionsInWords.includes(k));
+  const askNow = askSection ?? (clashes && answeredRun !== searchRun ? filters.section : null);
   const n = filterCount(filters) - (secOnResults ? filters.section.length : 0);
   const activeTotal = items.reduce((sum, it) => sum + it.active, 0);
   const openOne = (key: Key) => (compact ? setSheet(key) : setOpen(open === key ? null : key));
@@ -612,11 +642,12 @@ export function FilterBar() {
         )}
       </dialog>
       <SectionConflictDialog
-        picked={askSection}
+        picked={askNow}
         inWords={sectionsInWords}
         onProceed={() => {
           if (askSection) patchFilters({ section: askSection });
           setAskSection(null);
+          setAnsweredRun(searchRun);
         }}
         onRecheck={recheckWords}
       />
