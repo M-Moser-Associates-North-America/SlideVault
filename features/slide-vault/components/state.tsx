@@ -403,7 +403,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   }, []);
   /* Only a submitted search runs (FD-89), so the AI may read it when the person has ticked "Search with AI". */
   /* Chips crossed out for this search: their words stay in the box, the server is told not to read them (FD-107). */
-  const { ignore, ignoreChip } = useIgnoredReadings(submitted);
+  const { ignore, ignoreChip } = useIgnoredReadings(submitted, searchTry);
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     const q = submitted;
@@ -433,7 +433,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   }, [transport, submitted, searchTry, includeHidden, aiOn, forceAiFor, declineAiFor, ignore]);
 
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
-  const { sectionsInWords, sectionsFromSearch, autoSection, dismissAutoSection } = useSectionReading({ aiAsk: aiAsk !== null, query, search, pickedByHand: filters.section.length });
+  const { sectionsInWords, sectionsFromSearch, autoSection, dismissAutoSection } = useSectionReading({ aiAsk: aiAsk !== null, query, search, pickedByHand: filters.section.length, run: searchTry });
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);
   const clearFilters = useCallback(() => setFilters(NO_FILTERS), []);
 
