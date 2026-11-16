@@ -13,6 +13,13 @@ import type { SearchState } from './state';
 export function useIgnoredReadings(searched: string, run: number) {
   const [off, setOff] = useState<{ run: number; phrases: string[] }>({ run: -1, phrases: [] });
   const ignore = useMemo(() => (off.run === run ? off.phrases : []), [off, run]);
+  /** Switch the reading of these typed words off (no chip needed), e.g. the words that asked for a section. */
+  const ignoreWords = useCallback(
+    (phrases: string[]) => {
+      if (phrases.length) setOff((cur) => ({ run, phrases: [...new Set([...(cur.run === run ? cur.phrases : []), ...phrases])] }));
+    },
+    [run],
+  );
   const ignoreChip = useCallback(
     (chip: SmartSearchChip, alsoCalled?: string): boolean => {
       const runs = wordsBehindChip(searched, chip, alsoCalled);
@@ -21,7 +28,7 @@ export function useIgnoredReadings(searched: string, run: number) {
     },
     [searched, run],
   );
-  return { ignore, ignoreChip };
+  return { ignore, ignoreChip, ignoreWords };
 }
 
 /**
@@ -32,14 +39,15 @@ export function useIgnoredReadings(searched: string, run: number) {
  */
 export function useSectionReading({ aiAsk, query, search, pickedByHand, run }: { aiAsk: boolean; query: string; search: SearchState; pickedByHand: number; run: number }) {
   const [sectionOffRun, setSectionOffRun] = useState(-1);
-  const sectionsInWords = useMemo(() => {
-    if (aiAsk || !query.trim() || search.status !== 'ready') return [];
-    const { sections = [], items } = search.result;
-    // Only a section this search has slides in: an automatic filter must never hide every result (decks with no sections found).
-    return sections.filter((kind) => items.some((i) => i.slide.section?.kind === kind));
-  }, [aiAsk, query, search]);
-  const sectionsFromSearch = useMemo(() => (sectionOffRun === run ? [] : sectionsInWords), [sectionOffRun, run, sectionsInWords]);
+  /* What the words ask for, whether or not the person has turned it off: used to tell when a ticked section disagrees with them. */
+  const sectionsInWords = useMemo(() => (aiAsk || !query.trim() || search.status !== 'ready' ? [] : (search.result.sections ?? [])), [aiAsk, query, search]);
+  /* The section the search asked for, treated as the Section filter being on: only one this search has slides in (an automatic filter
+     must never hide every result), and none once it has been turned off. */
+  const sectionsFromSearch = useMemo(
+    () => (sectionOffRun === run || search.status !== 'ready' ? [] : sectionsInWords.filter((kind) => search.result.items.some((i) => i.slide.section?.kind === kind))),
+    [sectionOffRun, run, sectionsInWords, search],
+  );
   const autoSection = pickedByHand === 0 && sectionsFromSearch.length === 1 ? sectionsFromSearch[0] : null;
   const dismissAutoSection = useCallback(() => setSectionOffRun(run), [run]);
-  return { sectionsInWords, sectionsFromSearch, autoSection, dismissAutoSection };
+  return { sectionsInWords, sectionsFromSearch, autoSection, dismissAutoSection, sectionsOff: sectionOffRun === run };
 }

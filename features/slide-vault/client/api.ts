@@ -39,12 +39,14 @@ export async function searchSlides(runtime: Transport, query: string, signal?: A
  * they type, the server reads with rules only, so a long question never calls the AI mid-sentence.
  * `ai: false` is the "Deeper AI search" checkbox unticked: the rules read it even on submit (FD-79).
  */
-export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean; role?: StoryUserRole | null; ai?: boolean; forceAi?: boolean; ignore?: string[] } = {}): Promise<SmartSearchResult> {
+export async function smartSearch(runtime: Transport, query: string, read: boolean, signal?: AbortSignal, opts: { includeHidden?: boolean; role?: StoryUserRole | null; ai?: boolean; forceAi?: boolean; ignore?: string[]; sectionsOff?: boolean; filters?: object } = {}): Promise<SmartSearchResult> {
   const params = new URLSearchParams({ q: query.trim(), limit: '100' });
   if (opts.includeHidden) params.set('hidden', 'include'); // slides hidden in the original deck (FD-50)
   if (opts.role) params.set('role', opts.role); // how this person builds proposals tunes the results (FD-59)
   if (read) params.set('read', '1');
   if (opts.ignore?.length) params.set('ignore', opts.ignore.join('|')); // words behind chips the person crossed out: typed words stay, their reading is off (FD-107)
+  if (opts.sectionsOff) params.set('sections', 'off'); // the person switched the words' section reading off (FD-107)
+  if (opts.filters) params.set('filters', JSON.stringify(opts.filters)); // the filters ticked, applied on the server over a larger pool (FD-107)
   if (opts.ai === false) params.set('ai', 'off'); // "Deeper AI search" unticked (FD-79)
   else if (opts.forceAi) params.set('ai', 'always'); // the person chose the AI for a short search too (FD-79)
   const res = await runtime.request({ path: `/smart-search?${params}`, method: 'GET', signal });

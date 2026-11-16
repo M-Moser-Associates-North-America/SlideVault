@@ -27,6 +27,8 @@ export type SmartSearchResponse = {
   relaxed: boolean;
   /** Set when the search is only a deck section ("case studies", "resumes"): the standard sections it asks for, so the screen can show section cards (FD-80) */
   sections?: string[];
+  /** The typed words that asked for those sections, so the screen can switch that reading off (FD-107) */
+  sectionWords?: string[];
   items: SmartResult[];
 };
 

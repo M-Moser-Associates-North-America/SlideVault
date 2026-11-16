@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import { ignoredWords, parseIgnore, withoutIgnored } from '../features/slide-vault/server/services/search-ignore';
 import { searchIntent } from '../features/slide-vault/server/services/slide-intent';
 import { standInPlan } from '../features/slide-vault/server/ai/search-plan';
+import type { SlideSummary } from '../features/slide-vault/contracts/dto';
 import { smartSearch } from '../features/slide-vault/server/services/smart-search';
+import { sectionWordsIn } from '../features/slide-vault/server/services/sections';
+import { applyFilters, parseFilters } from '../features/slide-vault/server/services/search-filters';
 import { wordsBehindChip } from '../features/slide-vault/components/search-reading';
 import { parseQuery } from '../features/slide-vault/components/search-rules';
 
@@ -49,4 +52,18 @@ assert.deepEqual(wordsBehindChip('bank', { kind: 'Topic', label: 'Something else
   assert.ok(!off.chips.some((c) => c.kind === 'Topic'), 'no topic chip once its words are ignored');
   assert.ok(off.plan.keywords.includes('case') && off.plan.keywords.includes('studies'), 'the ignored words are still searched as plain words');
 }
+
+// The words that asked for a section, so they can be dropped while the rest of the search stays.
+assert.deepEqual(sectionWordsIn('bank case studies section'), ['case studies']);
+assert.deepEqual(sectionWordsIn('bank'), []);
+
+// The ticked filters, applied over a larger pool: any value within a filter, all filters together; counts leave a list's own filter out.
+assert.equal(parseFilters(null), null); assert.equal(parseFilters('not json'), null); assert.equal(parseFilters('{"client":[]}'), null, 'nothing ticked means no filters');
+const f = parseFilters(JSON.stringify({ section: ['team', 'approach'], client: ['Kestrel Law'], slideType: 5, yfrom: 'x' }))!;
+assert.deepEqual(f.section, ['team', 'approach']); assert.deepEqual(f.client, ['Kestrel Law']); assert.deepEqual(f.slideType, [], 'a wrong type is dropped'); assert.equal(f.yfrom, null);
+const mk = (id: string, client: string, section: string | null) => ({ slide: { id, title: id, hiddenInSource: false, previewPath: '', provenance: { sourceId: 'd', sourceVersionId: 'v', sourceTitle: client + ' - SME', sourceFileName: 'k.pptx', slideNumber: 1, owner: null, approvalStatus: null, reviewedAt: null, clientName: client, category: 'SME' }, section: section ? { name: section, kind: section, divider: false, dividerId: 'x' } : undefined } as unknown as SlideSummary });
+const items = [mk('a', 'Kestrel Law', 'team'), mk('b', 'Kestrel Law', 'approach'), mk('c', 'Kestrel Law', 'fees'), mk('d', 'Other', 'team')];
+const { kept, facets } = applyFilters(items, f, 2026);
+assert.deepEqual(kept.map((i) => i.slide.id), ['a', 'b'], 'sections are any-of (team or approach); client is all-of with them');
+assert.equal(facets.client['Kestrel Law'], 2); assert.equal(facets.client['Other'], 1, 'the client list leaves the client filter out, so Other is still counted');
 console.log('search-ignore: all checks passed');

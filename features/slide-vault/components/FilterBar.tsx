@@ -3,7 +3,7 @@
 import { Button } from './ui/Button';
 import { startTransition, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from './icons';
-import { categoryOf, clientOf, countBy, createdByOf, filterCount, plural, SECTION_LABEL, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
+import { categoryOf, clientOf, countBy, YEAR_PRESETS, createdByOf, filterCount, plural, SECTION_LABEL, slideMatches, tagsOf, uploadedByOf, yearOf, type Filters } from './library';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { DeeperAiToggle } from './DeeperAiToggle';
 import { Link } from './parts';
@@ -33,12 +33,6 @@ import { useLibrary, useNotify, useRuntime, useSearch } from './state';
  */
 
 type Key = 'year' | 'client' | 'category' | 'slideType' | 'section' | 'more';
-
-const YEAR_PRESETS: [number, string][] = [
-  [1, 'This year'],
-  [2, 'Last 2 years'],
-  [5, 'Last 5 years'],
-];
 
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
@@ -155,7 +149,7 @@ export function FilterBar() {
   const { runtime } = useRuntime();
   const { toast } = useNotify();
   const { library, includeArchived, setIncludeArchived } = useLibrary();
-  const { filters, patchFilters, clearFilters, query, search, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, searchRun, searched } = useSearch();
+  const { filters, patchFilters, clearFilters, query, search, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, ignoreWords, searchRun, searched } = useSearch();
   const [open, setOpen] = useState<Key | null>(null);
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
   const compact = useWorkspaceFiltersRolled();
@@ -189,8 +183,11 @@ export function FilterBar() {
   const found = useMemo(() => (searched.trim() && search.status === 'ready' ? search.result.items.map((i) => i.slide) : null), [searched, search]);
   const countable = found ?? slides;
   const without = useCallback((omit: Partial<Filters>) => countable.filter((s) => slideMatches(s, { ...filters, ...omit })), [countable, filters]);
-  const clientCounts = useMemo(() => countBy(without({ client: [] }), clientOf), [without]);
-  const categoryCounts = useMemo(() => countBy(without({ category: [] }), categoryOf), [without]);
+  /* With filters ticked the server counts over everything the words found (not only the 100 sent back), each list leaving its own filter out. */
+  const facets = search.status === 'ready' && searched.trim() ? (search.result.facets ?? null) : null;
+  const asMap = (o: Record<string, number>) => new Map(Object.entries(o));
+  const clientCounts = useMemo(() => (facets ? asMap(facets.client) : countBy(without({ client: [] }), clientOf)), [facets, without]);
+  const categoryCounts = useMemo(() => (facets ? asMap(facets.category) : countBy(without({ category: [] }), categoryOf)), [facets, without]);
   /* Who made and who uploaded a deck: real values only, so these lists exist only once the server sends them. */
   const creators = useMemo(() => [...countBy(slides, createdByOf).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
   const uploaders = useMemo(() => [...countBy(slides, uploadedByOf).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
@@ -205,13 +202,15 @@ export function FilterBar() {
   const tagNames = useMemo(() => [...tagCount(slides).keys()].sort((a, b) => a.localeCompare(b)), [slides]);
   const tagCounts = useMemo(() => tagCount(without({ tag: [] })), [without]);
   const typeCounts = useMemo(() => {
+    if (facets) return asMap(facets.slideType);
     const base = without({ slideType: [] });
     return new Map(SLIDE_TYPES.map((t) => [t.label, base.filter((s) => hasSlideType(s, t.label)).length]));
-  }, [without]);
+  }, [facets, without]);
   const yearCounts = useMemo(() => {
+    if (facets) return new Map(Object.entries(facets.year).map(([k, v]) => [Number(k), v]));
     const base = without({ yfrom: null, yto: null });
     return new Map(YEAR_PRESETS.map(([k]) => [k, base.filter((s) => (yearOf(s) ?? -1) >= new Date().getFullYear() - k + 1).length]));
-  }, [without]);
+  }, [facets, without]);
 
   /* What the search was read as (client, year, kind of slide), straight from the server, so the
      row and the results header always agree. */
@@ -647,6 +646,11 @@ export function FilterBar() {
         inWords={sectionsInWords}
         onProceed={() => {
           if (askSection) patchFilters({ section: askSection });
+          // The sections ticked replace what the words asked for: those words are not read any more, the rest of the search ("bank") stays.
+          if (askNow) {
+            ignoreWords(search.status === 'ready' ? (search.result.sectionWords ?? []) : []);
+            dismissAutoSection();
+          }
           setAskSection(null);
           setAnsweredRun(searchRun);
         }}

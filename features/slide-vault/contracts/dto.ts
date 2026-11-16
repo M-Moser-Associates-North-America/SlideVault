@@ -296,7 +296,20 @@ export type SmartSearchResult = {
   relaxed: boolean;
   /** Set when the search is only a deck section ("case studies", "resumes"): the standard sections it asks for (FD-80) */
   sections?: string[];
+  /** The typed words that asked for those sections ("case studies"), so the screen can switch that reading off (FD-107) */
+  sectionWords?: string[];
+  /** Counts for the filter lists, from what the search found with every other filter applied (sent when filters were) */
+  facets?: SearchFacets;
   items: SmartSearchItem[];
+};
+
+/** Slides per value for each filter list: the filters ticked are applied except the list's own (so a second value can be seen). */
+export type SearchFacets = {
+  client: Record<string, number>;
+  category: Record<string, number>;
+  slideType: Record<string, number>;
+  /** Slides from this year or later, by preset (1 = this year, 2 = the last 2 years, 5 = the last 5) */
+  year: Record<string, number>;
 };
 
 /* ---- Per-person data (docs/DECISIONS.md FD-18) ----------------------------------------------- */
