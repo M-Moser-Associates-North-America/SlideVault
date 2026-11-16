@@ -75,7 +75,7 @@ export function mentionsWord(hay: string, w: string): boolean {
  * `read` is true only when the person submitted the search (Enter or the Search button). While they
  * type, every search uses the rules, so a long question never calls the model mid-sentence.
  */
-export async function smartSearch(query: string, limit: number, deps: SmartSearchDeps, opts: { read?: boolean; force?: boolean } = {}): Promise<SmartSearchResponse> {
+export async function smartSearch(query: string, limit: number, deps: SmartSearchDeps, opts: { read?: boolean; force?: boolean; alsoWords?: string[] } = {}): Promise<SmartSearchResponse> {
   const ctx: PlanContext = { ...(await deps.context()), thisYear: deps.thisYear ?? new Date().getFullYear() };
 
   let plan: SearchPlan;
@@ -101,6 +101,8 @@ export async function smartSearch(query: string, limit: number, deps: SmartSearc
     plan = standInPlan(query, ctx);
     if (deps.reader && opts.read) aiSkipped = 'short';
   }
+  // Words whose reading the person switched off are still searched for, as plain words (search-ignore.ts).
+  if (opts.alsoWords?.length) plan = { ...plan, keywords: [...new Set([...plan.keywords, ...opts.alsoWords])].slice(0, MAX_KEYWORDS) };
   // A model or rule that finds nothing to search for still shouldn't lose the person's words.
   if (!plan.keywords.length && !hasFilters(plan)) plan = { ...plan, keywords: standInPlan(query, ctx).keywords };
   // Short codes the rules skip ("QA/QC", "MSA", "FF&E") are still what the person asked for.

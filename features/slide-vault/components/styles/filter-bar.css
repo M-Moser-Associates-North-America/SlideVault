@@ -30,8 +30,8 @@
 .slidevault .fbar.is-stuck { padding-top: 22px; padding-bottom: 20px; margin-bottom: -26px; }
 .slidevault .fbar.has-search { margin-bottom: -50px; }
 .slidevault .fbar.is-stuck.has-search { margin-bottom: -76px; }
-/* With chosen filters showing, the filter area ends with clear room before the page heading below it. */
-.slidevault .fbar:has(.fb-chips):not(.is-stuck) { margin-bottom: 28px; }
+/* With chosen filters showing, or on a results page, the filter area ends with clear room before the heading below it. */
+.slidevault .fbar:has(.fb-chips):not(.is-stuck), .slidevault .sv-main:has(.res-wrap) .fbar:not(.is-stuck, .has-search) { margin-bottom: 28px; }
 
 /* ===== The row of filter buttons (desktop look; phones and tablets below) ===== */
 .slidevault .fbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: 840px; }
@@ -116,7 +116,7 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
    Search with AI, the eye, Filters, Storyboard (on a phone held upright it has its own line above) and then
    Clear all with the chosen filters are all one row. */
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar { position: static; display: block; }
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar:has(.fb-chips) { margin-bottom: 24px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.fbar:has(.fb-chips), .sv-main:has(.res-wrap) .fbar) { margin-bottom: 24px; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar > .fbar-row { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px 10px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; max-width: none; padding: 6px 0 4px; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row::-webkit-scrollbar { display: none; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row > * { flex: none; margin: 0; }

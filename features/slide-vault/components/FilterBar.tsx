@@ -8,7 +8,8 @@ import { backdropClose, useDialogOpen } from './Dialogs';
 import { DeeperAiToggle } from './DeeperAiToggle';
 import { Link } from './parts';
 import type { SlideSummary, SmartSearchChip } from '../contracts/dto';
-import { rowReading, withoutChip } from './search-reading';
+import { rowReading } from './search-reading';
+import { SectionConflictDialog } from './SectionConflictDialog';
 import { SLIDE_TYPES, hasSlideType } from './search-rules';
 import { useHeroOut } from '../client/hero-visibility';
 import { StickySearch } from './StickySearch';
@@ -152,7 +153,7 @@ function NotYet({ label }: { label: string }) {
 export function FilterBar() {
   const { runtime } = useRuntime();
   const { library, includeArchived, setIncludeArchived } = useLibrary();
-  const { filters, patchFilters, clearFilters, query, setQuery, search, autoSection, dismissAutoSection, searched } = useSearch();
+  const { filters, patchFilters, clearFilters, query, search, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, searched } = useSearch();
   const [open, setOpen] = useState<Key | null>(null);
   /* Phones: the same panels open in a bottom sheet instead of a small popover. */
   const compact = useWorkspaceFiltersRolled();
@@ -216,7 +217,20 @@ export function FilterBar() {
   const fromClient = pClient && !filters.client.includes(pClient.label) ? pClient : null;
   const fromYear = pYear && filters.yfrom === null && filters.yto === null ? pYear : null;
   const fromTypes = pTypes.filter((t) => !filters.slideType.includes(t.label));
-  const removeFromSearch = (chip: SmartSearchChip) => setQuery(withoutChip(query, chip));
+  /* Crossing out a chip, or unticking its box, switches that reading off for this search. The typed words never change. */
+  const switchOff = (chip: SmartSearchChip, alsoCalled?: string) => ignoreChip(chip, alsoCalled);
+  /* A section picked by hand that is not the one the words ask for: asked first (SectionConflictDialog). */
+  const [askSection, setAskSection] = useState<string | null>(null);
+  /* Taking off a section the words also ask for must stick: without this the words would bring it straight back. */
+  const takeOffSection = (kind: string) => {
+    patchFilters({ section: [] });
+    if (sectionsInWords.includes(kind)) dismissAutoSection();
+  };
+  const recheckWords = () => {
+    setAskSection(null);
+    setSheet(null); /* on a phone the Filters sheet is open behind the question: close it so the search box can be reached */
+    setTimeout(() => document.querySelector<HTMLInputElement>('.slidevault .home-hero input')?.focus(), 80);
+  };
 
   const close = useCallback((returnFocus: boolean) => {
     setOpen((cur) => {
@@ -328,12 +342,12 @@ export function FilterBar() {
     ...filters.slideType.map((v) => ({ id: `t-${v}`, kind: 'Slide type', text: v, remove: () => patchFilters({ slideType: filters.slideType.filter((x) => x !== v) }) })),
     ...filters.createdBy.map((v) => ({ id: `cb-${v}`, kind: 'File created by', text: v, remove: () => patchFilters({ createdBy: filters.createdBy.filter((x) => x !== v) }) })),
     ...filters.uploadedBy.map((v) => ({ id: `ub-${v}`, kind: 'Uploaded by', text: v, remove: () => patchFilters({ uploadedBy: filters.uploadedBy.filter((x) => x !== v) }) })),
-    ...(secOnResults ? [] : filters.section).map((v) => ({ id: `sc-${v}`, kind: 'Section', text: SECTION_LABEL[v] ?? v, remove: () => patchFilters({ section: [] }) })),
+    ...(secOnResults ? [] : filters.section).map((v) => ({ id: `sc-${v}`, kind: 'Section', text: SECTION_LABEL[v] ?? v, remove: () => takeOffSection(v) })),
     ...filters.tag.map((v) => ({ id: `tg-${v}`, kind: 'Tag', text: v, remove: () => patchFilters({ tag: filters.tag.filter((x) => x !== v) }) })),
     ...(filters.bestOnly ? [{ id: 'best', kind: 'Collection', text: 'Best of the Best', remove: () => patchFilters({ bestOnly: false }) }] : []),
-    ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => removeFromSearch(fromYear), fromSearch: true }] : []),
-    ...(fromClient ? [{ id: 'sc', kind: 'Client', text: fromClient.label, remove: () => removeFromSearch(fromClient), fromSearch: true }] : []),
-    ...fromTypes.map((t) => ({ id: `st-${t.label}`, kind: 'Slide type', text: t.label, remove: () => removeFromSearch(t.chip), fromSearch: true })),
+    ...(fromYear ? [{ id: 'sy', kind: 'Year', text: fromYear.label, remove: () => switchOff(fromYear), fromSearch: true }] : []),
+    ...(fromClient ? [{ id: 'sc', kind: 'Client', text: fromClient.label, remove: () => switchOff(fromClient), fromSearch: true }] : []),
+    ...fromTypes.map((t) => ({ id: `st-${t.label}`, kind: 'Slide type', text: t.label, remove: () => switchOff(t.chip, t.label), fromSearch: true })),
     ...(autoSection && !secOnResults ? [{ id: 'ss', kind: 'Section', text: SECTION_LABEL[autoSection] ?? autoSection, remove: dismissAutoSection, fromSearch: true }] : []),
   ];
 
@@ -347,7 +361,7 @@ export function FilterBar() {
           {fromYear && (
             <p className="fb-note">
               From your search: <strong>{fromYear.label}</strong>{' '}
-              <button type="button" className="btn-link" onClick={() => removeFromSearch(fromYear)}>
+              <button type="button" className="btn-link" onClick={() => switchOff(fromYear)}>
                 Remove
               </button>
             </p>
@@ -398,7 +412,7 @@ export function FilterBar() {
           options={clients}
           picked={fromClient ? [...filters.client, fromClient.label] : filters.client}
           counts={clientCounts}
-          onToggle={(v) => (fromClient && v === fromClient.label ? removeFromSearch(fromClient) : patchFilters({ client: toggle(filters.client, v) }))}
+          onToggle={(v) => (fromClient && v === fromClient.label ? switchOff(fromClient) : patchFilters({ client: toggle(filters.client, v) }))}
         />
       );
     if (key === 'category')
@@ -414,8 +428,11 @@ export function FilterBar() {
           picked={(filters.section.length ? filters.section : autoSection ? [autoSection] : []).map((k) => SECTION_LABEL[k] ?? k)}
           onToggle={(label) => {
             // The section the search asked for is ticked already: ticking it again turns it off for this search.
-            if (!filters.section.length && autoSection === kindOf(label)) dismissAutoSection();
-            else patchFilters({ section: filters.section.includes(kindOf(label)) ? [] : [kindOf(label)] });
+            const kind = kindOf(label);
+            if (!filters.section.length && autoSection === kind) dismissAutoSection();
+            else if (filters.section.includes(kind)) takeOffSection(kind);
+            else if (sectionsInWords.length > 0 && !sectionsInWords.includes(kind)) setAskSection(kind);
+            else patchFilters({ section: [kind] });
             if (!compact) setTimeout(() => close(true), 160); /* one choice: the tick shows first, then the card closes */
           }}
         />
@@ -431,7 +448,7 @@ export function FilterBar() {
           counts={typeCounts}
           onToggle={(v) => {
             const fromSearchType = fromTypes.find((t) => t.label === v);
-            if (fromSearchType) removeFromSearch(fromSearchType.chip);
+            if (fromSearchType) switchOff(fromSearchType.chip, fromSearchType.label);
             else patchFilters({ slideType: toggle(filters.slideType, v) });
           }}
         />
@@ -609,6 +626,15 @@ export function FilterBar() {
           </>
         )}
       </dialog>
+      <SectionConflictDialog
+        picked={askSection}
+        inWords={sectionsInWords}
+        onProceed={() => {
+          if (askSection) patchFilters({ section: [askSection] });
+          setAskSection(null);
+        }}
+        onRecheck={recheckWords}
+      />
     </div>
     </>
   );

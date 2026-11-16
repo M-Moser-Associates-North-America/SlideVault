@@ -5,13 +5,13 @@ import { SectionCards } from '../SectionCards';
 import { useEffect, useMemo, useState } from 'react';
 import type { SmartSearchItem, SmartSearchResult } from '../../contracts/dto';
 import { Icon } from '../icons';
-import { browseSlides, browseTitle, downloadedNote, downloadsOf, filterCount, removeHint, plural, slideMatches, yearOf } from '../library';
+import { browseSlides, browseTitle, downloadedNote, downloadsOf, filterCount, removeHint, plural, slideMatches, yearOf, SECTION_LABEL } from '../library';
 import { findDecks } from '../deck-finder';
 import { DeckCard, SkeletonGrid, SlideCard, StateBlock } from '../parts';
 import { setResultsSummary } from '../../client/results-summary';
 import { ScrollRow } from '../scroll-row';
 import { useWorkspacePhoneLike } from '../size';
-import { shownInFilterRow, withoutChip } from '../search-reading';
+import { shownInFilterRow } from '../search-reading';
 import { useSearch } from '../state';
 import { Row, useReadyLibrary, ColumnsToggle } from './shared';
 
@@ -20,7 +20,7 @@ import { Row, useReadyLibrary, ColumnsToggle } from './shared';
  * for a list that no search produced: same heading, filter pills, sort, section pills and cards, just without the "why it fits" lines.
  */
 export function ResultsView({ browse }: { browse?: string } = {}) {
-  const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch } = useSearch();
+  const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch, sectionsInWords, ignoreChip } = useSearch();
   const [sort, setSort] = useState<'best' | 'popular' | 'newest'>(browse?.startsWith('popular') ? 'popular' : browse?.startsWith('recent') ? 'newest' : 'best');
   const browseKind = browse?.split(':')[0];
   const browseValue = browse ? browse.split(':').slice(1).join(':') : '';
@@ -99,7 +99,9 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
     return () => setResultsSummary(null);
   }, [slides.length, sort]);
   /* Only what the search itself asked for brings in the Sections block; tapping a section pill just narrows the slides, so nothing above them moves. */
-  const sectionMode = !!autoSection || sectionsFromSearch.length > 0;
+  /* The Section filter was set by hand to a section the words do not ask for: the cards for the section in the words step aside. */
+  const pickedElsewhere = !browse && filters.section.length > 0 && sectionsInWords.length > 0 && !sectionsInWords.some((k) => filters.section.includes(k));
+  const sectionMode = !pickedElsewhere && (!!autoSection || sectionsFromSearch.length > 0);
   /* Client, year and slide type already light up in the filter row above. */
   const extraChips = result ? result.chips.filter((c) => !shownInFilterRow(c)) : [];
 
@@ -175,7 +177,7 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
                     <span className="k">{c.kind}:</span> {c.label}
                   </span>
                 ) : (
-                  <button key={`${c.kind}:${c.label}`} type="button" className="chip-x" aria-label={`Remove ${c.kind}: ${c.label}`} onClick={() => setQuery(withoutChip(q, c))}>
+                  <button key={`${c.kind}:${c.label}`} type="button" className="chip-x" aria-label={`Remove ${c.kind}: ${c.label}`} onClick={() => ignoreChip(c)}>
                     <span className="k">{c.kind}:</span> {c.label}
                     <Icon name="x" />
                   </button>
@@ -225,6 +227,10 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
                   Clear search
                 </Button>
               )}
+            </StateBlock>
+          ) : visible.length === 0 ? (
+            <StateBlock icon="search" title={`No ${SECTION_LABEL[pickedSection ?? ''] ?? ''} slides in these results`} text="Another section may have what you need.">
+              <Button onClick={() => patchFilters({ section: [] })}>Clear Section filter</Button>
             </StateBlock>
           ) : (
             <>

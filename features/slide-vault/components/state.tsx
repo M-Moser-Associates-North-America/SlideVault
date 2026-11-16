@@ -11,9 +11,10 @@ import { adoptServerRole, currentStoryRole, onRoleChange } from '../client/role-
 import { demoTagsOn } from '../client/tag-store';
 import { useSelection } from '../client/selection-store';
 import { tourIsOpen } from '../client/tour-store';
-import type { SlideSummary, SmartSearchResult, TitleEdit } from '../contracts/dto';
+import type { SlideSummary, SmartSearchChip, SmartSearchResult, TitleEdit } from '../contracts/dto';
 import type { RuntimeRequest, SlideVaultRuntime } from '../contracts/runtime';
 import { USER_HEADER } from '../client/user-api';
+import { useIgnoredReadings, useSectionReading } from './use-search-reading';
 import { groupDecks, NO_FILTERS, plural, type Deck, type Filters } from './library';
 
 /* Pretend renames (?demotags=1) survive the library reloading, so the demo behaves like a server that kept the name. */
@@ -72,6 +73,10 @@ type Workspace = {
   autoSection: string | null;
   /** Turn the section the search asked for off, for this search only */
   dismissAutoSection: () => void;
+  /** The deck sections the words ask for, whether or not the person has turned them off (to tell when a picked section disagrees with the words) */
+  sectionsInWords: string[];
+  /** Switch a chip's reading off for this search: the typed words stay, the results follow (FD-107) */
+  ignoreChip: (chip: SmartSearchChip, alsoCalled?: string) => void;
   /** The server has an AI reader, so "Deeper AI search" is offered at all (FD-79) */
   aiAvailable: boolean;
   /** "Deeper AI search" is ticked: submitted sentences and questions are read by the AI. Off until the person turns it on; remembered on this device. */
@@ -192,7 +197,7 @@ type Workspace = {
  */
 export type RuntimeGroup = Pick<Workspace, 'runtime'>;
 export type LibraryGroup = Pick<Workspace, 'library' | 'reloadLibrary' | 'includeHidden' | 'setIncludeHidden' | 'includeArchived' | 'setIncludeArchived' | 'archiveDeck' | 'renameSlide' | 'packs' | 'makePack' | 'ungroupPack' | 'renamePack' | 'setPackStatus'>;
-export type SearchGroup = Pick<Workspace, 'aiAvailable' | 'deeperAi' | 'setDeeperAi' | 'aiAsk' | 'aiAskKind' | 'answerAiAsk' | 'query' | 'setQuery' | 'typeQuery' | 'searched' | 'submitSearch' | 'retrySearch' | 'search' | 'filters' | 'patchFilters' | 'clearFilters' | 'sectionsFromSearch' | 'autoSection' | 'dismissAutoSection'>;
+export type SearchGroup = Pick<Workspace, 'aiAvailable' | 'deeperAi' | 'setDeeperAi' | 'aiAsk' | 'aiAskKind' | 'answerAiAsk' | 'query' | 'setQuery' | 'typeQuery' | 'searched' | 'submitSearch' | 'retrySearch' | 'search' | 'filters' | 'patchFilters' | 'clearFilters' | 'sectionsFromSearch' | 'autoSection' | 'dismissAutoSection' | 'sectionsInWords' | 'ignoreChip'>;
 export type DraftGroup = Pick<Workspace, 'selection' | 'updateSelection' | 'excluded' | 'setIncluded' | 'cartMin' | 'setCartMin' | 'draftTitle' | 'setDraftTitle' | 'combine' | 'setCombine' | 'addPackToDraft' | 'removePackFromDraft' | 'drafts' | 'saveDraft' | 'replaceDraft' | 'draftOrigin' | 'deleteDraft' | 'loadDraft'>;
 export type OverlaysGroup = Pick<Workspace, 'preview' | 'openPreview' | 'closePreview' | 'movePreview' | 'goToPreview' | 'downloadSlides' | 'openDownload' | 'closeDownload' | 'alsoFor' | 'openAlso' | 'closeAlso' | 'archiveDialog' | 'openArchiveDialog' | 'closeArchiveDialog' | 'packDialog' | 'openPackDialog' | 'closePackDialog'>;
 export type NotifyGroup = Pick<Workspace, 'toast' | 'dismissToast' | 'announce'>;
@@ -395,12 +400,14 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     setSearchTry((n) => n + 1);
   }, []);
   /* Only a submitted search runs (FD-89), so the AI may read it when the person has ticked "Search with AI". */
+  /* Chips crossed out for this search: their words stay in the box, the server is told not to read them (FD-107). */
+  const { ignore, ignoreChip } = useIgnoredReadings(submitted);
   useEffect(() => {
     const q = submitted;
     if (!q) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      smartSearch(transport, q, true, controller.signal, { includeHidden, role: currentStoryRole(), ai: aiOn && declineAiFor !== q ? undefined : false, forceAi: aiOn && forceAiFor === q })
+      smartSearch(transport, q, true, controller.signal, { includeHidden, role: currentStoryRole(), ai: aiOn && declineAiFor !== q ? undefined : false, forceAi: aiOn && forceAiFor === q, ignore })
         .then((result) => {
           if (typeof result.aiAvailable === 'boolean') setAiAvailable(result.aiAvailable);
           setSearch({ status: 'ready', result: demoTitles.size ? { ...result, items: result.items.map((i) => ({ ...i, slide: withDemoTitle(i.slide) })) } : result });
@@ -411,20 +418,10 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
       clearTimeout(timer);
       controller.abort();
     };
-  }, [transport, submitted, searchTry, includeHidden, aiOn, forceAiFor, declineAiFor]);
+  }, [transport, submitted, searchTry, includeHidden, aiOn, forceAiFor, declineAiFor, ignore]);
 
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
-  /* "bank case studies section" turns the Section filter on by itself, the way "2024" lights Year (FD-80). Taking it off
-     lasts for that search only, so the next search that asks for a section turns it on again. */
-  const [sectionOffFor, setSectionOffFor] = useState('');
-  const sectionsFromSearch = useMemo(() => {
-    if (aiAsk || !query.trim() || sectionOffFor === query.trim() || search.status !== 'ready') return [];
-    const { sections = [], items } = search.result;
-    // Only a section this search has slides in: an automatic filter must never hide every result (decks with no sections found).
-    return sections.filter((kind) => items.some((i) => i.slide.section?.kind === kind));
-  }, [aiAsk, query, sectionOffFor, search]);
-  const autoSection = filters.section.length === 0 && sectionsFromSearch.length === 1 ? sectionsFromSearch[0] : null;
-  const dismissAutoSection = useCallback(() => setSectionOffFor(query.trim()), [query]);
+  const { sectionsInWords, sectionsFromSearch, autoSection, dismissAutoSection } = useSectionReading({ aiAsk: aiAsk !== null, query, search, pickedByHand: filters.section.length });
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), []);
   const clearFilters = useCallback(() => setFilters(NO_FILTERS), []);
 
@@ -722,7 +719,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const shownSearch = useMemo<SearchState>(() => (aiAsk ? { status: 'loading' } : search), [aiAsk, search]);
   const runtimeValue = useMemo<RuntimeGroup>(() => ({ runtime }), [runtime]);
   const libraryValue = useMemo<LibraryGroup>(() => ({ library, reloadLibrary, includeHidden, setIncludeHidden, includeArchived, setIncludeArchived, archiveDeck, renameSlide, packs, makePack, ungroupPack, renamePack, setPackStatus }), [library, reloadLibrary, includeHidden, setIncludeHidden, includeArchived, setIncludeArchived, archiveDeck, renameSlide, packs, makePack, ungroupPack, renamePack, setPackStatus]);
-  const searchValue = useMemo<SearchGroup>(() => ({ aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, searched: submitted, submitSearch, retrySearch, search: shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection }), [aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, submitted, submitSearch, retrySearch, shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection]);
+  const searchValue = useMemo<SearchGroup>(() => ({ aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, searched: submitted, submitSearch, retrySearch, search: shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip }), [aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, submitted, submitSearch, retrySearch, shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip]);
   const draftValue = useMemo<DraftGroup>(() => ({ selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft }), [selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft]);
   const overlaysValue = useMemo<OverlaysGroup>(() => ({ preview, openPreview, closePreview, movePreview, goToPreview, downloadSlides, openDownload, closeDownload, alsoFor, openAlso, closeAlso, archiveDialog, openArchiveDialog, closeArchiveDialog, packDialog, openPackDialog, closePackDialog }), [preview, openPreview, closePreview, movePreview, goToPreview, downloadSlides, openDownload, closeDownload, alsoFor, openAlso, closeAlso, archiveDialog, openArchiveDialog, closeArchiveDialog, packDialog, openPackDialog, closePackDialog]);
   const notifyValue = useMemo<NotifyGroup>(() => ({ toast, dismissToast, announce }), [toast, dismissToast, announce]);

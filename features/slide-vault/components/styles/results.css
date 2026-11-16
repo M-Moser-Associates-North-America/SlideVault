@@ -147,7 +147,7 @@
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head .res-title { white-space: normal; overflow: visible; text-overflow: clip; }
 
 /* Same box for the heading and Sort so their centres match; spacing below the row is padding, so it cannot shift one more than the other. */
-.slidevault .sv-app .sv-wrap.res-wrap > .page-head { margin: 0 !important; padding: 0 0 18px; box-sizing: border-box; min-height: 62px; }
+.slidevault .sv-app .sv-wrap.res-wrap > .page-head { margin: 0 !important; padding: 0 0 24px; box-sizing: border-box; min-height: 62px; }
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .sv-wrap.res-wrap > .page-head { padding: 0; min-height: 0; }
 
 /* Phone on its side: the results heading is bigger, and wraps to two lines (not cut off) when the search is long. */
