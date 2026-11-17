@@ -1,0 +1,28 @@
+/* Fold panel (fold-panel.tsx)
+   The panel that opens and closes (details/summary), used on the slide page, tags and filters.
+*/
+
+/* Stronger than .panel's padding, so a folding panel keeps none whatever the file order. */
+.slidevault .panel.fold { padding: 0; }
+.slidevault .fold > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 12px 18px; cursor: pointer; list-style: none; }
+.slidevault .fold > summary::-webkit-details-marker { display: none; }
+.slidevault .fold-text { display: grid; gap: 2px; min-width: 0; }
+.slidevault .fold-title { font-size: 17px; font-weight: 700; }
+.slidevault .fold-hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sv-text-secondary); font-size: var(--sv-text-small); }
+.slidevault .fold-chev { flex: none; transition: transform 0.15s; color: var(--sv-text-secondary); }
+.slidevault .fold[open] .fold-chev { transform: rotate(180deg); }
+.slidevault .fold[open] .fold-hint { display: none; }
+.slidevault .fold-body { padding: 0 18px 18px; }
+
+/* Slide page on a phone on its side: the cards on the right are a compact column that scales with its own width, so a small phone looks like a smaller iPhone 15. */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .stack-panels .fold > summary { min-height: 44px; padding: 8px 12px; gap: 8px; }
+.slidevault .sv-app[data-size="compact"] .stack-panels .fold-body { padding: 0 12px 12px; }
+.slidevault .sv-app[data-size="compact"] .stack-panels .fold h2, .slidevault .sv-app[data-size="compact"] .stack-panels .fold .fold-title { font-size: 15px; }
+.slidevault .sv-app[data-size="compact"] .stack-panels .fold .fold-hint, .slidevault .sv-app[data-size="compact"] .stack-panels .fold .meta { font-size: 12px; } }
+/* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
+.slidevault .sv-app[data-size="medium"] .stack-panels .fold > summary { min-height: 44px; padding: 8px 12px; gap: 8px; }
+.slidevault .sv-app[data-size="medium"] .stack-panels .fold-body { padding: 0 12px 12px; }
+.slidevault .sv-app[data-size="medium"] .stack-panels .fold h2, .slidevault .sv-app[data-size="medium"] .stack-panels .fold .fold-title { font-size: 15px; }
+.slidevault .sv-app[data-size="medium"] .stack-panels .fold .fold-hint, .slidevault .sv-app[data-size="medium"] .stack-panels .fold .meta { font-size: 12px; }

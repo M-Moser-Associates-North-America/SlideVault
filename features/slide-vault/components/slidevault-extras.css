@@ -328,17 +328,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .hero-zoom { position: absolute; z-index: 3; right: 26px; bottom: 10px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: rgba(0, 0, 0, 0.55); color: #fff; pointer-events: none; }
 .slidevault .hero-zoom .ic { width: 16px; height: 16px; }
 /* Cards that open and close (About, Details, Slide text). */
-/* Stronger than .panel's padding, so a folding panel keeps none whatever the file order. */
-.slidevault .panel.fold { padding: 0; }
-.slidevault .fold > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 12px 18px; cursor: pointer; list-style: none; }
-.slidevault .fold > summary::-webkit-details-marker { display: none; }
-.slidevault .fold-text { display: grid; gap: 2px; min-width: 0; }
-.slidevault .fold-title { font-size: 17px; font-weight: 700; }
-.slidevault .fold-hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sv-text-secondary); font-size: var(--sv-text-small); }
-.slidevault .fold-chev { flex: none; transition: transform 0.15s; color: var(--sv-text-secondary); }
-.slidevault .fold[open] .fold-chev { transform: rotate(180deg); }
-.slidevault .fold[open] .fold-hint { display: none; }
-.slidevault .fold-body { padding: 0 18px 18px; }
 /* Only Filters, Year and Client sit in the row; the rest are in the Filters sheet. */
 .slidevault .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .slidevault .summary-row .summary { margin: 0; }
@@ -428,14 +417,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
   dialog.slidevault.sv-dialog.wide { height: fit-content; }
 }
 
-/* Slide page on a phone on its side: the cards on the right are a compact column that scales with its own width, so a small phone looks like a smaller iPhone 15. */
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  .slidevault .sv-app[data-size="compact"] .stack-panels .fold > summary { min-height: 44px; padding: 8px 12px; gap: 8px; }
-  .slidevault .sv-app[data-size="compact"] .stack-panels .fold-body { padding: 0 12px 12px; }
-  .slidevault .sv-app[data-size="compact"] .stack-panels .fold h2, .slidevault .sv-app[data-size="compact"] .stack-panels .fold .fold-title { font-size: 15px; }
-  .slidevault .sv-app[data-size="compact"] .stack-panels .fold .fold-hint, .slidevault .sv-app[data-size="compact"] .stack-panels .fold .meta { font-size: 12px; }
-}
-
 /* Slide page title and its pencil: the pencil is exactly as tall as one line of the title and centred in it, so it sits on the first line's horizontal axis at every size. */
 .slidevault .slide-title-row .h1 { font-size: var(--ttl-fs); line-height: var(--ttl-lh); }
 /* Upload: the same space above the title as the Archive, Settings and My decks pages. */
@@ -497,10 +478,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .sv-app[data-size="medium"] .hero-add { left: 10px; }
 .slidevault .sv-app[data-size="medium"] .hero-corner, .slidevault .sv-app[data-size="medium"] .hero-zoom { right: 10px; }
 .slidevault .sv-app[data-size="medium"] .h1 { font-size: 22px; }
-.slidevault .sv-app[data-size="medium"] .stack-panels .fold > summary { min-height: 44px; padding: 8px 12px; gap: 8px; }
-.slidevault .sv-app[data-size="medium"] .stack-panels .fold-body { padding: 0 12px 12px; }
-.slidevault .sv-app[data-size="medium"] .stack-panels .fold h2, .slidevault .sv-app[data-size="medium"] .stack-panels .fold .fold-title { font-size: 15px; }
-.slidevault .sv-app[data-size="medium"] .stack-panels .fold .fold-hint, .slidevault .sv-app[data-size="medium"] .stack-panels .fold .meta { font-size: 12px; }
 
 /* Tablet upright: the filter row, Filters button, example searches and Home rows follow the phone. */
 .slidevault .sv-app[data-size="medium"] .row-scroller { grid-auto-columns: clamp(140px, calc(var(--sv-w, 390px) * 0.42), 200px); gap: 10px; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; }

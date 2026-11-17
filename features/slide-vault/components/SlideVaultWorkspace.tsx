@@ -51,6 +51,7 @@ import './styles/tour.css';
 import './styles/packs.css';
 import './styles/create.css';
 import './styles/ai-ask.css';
+import './styles/fold-panel.css';
 
 /**
  * The SlideVault workspace: renders inside whatever space its host gives it and talks to the
