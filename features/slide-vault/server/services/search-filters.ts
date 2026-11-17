@@ -1,5 +1,5 @@
 /**
- * The filters the person ticked, applied here so they search the whole library and not only the first slides the words
+ * The filters the person ticked, applied here so they search the top 400 matches of the words and not only the first slides the words
  * found (FD-107): `GET /smart-search?filters=<json>`. Within one filter a slide needs any ticked value; across filters it
  * needs all of them. The words still decide what is searched for, minus the ones whose reading the person switched off.
  */
