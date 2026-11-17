@@ -8,36 +8,18 @@
 /* ------------------------------------------------------------------
    v3 three-column layout: filters + search (left), content, cart (right)
 ------------------------------------------------------------------- */
-.slidevault .rail { position: sticky; top: 61px; margin-top: 0; min-height: calc(var(--sv-h, 100%) - 61px); max-height: calc(var(--sv-h, 100%) - 61px); overflow-y: auto; overflow-x: hidden; padding: 24px 22px 24px 0; border-radius: 0; scrollbar-width: thin; }
 /* full-bleed: the colour runs to the window edge behind the column */
-.slidevault .rail { background: var(--rail-bg); margin-left: calc(-1 * var(--gut)); padding-left: var(--gut); --rail-bg: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); --rail-line: color-mix(in srgb, var(--sv-brand) 28%, transparent); }
-.slidevault .rail { display: flex; flex-direction: column; gap: 18px; }
 
 /* Cart: thin and quiet */
-.slidevault .no-rail .rail { display: none; }
-@media (max-width: 960px) {
-.slidevault .rail { position: static; min-height: 0; max-height: none; overflow: visible; }
-.slidevault .rail { margin: 12px -20px 0; padding: 16px 20px; }
-.slidevault .rail { padding-top: 12px; gap: 10px; } }
-@media (max-width: 480px) {
-.slidevault .rail { margin-left: -16px; margin-right: -16px; padding: 16px; } }
 
 /* contrast */
-.slidevault .rail { --sv-text-secondary: color-mix(in srgb, var(--sv-text) 84%, transparent); --sv-placeholder: color-mix(in srgb, var(--sv-text) 72%, transparent); }
 
 /* hierarchy and rhythm */
 .slidevault .try { margin-top: 10px; }
 /* Try asking: directly under the search box */
-.slidevault .rail-try { margin: -4px 0 18px; }
-.slidevault .try-h { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 10px; }
-.slidevault .try-h .ic { color: var(--sv-brand-strong); width: 15px; height: 15px; }
-.slidevault .try-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .slidevault a.try-chip { display: inline-flex; align-items: center; padding: 5px 9px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--sv-brand) 65%, transparent); background: var(--sv-surface); color: var(--sv-text); font-size: 12.25px; line-height: 1.35; text-decoration: none; }
 .slidevault a.try-chip:hover { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 10%, var(--sv-surface)); }
 .slidevault a.try-chip[aria-current="true"] { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); font-weight: 600; }
-@media (max-width: 960px) {
-.slidevault .try-list { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
-.slidevault .try-list li { flex: none; max-width: 260px; } }
 
 /* Example-search chips are buttons here (the prototype used links). */
 .slidevault button.try-chip { display: inline-flex; align-items: center; padding: 5px 9px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--sv-brand) 65%, transparent); background: var(--sv-surface); color: var(--sv-text); font-size: 12.25px; line-height: 1.35; cursor: pointer; }
@@ -45,7 +27,6 @@
 .slidevault button.try-chip[aria-current="true"] { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); font-weight: 600; }
 
 /* The filter group list used inside the rail's second block. */
-.slidevault .rail > div { min-width: 0; }
 
 /*
  * The bare Home hero: the original reference HTML's search (reference/SlideVault.html),
@@ -230,3 +211,9 @@
 .slidevault .try-chip[data-tapped] { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
 /* Results page on a tablet on its side: the breadcrumb sits 40px above the search bar. */
 .slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .home-hero { margin-top: -4px; }
+/* orange accents (selection, focus and small brand marks only) */
+
+/* contrast */
+/* touch: 44px targets */
+/* Only Filters, Year and Client sit in the row; the rest are in the Filters sheet. */
+.slidevault .mic-soon { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; padding: 6px 12px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12.5px; font-weight: 500; white-space: nowrap; pointer-events: none; }
