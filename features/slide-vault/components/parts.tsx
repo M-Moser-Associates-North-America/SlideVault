@@ -351,7 +351,7 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
         {/* On the deck page every slide is from the same deck, so the client, year and type line is left out. */}
         {num === undefined && (
         <div className="meta-row">
-          {/* Hover: the whole line, when it is cut off ("Next Level Games · 2025 · Design Consultancy"). */}
+          {/* Hover: the whole line, when it is cut off ("Atlas Logistics · 2025 · Design Consultancy"). */}
           <span
             className="meta-wrap"
             hidden={num !== undefined}

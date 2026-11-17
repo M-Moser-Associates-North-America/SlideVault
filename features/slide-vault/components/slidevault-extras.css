@@ -700,7 +700,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault .sv-app[data-size="medium"] dialog.sv-dialog .lb-open-deck .lbl-long, .slidevault dialog.sv-dialog .lb-open-deck .lbl-long { display: inline; }
   .slidevault dialog.sv-dialog .lb-open-deck .lbl-short { display: none; }
 }
-/* A deck or file name such as "M Moser_Newmark_ConfidentialClient_SF_2026" fills the line and breaks inside itself, instead of dropping to a new line after "M". */
+/* A deck or file name such as "M Moser_Atlas Logistics_RFP_SF_2026" fills the line and breaks inside itself, instead of dropping to a new line after "M". */
 .slidevault .trust dd.break-name { word-break: break-all; }
 .slidevault .panel-h .also-words { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; font-weight: 600; white-space: nowrap; }
 .slidevault .panel-h .also-words .ic { width: 16px; height: 16px; }
@@ -824,7 +824,7 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app .sv-wrap.res-wrap > .res-controls > .refine { margin: 0; padding: 0 0 18px; box-sizing: border-box; min-height: 62px; }
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .sv-wrap.res-wrap > .res-controls > .refine { padding: 0; min-height: 0; }
 
-/* Download pop-up: a long file name fills each line and breaks inside itself ("M Moser_Newmark_Confidential…"), instead of leaving "M" alone on the first line. */
+/* Download pop-up: a long file name fills each line and breaks inside itself ("M Moser_Atlas Logistics_RFP…"), instead of leaving "M" alone on the first line. */
 .slidevault .dl-files li > span:not(.meta) { word-break: break-all; }
 .slidevault .dl-files li > .meta { flex: none; white-space: nowrap; }
 
