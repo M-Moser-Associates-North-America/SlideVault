@@ -56,7 +56,6 @@
 .slidevault .badge .ic { width: 13px; height: 13px; }
 .slidevault .badge.warn { background: var(--svp-warning-tint); border-color: transparent; }
 .slidevault .badge.danger { background: var(--svp-danger-tint); border-color: transparent; }
-.slidevault .badges { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* Tooltips for disabled controls */
 .slidevault .tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12.5px; font-weight: 500; line-height: 1.4; padding: 6px 10px; border-radius: 8px; width: max-content; max-width: 240px; white-space: normal; z-index: 40; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity var(--sv-duration-fast); text-align: left; }

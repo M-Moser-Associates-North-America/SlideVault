@@ -382,15 +382,8 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .lb-where .num-jump { margin: 0 2px 0 0; }
 
 /* ---- Phone pass 11: the deck page ---- */
-.slidevault .more-menu { position: relative; }
-.slidevault .more-menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 230px; padding: 6px; display: grid; gap: 2px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: 12px; box-shadow: var(--sv-shadow-panel); }
-.slidevault .more-menu-item { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
-.slidevault .more-menu-item:hover, .slidevault .more-menu-item:focus-visible { background: var(--sv-surface-sunken); }
-.slidevault .more-menu-item .ic { color: var(--sv-text-secondary); }
-.slidevault .sv-app[data-size="compact"] .deck-actions .more-menu { flex: none; }
 .slidevault .sv-app[data-size="compact"] .grid.is-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .slidevault .sv-app[data-size="compact"] .grid > [data-card] { scroll-margin-top: 12px; }
-.slidevault .range-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface); font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .range-add .num-jump { width: 52px; height: 32px; }
 /* Pictures show a soft shimmer until they arrive, then fade in. */
 .slidevault .meta-wrap[hidden] { display: none; }
@@ -515,11 +508,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   /* Slide page heading a little smaller, so it does not take four lines. */
   .slidevault .sv-app[data-size="compact"] .h1 { font-size: 18px; }
 }
-/* Deck page: "105 slides · Created by … · Uploaded by …" runs on one line and wraps between the parts when it has to, on every screen. */
-.slidevault .deck-meta .dm { display: inline; }
-.slidevault .deck-meta .dm:not(:last-child)::after { content: "·"; margin: 0 8px; }
-.slidevault .deck-meta .dm { white-space: normal; }
-.slidevault .range-add .range-close { min-width: 32px; padding-inline: 0; }
 /* Results: the sort box and the section pills share a row on a phone on its side; the box stays put, the pills scroll. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .sv-app[data-size="compact"] .res-controls > .refine { flex: none; margin: 0; }
@@ -543,9 +531,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 
 /* Slide page title and its pencil: the pencil is exactly as tall as one line of the title and centred in it, so it sits on the first line's horizontal axis at every size. */
 .slidevault .slide-title-row .h1 { font-size: var(--ttl-fs); line-height: var(--ttl-lh); }
-/* Balance pass: each part of the deck line ("Created by … · date") stays together and wraps as a whole, and the slide page's Use this slide buttons are equal halves on every phone. */
-.slidevault .sv-app[data-size="compact"] .deck-meta .dm { display: inline-block; }
-.slidevault .sv-app[data-size="compact"] .deck-meta .dm:not(:last-child)::after { margin: 0 6px; }
 /* Upload: the same space above the title as the Archive, Settings and My decks pages. */
 .slidevault .sv-app .sv-wrap.upload-wrap > .h1:first-child { margin-top: 22px; }
 
@@ -562,8 +547,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault .also-line { text-decoration: none; min-height: 28px; padding: 2px 8px 2px 0; }
   .slidevault .also-line:hover::after, .slidevault .also-line:focus-visible::after { display: block; top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; }
 }
-/* Loading placeholders never make the page wider than the screen (the page could be dragged sideways while it loaded). */
-.slidevault .deck-meta .dm { max-width: 100%; overflow-wrap: anywhere; }
 /* Filters on a phone on its side: it rises from the bottom like on a portrait phone, but narrower and centred, so its words and boxes are not stretched across the whole screen. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   dialog.slidevault.fb-sheet { margin: auto auto 0; width: min(100%, 560px); max-height: 92%; border-radius: 20px 20px 0 0; border-bottom: 0; }
@@ -594,7 +577,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="medium"] .refine .spacer { display: none; }
 .slidevault .sv-app[data-size="medium"] .refine > label { flex: none; }
 .slidevault .sv-app[data-size="medium"] .refine > .btn { margin-left: auto; flex: none; }
-.slidevault .sv-app[data-size="medium"] .deck-actions .more-menu { flex: none; }
 .slidevault .sv-app[data-size="medium"] .grid > [data-card] { scroll-margin-top: 12px; }
 .slidevault .sv-app[data-size="medium"] .hero-wrap { position: relative; }
 .slidevault .sv-app[data-size="medium"] .matched { position: relative; }
@@ -625,8 +607,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="medium"] .stack-panels .fold-body { padding: 0 12px 12px; }
 .slidevault .sv-app[data-size="medium"] .stack-panels .fold h2, .slidevault .sv-app[data-size="medium"] .stack-panels .fold .fold-title { font-size: 15px; }
 .slidevault .sv-app[data-size="medium"] .stack-panels .fold .fold-hint, .slidevault .sv-app[data-size="medium"] .stack-panels .fold .meta { font-size: 12px; }
-.slidevault .sv-app[data-size="medium"] .deck-meta .dm { display: inline-block; }
-.slidevault .sv-app[data-size="medium"] .deck-meta .dm:not(:last-child)::after { margin: 0 6px; }
 
 /* Tablet upright: the filter row, Filters button, example searches and Home rows follow the phone. */
 .slidevault .sv-app[data-size="medium"] .row-scroller { grid-auto-columns: clamp(140px, calc(var(--sv-w, 390px) * 0.42), 200px); gap: 10px; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; }
