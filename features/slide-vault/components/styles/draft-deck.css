@@ -3,6 +3,14 @@
    the chosen slides, the deck's name, the actions (download, save, tag all, clear) and their small dialogs.
 */
 
+/* Dialogs */
+.slidevault .dl-files { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.slidevault .dl-files li { display: flex; gap: 10px; align-items: center; font-size: var(--sv-text-small); padding: 8px 12px; border: 1px solid var(--sv-border); border-radius: 10px; }
+
+/* Download pop-up: a long file name fills each line and breaks inside itself ("M Moser_Atlas Logistics_RFP…"), instead of leaving "M" alone on the first line. */
+.slidevault .dl-files li > span:not(.meta) { word-break: break-all; }
+.slidevault .dl-files li > .meta { flex: none; white-space: nowrap; }
+
 /* Cart: thin and quiet */
 .slidevault .ci.dragging { opacity: .35; }
 .slidevault .cart .txt { font-size: 12.5px; color: var(--sv-text-secondary); margin: 0; }

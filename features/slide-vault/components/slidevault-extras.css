@@ -627,10 +627,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault[data-theme="dark"], .slidevault [data-theme="dark"] { --sv-btn-edge: var(--sv-control-border); }
 .slidevault .btn-ghost, .slidevault .btn-icon.btn-ghost { box-shadow: none; }
 
-/* Download pop-up: a long file name fills each line and breaks inside itself ("M Moser_Atlas Logistics_RFP…"), instead of leaving "M" alone on the first line. */
-.slidevault .dl-files li > span:not(.meta) { word-break: break-all; }
-.slidevault .dl-files li > .meta { flex: none; white-space: nowrap; }
-
 /* Phone "Add a tag" sheet. */
 dialog.slidevault.tag-sheet .tag-sheet-form .input { flex: 1 1 auto; min-width: 0; min-height: 44px; font-size: 16px; }
 /* A section's own page (a section chosen on Home): the heading, its one line, then room before the section cards. */
