@@ -185,11 +185,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 
 /* Selection bar */
 
-/* Dialogs */
-.slidevault .tier-table { width: 100%; border-collapse: collapse; font-size: var(--sv-text-small); }
-.slidevault .tier-table th, .slidevault .tier-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--sv-border); vertical-align: top; }
-.slidevault .tier-table th { font-size: 12px; color: var(--sv-text-secondary); }
-
 /* Create placeholder */
 
 /* ------------------------------------------------------------------
