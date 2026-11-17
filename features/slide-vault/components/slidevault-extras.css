@@ -219,15 +219,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .labels-source { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; }
 
 /* Slide votes, comments and Share (FD-72): grey pills, orange on hover */
-.slidevault .votepill { display: inline-flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 4px; border: 1px solid color-mix(in srgb, var(--sv-brand) 30%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--sv-brand) 8%, var(--sv-surface)); }
-.slidevault .votepill.is-small { min-height: 28px; }
-.slidevault .actpill { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--sv-surface-sunken); color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
-.slidevault .actpill .ic { width: 17px; height: 17px; }
-.slidevault .actpill:hover, .slidevault .actpill:focus-visible { background: var(--sv-brand-tint); color: var(--sv-brand-strong); }
-.slidevault .actpill[aria-expanded="true"] { box-shadow: inset 0 0 0 1px var(--sv-border-strong); }
 .slidevault .comments .h3 { margin: 0; font-size: var(--sv-text-small); font-weight: 600; }
-.slidevault .comment .avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); font-size: 12px; font-weight: 700; color: var(--sv-text-secondary); }
-.slidevault .composer .avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--sv-surface-sunken); border: 1px solid var(--sv-border); font-size: 12px; font-weight: 700; color: var(--sv-text-secondary); }
 
 /* Toasts live in the browser's top layer (popover), so they show in front of the preview and other dialogs */
 .slidevault .toasts[popover] { position: fixed; inset: auto 16px 16px auto; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; width: auto; max-width: min(420px, calc(100vw - 32px)); color: inherit; }
@@ -347,11 +339,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
   .slidevault dialog.sv-dialog.wide .dlg-body { flex: 1 1 auto; display: flex; flex-direction: column; padding-bottom: 0; }
   .slidevault dialog.sv-dialog.wide .dlg-body > * { flex: none; }
 }
-
-/* ---- Phone pass 9: the slide page ---- */
-.slidevault .sv-app[data-size="compact"] .stack-panels { display: contents; }
-/* Cards below the slide, in this order: Use this slide, About this slide, Details, Text on the slide. */
-.slidevault .sv-app[data-size="compact"] .stack-panels > * { order: 1; margin-top: 16px; }
 /* Useful / Not useful: tips open above the pair, as wide as the pair, so no card or window cuts them off. */
 .slidevault .fb-verdict .sb-icon-btn[data-tip] { position: static; white-space: nowrap; }
 .slidevault .fb-verdict .sb-icon-btn[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; width: max-content; max-width: 100%; text-align: left; white-space: normal; }
@@ -403,8 +390,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .fold[open] .fold-chev { transform: rotate(180deg); }
 .slidevault .fold[open] .fold-hint { display: none; }
 .slidevault .fold-body { padding: 0 18px 18px; }
-.slidevault .more-det { margin-top: 10px; }
-.slidevault .more-det > summary { cursor: pointer; font-weight: 600; font-size: var(--sv-text-small); color: var(--sv-text-secondary); min-height: 32px; display: flex; align-items: center; }
 
 /* The small "auto" mark on a field that was filled in from the file. */
 .slidevault .auto-tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--sv-brand-tint); color: var(--sb-orange-text, #c22d07); font-size: 11px; font-weight: 700; letter-spacing: 0.03em; vertical-align: 1px; }
@@ -461,9 +446,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 }
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   /* The heading sits over the slide only; the cards on the right start level with the top of the slide. */
-  .slidevault .sv-app[data-size="compact"] .slide-detail > .stack-panels { display: block; grid-column: 2; grid-row: 2; min-width: 0; padding-top: 10px; }
-  .slidevault .sv-app[data-size="compact"] .stack-panels > * { order: 0; margin-top: 12px; }
-  .slidevault .sv-app[data-size="compact"] .stack-panels > :first-child { margin-top: 0; }
   .slidevault .sv-app[data-size="compact"] .hero-wrap { margin: 10px 0 0; border-radius: 12px; overflow: hidden; }
   .slidevault .sv-app[data-size="compact"] .hero-add { left: 10px; }
   .slidevault .sv-app[data-size="compact"] .hero-corner, .slidevault .sv-app[data-size="compact"] .hero-zoom { right: 10px; }
@@ -503,7 +485,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 
 /* Slide page on a phone on its side: the cards on the right are a compact column that scales with its own width, so a small phone looks like a smaller iPhone 15. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  .slidevault .sv-app[data-size="compact"] .slide-detail > .stack-panels { container-type: inline-size; }
   .slidevault .sv-app[data-size="compact"] .stack-panels .fold > summary { min-height: 44px; padding: 8px 12px; gap: 8px; }
   .slidevault .sv-app[data-size="compact"] .stack-panels .fold-body { padding: 0 12px 12px; }
   .slidevault .sv-app[data-size="compact"] .stack-panels .fold h2, .slidevault .sv-app[data-size="compact"] .stack-panels .fold .fold-title { font-size: 15px; }
@@ -553,8 +534,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="medium"] .navgroup .back-results { padding-top: 1px; }
 .slidevault .sv-app[data-size="medium"] .lbl-long { display: none; }
 .slidevault .sv-app[data-size="medium"] .lbl-short { display: inline; }
-.slidevault .sv-app[data-size="medium"] .stack-panels { display: contents; }
-.slidevault .sv-app[data-size="medium"] .stack-panels > * { order: 1; margin-top: 16px; }
 .slidevault .sv-app[data-size="medium"] .grid > [data-card] { scroll-margin-top: 12px; }
 .slidevault .sv-app[data-size="medium"] .hero-wrap { position: relative; }
 .slidevault .sv-app[data-size="medium"] .matched { position: relative; }
@@ -574,7 +553,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 .slidevault .sv-app[data-size="medium"] .hero-add { left: 10px; }
 .slidevault .sv-app[data-size="medium"] .hero-corner, .slidevault .sv-app[data-size="medium"] .hero-zoom { right: 10px; }
 .slidevault .sv-app[data-size="medium"] .h1 { font-size: 22px; }
-.slidevault .sv-app[data-size="medium"] .slide-detail > .stack-panels { container-type: inline-size; }
 .slidevault .sv-app[data-size="medium"] .stack-panels .fold > summary { min-height: 44px; padding: 8px 12px; gap: 8px; }
 .slidevault .sv-app[data-size="medium"] .stack-panels .fold-body { padding: 0 12px 12px; }
 .slidevault .sv-app[data-size="medium"] .stack-panels .fold h2, .slidevault .sv-app[data-size="medium"] .stack-panels .fold .fold-title { font-size: 15px; }
@@ -602,19 +580,14 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 @media (prefers-reduced-motion: reduce) {
   dialog.slidevault.fb-sheet[open], dialog.slidevault.fb-sheet[open]::backdrop { animation: none; }
 }
-
-/* Desktop slide page: the right-hand cards start level with the top of the slide picture, not with the heading above it. */
-.slidevault .sv-app[data-size="wide"] .slide-detail > .stack-panels { grid-column: 2; grid-row: 2; min-width: 0; }
 /* Desktop slide page, Tags card: "Also in N other decks" (icon and number) at the right of the heading. */
 .slidevault .panel-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.slidevault .panel .panel-h h2 { margin: 0; }
 /* Tablet held upright preview: room between the picture and the deck arrows, and "Open deck" written out. */
 @media (orientation: portrait) and (min-width: 701px) and (max-width: 1100px) {
   .slidevault .sv-app[data-size="medium"] dialog.sv-dialog .lb-open-deck .lbl-long, .slidevault dialog.sv-dialog .lb-open-deck .lbl-long { display: inline; }
   .slidevault dialog.sv-dialog .lb-open-deck .lbl-short { display: none; }
 }
 /* A deck or file name such as "M Moser_Atlas Logistics_RFP_SF_2026" fills the line and breaks inside itself, instead of dropping to a new line after "M". */
-.slidevault .trust dd.break-name { word-break: break-all; }
 .slidevault .panel-h .also-words { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; font-weight: 600; white-space: nowrap; }
 .slidevault .panel-h .also-words .ic { width: 16px; height: 16px; }
 

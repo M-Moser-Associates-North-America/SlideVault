@@ -186,7 +186,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .src { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--sv-text-secondary); margin-left: 8px; white-space: nowrap; }
 .slidevault .src .ic { width: 12px; height: 12px; }
 .slidevault .tag.ai { border: 1px dashed var(--sv-control-border); background: transparent; }
-.slidevault .stack-panels > * + * { margin-top: 16px; }
 .slidevault .also-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .slidevault .also-list li { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 12px; align-items: center; }
 .slidevault .also-list .t { aspect-ratio: 16/9; border-radius: 5px; overflow: hidden; border: 1px solid var(--sv-border); }
