@@ -98,9 +98,7 @@
   .slidevault .sv-app[data-size="wide"]:not(:has(.cart-min)) .toasts { right: 376px; }
 /* container width: compact/wide */
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-h .count { display: none; }
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-foot .txt { margin: 0 0 6px; }
 /* container width: compact */
-  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart .txt { order: 0; flex: none; min-width: 0; }
   .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts.lift { bottom: calc(84px + env(safe-area-inset-bottom)); }
 
 /* Filters on phones: one swipeable row, every filter opens in a bottom sheet, and a pinned button
@@ -448,7 +446,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 /* Small phones on their side (667×375, 640×360, 568×320): keep every part in its place and make it fit. */
 @media (orientation: landscape) and (max-height: 400px) and (max-width: 1000px) {
   /* Draft deck panel: a shorter header, so the list has room, and buttons whose names fit. */
-  .slidevault .sv-app[data-size="compact"] .cart-foot .txt { display: none; }
   /* Slide page heading a little smaller, so it does not take four lines. */
   .slidevault .sv-app[data-size="compact"] .h1 { font-size: 18px; }
 }

@@ -225,9 +225,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 
 /* Cart: thin and quiet */
 .slidevault .cart-h .count { margin-left: 6px; color: var(--sv-text); }
-.slidevault .ci.dragging { opacity: .35; }
-.slidevault .cart .txt { font-size: 12.5px; color: var(--sv-text-secondary); margin: 0; }
-.slidevault .cart .txt strong { color: var(--sv-text); }
 .slidevault .sv-shell { transition: grid-template-columns var(--sv-duration) var(--sv-ease-out); }
 .slidevault .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
 .slidevault .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 248px; }
@@ -243,7 +240,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
   .slidevault .filters > summary { min-height: 40px; padding: 0 2px; cursor: pointer; }
   .slidevault .filters > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--sv-text-secondary); border-bottom: 2px solid var(--sv-text-secondary); transform: rotate(45deg); margin: 0 4px 4px auto; }
   .slidevault .filters[open] > summary::after { transform: rotate(-135deg); margin-bottom: 0; }
-  .slidevault .cart .txt { order: 2; flex: 1; min-width: 150px; }
   .slidevault .toasts.lift { bottom: 96px; }
 }
 @media (max-width: 480px) { .slidevault .sv-shell { padding: 0 16px; } }
