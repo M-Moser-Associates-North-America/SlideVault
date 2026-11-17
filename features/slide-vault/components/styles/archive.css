@@ -47,7 +47,7 @@
 .slidevault .sv-app[data-size="medium"] .arch-page .arch-rows { gap: 14px; }
 .slidevault .sv-app[data-size="medium"] .arch-page .arch-row { grid-template-columns: 100px minmax(0, 1fr) auto; }
 .slidevault .sv-app[data-size="medium"] .arch-page .arch-row .arch-mosaic { width: 100px; }
-/* A deck or file name such as "M Moser_Newmark_ConfidentialClient_SF_2026" fills the line and breaks inside itself, instead of dropping to a new line after "M". */
+/* A deck or file name such as "M Moser_Atlas Logistics_RFP_SF_2026" fills the line and breaks inside itself, instead of dropping to a new line after "M". */
 .slidevault .trust dd.break-name .arch-link { word-break: normal; }
 
 /* Archive on an upright tablet and on a phone on its side: the same centred column and top space as Settings and Upload. */

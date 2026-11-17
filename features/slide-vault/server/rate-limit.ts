@@ -21,7 +21,8 @@ export type RatePolicy = { name: string; limit: number; windowMs: number };
 
 export const RATE_POLICIES = {
   search: { name: 'search', limit: 60, windowMs: 60_000 },
-  smartSearch: { name: 'smart-search', limit: 20, windowMs: 60_000 },
+  // Every filter tick or crossed-out chip is a search too (FD-107), so the same 60 a minute as plain search; the AI stays capped on its own (FD-92).
+  smartSearch: { name: 'smart-search', limit: 60, windowMs: 60_000 },
   export: { name: 'export', limit: 10, windowMs: 60_000 },
   upload: { name: 'upload', limit: 10, windowMs: 60_000 },
   // Reading a file to pre-fill its upload (FD-23): one per file, before the upload itself.
