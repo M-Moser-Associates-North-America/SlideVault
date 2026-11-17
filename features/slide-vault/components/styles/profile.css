@@ -2,7 +2,6 @@
    Working drafts, saved slides, settings rows, activity list.
 */
 
-
 /*
  * Profile dashboard (saved row + simple activity record) and the avatar nav tab that reaches it.
  */
@@ -15,19 +14,16 @@
 .slidevault .activity-time { font-size: 12.5px; color: var(--sv-text-secondary); flex: none; }
 
 /* ---- Working drafts list on My decks ---- */
-.slidevault .draft-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.slidevault .draft-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
 .slidevault .draft-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); flex: none; }
 .slidevault .draft-txt { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .slidevault .draft-acts { display: flex; gap: 6px; flex: none; }
 /* container width: compact */
-.slidevault .sv-app[data-size="compact"] .draft-item { flex-wrap: wrap; }
 .slidevault .sv-app[data-size="compact"] .draft-txt { flex: 1 1 0; }
 .slidevault .sv-app[data-size="compact"] .draft-acts { flex: 1 1 100%; }
 
 /* ---- Phone pass 13: working drafts swipe to delete; tap areas; viewer loading ---- */
-.slidevault .draft-list { overflow-x: clip; }
-.slidevault .draft-item { position: relative; touch-action: pan-y; }
+.slidevault .draft-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; overflow-x: clip; }
+.slidevault .draft-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); position: relative; touch-action: pan-y; }
 .slidevault .draft-item[data-swiping]::after { content: "Delete"; position: absolute; left: calc(100% + 8px); top: 0; bottom: 0; width: 120px; display: grid; place-items: center; border-radius: 14px; background: #b42318; color: #fff; font-weight: 700; font-size: 14px; }
 /* Create: the two cards side by side, and My decks: working drafts in two columns, on a phone on its side and on tablets. */
 .slidevault .sv-app[data-size="medium"] .draft-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -38,7 +34,7 @@
 .slidevault .sv-app[data-size="medium"] .draft-item { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 8px; align-items: center; }
 .slidevault .sv-app[data-size="medium"] .draft-acts { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
 /* Working drafts on a portrait phone too: the buttons sit under the name, left aligned with it. */
-.slidevault .sv-app[data-size="compact"] .draft-item { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 8px; align-items: center; }
+.slidevault .sv-app[data-size="compact"] .draft-item { flex-wrap: wrap; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 8px; align-items: center; }
 .slidevault .sv-app[data-size="compact"] .draft-acts { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
 /* Phone on its side: the narrow pages (Settings, Create, Upload) line up with every other page's left edge instead of floating in the middle. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
