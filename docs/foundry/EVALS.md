@@ -30,6 +30,44 @@ Every search Alina and Gabby typed or described in the 28 Oct check-in, plus the
 
 How to run it: the meeting-search script in the data folder (outside this repo, since it names real clients), with the real library settings loaded.
 
+**Re-run on M Moser's Supabase, 16 to 17 Nov** (after the looks were loaded for 20 of 23 decks, the search chips and the ranking changes since 2 Nov). Rules only, no AI model. Twelve of the fifteen were re-run; the three that name a client or a city need the meeting-search script and were not re-run here.
+
+| Search | Result (17 Nov) | Note |
+|---|---|---|
+| "firm overview" | Pass: the founder's page in the top 10, 8 of 10 from firm-overview sections | |
+| "2026" | Pass: 10 of 10 | |
+| "what is our most recent hospitality deck" | Pass by the rule: hospitality on all 9 results | They are hospitality case studies, not a whole deck: the hospitality deck itself is a SharePoint link and was never loaded |
+| "banner slides in case studies" | **Miss: 2 of 10** (two case-study section covers) | Near miss. Case studies now outrank the covers. Rule kept |
+| "resumes" | Pass: 10 of 10 | |
+| "[person] resume" | Pass: that person's slide first (#47) | |
+| "North America overview" | **Miss: 6 results** | The North America Overview is a PDF and only PowerPoint files can be uploaded, so the slide it means isn't in the library. Proposed: counted as "needs a file never loaded", like the nine requests below |
+| "Case Study" | Pass: 10 of 10 | |
+| "Workplace strategy process" | **Miss by the old rule** | The rule names a workplace strategy deck that isn't in the Supabase library. Proposed rule: workplace strategy approach slides in 5 of the top 10. Under it: 10 of 10 |
+| "QA/QC methodology process" | Pass: 7 of 10 | |
+| "slides that demonstrate our firm's value proposition" | Pass: 10 of 10 | |
+| "Looking for a strategy proposal" | **Miss by the old rule** | Same missing deck. Proposed rule: strategy approach or strategy case study slides in 5 of the top 10. Under it: 6 of 10 |
+| "[client] case study", "[client] msa", "recent IDD deck… case studies in [a city]" | Not re-run | Need the meeting-search script (outside the repo). The IDD rule also needs updating: "IDD" is now read as Design & Build |
+
+By the old rules: 8 of the 12 re-run pass. With the two proposed rules for the missing deck, and the North America overview counted as a file never loaded: 10 of 11.
+
+## 1b. The nine requests from 4 Nov, on M Moser's Supabase
+
+Alina's nine requests from the 4 Nov check-in (the "Slide Vault Queries" sheet), run on M Moser's Supabase with no AI model. The first scoring (11 Nov) checked for specific slides; once more decks were scanned for what their slides look like, other real maps and org charts came up and those keys went out of date. So the rules below say what a good answer looks like, not which slide it is, and adding decks can't break them. Results checked by eye on 17 Nov.
+
+| Request | Pass rule | Result (17 Nov) |
+|---|---|---|
+| "Can we add the slide with [the founder]'s photo" | The founder's portrait slide first | Pass |
+| "Can we add the North America Overview" | The North America Overview in the top 10 | Not loaded: it's a PDF, and only PowerPoint files can be uploaded |
+| "Can you add the map with all our offices" | Maps of M Moser's offices in 8 of the top 10 | Pass: 10 of 10 |
+| "Can we include the roles and responsibility slide?" | A slide giving each team member's role and responsibilities first, team-structure slides in 8 of the top 10 | Pass: 10 of 10 team slides, a project team roles slide first |
+| "Can we add the slide that looks like a waterfall?" | The IDD budget-control waterfall first | Pass |
+| "Can you add the IDD slide with a table showing our different options?" | A table comparing delivery options first, tables in 8 of the top 10 | Pass: 9 of 9 tables, a traditional vs design & build comparison first |
+| "Can we add the org chart with multiple locations and services?" | Org charts in 8 of the top 10, and one in the top 3 showing several locations or services | Pass: org charts in 8 of the first 9, a global lead over local teams first |
+| "What is our most recent hospitality deck?" | The hospitality deck in the top 10 | Not loaded: it's a SharePoint link |
+| "Can you find a page explaining our branding or sustainability services?" | A page explaining a branding or a sustainability service in the top 10, service pages in 5 of the top 10 | Pass: brand experience and sustainability service pages, 7 of 10 service pages |
+
+**7 of 9 pass; the other 2 need files that were never loaded.** The 11 Nov "5 of 9" counted the office map and the org chart as misses only because their keys named specific slides.
+
 ## 2. Automated checks
 
 Run with no database and no AI model, on every change. All pass at the freeze.
