@@ -210,7 +210,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .meta-row .also { flex: none; align-self: center; min-height: 24px; padding: 0 8px; border-color: transparent; background: none; color: var(--sv-text-secondary); font-weight: 500; } /* where else the slide lives: a quiet marker on the meta line, not another row */
 .slidevault .meta-row .also:hover { background: var(--sv-surface-sunken); color: var(--sv-text); } /* the team's own labels: no colour, so they never look like a colleague's tag */
 .slidevault .deck-tags .h3 { margin: 0 0 8px; font-size: var(--sv-text-small); font-weight: 600; }
-.slidevault .labels-source { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; }
 
 /* Slide votes, comments and Share (FD-72): grey pills, orange on hover */
 .slidevault .comments .h3 { margin: 0; font-size: var(--sv-text-small); font-weight: 600; }
