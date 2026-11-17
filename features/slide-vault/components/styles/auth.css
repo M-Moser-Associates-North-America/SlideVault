@@ -2,7 +2,6 @@
    The sign-in screen.
 */
 
-
 /*
  * Fake sign-in + profile pick, pulled pixel-for-pixel from reference/SlideVault.html's own
  * login card (its doSignIn doesn't check a password either -- this matches that, not a shortcut).
@@ -58,11 +57,10 @@
 .slidevault .auth-screen[data-size="compact"] { padding: calc(env(safe-area-inset-top) + 64px) 24px max(20px, env(safe-area-inset-bottom)); align-items: stretch; background: var(--sv-surface); }
 /* No card on a phone: the screen is the card. Logo at the top, the form centred in the space left, links at the foot. */
 .slidevault .auth-screen[data-size="compact"] .auth-col { transform-origin: top center; max-width: 420px; min-height: 100%; margin: 0 auto; justify-content: flex-start; background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0; }
-.slidevault .auth-screen[data-size="compact"] .auth-card { margin: auto 0; }
 .slidevault .auth-screen[data-size="compact"] .auth-brand { margin-bottom: 0; }
 .slidevault .auth-screen[data-size="compact"] .auth-brand .ic { width: 26px; height: 26px; }
 .slidevault .auth-screen[data-size="compact"] .auth-wordmark { font-size: 24px; }
-.slidevault .auth-screen[data-size="compact"] .auth-card { padding: 0; border: 0; border-radius: 0; box-shadow: none; background: none; }
+.slidevault .auth-screen[data-size="compact"] .auth-card { margin: auto 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: none; }
 .slidevault .auth-screen[data-size="compact"] .auth-head { margin-bottom: 20px; }
 .slidevault .auth-screen[data-size="compact"] .auth-title { margin: 8px 0 6px; font-size: 24px; }
 .slidevault .auth-screen[data-size="compact"] .auth-sim { margin: 0 0 18px; padding: 10px 14px; }

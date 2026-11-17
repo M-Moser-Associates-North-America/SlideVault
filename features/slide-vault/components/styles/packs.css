@@ -2,7 +2,6 @@
    Pack strips and panels, section cards.
 */
 
-
 /* Packs (FD-38): slides that go together. */
 .slidevault .pack-badge { position: absolute; left: 8px; bottom: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--sv-surface); border: 1px solid var(--sv-brand); color: var(--sv-text); font-size: 12px; font-weight: 600; line-height: 16px; }
 .slidevault .pack-badge .ic { color: var(--sv-brand); }
@@ -52,3 +51,8 @@
 
 /* ---- Phone pass 11: the deck page ---- */
 .slidevault .thumbwrap .slide-num ~ .pack-badge { left: 46px; }
+
+/* Packs (FD-38): slides that go together. */
+.slidevault .pack-strip .ps-t { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; border: 1px solid var(--sv-border-strong); background: var(--sv-surface-sunken); }
+.slidevault .pack-strip .is-here .ps-t { border: 2px solid var(--sv-brand); }
+.slidevault .pack-strip .ps-n { position: absolute; left: 3px; top: 3px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 11px; font-weight: 700; line-height: 16px; text-align: center; }

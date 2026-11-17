@@ -2,7 +2,6 @@
    The deck page: heading, badges, actions, tag bar, jump.
 */
 
-
 /* Archive (FD-32): the Archived badge, and the small archive button on a deck card. */
 .slidevault .deck-arch { position: absolute; top: 8px; right: 8px; z-index: 3; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; opacity: 0; transition: opacity var(--sv-duration-fast); }
 .slidevault .deck-arch .ic { width: 16px; height: 16px; }
@@ -16,15 +15,10 @@
 .slidevault .deck-sticky { position: absolute; top: 0; left: 0; right: 0; z-index: 45; display: flex; align-items: center; gap: 10px; padding: 8px 16px; padding-top: calc(8px + env(safe-area-inset-top)); background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .deck-sticky .deck-jump-go { flex: 1; }
 .slidevault .deck-jump { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; font-size: var(--sv-text-small); font-weight: 600; }
-.slidevault .sv-app[data-size="compact"] .deck-head h1 { font-size: 24px; line-height: 1.2; }
 .slidevault .sv-app[data-size="compact"] .deck-badges { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin-top: 12px; }
-.slidevault .sv-app[data-size="compact"] .deck-badges::-webkit-scrollbar { display: none; }
 .slidevault .sv-app[data-size="compact"] .deck-badges > * { flex: none; }
-.slidevault .sv-app[data-size="compact"] .deck-head .lede { margin-top: 10px; }
 .slidevault .sv-app[data-size="compact"] .deck-actions { margin-top: 14px; flex-wrap: nowrap; gap: 8px; }
 .slidevault .sv-app[data-size="compact"] .deck-actions > .btn:not(.btn-icon) { flex: 1 1 0; min-width: 0; justify-content: center; }
-.slidevault .sv-app[data-size="compact"] .deck-head > div { min-width: 0; max-width: 100%; }
-.slidevault .sv-app[data-size="compact"] .deck-head h1 { overflow-wrap: anywhere; word-break: break-word; }
 
 /* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
 
@@ -63,43 +57,35 @@
 .slidevault .sv-app[data-size="compact"] .deck-actions .btn-primary { flex: none; }
 .slidevault .sv-app[data-size="compact"] .deck-actions > .btn:not(.btn-icon) { flex: none; } }
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
-.slidevault .sv-app[data-size="medium"] .deck-head h1 { font-size: 24px; line-height: 1.2; }
 .slidevault .sv-app[data-size="medium"] .deck-badges { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin-top: 12px; }
-.slidevault .sv-app[data-size="medium"] .deck-badges::-webkit-scrollbar { display: none; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .deck-badges::-webkit-scrollbar { display: none; }
 .slidevault .sv-app[data-size="medium"] .deck-badges > * { flex: none; }
-.slidevault .sv-app[data-size="medium"] .deck-head .lede { margin-top: 10px; }
-.slidevault .sv-app[data-size="medium"] .deck-actions { margin-top: 14px; gap: 8px; }
-.slidevault .sv-app[data-size="medium"] .deck-actions > .btn:not(.btn-icon) { min-width: 0; justify-content: center; }
-.slidevault .sv-app[data-size="medium"] .deck-head > div { min-width: 0; max-width: 100%; }
-.slidevault .sv-app[data-size="medium"] .deck-head h1 { overflow-wrap: anywhere; word-break: break-word; }
-.slidevault .sv-app[data-size="medium"] .deck-tagbar { display: flex; gap: 16px; }
-.slidevault .sv-app[data-size="medium"] .deck-tagbar > .deck-jump { order: 0; flex: none; margin-top: 0; padding: 0; height: 24px; }
-.slidevault .sv-app[data-size="medium"] .deck-tagbar .deck-jump-go { white-space: nowrap; }
-.slidevault .sv-app[data-size="medium"] .deck-tagbar > .deck-jump { display: contents; }
-.slidevault .sv-app[data-size="medium"] .deck-tagbar .deck-jump-go { order: 0; flex: none; align-self: center; }
-.slidevault .sv-app[data-size="medium"] .deck-tagbar { align-items: center; }
-.slidevault .sv-app[data-size="medium"] .deck-actions { flex-wrap: nowrap; align-items: center; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .deck-head .lede { margin-top: 10px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .deck-head > div { min-width: 0; max-width: 100%; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .deck-head h1 { font-size: 24px; line-height: 1.2; overflow-wrap: anywhere; word-break: break-word; }
+.slidevault .sv-app[data-size="medium"] .deck-tagbar > .deck-jump { order: 0; flex: none; margin-top: 0; padding: 0; height: 24px; display: contents; }
+.slidevault .sv-app[data-size="medium"] .deck-tagbar .deck-jump-go { white-space: nowrap; order: 0; flex: none; align-self: center; }
+.slidevault .sv-app[data-size="medium"] .deck-tagbar { display: flex; gap: 16px; align-items: center; }
+.slidevault .sv-app[data-size="medium"] .deck-actions { margin-top: 14px; gap: 8px; flex-wrap: nowrap; align-items: center; }
 .slidevault .sv-app[data-size="medium"] .deck-sep { display: block; flex: none; align-self: center; width: 1px; height: 28px; margin: 0 8px; background: var(--sv-border-strong); }
 .slidevault .sv-app[data-size="medium"] .deck-actions > .btn, .slidevault .sv-app[data-size="medium"] .deck-actions > div:not(.deck-tags-inline) { flex: none; }
 .slidevault .sv-app[data-size="medium"] .deck-actions .btn-primary { flex: none; }
-.slidevault .sv-app[data-size="medium"] .deck-actions > .btn:not(.btn-icon) { flex: none; }
+.slidevault .sv-app[data-size="medium"] .deck-actions > .btn:not(.btn-icon) { min-width: 0; justify-content: center; flex: none; }
 
 /* More air between the buttons row and the "Go to slide" / tags row on the deck page. */
 .slidevault .sv-app[data-size="compact"] .deck-tagbar, .slidevault .sv-app[data-size="medium"] .deck-tagbar { margin-top: 22px; }
 
 /* Deck page action buttons ("Add all", "Add a range", "Archive deck", "Group slides into a pack"): a lighter outline for now. */
-.slidevault .deck-actions-row > .btn, .slidevault .deck-actions > .btn { border-color: var(--sv-btn-edge, #8e8e8e); }
 .slidevault .deck-actions-row > .btn:hover, .slidevault .deck-actions > .btn:hover { border-color: var(--sv-control-border); }
 .slidevault .deck-actions-row > .btn.btn-primary, .slidevault .deck-actions > .btn.btn-primary { border-color: var(--sv-action-bg); }
 
 /* Deck page heading, tablets and desktop: less empty space above the title (it was the page's padding plus a 22px margin) and more air between the stacked rows underneath it. */
-.slidevault .sv-app:is([data-size="wide"], [data-size="medium"]) .sv-wrap > .page-head.deck-head { margin-top: 4px; }
 
 /* The deck page action buttons: squarer corners (the same radius as the other buttons of the app, not a pill). */
-.slidevault .deck-actions-row > .btn, .slidevault .deck-actions > .btn { border-radius: 8px; }
+.slidevault .deck-actions-row > .btn, .slidevault .deck-actions > .btn { border-color: var(--sv-btn-edge, #8e8e8e); border-radius: 8px; }
 
 /* Deck page heading (desktop and tablets): more air between title, pills, count line, buttons and Tags. */
-.slidevault .sv-app:is([data-size="wide"], [data-size="medium"]) .sv-wrap > .page-head.deck-head { row-gap: 20px; }
+.slidevault .sv-app:is([data-size="wide"], [data-size="medium"]) .sv-wrap > .page-head.deck-head { margin-top: 4px; row-gap: 20px; }
 .slidevault .sv-app:is([data-size="wide"], [data-size="medium"]) .deck-head .deck-badges { margin-top: 14px; }
 .slidevault .sv-app:is([data-size="wide"], [data-size="medium"]) .deck-head .lede { margin-top: 18px; }
 
@@ -110,3 +96,26 @@
 
 /* Phone held upright: there is no room to share the heading's row, so Sort (and the columns button) stay on their own row, with space below it before the first card. */
 .slidevault .sv-app[data-size="medium"] .sv-wrap .deck-tagbar { margin-top: 32px; }
+
+/* ------------------------------------------------------------------
+   Buttons, fields, chips
+------------------------------------------------------------------- */
+.slidevault .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---- Phone pass 11: the deck page ---- */
+.slidevault .more-menu { position: relative; }
+.slidevault .more-menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 230px; padding: 6px; display: grid; gap: 2px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: 12px; box-shadow: var(--sv-shadow-panel); }
+.slidevault .more-menu-item { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+.slidevault .more-menu-item:hover, .slidevault .more-menu-item:focus-visible { background: var(--sv-surface-sunken); }
+.slidevault .more-menu-item .ic { color: var(--sv-text-secondary); }
+.slidevault .range-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface); font-size: var(--sv-text-small); font-weight: 600; }
+/* Deck page: "105 slides · Created by … · Uploaded by …" runs on one line and wraps between the parts when it has to, on every screen. */
+.slidevault .deck-meta .dm:not(:last-child)::after { content: "·"; margin: 0 8px; }
+.slidevault .range-add .range-close { min-width: 32px; padding-inline: 0; }
+/* Balance pass: each part of the deck line ("Created by … · date") stays together and wraps as a whole, and the slide page's Use this slide buttons are equal halves on every phone. */
+/* Loading placeholders never make the page wider than the screen (the page could be dragged sideways while it loaded). */
+.slidevault .deck-meta .dm { display: inline; white-space: normal; max-width: 100%; overflow-wrap: anywhere; }
+/* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .deck-actions .more-menu { flex: none; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .deck-meta .dm { display: inline-block; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .deck-meta .dm:not(:last-child)::after { margin: 0 6px; }

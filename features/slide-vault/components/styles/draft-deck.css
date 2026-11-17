@@ -3,6 +3,27 @@
    the chosen slides, the deck's name, the actions (download, save, tag all, clear) and their small dialogs.
 */
 
+/* Dialogs */
+.slidevault .dl-files { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.slidevault .dl-files li { display: flex; gap: 10px; align-items: center; font-size: var(--sv-text-small); padding: 8px 12px; border: 1px solid var(--sv-border); border-radius: 10px; }
+
+/* Download pop-up: a long file name fills each line and breaks inside itself ("M Moser_Atlas Logistics_RFP…"), instead of leaving "M" alone on the first line. */
+.slidevault .dl-files li > span:not(.meta) { word-break: break-all; }
+.slidevault .dl-files li > .meta { flex: none; white-space: nowrap; }
+
+/* Cart: thin and quiet */
+.slidevault .ci.dragging { opacity: .35; }
+.slidevault .cart .txt { font-size: 12.5px; color: var(--sv-text-secondary); margin: 0; }
+.slidevault .cart .txt strong { color: var(--sv-text); }
+@media (max-width: 960px) {
+.slidevault .cart .txt { order: 2; flex: 1; min-width: 150px; } }
+/* container width: compact/wide */
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-foot .txt { margin: 0 0 6px; }
+/* container width: compact */
+.slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-tl]) .cart .txt { order: 0; flex: none; min-width: 0; }
+/* Small phones on their side (667×375, 640×360, 568×320): keep every part in its place and make it fit. */
+@media (orientation: landscape) and (max-height: 400px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .cart-foot .txt { display: none; } }
 
 /* ------------------------------------------------------------------
    v3 three-column layout: filters + search (left), content, cart (right)
@@ -19,15 +40,12 @@
 .slidevault .ci.drop-before::before, .slidevault .ci.drop-after::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: var(--sv-brand); }
 .slidevault .ci.drop-before::before { top: -6px; }
 .slidevault .ci.drop-after::after { bottom: -6px; }
-.slidevault .grip { padding: 0; border: 0; background: none; color: var(--sv-text-secondary); cursor: grab; display: grid; place-items: center; border-radius: 4px; }
 .slidevault .grip .ic { width: 14px; height: 14px; }
 .slidevault .grip:hover { color: var(--sv-text); }
-.slidevault .ci .t { position: relative; }
 .slidevault .ci-n { position: absolute; left: 2px; top: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font: 700 10px/15px var(--sv-font-sans); text-align: center; }
 .slidevault .ci-hint { font-size: 12px; color: var(--sv-text-secondary); }
 .slidevault .ci.off { opacity: .55; }
-.slidevault .ci input { accent-color: var(--sv-brand); margin: 0; }
-.slidevault .ci .t { aspect-ratio: 16/9; overflow: hidden; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); }
+.slidevault .ci .t { position: relative; aspect-ratio: 16/9; overflow: hidden; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); }
 .slidevault .ci .t svg { width: 100%; height: 100%; display: block; }
 .slidevault .ci-txt { min-width: 0; display: flex; flex-direction: column; }
 .slidevault .ci-txt a, .slidevault .ci-txt .meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; line-height: 1.3; }
@@ -39,9 +57,8 @@
 .slidevault .cart-tools { display: flex; align-items: center; gap: 2px; }
 .slidevault .cart-min .cart { display: none; }
 @media (max-width: 960px) {
-.slidevault .cart-col { position: static; min-height: 0; max-height: none; overflow: visible; }
 .slidevault .cart-col:has(.cart-empty) { display: none; }
-.slidevault .cart-col { position: absolute; top: auto; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 40; width: min(700px, calc(var(--sv-w, 1280px) - 24px)); max-height: none; padding: 0; background: none; margin: 0; }
+.slidevault .cart-col { min-height: 0; overflow: visible; position: absolute; top: auto; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 40; width: min(700px, calc(var(--sv-w, 1280px) - 24px)); max-height: none; padding: 0; background: none; margin: 0; }
 .slidevault .cart { border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius-card); background: var(--sv-surface); box-shadow: var(--sv-shadow-panel); padding: 10px 12px; flex-direction: row; flex-wrap: wrap; align-items: center; }
 .slidevault .cart-items { display: none; }
 .slidevault .cart-min .cart { display: flex; }
@@ -54,8 +71,8 @@
 .slidevault .ci .btn, .slidevault .ci input { min-height: 44px; } }
 
 /* Cart rows: every control is at least 24×24 (WCAG 2.2 target size), the prototype's grip and tick were smaller. */
-.slidevault .grip { width: 24px; height: 28px; }
-.slidevault .ci input { width: 24px; height: 24px; }
+.slidevault .grip { padding: 0; border: 0; background: none; color: var(--sv-text-secondary); cursor: grab; display: grid; place-items: center; border-radius: 4px; width: 24px; height: 28px; }
+.slidevault .ci input { accent-color: var(--sv-brand); margin: 0; width: 24px; height: 24px; }
 
 /* Cart: note shown when the selection spans several decks (downloads as a zip) */
 .slidevault .cart-zip { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0 0 8px; }
@@ -246,7 +263,6 @@
 .slidevault .sv-app[data-size="compact"] .cart-head .cart-acts .btn { height: 34px; padding-inline: 8px; }
 .slidevault .sv-app[data-size="compact"] .cart-head .cart-acts .btn .ic { display: none; }
 .slidevault .sv-app[data-size="compact"] .cart-foot { padding: 6px 14px; } }
-
 
 /* Phone held upright: the draft deck slides in from the right as a full-height panel, like on a tablet (it was a sheet from the bottom). */
 
