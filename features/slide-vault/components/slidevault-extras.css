@@ -2,14 +2,6 @@
  * Additions to the v3 prototype styles for the real app. Still scoped to .slidevault.
  * Prototype-only tokens (readable status text, tints) and states the prototype did not need.
  */
-.slidevault {
-  --svp-danger-text: #b3261e;
-  --svp-success-text: #146c3a;
-  --svp-warning-tint: #fff4d6;
-  --svp-danger-tint: #fde8e6;
-  --svp-success-tint: #e3f5ec;
-  --sv-frame: #eceef1;
-}
 .slidevault[data-theme="dark"], .dark .slidevault:not([data-theme="light"]) {
   --svp-danger-text: #ff9a8f;
   --svp-success-text: #6fdc9f;
@@ -38,16 +30,14 @@
 .slidevault .fb-check { display: flex; align-items: center; gap: 10px; font-size: var(--sv-text-small); cursor: pointer; }
 
 /* ---- Room at the sides and under the Try chips (the mockup centres its content, so on a laptop its side margin is well over 40px) ---- */
-.slidevault { --sv-side: 40px; }
 /* Side gutters grow with the space (4% of the width, between 40px and 120px), so large screens use their width instead of leaving wide empty margins. */
 .slidevault .sv-app[data-size="wide"], .slidevault .sv-app[data-size="wide"] .slidevault { --sv-side: clamp(40px, calc(var(--sv-w, 1280px) * 0.04), 120px); }
 
 /* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
 @keyframes svFade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 /* container width: wide */
-  .slidevault .sv-app[data-size="wide"] .sv-shell { --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 2200px) / 2 + var(--sv-side))); }
 /* container width: wide */
-  .slidevault .sv-app[data-size="wide"] .sv-shell { padding: 0 0 0 var(--sv-side); grid-template-columns: 272px minmax(0, 1fr) 264px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell { --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 2200px) / 2 + var(--sv-side))); padding: 0 0 0 var(--sv-side); grid-template-columns: 272px minmax(0, 1fr) 264px; }
   .slidevault .sv-app[data-size="wide"] .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
 
 /* ---- Calmer row headings: plain title, details tucked behind a small info icon ---- */
@@ -71,7 +61,6 @@
   .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail .center { padding-right: 24px; }
   .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 0; padding-right: var(--sv-side); }
   .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min .center { padding-right: 0; }
-
 
   .slidevault .sv-app[data-size="wide"] .toasts.lift, .slidevault .sv-app[data-size="wide"] .toasts { bottom: 16px; }
   .slidevault .sv-app[data-size="wide"]:has(.cart-min) .toasts { bottom: 92px; }
@@ -98,11 +87,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 
 /* Phones: Home rows show two slides and the edge of a third (the peek says "scroll"), so a row is
    scannable at a glance. Wider sizes keep the larger cards. */
-.slidevault .sv-app[data-size="compact"] .row-scroller { grid-auto-columns: clamp(140px, calc(var(--sv-w, 390px) * 0.42), 200px); gap: 10px; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; }
-.slidevault .sv-app[data-size="compact"] .row-scroller .card-body { padding: 8px 10px 10px; gap: 3px; }
 .slidevault .sv-app[data-size="compact"] .row-scroller .card-title { font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.6em; }
-.slidevault .sv-app[data-size="compact"] .row-scroller .meta { font-size: 12px; }
-.slidevault .sv-app[data-size="compact"] .row-scroller .matched { display: none; }
 /* Home: the search bar gives up width so the eye and the Storyboard button both fit beside it. */
 .slidevault .home-hero:has(.sb-launch) > .sb-launch { flex: none; }
 
@@ -187,18 +172,15 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .toasts[popover].lift { bottom: 100px; }
 .slidevault .toasts[popover]:not(:popover-open) { display: none; }
 
-/* Card: same zones in the same places. Title (two lines), meta, one line of tags, then a footer pinned to the bottom */
-.slidevault .card-foot { margin-top: auto; padding-top: 2px; display: flex; align-items: center; gap: 8px; min-height: 28px; min-width: 0; } /* just tall enough for the small arrows or the Also-in chip (was 36px, from when votes with counts lived here) */
+/* Card: same zones in the same places. Title (two lines), meta, one line of tags, then a footer pinned to the bottom */ /* just tall enough for the small arrows or the Also-in chip (was 36px, from when votes with counts lived here) */
 .slidevault .card .card-body { padding-bottom: 10px; }
 .slidevault .card-foot:empty { display: none; }
 /* Useful on the left, Not useful on the right of the card, as in the Storyboard (FD-81) */
-.slidevault .card-foot { flex-wrap: wrap; }
+.slidevault .card-foot { margin-top: auto; padding-top: 2px; display: flex; align-items: center; gap: 8px; min-height: 28px; min-width: 0; flex-wrap: wrap; }
 .slidevault .fb-verdict.is-small .sb-icon-btn { padding: 4px 2px; }
 .slidevault .fb-verdict .sb-icon-btn:disabled { opacity: 1; }
-.slidevault .fb-verdict .sb-icon-btn[data-tip]::after { text-transform: none; letter-spacing: normal; font-size: 12.5px; font-weight: 500; }
 
 /* Slide title with a pencil */
-.slidevault .slide-title-row .h1 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 /* Upload cards: thumbnails wait with a spinner, then fade the picture in; static tags (not saved yet) */
 .slidevault .tag.is-static { cursor: default; }
 .slidevault .tag.is-static:hover { border-color: rgba(var(--tag-rgb), .75); background: transparent; }
@@ -230,7 +212,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
    opens it; the top tabs and the black pill step aside, as on a phone. */
 .slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts.lift { bottom: calc(76px + env(safe-area-inset-bottom)); }
 /* The (i) tip under a row title opens at the row's left edge and is never wider than the row, so it can't run off the screen. */
-.slidevault .sv-app[data-size="compact"] .row-head { position: relative; }
 .slidevault .sv-app[data-size="compact"] .row-title, .slidevault .sv-app[data-size="compact"] .row-info { position: static; }
 .slidevault .sv-app[data-size="compact"] .row-info[data-tip]::after { left: 0; right: auto; transform: none; width: max-content; max-width: min(280px, 100%); }
 /* Useful / Not useful on a narrow card: each label stays on one line; the pair wraps to a second line if it must. */
@@ -256,7 +237,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault [data-fade~="start"]:not([data-fade~="end"]) { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
 .slidevault [data-fade="start end"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
 /* Client, year and project type: up to two lines instead of one cut-off line. */
-.slidevault .sv-app[data-size="compact"] .card-body .meta.clip { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
 /* Phone: the Draft deck count pops once when it changes (replaces the orange ring on the bottom tab). */
 @keyframes bbBump { 0% { transform: scale(0.6); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
@@ -290,7 +270,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 }
 /* Useful / Not useful: tips open above the pair, as wide as the pair, so no card or window cuts them off. */
 .slidevault .fb-verdict .sb-icon-btn[data-tip] { position: static; white-space: nowrap; }
-.slidevault .fb-verdict .sb-icon-btn[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; width: max-content; max-width: 100%; text-align: left; white-space: normal; }
+.slidevault .fb-verdict .sb-icon-btn[data-tip]::after { text-transform: none; letter-spacing: normal; font-size: 12.5px; font-weight: 500; top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; width: max-content; max-width: 100%; text-align: left; white-space: normal; }
 /* Phone: Useful at one side, Not useful at the other. */
 @media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   .slidevault .fb-verdict.is-small .sb-icon-btn { font-size: 10.5px; letter-spacing: 0.05em; gap: 3px; }
@@ -311,7 +291,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 
 /* ---- Phone pass 11: the deck page ---- */
 .slidevault .sv-app[data-size="compact"] .grid.is-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.slidevault .sv-app[data-size="compact"] .grid > [data-card] { scroll-margin-top: 12px; }
 .slidevault .range-add .num-jump { width: 52px; height: 32px; }
 /* Pictures show a soft shimmer until they arrive, then fade in. */
 .slidevault .meta-wrap[hidden] { display: none; }
@@ -418,7 +397,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 }
 
 /* Slide page title and its pencil: the pencil is exactly as tall as one line of the title and centred in it, so it sits on the first line's horizontal axis at every size. */
-.slidevault .slide-title-row .h1 { font-size: var(--ttl-fs); line-height: var(--ttl-lh); }
+.slidevault .slide-title-row .h1 { margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: var(--ttl-fs); line-height: var(--ttl-lh); }
 /* Upload: the same space above the title as the Archive, Settings and My decks pages. */
 .slidevault .sv-app .sv-wrap.upload-wrap > .h1:first-child { margin-top: 22px; }
 
@@ -455,38 +434,36 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .also-list .also-txt .meta { overflow-wrap: anywhere; }
 
 /* ======== Tablet held upright (FD-106): the phone-on-its-side page layouts (Home, results, slide page, deck page) with the tabs along the bottom. The slide preview keeps the desktop layout. ======== */
-.slidevault .sv-app[data-size="medium"] .card-body .meta.clip { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .card-body .meta.clip { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
 .slidevault .sv-app[data-size="medium"] .lbl-long { display: none; }
 .slidevault .sv-app[data-size="medium"] .lbl-short { display: inline; }
-.slidevault .sv-app[data-size="medium"] .grid > [data-card] { scroll-margin-top: 12px; }
-.slidevault .sv-app[data-size="medium"] .hero-wrap { position: relative; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .grid > [data-card] { scroll-margin-top: 12px; }
 .slidevault .sv-app[data-size="medium"] .matched { position: relative; }
 .slidevault .sv-app[data-size="medium"] .matched .why-text { display: block; }
 .slidevault .sv-app[data-size="medium"] .matched .why-text:not(.is-open) { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .slidevault .sv-app[data-size="medium"] .matched .why-more { display: grid; place-items: center; position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: none; color: var(--sv-text-secondary); cursor: pointer; }
 .slidevault .sv-app[data-size="medium"] .matched .why-more .ic { width: 18px; height: 18px; transition: transform 0.15s; }
 .slidevault .sv-app[data-size="medium"] .matched .why-more[aria-expanded="true"] .ic { transform: rotate(180deg); }
-.slidevault .sv-app[data-size="medium"] .summary-row { align-items: flex-start; margin: 0 0 20px; }
 .slidevault .sv-app[data-size="medium"] .summary-row .summary { text-align: right; }
 .slidevault .sv-app[data-size="medium"] .refine .select { max-width: 130px; }
-.slidevault .sv-app[data-size="medium"] .summary-row { justify-content: flex-end; flex-direction: row; margin-top: 8px; }
+.slidevault .sv-app[data-size="medium"] .summary-row { align-items: flex-start; margin: 0 0 20px; justify-content: flex-end; flex-direction: row; margin-top: 8px; }
 .slidevault .sv-app[data-size="medium"] .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
 .slidevault .sv-app[data-size="medium"] .grid.is-dense { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
 .slidevault .sv-app[data-size="medium"] .grid.is-dense .matched .why-text:not(.is-open) { -webkit-line-clamp: 2; }
-.slidevault .sv-app[data-size="medium"] .hero-wrap { margin: 10px 0 0; border-radius: 12px; overflow: hidden; }
+.slidevault .sv-app[data-size="medium"] .hero-wrap { position: relative; margin: 10px 0 0; border-radius: 12px; overflow: hidden; }
 .slidevault .sv-app[data-size="medium"] .hero-add { left: 10px; }
 .slidevault .sv-app[data-size="medium"] .hero-corner, .slidevault .sv-app[data-size="medium"] .hero-zoom { right: 10px; }
 .slidevault .sv-app[data-size="medium"] .h1 { font-size: 22px; }
 
 /* Tablet upright: the filter row, Filters button, example searches and Home rows follow the phone. */
-.slidevault .sv-app[data-size="medium"] .row-scroller { grid-auto-columns: clamp(140px, calc(var(--sv-w, 390px) * 0.42), 200px); gap: 10px; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; }
-.slidevault .sv-app[data-size="medium"] .row-scroller .card-body { padding: 8px 10px 10px; gap: 3px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .row-scroller { grid-auto-columns: clamp(140px, calc(var(--sv-w, 390px) * 0.42), 200px); gap: 10px; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .row-scroller .card-body { padding: 8px 10px 10px; gap: 3px; }
 .slidevault .sv-app[data-size="medium"] .row-scroller .card-title { font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.6em; }
-.slidevault .sv-app[data-size="medium"] .row-scroller .meta { font-size: 12px; }
-.slidevault .sv-app[data-size="medium"] .row-scroller .matched { display: none; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .row-scroller .meta { font-size: 12px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .row-scroller .matched { display: none; }
 /* The (i) tip under a row title opens at the row's left edge and is never wider than the row, so it can't run off the screen. */
-.slidevault .sv-app[data-size="medium"] .row-head { position: relative; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .row-head { position: relative; }
 .slidevault .sv-app[data-size="medium"] .row-title, .slidevault .sv-app[data-size="medium"] .row-info { position: static; }
 .slidevault .sv-app[data-size="medium"] .row-info[data-tip]::after { left: 0; right: auto; transform: none; width: max-content; max-width: min(280px, 100%); }
 
@@ -600,7 +577,13 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .btn-link[data-tapped] { color: var(--sv-brand-strong); text-decoration-thickness: 2px; }
 
 /* Button edges: a mid-grey line that meets 3:1 on the page, with a very soft shadow. Dark mode uses the control border. */
-.slidevault { --sv-btn-edge: #8e8e8e; }
+.slidevault {
+  --svp-danger-text: #b3261e;
+  --svp-success-text: #146c3a;
+  --svp-warning-tint: #fff4d6;
+  --svp-danger-tint: #fde8e6;
+  --svp-success-tint: #e3f5ec;
+  --sv-frame: #eceef1; --sv-side: 40px; --sv-btn-edge: #8e8e8e; }
 .slidevault[data-theme="dark"], .slidevault [data-theme="dark"] { --sv-btn-edge: var(--sv-control-border); }
 .slidevault .btn-ghost, .slidevault .btn-icon.btn-ghost { box-shadow: none; }
 
