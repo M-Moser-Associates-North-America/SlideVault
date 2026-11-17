@@ -95,7 +95,6 @@
 .slidevault .mosaic { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; aspect-ratio: 16/9; background: var(--sv-surface-sunken); padding: 3px; }
 .slidevault .mosaic > * { min-height: 0; overflow: hidden; border-radius: 3px; }
 .slidevault .mosaic svg { width: 100%; height: 100%; display: block; }
-.slidevault .mosaic .ph { border: 1.5px dashed var(--sv-control-border); display: grid; place-items: center; font-size: 10px; color: var(--sv-text-secondary); text-align: center; }
 .slidevault .row-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
 .slidevault .row-head .sub { font-size: var(--sv-text-meta); color: var(--sv-text-secondary); }
 .slidevault .row-scroller { display: grid; grid-auto-flow: column; gap: 16px; overflow-x: auto; scroll-snap-type: x proximity; padding: 4px 2px 14px; margin: 0 -2px; list-style: none; scrollbar-width: thin; }

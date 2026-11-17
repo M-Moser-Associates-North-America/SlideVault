@@ -35,34 +35,6 @@
 @keyframes svHeroCaret { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
 /*
- * Save-to-profile: one heart toggle per slide, mirroring the existing cart checkbox's
- * hover-reveal pattern and corner position (top-right instead of top-left).
- */
-.slidevault .save-tg {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 2;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: 2px solid #fff;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--sv-duration-fast);
-}
-.slidevault .save-tg .ic { width: 15px; height: 15px; fill: none; }
-.slidevault .vcard:hover .save-tg, .slidevault .save-tg:focus-visible, .slidevault .save-tg.is-saved { opacity: 1; }
-@media (hover: none) { .slidevault .save-tg { opacity: 1; } }
-.slidevault .save-tg.is-saved { background: var(--sv-brand); border-color: var(--sv-brand); }
-.slidevault .save-tg.is-saved .ic { fill: currentColor; }
-.slidevault .save-tg:focus-visible { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
-
-/*
  * "Today's Top 10"-style giant outlined rank numbers, from the Netflix reference video.
  */
 .slidevault .top10-item { display: flex; align-items: stretch; }
@@ -193,7 +165,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .card-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.7em; }
 
 /* Archive (FD-32): the Archived badge, and the small archive button on a deck card. */
-.slidevault .badge-archived { background: var(--sv-surface); border: 1px dashed var(--sv-border-strong); color: var(--sv-text); }
 .slidevault .toast .toast-act { margin-left: 8px; color: inherit; font-weight: 700; text-decoration: underline; }
 
 /* Pack and archive questions on a phone: the main button on top and full width, the others under it. */
@@ -356,8 +327,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 @media (hover: none) and (pointer: coarse) {
   .slidevault .row-head .acts .btn-icon { display: none; }
   .slidevault .fb-verdict .sb-icon-btn[data-tip]::after { display: none; }
-  .slidevault .save-tg { width: 32px; height: 32px; }
-  .slidevault .save-tg .ic { width: 17px; height: 17px; }
 }
 /* The breadcrumb wraps onto a second line instead of running under the text beside it. */
 .slidevault .sv-app[data-size="compact"] .navgroup .back-results { padding-top: 1px; }
@@ -469,7 +438,6 @@ dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); ba
 
 /* ---- Phone pass 13: working drafts swipe to delete; tap areas; viewer loading ---- */
 @media (pointer: coarse) {
-  .slidevault .save-tg::after { content: ""; position: absolute; inset: -6px; }
   .slidevault .row-info, .slidevault .helpdot, .slidevault .also, .slidevault .tag { position: relative; }
   .slidevault .row-info::before, .slidevault .helpdot::before, .slidevault .also::before { content: ""; position: absolute; inset: -6px; }
   .slidevault .tag::before { content: ""; position: absolute; inset: -6px -3px; }
