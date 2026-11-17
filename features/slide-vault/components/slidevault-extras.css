@@ -245,16 +245,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .tag.is-auto { gap: 4px; } /* a tag filled in for the person: a small orange sparkle before it, to check and remove if wrong */
 .slidevault .tag.is-auto .ic { color: var(--sv-brand-strong); width: 12px; height: 12px; flex: none; }
 
-/* Asking before a short search uses the AI: a centered card over a faded page, like the tour (FD-79) */
-dialog.slidevault.sv-dialog.ai-ask { width: min(420px, calc(100% - 32px)); margin: auto; }
-dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); backdrop-filter: blur(2px); }
-.slidevault .ai-ask-body { padding: 28px 28px 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.slidevault .ai-ask-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-brand-strong); }
-.slidevault .ai-ask-body h2 { margin: 4px 0 0; font-size: 18px; letter-spacing: -0.01em; }
-.slidevault .ai-ask-words { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
-.slidevault .ai-ask-text { margin: 0; text-wrap: balance; font-size: 14px; line-height: 1.55; color: var(--sv-text-secondary); }
-.slidevault .ai-ask-foot { justify-content: center; border-top: 0; padding-top: 4px; }
-
 /* Tablets held upright get the phone's bottom bar too (Schiffon, 6 Nov: "we just want bottom rows", as in the
    nav-bottom mockups). The draft deck already opens as the same side sheet on both, so the bar's fifth item
    opens it; the top tabs and the black pill step aside, as on a phone. */

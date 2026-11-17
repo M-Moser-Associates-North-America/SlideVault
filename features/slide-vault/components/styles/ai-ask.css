@@ -1,0 +1,13 @@
+/* Search with AI? card (AiAskDialog.tsx)
+   The card that asks before a search goes to the AI.
+*/
+
+/* Asking before a short search uses the AI: a centered card over a faded page, like the tour (FD-79) */
+dialog.slidevault.sv-dialog.ai-ask { width: min(420px, calc(100% - 32px)); margin: auto; }
+dialog.slidevault.sv-dialog.ai-ask::backdrop { background: rgba(10,10,14,.6); backdrop-filter: blur(2px); }
+.slidevault .ai-ask-body { padding: 28px 28px 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.slidevault .ai-ask-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-brand-strong); }
+.slidevault .ai-ask-body h2 { margin: 4px 0 0; font-size: 18px; letter-spacing: -0.01em; }
+.slidevault .ai-ask-words { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.slidevault .ai-ask-text { margin: 0; text-wrap: balance; font-size: 14px; line-height: 1.55; color: var(--sv-text-secondary); }
+.slidevault .ai-ask-foot { justify-content: center; border-top: 0; padding-top: 4px; }
