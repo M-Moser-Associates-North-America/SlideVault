@@ -37,7 +37,8 @@
 .slidevault .fbar-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; max-width: 840px; }
 .slidevault .fb-item { position: relative; }
 .slidevault .fb-btn { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 12px; border: 1px solid var(--sv-border); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-.slidevault .fb-btn:hover { border-color: var(--sv-text-secondary); color: var(--sv-text); }
+/* Hover (a mouse) and the pressed look (touch, and Enter or Space; see tap-feedback.ts) are the same orange, so a tap on a phone answers like a hover does. */
+@media (hover: hover) { .slidevault .fb-btn:hover { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); } }
 .slidevault .fb-btn[aria-expanded="true"] { border-color: var(--sv-text); color: var(--sv-text); }
 .slidevault .fb-btn.on { background: var(--sv-brand-tint); border-color: var(--sv-brand); color: var(--sv-text); }
 .slidevault .fb-btn .ic { width: 16px; height: 16px; color: var(--sv-text-secondary); }

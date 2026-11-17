@@ -24,7 +24,9 @@
 .slidevault .hid-toggle { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--sv-border-strong); border-radius: 50%; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; box-shadow: var(--sv-shadow-card); }
 /* One class more than Home's .home-hero-search .ic, so the eye icon keeps the button's colour whatever the file order. */
 .slidevault .hid-wrap .hid-toggle .ic { color: inherit; width: 18px; height: 18px; }
-.slidevault .hid-toggle:hover { border-color: var(--sv-text-secondary); }
+/* Hover (a mouse) and the pressed look (touch, and Enter or Space; see tap-feedback.ts): the same orange tint. Not when it is on: that is solid orange with a white icon. */
+@media (hover: hover) { .slidevault .hid-toggle:not(.on):hover { border-color: var(--sv-brand); background: var(--sv-brand-tint); } }
+.slidevault .hid-toggle:not(.on)[data-tapped] { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
 .slidevault .hid-toggle:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
 .slidevault .hid-toggle.on { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
 /* In the big Home search: the bar's full height (44px button + 7px padding each side + 1px border each side). */
