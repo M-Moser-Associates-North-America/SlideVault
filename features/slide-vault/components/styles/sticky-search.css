@@ -1,9 +1,21 @@
+/* Pinned search bar (StickySearch.tsx, CompactSearch.tsx)
+   The slim search that stays at the top while you scroll.
+*/
 /* Slim search (StickySearch.tsx)
    The small search box that keeps the same query once Home's big search has scrolled away, with a clear (x)
    button and, on desktop, the eye. It sits in one of two places, chosen by the part that shows it:
      .in-bar  above the pinned filter row (desktop)
      .in-pin  in the pinned bar (phones and tablets); the pinned bar sets its width (styles/filter-bar.css)
 */
+
+/* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
+.slidevault .compact-search { display: inline-flex; align-items: center; gap: 8px; width: min(320px, calc(var(--sv-w, 800px) * 0.4)); height: 34px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); font: inherit; font-size: 13.5px; cursor: text; text-align: left; animation: svFade 0.18s ease-out; }
+.slidevault .compact-search:hover { border-color: var(--sv-text-secondary); }
+.slidevault .compact-search .ic { width: 16px; height: 16px; flex: none; }
+.slidevault .compact-search span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .compact-search .cs-q { color: var(--sv-text); }
+@media (prefers-reduced-motion: reduce) {
+.slidevault .compact-search { animation: none; } }
 .slidevault .fb-search-wrap { display: flex; align-items: center; gap: 10px; max-width: 840px; margin-bottom: 10px; animation: svFade 0.18s ease-out; }
 .slidevault .fb-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); color: var(--sv-text-secondary); }
 .slidevault .fb-search:focus-within { border-color: var(--sv-brand); }
