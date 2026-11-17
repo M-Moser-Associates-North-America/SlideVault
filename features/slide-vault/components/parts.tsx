@@ -1,5 +1,6 @@
 'use client';
 
+import { Badge } from './ui/Badge';
 import { CardVotes } from './SlideActions';
 import { useWorkspaceCompact } from './size';
 import { CompactTags } from './TagBits';
@@ -9,7 +10,7 @@ import type { Location } from '../contracts/runtime';
 import { packPosition, type Pack } from '../client/packs';
 import { Icon, type IconName } from './icons';
 import { categoryOf, clientOf, plural, yearOf, type Deck, folderLabel } from './library';
-import { useWorkspace } from './state';
+import { useAccount, useDraft, useLibrary, useNotify, useOverlays, useRuntime } from './state';
 
 /** A link that goes through the host's navigation (runtime.navigate), keeping real hrefs for new tabs. */
 export function Link({
@@ -31,7 +32,7 @@ export function Link({
   title?: string;
   'aria-current'?: 'page' | 'true';
 }) {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const href = runtime.hrefFor?.(to) ?? '#';
   const go = (e: MouseEvent<HTMLAnchorElement>) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -103,7 +104,7 @@ export function SkeletonRows({ rows = 2 }: { rows?: number }) {
 }
 
 export function Thumb({ slide }: { slide: SlideSummary }) {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   /* A soft shimmer shows until the picture has arrived, then it fades in (a picture already in the cache shows at once). */
   const [loaded, setLoaded] = useState(false);
   /* A picture that fails is tried once more after a moment (a patchy connection often recovers); if it still fails, a quiet note stands in for it. */
@@ -149,7 +150,10 @@ export function Thumb({ slide }: { slide: SlideSummary }) {
  * the section, ask first (the pack pop-up); otherwise add it at once. `addNow` skips the question.
  */
 export function useAddSection() {
-  const { selection, updateSelection, announce, toast, packs, openPackDialog } = useWorkspace();
+  const { packs } = useLibrary();
+  const { selection, updateSelection } = useDraft();
+  const { openPackDialog } = useOverlays();
+  const { announce, toast } = useNotify();
   const addNow = (name: string, slides: SlideSummary[]) => {
     const add = slides.filter((s) => !selection.some((x) => x.id === s.id));
     updateSelection((cur) => [...cur, ...slides.filter((s) => !cur.some((c) => c.id === s.id))]);
@@ -175,7 +179,10 @@ export function useAddSection() {
  * whole pack, removing offers to take the whole pack out. `setOne` skips the question.
  */
 export function useCartToggle() {
-  const { selection, updateSelection, announce, toast, packs, openPackDialog, setCartMin } = useWorkspace();
+  const { packs } = useLibrary();
+  const { selection, updateSelection, setCartMin } = useDraft();
+  const { openPackDialog } = useOverlays();
+  const { announce, toast } = useNotify();
   const compact = useWorkspaceCompact();
   const isSelected = (id: string) => selection.some((s) => s.id === id);
   const setOne = (slide: SlideSummary, on: boolean) => {
@@ -226,7 +233,8 @@ export function PackBadge({ pack, slideId }: { pack: Pack; slideId: string }) {
 
 /** Save or unsave a slide for the signed-in person (kept on the server when there is a database, FD-18). */
 export function useSavedToggle() {
-  const { savedIds, toggleSaved, announce } = useWorkspace();
+  const { announce } = useNotify();
+  const { savedIds, toggleSaved } = useAccount();
   const isSaved = (id: string) => savedIds.has(id);
   const toggle = (slide: SlideSummary) => {
     const was = isSaved(slide.id);
@@ -273,9 +281,9 @@ function WhyBox({ why, aiRead }: { why: string; aiRead?: boolean }) {
 
 /** Slide card: preview, tick-to-add, where it came from, "also in N other decks". */
 export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: SlideSummary; list: SlideSummary[]; why?: string; aiRead?: boolean; note?: string; /** the slide's place in the deck page (1, 2, 3...) */ num?: number }) {
-  const { openPreview, openAlso } = useWorkspace();
+  const { openPreview, openAlso } = useOverlays();
   const { isSelected, set } = useCartToggle();
-  const { packs } = useWorkspace();
+  const { packs } = useLibrary();
   const pack = packs.of(slide.id);
   const { isSaved, toggle: toggleSave } = useSavedToggle();
   const sel = isSelected(slide.id);
@@ -321,8 +329,8 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
         {pack && <PackBadge pack={pack} slideId={slide.id} />}
         {(slide.hiddenInSource || p.archived) && (
           <span className="thumb-badge">
-            {p.archived && <span className="badge badge-archived">Archived</span>}
-            {slide.hiddenInSource && <span className="badge">Hidden in source</span>}
+            {p.archived && <Badge tone="archived">Archived</Badge>}
+            {slide.hiddenInSource && <Badge >Hidden in source</Badge>}
           </span>
         )}
         <button
@@ -409,7 +417,7 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
 
 /** Deck card: a 2×2 mosaic of its first real slide previews. */
 export function DeckCard({ deck }: { deck: Deck }) {
-  const { openArchiveDialog } = useWorkspace();
+  const { openArchiveDialog } = useOverlays();
   const first = deck.slides.slice(0, 4);
   const cells = [...first, ...Array.from({ length: 4 - first.length }, () => null)];
   return (

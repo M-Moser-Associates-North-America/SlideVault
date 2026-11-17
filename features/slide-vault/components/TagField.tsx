@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { Icon } from './icons';
-import { useWorkspace } from './state';
+import { useNotify } from './state';
 
 export const TAG_MAX_LENGTH = 60;
 export const TAG_MAX_COUNT = 10;
@@ -40,7 +40,7 @@ export function TagField({
   /** Tags that were filled in for the person (by the AI or from similar slides): marked, to check and remove if wrong */
   auto?: string[];
 }) {
-  const { announce } = useWorkspace();
+  const { announce } = useNotify();
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');

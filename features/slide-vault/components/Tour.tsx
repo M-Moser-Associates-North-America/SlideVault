@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useCallback, useEffect, useState } from 'react';
 import { ACTIONS, EVENTS, Joyride, STATUS, type EventData, type Step, type TooltipRenderProps } from 'react-joyride';
 import { endTour, startTour, useTourOpen } from '../client/tour-store';
@@ -7,7 +8,7 @@ import { useTipSeen } from '../client/tip-store';
 import { Icon } from './icons';
 import { useRoot } from './root';
 import { useWorkspaceCompact, useWorkspaceFiltersRolled, useWorkspacePhoneLike, workspaceSizeOf } from './size';
-import { useWorkspace } from './state';
+import { useAccount, useDraft, useOverlays, useRuntime, useSearch } from './state';
 
 /** Wait for the next paint, so a panel opened by a step's `before` has a size to point at. */
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -16,27 +17,27 @@ const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() 
 function TourCard({ index, size, step, isLastStep, backProps, primaryProps, skipProps, closeProps, tooltipProps }: TooltipRenderProps) {
   return (
     <div className="tour-pop" {...tooltipProps} aria-labelledby="tour-title">
-      <button type="button" className="btn btn-ghost btn-icon btn-sm tour-x" {...closeProps} aria-label="Close tour" title="Close tour (Esc)">
+      <Button variant="ghost" iconOnly size="sm" className="tour-x" {...closeProps} aria-label="Close tour" title="Close tour (Esc)">
         <Icon name="x" />
-      </button>
+      </Button>
       <p className="tour-n">
         Step {index + 1} of {size}
       </p>
       <h2 id="tour-title">{step.title}</h2>
       <p className="tour-t">{step.content}</p>
       <div className="tour-acts">
-        <button type="button" className="btn btn-ghost btn-sm" {...skipProps}>
+        <Button variant="ghost" size="sm" {...skipProps}>
           Skip tour
-        </button>
+        </Button>
         <span className="tour-nav">
           {index > 0 && (
-            <button type="button" className="btn btn-sm" {...backProps}>
+            <Button size="sm" {...backProps}>
               Back
-            </button>
+            </Button>
           )}
-          <button type="button" className="btn btn-sm btn-primary" {...primaryProps}>
+          <Button size="sm" variant="primary" {...primaryProps}>
             {isLastStep ? 'Done' : 'Next'}
-          </button>
+          </Button>
         </span>
       </div>
     </div>
@@ -63,7 +64,11 @@ type StepId = (typeof STEP_IDS)[number];
 export function Tour() {
   const open = useTourOpen();
   const { seen, dismiss } = useTipSeen('tour');
-  const { profile, runtime, setCartMin, cartMin, closePreview, clearFilters, searched, setQuery } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { clearFilters, searched, setQuery } = useSearch();
+  const { setCartMin, cartMin } = useDraft();
+  const { closePreview } = useOverlays();
+  const { profile } = useAccount();
   const view = runtime.location.view;
   const onHome = view === 'pages' || view === 'home' || view === 'library';
 
@@ -107,7 +112,7 @@ export function Tour() {
       before: toTop,
     },
     story: {
-      target: rolled ? '.fb-tools .sb-launch-btn' : '.sb-launch-btn',
+      target: '.fbar .sb-launch-btn, .sb-launch-btn',
       title: 'Build a story with Storyboard',
       content: 'Describe a client’s situation and Storyboard lines up slides into a story.',
       placement: land || tablet ? 'auto' : rolled ? 'bottom' : 'bottom-end',
@@ -143,7 +148,7 @@ export function Tour() {
       target: bottomTabs ? '.sv-bottombar' : '.sv-nav',
       title: 'Create and Upload',
       content: 'Create builds a deck with AI. Upload adds a deck to the library.',
-      placement: bottomTabs ? 'top' : 'bottom',
+      placement: land ? 'right' : bottomTabs ? 'top' : 'bottom',
       before: putDeckAway,
     },
     decks: {
@@ -151,7 +156,7 @@ export function Tour() {
       target: bottomTabs ? '.sv-bottombar a[href$="/profile"]' : '.sv-nav a[href$="/profile"]',
       title: 'Find your saved work',
       content: 'Your saved slides and drafts are here. Replay this tour any time with the ? button.',
-      placement: bottomTabs ? 'top' : 'bottom',
+      placement: land ? 'right' : bottomTabs ? 'top' : 'bottom',
       before: putDeckAway,
     },
   };
@@ -278,18 +283,20 @@ export function Tour() {
           spotlightRadius: 14,
           // Room for the sticky tabs row, so a target never hides under it
           scrollOffset: 160,
+          // The slides step points at a card; if the library is still loading, wait for it instead of ending the tour.
+          targetWaitTimeout: 10000,
           zIndex: 90,
         }}
       />
       {open && ready && paused && (
         <div className="tour-paused" role="status">
           <span className="tour-paused-t">{away ? 'Tour paused. Go back to Home to continue.' : 'Tour paused. The draft deck was closed.'}</span>
-          <button type="button" className="btn btn-sm btn-primary" onClick={resume}>
+          <Button size="sm" variant="primary" onClick={resume}>
             {away ? 'Back to Home' : 'Resume'}
-          </button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={close}>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={close}>
             End tour
-          </button>
+          </Button>
         </div>
       )}
     </>

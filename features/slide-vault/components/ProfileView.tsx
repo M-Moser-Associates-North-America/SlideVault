@@ -1,12 +1,13 @@
 'use client';
 
+import { Button, buttonClass } from './ui/Button';
 import { useEffect, useRef, useState } from 'react';
 import { firstNameOf } from '../client/first-name';
 import { Icon } from './icons';
 import { timeAgo } from './library';
 import { Link, SlideCard, StateBlock } from './parts';
 import { ConfirmDialog } from './TagBits';
-import { useWorkspace } from './state';
+import { useAccount, useDraft, useLibrary, useNotify } from './state';
 
 /**
  * Profile page: the person's saved slides and their own recent activity (kept on the server when
@@ -14,7 +15,10 @@ import { useWorkspace } from './state';
  * needs this to be simple, not a second app. Who is signed in comes from the placeholder sign-in.
  */
 export function ProfileView() {
-  const { profile, savedIds, library, drafts, loadDraft, deleteDraft, selection, toast } = useWorkspace();
+  const { library } = useLibrary();
+  const { drafts, loadDraft, deleteDraft, selection } = useDraft();
+  const { toast } = useNotify();
+  const { profile, savedIds } = useAccount();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   /* Arriving from the account menu's "Saved" item: scroll to the Saved section once the page is up. */
   useEffect(() => {
@@ -41,7 +45,7 @@ export function ProfileView() {
         </div>
         {saved.length === 0 ? (
           <StateBlock icon="heart" title="No saved slides yet" text="Tap the heart on any slide to keep it here.">
-            <Link className="btn" to={{ view: 'pages' }}>
+            <Link className={buttonClass()} to={{ view: 'pages' }}>
               Browse slides
             </Link>
           </StateBlock>
@@ -62,7 +66,7 @@ export function ProfileView() {
         </div>
         {drafts.length === 0 ? (
           <StateBlock icon="layers" title="No working drafts yet" text="Save your draft deck to come back to it later.">
-            <Link className="btn" to={{ view: 'pages' }}>
+            <Link className={buttonClass()} to={{ view: 'pages' }}>
               Browse slides
             </Link>
           </StateBlock>
@@ -149,12 +153,12 @@ function DraftRow({ name, meta, title, onOpen, onAskDelete }: { name: string; me
         <span className="meta">{meta}</span>
       </div>
       <div className="draft-acts">
-        <button type="button" className="btn btn-sm" title={title} onClick={onOpen}>
+        <Button size="sm" title={title} onClick={onOpen}>
           Open in draft deck
-        </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onAskDelete}>
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onAskDelete}>
           Delete
-        </button>
+        </Button>
       </div>
     </li>
   );

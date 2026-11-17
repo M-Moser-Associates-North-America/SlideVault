@@ -1,17 +1,20 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useRef, useState } from 'react';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
 import { plural } from './library';
-import { useWorkspace } from './state';
+import { useLibrary, useOverlays, useRuntime } from './state';
 
 /**
  * Archive or restore a deck (FD-50). Archiving hides the deck from the library, search and AI for everyone;
  * nothing is deleted and it can be restored. For the MVP anyone signed in can do it (a tier decision for later).
  */
 export function ArchiveDialog() {
-  const { runtime, archiveDialog, closeArchiveDialog, archiveDeck } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { archiveDeck } = useLibrary();
+  const { archiveDialog, closeArchiveDialog } = useOverlays();
   const ref = useRef<HTMLDialogElement>(null);
   useDialogOpen(ref, !!archiveDialog);
   const [busy, setBusy] = useState(false);
@@ -31,9 +34,9 @@ export function ArchiveDialog() {
     <dialog ref={ref} className="slidevault sv-dialog" data-theme={runtime.theme} aria-labelledby="sv-arch-title" onClose={closeArchiveDialog} onClick={backdropClose(closeArchiveDialog)}>
       <div className="dlg-head">
         <h2 id="sv-arch-title">{d?.restore ? 'Restore this deck?' : 'Archive this deck?'}</h2>
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closeArchiveDialog}>
+        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={closeArchiveDialog}>
           <Icon name="x" />
-        </button>
+        </Button>
       </div>
       <div className="dlg-body arch-body">
         {d && (
@@ -64,12 +67,12 @@ export function ArchiveDialog() {
         )}
       </div>
       <div className="dlg-foot">
-        <button type="button" className="btn btn-ghost" onClick={closeArchiveDialog}>
+        <Button variant="ghost" onClick={closeArchiveDialog}>
           Cancel
-        </button>
-        <button type="button" className="btn btn-primary" disabled={busy} autoFocus onClick={go}>
+        </Button>
+        <Button variant="primary" disabled={busy} autoFocus onClick={go}>
           {d?.restore ? 'Restore deck' : 'Archive deck'}
-        </button>
+        </Button>
       </div>
     </dialog>
   );

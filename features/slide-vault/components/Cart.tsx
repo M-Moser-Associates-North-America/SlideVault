@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { stopNudge, useNudge } from '../client/draft-nudge';
 import { useTourOpen } from '../client/tour-store';
 import { Fragment, useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
@@ -9,7 +10,7 @@ import { useRoot } from './root';
 import { workspaceSizeOf } from './size';
 import type { SlideSummary } from '../contracts/dto';
 import { Link, Thumb } from './parts';
-import { useWorkspace } from './state';
+import { useAccount, useDraft, useLibrary, useNotify, useOverlays, useRuntime } from './state';
 import { addTagToSlides, TagsUnavailable } from '../client/tag-store';
 import { cleanTag, TAG_MAX_LENGTH } from './TagField';
 
@@ -18,7 +19,11 @@ import { cleanTag, TAG_MAX_LENGTH } from './TagField';
  * Collapsed to a thin rail by default; opens by itself the first time a slide is added.
  */
 export function Cart() {
-  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, openDownload, openPreview, announce, saveDraft, replaceDraft, draftOrigin, toast, runtime, combine, setCombine, packs, openPackDialog, addPackToDraft } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { packs } = useLibrary();
+  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, saveDraft, replaceDraft, draftOrigin, combine, setCombine, addPackToDraft } = useDraft();
+  const { openDownload, openPreview, openPackDialog } = useOverlays();
+  const { announce, toast } = useNotify();
   const n = selection.length;
   const included = selection.filter((s) => !excluded.has(s.id));
   const plan = downloadPlan(included);
@@ -185,7 +190,9 @@ export function Cart() {
       const col = scroller.querySelector<HTMLElement>('.cart-col');
       if (!col) return;
       /* Stick right under the tabs bar, whatever its height is, so no gap shows above the panel. */
-      const stick = scroller.querySelector<HTMLElement>('.sv-top')?.offsetHeight ?? 47;
+      /* Only a pinned tabs bar takes room at the top; on desktop the header scrolls away, so the panel sticks to the very top. */
+      const top = document.querySelector<HTMLElement>('.slidevault .sv-top');
+      const stick = top && /sticky|fixed/.test(getComputedStyle(top).position) ? top.offsetHeight : 0;
       col.style.setProperty('--cart-top', `${stick}px`);
       const colTop = col.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
       col.style.setProperty('--cart-room', `${Math.max(240, scroller.clientHeight - Math.max(stick, colTop))}px`);
@@ -236,9 +243,9 @@ export function Cart() {
   });
 
   const toggleButton = (
-    <button type="button" className="btn btn-ghost btn-icon btn-sm cart-tg" aria-label="Close draft deck" onClick={closeCart}>
+    <Button variant="ghost" iconOnly size="sm" className="cart-tg" aria-label="Close draft deck" onClick={closeCart}>
       <Icon name="x" />
-    </button>
+    </Button>
   );
 
   if (!n) {
@@ -280,14 +287,14 @@ export function Cart() {
           {titleField}
           <p className="cart-title">{plural(n, 'slide')}</p>
           <div className="cart-acts">
-            <button type="button" className="btn btn-sm" onClick={openSave}>
+            <Button size="sm" onClick={openSave}>
               <Icon name="folder" />
               <span>Save as draft</span>
-            </button>
-            <button type="button" className="btn btn-sm btn-primary" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openDownload(included)}>
+            </Button>
+            <Button size="sm" variant="primary" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openDownload(included)}>
               <Icon name="download" />
               <span>Download as pptx</span>
-            </button>
+            </Button>
           </div>
         </div>
         <div className="cart-body">
@@ -340,9 +347,8 @@ export function Cart() {
                       <Link to={{ view: 'slide', id: s.id }}>{s.title}</Link>
                       <span className="meta">{s.provenance.sourceTitle}</span>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-icon btn-sm"
+                    <Button
+                      variant="ghost" iconOnly size="sm"
                       aria-label={`Remove from draft deck: ${s.title}`}
                       onClick={() => {
                         if (pack && present > 1) openPackDialog({ kind: 'remove', pack, slide: s });
@@ -350,7 +356,7 @@ export function Cart() {
                       }}
                     >
                       <Icon name="x" />
-                    </button>
+                    </Button>
                   </li>
                 </Fragment>
               );
@@ -386,9 +392,8 @@ export function Cart() {
             {confirming ? (
               <div className="cart-confirm" role="group" aria-label="Confirm clearing the draft deck">
                 <span className="cc-q">Are you sure?</span>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-icon cc-yes"
+                <Button
+                  size="sm" iconOnly className="cc-yes"
                   aria-label="Yes, clear the draft deck"
                   title="Yes, clear it"
                   onClick={() => {
@@ -398,21 +403,21 @@ export function Cart() {
                   }}
                 >
                   <Icon name="check" />
-                </button>
-                <button type="button" className="btn btn-sm btn-icon" aria-label="No, keep my slides" title="No, keep them" onClick={() => setConfirmFor(null)} autoFocus>
+                </Button>
+                <Button size="sm" iconOnly aria-label="No, keep my slides" title="No, keep them" onClick={() => setConfirmFor(null)} autoFocus>
                   <Icon name="x" />
-                </button>
+                </Button>
               </div>
             ) : (
               <>
-                <button type="button" className="btn btn-ghost btn-sm" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openPreview(included, 0)}>
+                <Button variant="ghost" size="sm" disabled={none} title={none ? 'Add at least one slide to your draft deck first.' : undefined} onClick={() => openPreview(included, 0)}>
                   <Icon name="eye" />
                   <span>Preview</span>
-                </button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmFor(signature)}>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setConfirmFor(signature)}>
                   <Icon name="trash" />
                   <span>Clear</span>
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -435,9 +440,9 @@ export function Cart() {
                   {origin ? (unchanged ? `Started from “${origin.name}”. Nothing has changed since you saved it.` : `Started from “${origin.name}”. Since then: ${changes}.`) : 'Saved under Working drafts in My decks.'}
                 </p>
               </div>
-              <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closeSave}>
+              <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={closeSave}>
                 <Icon name="x" />
-              </button>
+              </Button>
             </div>
             <div className="dlg-body">
               {origin && (
@@ -464,12 +469,12 @@ export function Cart() {
               </p>
             </div>
             <div className="dlg-foot">
-              <button type="button" className="btn" onClick={closeSave}>
+              <Button  onClick={closeSave}>
                 Cancel
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={!draftName.trim() || saving}>
+              </Button>
+              <Button type="submit" variant="primary" disabled={!draftName.trim() || saving}>
                 {saving ? 'Saving…' : origin ? (choice === 'update' ? 'Update deck' : 'Save new deck') : 'Save draft'}
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -489,7 +494,7 @@ export function focusDraftOpener() {
 /* The black button at the bottom right that opens the draft deck, like the reference mockup's. It sits at
    the workspace level, outside the panel, so it stays put while the panel is closed. */
 export function CartPill() {
-  const { selection, cartMin, setCartMin } = useWorkspace();
+  const { selection, cartMin, setCartMin } = useDraft();
   const touring = useTourOpen();
   const nudge = useNudge('draft') && !touring;
   const n = selection.length;
@@ -517,7 +522,9 @@ export function CartPill() {
  * set can be found again by typing it. Closed until asked for, to keep the draft deck quiet.
  */
 function TagAll({ slides }: { slides: SlideSummary[] }) {
-  const { runtime, toast, profile } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { toast } = useNotify();
+  const { profile } = useAccount();
   const id = useId();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
@@ -552,12 +559,12 @@ function TagAll({ slides }: { slides: SlideSummary[] }) {
           Tag for all {slides.length} slides
         </label>
         <input id={`${id}-t`} className="input" type="text" value={text} maxLength={TAG_MAX_LENGTH} placeholder="Tag, e.g. Priya" disabled={busy} onChange={(e) => setText(e.target.value)} autoFocus />
-        <button type="submit" className="btn btn-sm" disabled={busy || !cleanTag(text)}>
+        <Button type="submit" size="sm" disabled={busy || !cleanTag(text)}>
           {busy ? 'Tagging…' : 'Add'}
-        </button>
-        <button type="button" className="btn btn-sm btn-icon" aria-label="Cancel tagging" onClick={() => setOpen(false)} disabled={busy}>
+        </Button>
+        <Button size="sm" iconOnly aria-label="Cancel tagging" onClick={() => setOpen(false)} disabled={busy}>
           <Icon name="x" />
-        </button>
+        </Button>
       </form>
       <p className="meta cart-tagall-note">Tags are shared with everyone, and show up in search.</p>
     </div>

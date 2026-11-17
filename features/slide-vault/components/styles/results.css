@@ -1,0 +1,154 @@
+/* Results pages (views/results.tsx, views/browse.tsx)
+   Results heading, sort row, we-read-this-as row, rows of slides.
+*/
+
+
+/* Search results */
+.slidevault .interp { display: flex; gap: 8px; align-items: center; margin: 12px 0 4px; }
+.slidevault .interp .meta { display: inline-flex; align-items: center; gap: 6px; }
+/* orange accents (selection, focus and small brand marks only) */
+.slidevault .interp .meta .ic { color: var(--sv-brand-strong); }
+
+/* ---- Filter choices read from the typed sentence ---- */
+.slidevault .interp[hidden] { display: none; }
+
+/* Search results in groups (Decks, Sections, Slides): a heading each, with room above and below */
+.slidevault .res-block { margin-top: 8px; }
+.slidevault .res-h { margin: 34px 0 14px; }
+.slidevault .res-block .res-h { margin-top: 28px; }
+
+/* ---- Results page on a phone: a calmer top ---- */
+
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .res-title { font-size: 18px; line-height: 1.3; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.slidevault .res-wrap .summary-row { margin: 6px 0 10px; } }
+/* The count and its (i) sit left-aligned right under the heading; the Best match row comes after. */
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .res-wrap { display: flex; flex-direction: column; }
+.slidevault .res-wrap > .page-head { order: -2; }
+.slidevault .res-wrap > .summary-row { order: -1; justify-content: flex-start; margin: 4px 0 0; }
+.slidevault .res-wrap > .summary-row .summary { text-align: left; } }
+
+/* ---- Phone pass 14: results, simpler ---- */
+.slidevault .cols-toggle { flex: none; }
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .res-title { display: flex; align-items: baseline; gap: 0; }
+.slidevault .res-title .res-q { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .res-title .res-n { flex: none; } }
+/* One look for "on": the filter orange. Section pills rest neutral. */
+.slidevault .cols-toggle[aria-pressed] { background: var(--sv-surface); }
+
+/* The column button sits at the far right of the Best match row. */
+
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .res-wrap .refine > .cols-toggle { margin-left: auto; } }
+
+/* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
+
+/* Results: the sort box and the section pills share a row on a phone on its side; the box stays put, the pills scroll. */
+.slidevault .res-controls { display: contents; }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .res-controls { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0 0 10px; } }
+
+/* Small phones on their side: the preview takes the height its content needs instead of standing tall with blank space under it, and the sort row sits clear of the results heading. */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .res-controls { margin-top: 12px; } }
+/* Deck page on a phone on its side: one row. "Go to slide" at the left, the tags scrolling in the middle (Add tag first), and the one / two column button at the right end. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .deck-tagbar .cols-toggle { order: 2; flex: none; align-self: center; } }
+
+/* Deck page: the tags appear once. Normally under the buttons; on a phone on its side in the buttons' row (Add tag, a thin divider, then the tags scrolling). */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .deck-tagbar .cols-toggle { margin-left: auto; } }
+/* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
+.slidevault .sv-app[data-size="medium"] .res-title { line-height: 1.3; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.slidevault .sv-app[data-size="medium"] .res-wrap .summary-row { margin: 6px 0 10px; }
+.slidevault .sv-app[data-size="medium"] .res-wrap { display: flex; flex-direction: column; }
+.slidevault .sv-app[data-size="medium"] .res-wrap > .page-head { order: -2; }
+.slidevault .sv-app[data-size="medium"] .res-wrap > .summary-row { order: -1; justify-content: flex-start; }
+.slidevault .sv-app[data-size="medium"] .res-wrap > .summary-row .summary { text-align: left; }
+.slidevault .sv-app[data-size="medium"] .res-title { display: flex; align-items: baseline; gap: 0; }
+.slidevault .sv-app[data-size="medium"] .res-title .res-q { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .sv-app[data-size="medium"] .res-title .res-n { flex: none; white-space: pre; color: var(--sv-text-secondary); font-weight: 500; }
+.slidevault .sv-app[data-size="medium"] .res-wrap > .summary-row { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.slidevault .sv-app[data-size="medium"] .res-wrap .refine > .cols-toggle { margin-left: auto; }
+.slidevault .sv-app[data-size="medium"] .res-controls { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0 0 10px; }
+.slidevault .sv-app[data-size="medium"] .res-controls { margin-top: 12px; }
+.slidevault .sv-app[data-size="medium"] .deck-tagbar .cols-toggle { order: 2; flex: none; align-self: center; }
+.slidevault .sv-app[data-size="medium"] .deck-tagbar .cols-toggle { margin-left: auto; }
+
+/* Tablet upright results: no column button, and more air between the rows. */
+.slidevault .sv-app[data-size="medium"] .res-wrap .refine > .cols-toggle { display: none; }
+.slidevault .sv-app[data-size="medium"] .res-wrap .res-controls { margin-top: 18px; margin-bottom: 18px; }
+.slidevault .sv-app[data-size="medium"] .res-wrap > .summary-row { margin: 0; }
+/* Tablet upright deck page: no column button either. */
+.slidevault .sv-app[data-size="medium"] .deck-tagbar .cols-toggle { display: none; }
+
+/* Desktop and tablet on its side: the slide count sits in the heading ("Results for “bank intro” · 77 slides"), as on phones; the old count line stays for screen readers only. */
+.slidevault .res-title .res-n { color: var(--sv-text-secondary); font-weight: 500; white-space: pre; }
+.slidevault .res-wrap > .summary-row { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+/* Desktop and tablet on its side: the section pills share the Sort row, with room between them. */
+.slidevault .sv-app[data-size="wide"] .res-controls { display: flex; align-items: center; gap: 28px; min-width: 0; margin: 16px 0 16px; }
+
+/* The one-or-two-across button only does something on a phone held upright; elsewhere the grid sets its own columns, so the button goes. */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .cols-toggle { display: none; } }
+
+/* Results pages, every screen: the Sort box sits on the same row as the heading, right-aligned (the section pills, when there are any, are a row of their own below). */
+.slidevault .sv-app .sv-wrap.res-wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.slidevault .sv-app .sv-wrap.res-wrap > * { grid-column: 1 / -1; }
+.slidevault .sv-app .sv-wrap.res-wrap > .page-head { grid-column: 1; grid-row: 1; }
+.slidevault .sv-app .res-wrap > .res-controls { display: contents; }
+
+/* Phone held upright: there is no room to share the heading's row, so Sort (and the columns button) stay on their own row, with space below it before the first card. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .sv-wrap.res-wrap { display: flex; flex-direction: column; align-items: stretch; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .res-controls { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 12px 0 20px; }
+
+/* Phone held upright: the page heading is a little bigger, with more room around it, so it clearly starts the results below the filters. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head .res-title { font-size: 26px; line-height: 1.2; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .res-controls { margin-top: 14px; }
+
+/* "We read this as" pills: more room before the slide cards below, and tucked closer under the heading (a phone held upright already has them close). */
+.slidevault .res-wrap .interp { margin: 0 0 22px; }
+.slidevault .sv-app:not([data-size="compact"]:not([data-land])) .res-wrap > .interp { margin-top: -8px; }
+
+/* "We read this as": one row of pills that scrolls sideways (with the faded edge), never wrapping onto a second line. */
+.slidevault .interp { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }
+.slidevault .interp::-webkit-scrollbar { display: none; }
+.slidevault .interp > * { flex: none; white-space: nowrap; }
+
+/* Notes above the results ("AI reading is unavailable right now…", "Nothing matched every filter…"): tucked under the heading, with room before the section pills and the cards. */
+.slidevault .res-wrap > p.meta[role="status"], .slidevault .res-wrap > p.meta:not([class*="step"]) { margin: 0 0 16px; line-height: 1.45; }
+.slidevault .sv-app:not([data-size="compact"]:not([data-land])) .res-wrap > p.meta[role="status"] { margin-top: -6px; }
+
+/* Results heading row: the heading and the Sort box share one horizontal axis (centred on each other), with a clear gap between where the heading ends and the Sort label starts. */
+.slidevault .sv-app .sv-wrap.res-wrap { align-items: center; column-gap: 32px; }
+.slidevault .sv-app .res-wrap > .page-head { align-self: center; min-width: 0; }
+.slidevault .sv-app .res-wrap > .page-head .res-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+/* Phone held upright: the note under the heading has air above it. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > p.meta[role="status"] { margin-top: 10px; }
+/* Heading and Sort are the same height, so their centres line up exactly. */
+.slidevault .sv-app .res-wrap > .page-head { min-height: 44px; display: flex; align-items: center; }
+.slidevault .sv-app .res-wrap > .page-head > * { min-width: 0; max-width: 100%; }
+/* Phone held upright: the heading wraps as before (it is not squeezed beside Sort there). */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head { min-height: 0; display: flex; min-width: 0; width: 100%; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head .res-title { min-width: 0; width: 100%; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head .res-q { min-width: 0; flex: 0 1 auto; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .page-head .res-title { white-space: normal; overflow: visible; text-overflow: clip; }
+
+/* Same box for the heading and Sort so their centres match; spacing below the row is padding, so it cannot shift one more than the other. */
+.slidevault .sv-app .sv-wrap.res-wrap > .page-head { margin: 0; padding: 0 0 24px; box-sizing: border-box; min-height: 62px; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .sv-wrap.res-wrap > .page-head { padding: 0; min-height: 0; }
+
+/* Phone on its side: the results heading is bigger, and wraps to two lines (not cut off) when the search is long. */
+.slidevault .sv-app[data-size="compact"][data-land] .res-wrap > .page-head .res-title { font-size: 24px; line-height: 1.2; display: block; }
+.slidevault .sv-app[data-size="compact"][data-land] .res-wrap > .page-head .res-q { display: inline; white-space: normal; overflow: visible; text-overflow: clip; }
+.slidevault .sv-app[data-size="compact"][data-land] .res-wrap > .page-head .res-n { font-size: 24px; white-space: nowrap; }
+
+/* A new search is on its way (a chip crossed out, the words changed): the old results fade and the heading says so. */
+.slidevault .res-wrap.is-refreshing :is(.grid, .summary-row, .seccards) { opacity: 0.45; transition: opacity 0.15s; }
+.slidevault .res-updating { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; font-size: var(--sv-text-small); font-weight: 500; color: var(--sv-text-secondary); white-space: nowrap; vertical-align: middle; }

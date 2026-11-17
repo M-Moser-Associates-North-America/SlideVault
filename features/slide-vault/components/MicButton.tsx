@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { speechStatus, transcribe, type SpeechStatus } from '../client/api';
 import { startRecording, type Recording } from '../client/wav-recorder';
 import { Icon } from './icons';
-import { useWorkspace } from './state';
+import { useNotify, useRuntime } from './state';
 
 /** Talk instead of type: records on this device and sends it only to the app's own speech service. Icon only. */
 export function MicButton({ onText, disabled, className = 'btn btn-icon sb-mic', showWhenOff }: { onText: (text: string) => void; disabled?: boolean; className?: string; showWhenOff?: boolean }) {
-  const { runtime, toast } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { toast } = useNotify();
   const [status, setStatus] = useState<SpeechStatus>('off');
   const [state, setState] = useState<'idle' | 'listening' | 'hearing'>('idle');
   const rec = useRef<Recording | null>(null);

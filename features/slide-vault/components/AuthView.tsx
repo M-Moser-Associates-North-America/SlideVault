@@ -1,9 +1,10 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Icon } from './icons';
 import { useWorkspaceSize } from './size';
-import { useWorkspace } from './state';
+import { useAccount } from './state';
 
 /**
  * Placeholder sign-in, taken from the client's own reference mockup (reference/SlideVault.html --
@@ -12,7 +13,7 @@ import { useWorkspace } from './state';
  * one demo profile ("Person A").
  */
 export function LoginView() {
-  const { submitLogin } = useWorkspace();
+  const { submitLogin } = useAccount();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -104,9 +105,9 @@ export function LoginView() {
                 </button>
               </div>
             </label>
-            <button type="submit" className="btn btn-primary auth-submit">
+            <Button type="submit" variant="primary" className="auth-submit">
               {isSignUp ? 'Request access' : 'Sign in'}
-            </button>
+            </Button>
           </form>
           <div className="auth-switch">
             {isSignUp ? 'Already have access?' : 'Need an account?'}{' '}

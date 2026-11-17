@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from './ui/Button';
+import { Badge } from './ui/Badge';
 import { useRef, useState, type FormEvent } from 'react';
 import { packPosition, type Pack } from '../client/packs';
 import type { SlideSummary } from '../contracts/dto';
@@ -7,7 +9,7 @@ import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
 import { plural } from './library';
 import { Link, Thumb, useAddSection, useCartToggle } from './parts';
-import { useWorkspace } from './state';
+import { useDraft, useLibrary, useNotify, useOverlays, useRuntime } from './state';
 
 /**
  * Packs (FD-38): slides that only work together, such as a team introduction and its people. Picking
@@ -19,7 +21,7 @@ const packName = (pack: Pack) => (pack.label ? `“${pack.label}”` : 'this pac
 
 /** The slides of a pack in order, current one marked. */
 export function PackStrip({ pack, currentId, onNavigate }: { pack: Pack; currentId?: string; onNavigate?: () => void }) {
-  const { library } = useWorkspace();
+  const { library } = useLibrary();
   const byId = new Map((library.status === 'ready' ? library.slides : []).map((s) => [s.id, s]));
   return (
     <ol className="pack-strip" aria-label={`Slides in ${pack.label ?? 'the pack'}`}>
@@ -44,7 +46,11 @@ export function PackStrip({ pack, currentId, onNavigate }: { pack: Pack; current
 
 /** The question asked before adding or removing one slide of a pack, and before ungrouping one. */
 export function PackDialog() {
-  const { runtime, library, packDialog, closePackDialog, selection, updateSelection, addPackToDraft, removePackFromDraft, ungroupPack, toast, announce } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { library, ungroupPack } = useLibrary();
+  const { selection, updateSelection, addPackToDraft, removePackFromDraft } = useDraft();
+  const { packDialog, closePackDialog } = useOverlays();
+  const { toast, announce } = useNotify();
   const { setOne } = useCartToggle();
   const { addNow } = useAddSection();
   const ref = useRef<HTMLDialogElement>(null);
@@ -96,15 +102,15 @@ export function PackDialog() {
       );
       actions = (
         <>
-          <button type="button" className="btn btn-ghost" onClick={closePackDialog}>
+          <Button variant="ghost" onClick={closePackDialog}>
             Cancel
-          </button>
-          <button type="button" className="btn" disabled={busy} onClick={() => run(() => setOne(slide, true))}>
+          </Button>
+          <Button  disabled={busy} onClick={() => run(() => setOne(slide, true))}>
             Only this slide
-          </button>
-          <button type="button" className="btn btn-primary" disabled={busy} autoFocus onClick={() => run(() => addPackToDraft(pack))}>
+          </Button>
+          <Button variant="primary" disabled={busy} autoFocus onClick={() => run(() => addPackToDraft(pack))}>
             {inDeck.length > 0 ? `Add the other ${others.length + 1}` : `Add all ${total} slides`}
-          </button>
+          </Button>
         </>
       );
     } else if (d.kind === 'section' && d.section) {
@@ -126,15 +132,14 @@ export function PackDialog() {
       );
       actions = (
         <>
-          <button type="button" className="btn btn-ghost" onClick={closePackDialog}>
+          <Button variant="ghost" onClick={closePackDialog}>
             Cancel
-          </button>
-          <button type="button" className="btn" disabled={busy} onClick={() => run(() => addNow(sec.name, sec.slides))}>
+          </Button>
+          <Button  disabled={busy} onClick={() => run(() => addNow(sec.name, sec.slides))}>
             Only this section ({sec.slides.length})
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
+          </Button>
+          <Button
+            variant="primary"
             disabled={busy}
             autoFocus
             onClick={() =>
@@ -147,7 +152,7 @@ export function PackDialog() {
             }
           >
             Add the section and the pack ({sec.slides.length + outside.length})
-          </button>
+          </Button>
         </>
       );
     } else if (d.kind === 'remove' && d.slide) {
@@ -163,15 +168,15 @@ export function PackDialog() {
       );
       actions = (
         <>
-          <button type="button" className="btn btn-ghost" onClick={closePackDialog}>
+          <Button variant="ghost" onClick={closePackDialog}>
             Cancel
-          </button>
-          <button type="button" className="btn" disabled={busy} onClick={() => run(() => setOne(slide, false))}>
+          </Button>
+          <Button  disabled={busy} onClick={() => run(() => setOne(slide, false))}>
             Only this slide
-          </button>
-          <button type="button" className="btn btn-primary" disabled={busy} autoFocus onClick={() => run(() => removePackFromDraft(pack))}>
+          </Button>
+          <Button variant="primary" disabled={busy} autoFocus onClick={() => run(() => removePackFromDraft(pack))}>
             Remove all {inDeck.length}
-          </button>
+          </Button>
         </>
       );
     } else if (d.kind === 'ungroup') {
@@ -187,12 +192,12 @@ export function PackDialog() {
       );
       actions = (
         <>
-          <button type="button" className="btn btn-ghost" onClick={closePackDialog}>
+          <Button variant="ghost" onClick={closePackDialog}>
             Cancel
-          </button>
-          <button type="button" className="btn btn-primary" disabled={busy} autoFocus onClick={ungroup}>
+          </Button>
+          <Button variant="primary" disabled={busy} autoFocus onClick={ungroup}>
             {pack.status === 'suggested' ? 'Dismiss suggestion' : 'Ungroup'}
-          </button>
+          </Button>
         </>
       );
     }
@@ -202,9 +207,9 @@ export function PackDialog() {
     <dialog ref={ref} className="slidevault sv-dialog pack-dialog" data-theme={runtime.theme} aria-labelledby="sv-pack-title" onClose={closePackDialog} onClick={backdropClose(closePackDialog)}>
       <div className="dlg-head">
         <h2 id="sv-pack-title">{title}</h2>
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={closePackDialog}>
+        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={closePackDialog}>
           <Icon name="x" />
-        </button>
+        </Button>
       </div>
       <div className="dlg-body">{body}</div>
       <div className="dlg-foot">{actions}</div>
@@ -214,7 +219,9 @@ export function PackDialog() {
 
 /** On a slide's own page: its pack, the whole pack in one click, rename and ungroup. */
 export function PackPanel({ slide, pack }: { slide: SlideSummary; pack: Pack }) {
-  const { openPackDialog, renamePack, setPackStatus, toast, announce } = useWorkspace();
+  const { renamePack, setPackStatus } = useLibrary();
+  const { openPackDialog } = useOverlays();
+  const { toast, announce } = useNotify();
   const suggested = pack.status === 'suggested';
   const when = pack.confirmedAt ? new Date(pack.confirmedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : null;
   const [renaming, setRenaming] = useState(false);
@@ -229,8 +236,8 @@ export function PackPanel({ slide, pack }: { slide: SlideSummary; pack: Pack }) 
     <section className="panel pack-panel" aria-labelledby="sv-pack-h">
       <h2 id="sv-pack-h">
         {pack.label ?? 'Part of a pack'}
-        {pack.status === 'suggested' ? <span className="badge pack-sug">Suggested</span> : <span className="badge">Confirmed</span>}
-        {pack.local && <span className="badge" title="Kept in this browser only until the server can store packs">This browser only</span>}
+        {pack.status === 'suggested' ? <Badge className="pack-sug">Suggested</Badge> : <Badge >Confirmed</Badge>}
+        {pack.local && <Badge  title="Saved on this device only">This browser only</Badge>}
       </h2>
       <p className="meta">
         Slide {packPosition(pack, slide.id)} of {plural(pack.slideIds.length, 'slide')} that go together, in this order.
@@ -243,9 +250,8 @@ export function PackPanel({ slide, pack }: { slide: SlideSummary; pack: Pack }) 
       <PackStrip pack={pack} currentId={slide.id} />
       <div className="row-flex" style={{ marginTop: 10 }}>
         {suggested ? (
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
+          <Button
+            size="sm" variant="primary"
             onClick={async () => {
               await setPackStatus(pack, 'confirmed');
               announce('Pack confirmed');
@@ -253,27 +259,26 @@ export function PackPanel({ slide, pack }: { slide: SlideSummary; pack: Pack }) 
           >
             <Icon name="check" />
             <span>Confirm this pack</span>
-          </button>
+          </Button>
         ) : (
-          <button
-            type="button"
-            className="btn btn-sm"
+          <Button
+            size="sm"
             onClick={async () => {
               await setPackStatus(pack, 'suggested');
               announce('Pack moved back to suggested');
             }}
           >
             <span>Unconfirm</span>
-          </button>
+          </Button>
         )}
-        <button type="button" className="btn btn-sm" onClick={() => setRenaming((r) => !r)} aria-expanded={renaming}>
+        <Button size="sm" onClick={() => setRenaming((r) => !r)} aria-expanded={renaming}>
           <Icon name="pencil" />
           <span>Rename</span>
-        </button>
-        <button type="button" className="btn btn-sm" onClick={() => openPackDialog({ kind: 'ungroup', pack })}>
+        </Button>
+        <Button size="sm" onClick={() => openPackDialog({ kind: 'ungroup', pack })}>
           <Icon name="x" />
           <span>{suggested ? 'Dismiss suggestion' : 'Ungroup'}</span>
-        </button>
+        </Button>
       </div>
       {renaming && (
         <form className="pack-rename" onSubmit={save}>
@@ -281,9 +286,9 @@ export function PackPanel({ slide, pack }: { slide: SlideSummary; pack: Pack }) 
             Pack name
           </label>
           <input id="sv-pack-name" type="text" value={name} maxLength={60} placeholder="Name this pack" onChange={(e) => setName(e.target.value)} autoComplete="off" data-autofocus />
-          <button type="submit" className="btn btn-sm btn-primary">
+          <Button type="submit" size="sm" variant="primary">
             Save name
-          </button>
+          </Button>
         </form>
       )}
     </section>
@@ -292,7 +297,8 @@ export function PackPanel({ slide, pack }: { slide: SlideSummary; pack: Pack }) 
 
 /** Group mode on a deck page: pick slides in the order they should go, name the pack, create it. */
 export function GroupTool({ deckSlides, onDone }: { deckSlides: SlideSummary[]; onDone: () => void }) {
-  const { packs, makePack, toast, announce } = useWorkspace();
+  const { packs, makePack } = useLibrary();
+  const { toast, announce } = useNotify();
   const [picked, setPicked] = useState<string[]>([]);
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);
@@ -344,12 +350,12 @@ export function GroupTool({ deckSlides, onDone }: { deckSlides: SlideSummary[]; 
         </label>
         <input id="sv-gt-name" type="text" value={label} maxLength={60} placeholder="Name this pack (optional)" onChange={(e) => setLabel(e.target.value)} autoComplete="off" />
         <span className="meta">{picked.length < 2 ? 'Pick at least 2 slides' : plural(picked.length, 'slide')}</span>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onDone}>
+        <Button variant="ghost" size="sm" onClick={onDone}>
           Cancel
-        </button>
-        <button type="submit" className="btn btn-primary btn-sm" disabled={picked.length < 2 || busy}>
+        </Button>
+        <Button type="submit" variant="primary" size="sm" disabled={picked.length < 2 || busy}>
           Create pack
-        </button>
+        </Button>
       </form>
     </>
   );

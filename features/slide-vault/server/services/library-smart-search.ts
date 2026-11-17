@@ -22,7 +22,7 @@ import { buildStoryboard, clientSectors, keptOutOfStories, SECTOR_NAMES, type St
 import { deckFacts } from './search';
 import { deckRequest } from '../ai/deck-request';
 import { familiesOf } from './families';
-import { askedSections, asksForCover, asksForSections, isSectionSearch, librarySections, sectionMembers, sectionWhy, type SlideSection } from './sections';
+import { askedSections, asksForCover, asksForSections, isSectionSearch, librarySections, sectionMembers, sectionWhy, sectionWordsIn, type SlideSection } from './sections';
 import { findSlide } from '../library-repository';
 import { toSummary } from './search';
 import { refineStory } from './story-refine';
@@ -259,9 +259,12 @@ export async function askedOrder<T extends { slide: SlideSummary }>(query: strin
   return inAskedOrder(items, order, order === 'most-liked' || order === 'least-liked' ? await slideLikes() : new Map());
 }
 
-export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean; force?: boolean; by?: StoryUserRole | null; includeHidden?: boolean }): Promise<SmartSearchResponse> {
+export async function searchLibrary(query: string, limit: number, opts: { reader: PlanReader | null; read: boolean; force?: boolean; by?: StoryUserRole | null; includeHidden?: boolean; readQuery?: string; alsoWords?: string[]; noSections?: boolean }): Promise<SmartSearchResponse> {
   const index = await loadLibraryIndex();
   // What colleagues marked useful or not relevant for searches with these words (FD-59).
+  // The words as typed decide sections, order and what colleagues learned. `readQuery` is the same words minus the ones whose
+  // chip the person crossed out (search-ignore.ts): it decides the kind of slide, topics, year and client.
+  const readQuery = opts.readQuery ?? query;
   const learned = await searchLearning(query, opts.by ?? null);
   // What the search asks for beyond its words (FD-33): a kind of slide, a sector, a theme, matched
   // against the reviewed metadata and the local model's reading of each slide.
@@ -269,15 +272,17 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   const looks = await knownLooks();
   // What search knows of a slide: its reading, plus the picture sorter's or the file's look when the describing model hasn't read it.
   const known = (id: string) => { const k = readings.get(id); const l = looks.get(id); return l && !k?.looks?.length ? { ...(k ?? { role: '', topics: [], about: '' }), looks: l } : k; };
-  const intent = searchIntent(query);
+  const intent = searchIntent(readQuery);
   // The database is asked for looks only once its looks column is filled (FD-99); until then its search is by words as before.
   const dbHasLooks = (await uploadedLooks()).size > 0;
   // The deck sections a search asks for (FD-57, "page breakers"): "resumes" finds each deck's résumé
   // section, "banner slides in case studies" each case-study section's cover.
   await uploadedDecks();
   const sections = sectionsOf(index, readings);
-  const asked = askedSections(query);
-  const cover = asksForCover(query);
+  // The person switched the section reading off (crossed it out, or ticked other sections): the words ask for none.
+  const sectionQuery = opts.noSections ? '' : query;
+  const asked = askedSections(sectionQuery);
+  const cover = asksForCover(sectionQuery);
   const inAsked = (id: string) => { const sec = sections.get(id); return !!sec && sec.kinds.some((k) => asked.includes(k)); };
   const sectionScore = (id: string) => {
     if (!inAsked(id)) return 0;
@@ -300,7 +305,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
     skip: (s) => (!opts.includeHidden && (s.hiddenInSource || isInternalOnly(s))) || looksRight(it, known(s.id)) === false,
   });
   const result = await smartSearch(
-    query,
+    readQuery,
     limit,
     {
       context: async () => {
@@ -327,14 +332,14 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
       alsoSays: (s) => { const k = readings.get(s.id); return [k?.about, k?.topics.join(' '), k?.sectors?.join(' '), k?.clientSector, k?.themes?.join(' '), k?.projects?.join(' '), s.provenance.sourceTitle, s.provenance.sourceFileName, s.provenance.location, s.provenance.clientName].filter(Boolean).join(' '); },
       log: (m) => console.warn(m),
     },
-    { read: opts.read, force: opts.force },
+    { read: opts.read, force: opts.force, alsoWords: opts.alsoWords },
   );
 
   // A search for a section shows each deck's section once before the rest (Alina, 28 Oct: "search
   // between different decks for that particular bunch of slides"), led by its first page (Gabby: "the
   // Priya page… those 1, 2, 3, 4 next pages"), or by its cover when a cover is asked for.
   // A search that also asks for a kind of slide ("resumes", "case study") is led by its best slide of that kind.
-  if (isSectionSearch(query)) {
+  if (isSectionSearch(sectionQuery)) {
     const lead = new Map<string, (typeof result.items)[number]>();
     // Only a narrow kind narrows the lead ("resumes": a résumé, not the team section's org chart). Every page
     // of a firm section is about the firm, so "firm overview" leads with each section's first page, reviewed or not.
@@ -404,7 +409,7 @@ export async function searchLibrary(query: string, limit: number, opts: { reader
   const ordered = (await askedOrder(query, counted.map((slide) => ({ slide })))).map((x) => x.slide);
   // The star on "Why it fits" only when the AI's stored reading of the slide shaped the sentence, not when it is a plain word match.
   const aiRead = (id: string) => { const r = readings.get(id); return !!r && !!intentWhy(wanted, r); };
-  return { ...result, sections: asksForSections(query) ? asked : undefined, items: ordered.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why), aiRead: aiRead(slide.id) }; }) };
+  return { ...result, sections: asksForSections(query) ? askedSections(query) : undefined, sectionWords: sectionWordsIn(query), items: ordered.map((slide) => { const item = byId.get(slide.id)!; return { ...item, slide: { ...slide, section: sectionOf(slide.id) }, why: said(slide.id, item.why), aiRead: aiRead(slide.id) }; }) };
 }
 
 /**

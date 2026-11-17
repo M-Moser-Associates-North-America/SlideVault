@@ -11,8 +11,11 @@ export function useEdgeFade(ref: RefObject<HTMLElement | null>) {
     const el = ref.current;
     if (!el) return;
     const update = () => {
+      // Only a row that really scrolls sideways fades. A row that wraps has nothing hidden, and a card hanging out of its
+      // right edge (a filter card) would otherwise count as hidden content and be masked away.
+      const scrolls = /auto|scroll/.test(getComputedStyle(el).overflowX);
       const max = el.scrollWidth - el.clientWidth;
-      const parts = [el.scrollLeft > 2 ? 'start' : '', el.scrollLeft < max - 2 ? 'end' : ''].filter(Boolean).join(' ');
+      const parts = scrolls ? [el.scrollLeft > 2 ? 'start' : '', el.scrollLeft < max - 2 ? 'end' : ''].filter(Boolean).join(' ') : '';
       if ((el.dataset.fade ?? '') !== parts) el.dataset.fade = parts;
     };
     update();

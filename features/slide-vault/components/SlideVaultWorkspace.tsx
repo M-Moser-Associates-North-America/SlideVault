@@ -5,12 +5,13 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { SlideVaultWorkspaceProps } from '../contracts/runtime';
 import { Cart, CartPill, focusDraftOpener } from './Cart';
 import { AlsoDialog, DownloadDialog, Lightbox } from './Dialogs';
-import { installLongPressTips } from './fixed-tip';
+import { hideTip, installLongPressTips } from './fixed-tip';
+import { installTapFeedback } from './tap-feedback';
 import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
 import { Crumbs, Link, type Crumb } from './parts';
 import { CompactSearch } from './CompactSearch';
-import { WorkspaceProvider, useWorkspace } from './state';
+import { WorkspaceProvider, useAccount, useDraft, useLibrary, useNotices, useNotify, useOverlays, useRuntime, useSearch } from './state';
 import { LoginView } from './AuthView';
 import { ActivityOptInAsk } from './ActivityOptIn';
 import { ProfileView } from './ProfileView';
@@ -25,10 +26,30 @@ import { HistoryButtons } from './HistoryButtons';
 import { LeaveUploadDialog } from './LeaveUploadDialog';
 import { AiAskDialog } from './AiAskDialog';
 import { UploadView } from './UploadView';
-import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './Views';
+import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './views';
 import { StoryboardView } from './StoryboardView';
 import './slidevault.css';
 import './slidevault-extras.css';
+import './styles/search-toggles.css';
+import './styles/sticky-search.css';
+import './styles/filter-bar.css';
+import './styles/section-conflict.css';
+import './styles/draft-deck.css';
+import './styles/preview.css';
+import './styles/tags.css';
+import './styles/cards.css';
+import './styles/home.css';
+import './styles/header.css';
+import './styles/results.css';
+import './styles/deck-page.css';
+import './styles/slide-page.css';
+import './styles/upload.css';
+import './styles/archive.css';
+import './styles/profile.css';
+import './styles/auth.css';
+import './styles/tour.css';
+import './styles/packs.css';
+import './styles/create.css';
 
 /**
  * The SlideVault workspace: renders inside whatever space its host gives it and talks to the
@@ -71,7 +92,14 @@ const TABS: {
 ];
 
 function Workspace({ header }: { header?: ReactNode }) {
-  const { runtime, library, searched, cartMin, selection, toasts, dismissToast, announcement, announce, profile, setCartMin, preview } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { library } = useLibrary();
+  const { searched } = useSearch();
+  const { cartMin, selection, setCartMin } = useDraft();
+  const { preview } = useOverlays();
+  const { dismissToast, announce } = useNotify();
+  const { toasts, announcement } = useNotices();
+  const { profile } = useAccount();
   const appRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const root = useMemo(() => ({ app: appRef, scroll: scrollRef }), []);
@@ -85,7 +113,7 @@ function Workspace({ header }: { header?: ReactNode }) {
   const loc = runtime.location;
   const view = loc.view === 'home' || loc.view === 'library' ? 'pages' : loc.view;
   const deep = view === 'deck' || view === 'slide';
-  /* Home (browsing or searching) uses the reference HTML's hero search (Views.tsx HomeHeader)
+  /* Home (browsing or searching) uses the reference HTML's hero search (views/home.tsx HomeHeader)
      instead of a side rail; it stays mounted across that transition so typing never loses focus. */
   const noRail = true; // the search bar and filter row now sit at the top of Home and the browse lists
   const narrow = view === 'create' || view === 'upload' || view === 'profile' || view === 'settings' || view === 'archive';
@@ -101,6 +129,10 @@ function Workspace({ header }: { header?: ReactNode }) {
   const toastHost = useRef<HTMLDivElement>(null);
   /* Touch screens: a long press on anything with a hover note shows the note. */
   useEffect(() => installLongPressTips(), []);
+  /* A new page never keeps the last page's hover note. */
+  useEffect(() => hideTip(), [key]);
+  /* Whatever is pressed (touch or keyboard) shows its pressed look straight away and keeps it until the page answers. */
+  useEffect(() => installTapFeedback(), []);
   /* A button that is really a link answers the moment it is pressed (a small spinner), before the next page has loaded. */
   useEffect(() => {
     const press = (e: MouseEvent) => {
@@ -240,7 +272,7 @@ function Workspace({ header }: { header?: ReactNode }) {
                 </li>
               </ul>
             </nav>
-            <div className="sv-brandrow-end">
+            <div className="sv-brandrow-end" role="region" aria-label="Back, forward and search">
               {(view === 'pages' || view === 'browse') && <CompactSearch />}
               <HistoryButtons />
             </div>
@@ -347,7 +379,8 @@ function Workspace({ header }: { header?: ReactNode }) {
  * instead of the top tabs when the workspace is narrow (the tabs always sit at the bottom on a phone).
  */
 function BottomBar({ view, deep }: { view: string; deep: boolean }) {
-  const { runtime, selection, cartMin, setCartMin } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { selection, cartMin, setCartMin } = useDraft();
   const n = selection.length;
   return (
     <nav className="sv-bottombar" aria-label="Main">

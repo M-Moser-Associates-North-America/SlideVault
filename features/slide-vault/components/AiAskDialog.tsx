@@ -1,9 +1,10 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useRef } from 'react';
 import { useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
-import { useWorkspace } from './state';
+import { useRuntime, useSearch } from './state';
 
 /**
  * Asked before a short search is run with "Search with AI" ticked (FD-79). A card in the middle of the screen
@@ -11,7 +12,8 @@ import { useWorkspace } from './state';
  * No (or Escape, or a click outside) uses the regular search, which does not call the AI at all.
  */
 export function AiAskDialog() {
-  const { runtime, aiAsk, aiAskKind, answerAiAsk } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { aiAsk, aiAskKind, answerAiAsk } = useSearch();
   const ref = useRef<HTMLDialogElement>(null);
   const yesRef = useRef<HTMLButtonElement>(null);
   useDialogOpen(ref, !!aiAsk);
@@ -45,12 +47,12 @@ export function AiAskDialog() {
         </p>
       </div>
       <div className="dlg-foot ai-ask-foot">
-        <button type="button" className="btn btn-ghost" onClick={no}>
+        <Button variant="ghost" onClick={no}>
           {long ? 'No, regular search' : 'No, search normally'}
-        </button>
-        <button ref={yesRef} type="button" className="btn btn-primary" onClick={() => answerAiAsk(true)}>
+        </Button>
+        <Button ref={yesRef} variant="primary" onClick={() => answerAiAsk(true)}>
           Yes, use AI
-        </button>
+        </Button>
       </div>
     </dialog>
   );

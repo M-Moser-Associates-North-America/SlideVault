@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { addTag, listLibrary, listTags, previewTagSuggestions, previewUpload, suggestUploadDetails, uploadAiAvailable, uploadDeck, type TagSuggestionItem } from '../client/api';
 import { setUploadDraft } from '../client/upload-draft-store';
@@ -10,7 +11,7 @@ import { Icon } from './icons';
 import { plural } from './library';
 import { Link } from './parts';
 import { useWorkspaceCompact } from './size';
-import { useWorkspace } from './state';
+import { useLibrary, useNotify, useRuntime } from './state';
 import { SuggestedTagChips } from './TagBits';
 import { TagField, type TagSuggestion } from './TagField';
 import { UploadConfirmDialog, type UploadSummary } from './UploadConfirmDialog';
@@ -53,7 +54,9 @@ function Bar({ label, done, total }: { label: string; done?: number; total?: num
  * until the person confirms); the server then splits it into slides with pictures. Uses the real POST /uploads.
  */
 export function UploadView() {
-  const { runtime, reloadLibrary, announce } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { reloadLibrary } = useLibrary();
+  const { announce } = useNotify();
   const compact = useWorkspaceCompact();
   const [file, setFile] = useState<File | null>(null);
   const [reading, setReading] = useState<Reading>({ kind: 'none' });
@@ -518,10 +521,10 @@ export function UploadView() {
             {aiState.kind === 'done' ? (
               <p className="field-hint">{aiState.note}</p>
             ) : (
-              <button type="button" className="btn btn-sm btn-ai" disabled={busy || aiState.kind === 'reading'} onClick={() => void fillWithAi()}>
+              <Button size="sm" className="btn-ai" disabled={busy || aiState.kind === 'reading'} onClick={() => void fillWithAi()}>
                 <Icon name="sparkle" className="ic-sm" />
                 {aiState.kind === 'reading' ? 'Reading the file…' : <>Fill the rest with <b>AI</b></>}
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -594,9 +597,9 @@ export function UploadView() {
                   }}
                   placeholder="Name the category, then press Enter"
                 />
-                <button type="button" className="btn btn-sm" disabled={!otherText.trim()} onClick={addOther}>
+                <Button size="sm" disabled={!otherText.trim()} onClick={addOther}>
                   Add
-                </button>
+                </Button>
               </div>
             )}
             <p className="field-hint">Pick the main one first. Others become tags.</p>
@@ -633,9 +636,9 @@ export function UploadView() {
           {busy ? (
             <Bar label={state.step} done={state.done} total={state.total} />
           ) : (
-            <button type="submit" className="btn btn-primary" disabled={!ready}>
+            <Button type="submit" variant="primary" disabled={!ready}>
               Upload deck
-            </button>
+            </Button>
           )}
         </div>
       </form>

@@ -43,6 +43,17 @@ export const SECTION_WORDS: [SectionKind, RegExp][] = [
 const plain = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[’']/g, "'");
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 
+/**
+ * The words in a search that asked for a section ("case studies" in "bank case studies section"), so the screen can
+ * switch that reading off and still keep the rest of the words ("bank") in the search (FD-107).
+ */
+export function sectionWordsIn(query: string): string[] {
+  const t = plain(query);
+  const found = new Set<string>();
+  for (const [, re] of SECTION_WORDS) for (const m of t.matchAll(new RegExp(re.source, 'g'))) if (m[0].trim()) found.add(m[0].trim());
+  return [...found];
+}
+
 /** Every standard section a name (or a search) means, best first; an appendix only when it is nothing else. */
 export function sectionKinds(text: string): SectionKind[] {
   const t = plain(text);

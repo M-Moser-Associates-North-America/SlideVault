@@ -1,10 +1,11 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import type { SlideDetail, SlideSummary, TitleEdit } from '../contracts/dto';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
-import { titleEditOf, useWorkspace } from './state';
+import { titleEditOf, useLibrary, useRuntime } from './state';
 
 const MAX_TITLE = 200;
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -23,7 +24,8 @@ const tidy = (raw: string) => raw.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE
  * there (FD-73). Nothing changes until "Rename for everyone" is pressed.
  */
 export function SlideTitle({ slide, loaded }: { slide: SlideSummary; loaded?: SlideDetail | null }) {
-  const { runtime, renameSlide } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { renameSlide } = useLibrary();
   const canEdit = runtime.capabilities.has('metadata.edit');
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(slide.title);
@@ -85,9 +87,9 @@ export function SlideTitle({ slide, loaded }: { slide: SlideSummary; loaded?: Sl
         <form onSubmit={save}>
           <div className="dlg-head">
             <h2 id={`${id}-t`}>Rename this slide?</h2>
-            <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={close}>
+            <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={close}>
               <Icon name="x" />
-            </button>
+            </Button>
           </div>
           <div className="dlg-body arch-body">
             <div className="notice info">
@@ -108,12 +110,12 @@ export function SlideTitle({ slide, loaded }: { slide: SlideSummary; loaded?: Sl
             )}
           </div>
           <div className="dlg-foot">
-            <button type="button" className="btn btn-ghost" onClick={close} disabled={busy}>
+            <Button variant="ghost" onClick={close} disabled={busy}>
               Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={!changed || busy}>
+            </Button>
+            <Button type="submit" variant="primary" disabled={!changed || busy}>
               {busy ? 'Renaming…' : 'Rename for everyone'}
-            </button>
+            </Button>
           </div>
         </form>
       </dialog>

@@ -1,12 +1,13 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useMemo, useState } from 'react';
 import { getSection, listSections } from '../client/api';
 import type { SlideSummary } from '../contracts/dto';
 import { Icon } from './icons';
 import { clientOf, plural, SECTION_LABEL, slideMatches, yearOf } from './library';
 import { Thumb, useAddSection } from './parts';
-import { useWorkspace } from './state';
+import { useDraft, useNotify, useOverlays, useRuntime, useSearch } from './state';
 
 /**
  * A deck's section as one card (docs/DECISIONS.md FD-57, FD-80; Alina, 28 Oct: "scroll through these five
@@ -54,7 +55,10 @@ const FIRST = 6;
 
 /** The cards, and what they do. `groups` are the sections to show; each asks for its whole section once. */
 function Cards({ groups }: { groups: SectionGroup[] }) {
-  const { runtime, openPreview, selection, updateSelection, announce } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { selection, updateSelection } = useDraft();
+  const { openPreview } = useOverlays();
+  const { announce } = useNotify();
   const { addSection } = useAddSection();
   const [all, setAll] = useState(false);
   const [whole, setWhole] = useState<Record<string, SlideSummary[]>>({});
@@ -130,10 +134,10 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
                 </p>
                 <p className="seccard-n">{plural(n, 'slide')} in this section</p>
                 <div className="seccard-acts">
-                  <button type="button" className="btn btn-sm" aria-busy={busy === g.key} disabled={!!busy && busy !== g.key} onClick={() => void working(g, () => open(g))}>
+                  <Button size="sm" aria-busy={busy === g.key} disabled={!!busy && busy !== g.key} onClick={() => void working(g, () => open(g))}>
                     Open section
-                  </button>
-                  <button type="button" className={`btn btn-sm${on ? '' : ' btn-primary'}`} aria-pressed={on} aria-busy={busy === g.key} disabled={!!busy && busy !== g.key} onClick={() => void working(g, () => toggle(g))}>
+                  </Button>
+                  <Button size="sm" variant={on ? 'secondary' : 'primary'} aria-pressed={on} aria-busy={busy === g.key} disabled={!!busy && busy !== g.key} onClick={() => void working(g, () => toggle(g))}>
                     {busy === g.key && !whole[g.dividerId] ? (
                       <>
                         <span className="sv-ring is-small" aria-hidden="true" /> Getting the section…
@@ -145,7 +149,7 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
                     ) : (
                       <>Add all {n} to draft deck</>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </li>
@@ -191,17 +195,21 @@ export function SectionCards({ results, only, heading }: { results: SlideSummary
 }
 
 /** Browse one kind of section across every deck, with no search (the Section filter on Home, FD-80). The other filters still apply. */
-export function SectionBrowse({ kind }: { kind: string }) {
-  const { runtime, filters } = useWorkspace();
+/** The same sections of every deck, for one or several kinds (a slide is in any of them). */
+export function SectionBrowse({ kinds }: { kinds: string[] }) {
+  const { runtime } = useRuntime();
+  const { filters } = useSearch();
+  const kind = kinds.join('|');
   const [list, setList] = useState<{ kind: string; groups: SectionGroup[] } | 'error' | null>(null);
   useEffect(() => {
     const ctl = new AbortController();
-    listSections(runtime, kind, ctl.signal)
-      .then((rows) => setList(rows ? { kind, groups: rows.map((r) => groupOf(r.cover, [r.cover], r.slideCount, r.name)) } : 'error'))
+    Promise.all(kinds.map((k) => listSections(runtime, k, ctl.signal)))
+      .then((all) => setList(all.every((rows) => rows) ? { kind, groups: all.flatMap((rows) => (rows ?? []).map((r) => groupOf(r.cover, [r.cover], r.slideCount, r.name))) } : 'error'))
       .catch(() => undefined);
     return () => ctl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, kind]);
-  const label = SECTION_LABEL[kind] ?? kind;
+  const label = kinds.map((k) => SECTION_LABEL[k] ?? k).join(' and ');
   const groups = useMemo(() => (list && list !== 'error' && list.kind === kind ? list.groups.filter((g) => slideMatches(g.cover, filters)) : []), [list, kind, filters]);
   const loaded = list !== null && list !== 'error' && list.kind === kind;
   return (

@@ -1,14 +1,15 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useRef } from 'react';
 import { answerLeaveUpload, useLeaveUploadQuestion } from '../client/upload-draft-store';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
-import { useWorkspace } from './state';
+import { useRuntime } from './state';
 
 /** Asked when someone signs out while the Upload screen holds unsent work. Stay is the default. */
 export function LeaveUploadDialog() {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const { draft, asking } = useLeaveUploadQuestion();
   const ref = useRef<HTMLDialogElement>(null);
   const stayRef = useRef<HTMLButtonElement>(null);
@@ -22,9 +23,9 @@ export function LeaveUploadDialog() {
     <dialog ref={ref} className="slidevault sv-dialog" data-theme={runtime.theme} aria-labelledby="sv-leave-title" onClose={stay} onClick={backdropClose(stay)}>
       <div className="dlg-head">
         <h2 id="sv-leave-title">Leave your upload behind?</h2>
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={stay}>
+        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={stay}>
           <Icon name="x" />
-        </button>
+        </Button>
       </div>
       <div className="dlg-body arch-body">
         {draft && (
@@ -38,12 +39,12 @@ export function LeaveUploadDialog() {
         )}
       </div>
       <div className="dlg-foot">
-        <button type="button" className="btn btn-ghost" onClick={() => answerLeaveUpload(true)}>
+        <Button variant="ghost" onClick={() => answerLeaveUpload(true)}>
           Sign out anyway
-        </button>
-        <button ref={stayRef} type="button" className="btn btn-primary" onClick={stay}>
+        </Button>
+        <Button ref={stayRef} variant="primary" onClick={stay}>
           Stay on this page
-        </button>
+        </Button>
       </div>
     </dialog>
   );

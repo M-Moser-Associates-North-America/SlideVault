@@ -1,0 +1,62 @@
+/* The two small switches next to search
+   HiddenToggle.tsx: the eye that shows or leaves out slides hidden in their original deck.
+   DeeperAiToggle.tsx: the "Search with AI" tick box.
+   Both are a .hid-wrap holding the control and its own hover note (.hid-tip).
+
+   The eye's size depends on where it sits, chosen by the place it is given (never by the part around it):
+     .in-hero    the big Home search (desktop)
+     .in-search  the slim search in the pinned bar (desktop)
+     .in-row     the filter row (phones and tablets)
+   The AI tick only ever sits in the filter bar (its row, or the pinned bar on phones and tablets).
+*/
+
+/* ===== Shared: the wrapper and its hover note ===== */
+.slidevault .hid-wrap { position: relative; flex: none; display: inline-flex; }
+.slidevault .hid-tip { position: absolute; top: calc(100% + 10px); right: 0; z-index: 60; width: 248px; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--sv-action-bg); color: var(--sv-action-fg); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22); text-align: left; opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity 0.12s, transform 0.12s, visibility 0.12s; pointer-events: none; }
+.slidevault .hid-tip strong { font-size: 14px; font-weight: 700; line-height: 1.25; }
+.slidevault .hid-tip span { font-size: 13px; font-weight: 400; line-height: 1.4; opacity: 0.9; }
+.slidevault .hid-wrap:hover .hid-tip, .slidevault .hid-wrap:has(:focus-visible) .hid-tip { opacity: 1; visibility: visible; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .slidevault .hid-tip { transition: none; transform: none; }
+}
+
+/* ===== The eye ===== */
+.slidevault .hid-toggle { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--sv-border-strong); border-radius: 50%; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; box-shadow: var(--sv-shadow-card); }
+/* One class more than Home's .home-hero-search .ic, so the eye icon keeps the button's colour whatever the file order. */
+.slidevault .hid-wrap .hid-toggle .ic { color: inherit; width: 18px; height: 18px; }
+.slidevault .hid-toggle:hover { border-color: var(--sv-text-secondary); }
+.slidevault .hid-toggle:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+.slidevault .hid-toggle.on { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+/* In the big Home search: the bar's full height (44px button + 7px padding each side + 1px border each side). */
+.slidevault .hid-wrap.in-hero { width: 60px; height: 60px; }
+.slidevault .hid-wrap.in-hero .hid-toggle { width: 100%; height: 100%; }
+.slidevault .hid-wrap.in-hero .hid-toggle .ic { width: 20px; height: 20px; }
+/* In the slim search. */
+.slidevault .hid-wrap.in-search .hid-toggle { width: 40px; height: 40px; box-shadow: none; }
+/* In the filter row: a small flat circle, no hover note (it would cover the row). */
+.slidevault .hid-wrap.in-row .hid-toggle { width: 34px; height: 34px; box-shadow: none; }
+.slidevault .hid-wrap.in-row .hid-toggle .ic { width: 16px; height: 16px; }
+.slidevault .hid-wrap.in-row .hid-tip { display: none; }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 600px) {
+  .slidevault .hid-wrap.in-row .hid-toggle { width: 30px; height: 30px; }
+}
+
+/* ===== Search with AI ===== */
+.slidevault .ai-check-wrap { height: 34px; align-items: center; }
+.slidevault .ai-check { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 8px; border-radius: 999px; background: transparent; color: var(--sv-text); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.12s; }
+.slidevault .ai-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--sv-brand-strong); cursor: pointer; flex: none; }
+.slidevault .ai-check input:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+/* "AI" in orange: the part that sets it apart from the grey filter labels. */
+.slidevault .ai-check b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; }
+/* A faint orange wash on hover and when on. */
+.slidevault .ai-check:hover, .slidevault .ai-check:has(input:checked) { background: color-mix(in srgb, var(--sv-brand) 9%, transparent); }
+.slidevault .ai-tip { top: calc(100% + 6px); left: 0; right: auto; width: max-content; max-width: 240px; padding: 7px 11px; font-size: 13px; line-height: 1.35; }
+/* Phones and tablets: no hover note (there is no hover, and it would cover the row). */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .ai-tip { display: none; }
+/* The smallest phones on their side: a touch smaller so the filter row stays on one line. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 600px) {
+  .slidevault .sv-app[data-size="compact"] .ai-check { font-size: 12px; gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slidevault .ai-check { transition: none; }
+}

@@ -1,11 +1,12 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useRef, useState } from 'react';
 import { useTipSeen } from '../client/tip-store';
 import { useTourOpen } from '../client/tour-store';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
-import { useWorkspace } from './state';
+import { useAccount, useNotify, useRuntime } from './state';
 
 /** Shown until the server says how long it keeps activity. */
 export const RETENTION_FALLBACK_DAYS = 90;
@@ -20,7 +21,9 @@ export type OptInMode = 'first' | 'on' | 'off';
  * on / off) until the person presses Done, so the answer is confirmed on screen, not in a toast.
  */
 export function ActivityOptInDialog({ mode, onClose }: { mode: OptInMode | null; onClose: () => void }) {
-  const { runtime, setActivityOptIn, activityRetentionDays, toast } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { toast } = useNotify();
+  const { setActivityOptIn, activityRetentionDays } = useAccount();
   const ref = useRef<HTMLDialogElement>(null);
   const [busy, setBusy] = useState(false);
   /** Set once the change is saved: the card stays open and says what happened. */
@@ -53,9 +56,9 @@ export function ActivityOptInDialog({ mode, onClose }: { mode: OptInMode | null;
         <>
           <div className="dlg-head">
             <h2 id="sv-optin-title">{done === 'on' ? 'Personalization is on' : 'Personalization is off'}</h2>
-            <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={close}>
+            <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={close}>
               <Icon name="x" />
-            </button>
+            </Button>
           </div>
           <div className="dlg-body" role="status">
             {done === 'on' ? (
@@ -74,9 +77,9 @@ export function ActivityOptInDialog({ mode, onClose }: { mode: OptInMode | null;
             )}
           </div>
           <div className="dlg-foot">
-            <button type="button" className="btn btn-primary" onClick={close} autoFocus>
+            <Button variant="primary" onClick={close} autoFocus>
               Done
-            </button>
+            </Button>
           </div>
         </>
       ) : (
@@ -84,9 +87,9 @@ export function ActivityOptInDialog({ mode, onClose }: { mode: OptInMode | null;
           <>
             <div className="dlg-head">
               <h2 id="sv-optin-title">{turningOff ? 'Turn off personalization?' : 'Personalize my Vault?'}</h2>
-              <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={close}>
+              <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={close}>
                 <Icon name="x" />
-              </button>
+              </Button>
             </div>
             <div className="dlg-body">
               {turningOff ? (
@@ -101,12 +104,12 @@ export function ActivityOptInDialog({ mode, onClose }: { mode: OptInMode | null;
               )}
             </div>
             <div className="dlg-foot">
-              <button type="button" className="btn" onClick={close} disabled={busy}>
+              <Button  onClick={close} disabled={busy}>
                 {mode === 'first' ? 'Not now' : turningOff ? 'Keep it on' : 'Keep it off'}
-              </button>
-              <button type="button" className="btn btn-primary" onClick={confirm} disabled={busy}>
+              </Button>
+              <Button variant="primary" onClick={confirm} disabled={busy}>
                 {busy ? 'Saving…' : turningOff ? 'Turn off and delete my history' : 'Turn on'}
-              </button>
+              </Button>
             </div>
           </>
         )
@@ -121,7 +124,7 @@ export function ActivityOptInDialog({ mode, onClose }: { mode: OptInMode | null;
  * closing it) is remembered in this browser only; nothing is sent anywhere.
  */
 export function ActivityOptInAsk() {
-  const { profile, activityOptedIn } = useWorkspace();
+  const { profile, activityOptedIn } = useAccount();
   const { seen: asked, dismiss } = useTipSeen('activity-ask');
   const { seen: toured } = useTipSeen('tour');
   const touring = useTourOpen();

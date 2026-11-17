@@ -1,10 +1,11 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useRef } from 'react';
 import { backdropClose, useDialogOpen } from './Dialogs';
 import { Icon } from './icons';
 import { plural } from './library';
-import { useWorkspace } from './state';
+import { useRuntime } from './state';
 
 export type UploadSummary = {
   title: string;
@@ -24,7 +25,7 @@ export type UploadSummary = {
 
 /** "Upload this deck?" with what will happen, in order of importance, before anything is sent. */
 export function UploadConfirmDialog({ open, summary, onCancel, onConfirm }: { open: boolean; summary: UploadSummary | null; onCancel: () => void; onConfirm: () => void }) {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const ref = useRef<HTMLDialogElement>(null);
   useDialogOpen(ref, open);
   const s = summary;
@@ -32,9 +33,9 @@ export function UploadConfirmDialog({ open, summary, onCancel, onConfirm }: { op
     <dialog ref={ref} className="slidevault sv-dialog" data-theme={runtime.theme} aria-labelledby="sv-upc-title" onClose={onCancel} onClick={backdropClose(onCancel)}>
       <div className="dlg-head">
         <h2 id="sv-upc-title">Upload this deck?</h2>
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={onCancel}>
+        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={onCancel}>
           <Icon name="x" />
-        </button>
+        </Button>
       </div>
       <div className="dlg-body arch-body">
         {s && (
@@ -60,12 +61,12 @@ export function UploadConfirmDialog({ open, summary, onCancel, onConfirm }: { op
         )}
       </div>
       <div className="dlg-foot">
-        <button type="button" className="btn btn-ghost" onClick={onCancel}>
+        <Button variant="ghost" onClick={onCancel}>
           Cancel
-        </button>
-        <button type="button" className="btn btn-primary" autoFocus onClick={onConfirm}>
+        </Button>
+        <Button variant="primary" autoFocus onClick={onConfirm}>
           Upload deck
-        </button>
+        </Button>
       </div>
     </dialog>
   );

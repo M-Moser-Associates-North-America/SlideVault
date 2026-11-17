@@ -1,7 +1,7 @@
 'use client';
 
 import { useId } from 'react';
-import { useWorkspace } from './state';
+import { useSearch } from './state';
 
 /**
  * "Search with AI" (FD-79): a checkbox at the start of the filter row, off until the person ticks it, then
@@ -9,7 +9,7 @@ import { useWorkspace } from './state';
  * short one asks first (the note on the results page). Only offered when the server has an AI reader set up.
  */
 export function DeeperAiToggle() {
-  const { aiAvailable, deeperAi, setDeeperAi } = useWorkspace();
+  const { aiAvailable, deeperAi, setDeeperAi } = useSearch();
   const tipId = useId();
   if (!aiAvailable) return null;
   return (

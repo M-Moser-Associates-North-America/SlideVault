@@ -1,0 +1,25 @@
+/* Tour (Tour.tsx)
+   The guided tour card and its spotlight.
+*/
+
+/* Tour card (React Joyride places it; these rules only style it). */
+.slidevault .tour-pop { width: 340px; max-width: 100%; padding: 18px 20px 16px; background: var(--sv-surface); color: var(--sv-text); border: 1px solid var(--sv-border-strong); border-radius: 16px; box-shadow: var(--sv-shadow-panel); }
+.slidevault .tour-n { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .tour-pop h2 { margin: 6px 0 0; font-size: 18px; letter-spacing: -0.01em; outline: none; }
+.slidevault .tour-t { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: var(--sv-text-secondary); }
+.slidevault .tour-acts { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.slidevault .tour-nav { display: flex; gap: 8px; }
+
+/* Tour: close X on the card, and the "paused" note shown while the tour waits. */
+.slidevault .tour-pop { position: relative; }
+.slidevault .tour-pop .tour-x { position: absolute; top: 8px; right: 8px; }
+.slidevault .tour-paused { position: absolute; left: 50%; transform: translateX(-50%); bottom: 28px; z-index: 95; display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 8px 10px; max-width: calc(100% - 32px); padding: 10px 14px; border-radius: 16px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); box-shadow: var(--sv-shadow-panel); }
+.slidevault .tour-paused-t { font-size: 14px; font-weight: 600; }
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .tour-paused { bottom: calc(84px + env(safe-area-inset-bottom)); }
+/* The tour's note on a short, wide screen (a phone on its side): smaller, so it never runs off the bottom. */
+@media (orientation: landscape) and (max-height: 400px) {
+.slidevault .tour-pop { width: 300px; padding: 12px 16px 12px; }
+.slidevault .tour-pop h2 { margin-top: 4px; font-size: 15px; }
+.slidevault .tour-t { margin-top: 4px; font-size: 13px; line-height: 1.4; }
+.slidevault .tour-acts { margin-top: 10px; }
+.slidevault .tour-acts .btn { min-height: 34px; height: 34px; } }

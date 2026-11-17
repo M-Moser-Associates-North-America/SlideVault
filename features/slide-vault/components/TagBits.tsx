@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from './ui/Button';
 import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactElement, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { getSlide, listTags, searchTagSuggestions, tagSuggestions, type TagSuggestionItem } from '../client/api';
@@ -10,8 +11,9 @@ import { FoldPanel } from './fold-panel';
 import { Icon } from './icons';
 import { plural, type Deck } from './library';
 import { hideTip, showTip } from './fixed-tip';
-import { useWorkspaceCompact, useWorkspacePhoneLike } from './size';
-import { useWorkspace } from './state';
+import { peekHeight } from './scroll-peek';
+import { useWorkspaceCompact, useWorkspacePhoneLike, workspaceBounds } from './size';
+import { useAccount, useNotify, useRuntime, useSearch } from './state';
 import { cleanTag, type TagSuggestion } from './TagField';
 
 /* Tags on cards, the preview, the slide page and the deck page (FD-72). Quiet by default: small grey
@@ -46,7 +48,7 @@ const backdropClose = (onClose: () => void) => (e: MouseEvent<HTMLDialogElement>
 /** Tags already in use, so adding one reuses the library's spelling. One request for the whole session. */
 let knownPromise: Promise<TagSuggestion[]> | null = null;
 function useKnownTags(): TagSuggestion[] {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const [known, setKnown] = useState<TagSuggestion[]>([]);
   useEffect(() => {
     let live = true;
@@ -62,7 +64,7 @@ function useKnownTags(): TagSuggestion[] {
 /** The slide's tags as the server sent them. Library slides carry none, so the preview asks once for the slide's detail. */
 const seeds = new Map<string, FreeTag[]>();
 function useSeed(slide: SlideSummary, loaded?: FreeTag[]): FreeTag[] | undefined {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const [fetched, setFetched] = useState<{ id: string; tags: FreeTag[] } | null>(null);
   const need = slide.tags === undefined && loaded === undefined && !demoTagsOn();
   useEffect(() => {
@@ -81,7 +83,8 @@ function useSeed(slide: SlideSummary, loaded?: FreeTag[]): FreeTag[] | undefined
 }
 
 function useTagSearch(onNavigate?: () => void) {
-  const { runtime, typeQuery, submitSearch } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { typeQuery, submitSearch } = useSearch();
   return (tag: string) => {
     onNavigate?.();
     typeQuery(tag);
@@ -183,10 +186,15 @@ function MoreTags({ names }: { names: string[] }) {
   useLayoutEffect(() => {
     if (!open || !button.current || !menu.current) return setAt(null);
     const r = button.current.getBoundingClientRect();
+    /* More tags than fit: stop halfway through the next pill, so it shows the list scrolls. */
+    menu.current.style.maxHeight = '';
+    const area = workspaceBounds(button.current);
+    const room = Math.min(360, Math.round(area.height * 0.6));
+    menu.current.style.maxHeight = `${peekHeight(menu.current, room)}px`;
     const w = menu.current.offsetWidth;
     const h = menu.current.offsetHeight;
-    const left = r.left + w > window.innerWidth - 8 ? Math.max(8, r.right - w) : r.left;
-    const top = r.bottom + 6 + h > window.innerHeight - 8 ? Math.max(8, r.top - h - 6) : r.bottom + 6;
+    const left = r.left + w > area.right - 8 ? Math.max(area.left + 8, r.right - w) : r.left;
+    const top = r.bottom + 6 + h > area.bottom - 8 ? Math.max(area.top + 8, r.top - h - 6) : r.bottom + 6;
     setAt({ top, left });
   }, [open, names.length]);
 
@@ -289,7 +297,9 @@ function MoreTags({ names }: { names: string[] }) {
  * the team's labels. Nothing at all when the slide has none.
  */
 export function CompactTags({ slide }: { slide: SlideSummary }) {
-  const { runtime, profile, query } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { query } = useSearch();
+  const { profile } = useAccount();
   const compact = useWorkspaceCompact();
   const own = useTags(runtime, profile, 'slide', slide.id, slide.tags);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, slide.tags);
@@ -338,7 +348,7 @@ function ScrollingTags({ nodes }: { nodes: ReactElement[] }) {
 
 /** "Are you sure?" before anything is removed. Cancel has focus, so Enter never deletes by accident. */
 export function ConfirmDialog({ open, title, kind, subject, detail, lead, confirmLabel, onCancel, onConfirm }: { open: boolean; title: string; kind: string; subject: string; detail?: string; lead: string; confirmLabel: string; onCancel: () => void; onConfirm: () => void }) {
-  const { runtime } = useWorkspace();
+  const { runtime } = useRuntime();
   const ref = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -350,9 +360,9 @@ export function ConfirmDialog({ open, title, kind, subject, detail, lead, confir
     <dialog ref={ref} className="slidevault sv-dialog" data-theme={runtime.theme} aria-labelledby={titleId} onClose={onCancel} onClick={backdropClose(onCancel)}>
       <div className="dlg-head">
         <h2 id={titleId}>{title}</h2>
-        <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Close" onClick={onCancel}>
+        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={onCancel}>
           <Icon name="x" />
-        </button>
+        </Button>
       </div>
       <div className="dlg-body arch-body">
         <div className="arch-deck">
@@ -363,12 +373,12 @@ export function ConfirmDialog({ open, title, kind, subject, detail, lead, confir
         <p className="arch-lead">{lead}</p>
       </div>
       <div className="dlg-foot">
-        <button ref={cancelRef} type="button" className="btn btn-ghost" onClick={onCancel}>
+        <Button ref={cancelRef} variant="ghost" onClick={onCancel}>
           Cancel
-        </button>
-        <button type="button" className="btn btn-primary" onClick={onConfirm}>
+        </Button>
+        <Button variant="primary" onClick={onConfirm}>
           {confirmLabel}
-        </button>
+        </Button>
       </div>
     </dialog>
   );
@@ -380,6 +390,128 @@ export function ConfirmDialog({ open, title, kind, subject, detail, lead, confir
  * and keeps the box open for the next one; Escape or clicking away closes it.
  */
 export function AddTagPill({ label, known, have, disabled, onAdd }: { label: string; known: TagSuggestion[]; have: string[]; disabled?: boolean; onAdd: (name: string) => void }) {
+  const phone = useWorkspaceCompact();
+  /* On a phone the tag row is one narrow scrolling line, so typing happens in a sheet from the bottom of the screen instead. */
+  if (phone) return <AddTagSheet label={label} known={known} have={have} disabled={disabled} onAdd={onAdd} />;
+  return <AddTagInline label={label} known={known} have={have} disabled={disabled} onAdd={onAdd} />;
+}
+
+/** Phones: "+ Add tag" opens a sheet with a full-width box and the matching tags to tap. Several tags can be added; the X or a tap outside closes it. */
+function AddTagSheet({ label, known, have, disabled, onAdd }: { label: string; known: TagSuggestion[]; have: string[]; disabled?: boolean; onAdd: (name: string) => void }) {
+  const { runtime } = useRuntime();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [added, setAdded] = useState<string[]>([]);
+  const ref = useRef<HTMLDialogElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const pill = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  useDialogOpen(ref, open);
+  const typed = cleanTag(text);
+  const taken = (t: string) => [...have, ...added].some((h) => h.toLowerCase() === t.toLowerCase());
+  const q = typed.toLowerCase();
+  const options = [
+    ...(typed && !taken(typed) && !known.some((k) => k.tag.toLowerCase() === q) ? [{ tag: typed, create: true }] : []),
+    ...known.filter((k) => !taken(k.tag) && (!q || k.tag.toLowerCase().includes(q))).slice(0, 8).map((k) => ({ tag: k.tag, create: false })),
+  ];
+  const add = (name: string) => {
+    const t = cleanTag(name);
+    if (!t || taken(t)) return setText('');
+    const final = known.find((k) => k.tag.toLowerCase() === t.toLowerCase())?.tag ?? t; /* the library's own spelling wins */
+    onAdd(final);
+    setAdded((a) => [...a, final]);
+    setText('');
+    input.current?.focus();
+  };
+  const close = () => {
+    setOpen(false);
+    setText('');
+    setAdded([]);
+    pill.current?.focus();
+  };
+  return (
+    <>
+      <button
+        ref={pill}
+        type="button"
+        className="tag-add"
+        disabled={disabled}
+        aria-label={label}
+        aria-haspopup="dialog"
+        onClick={() => {
+          setOpen(true);
+          setTimeout(() => input.current?.focus(), 50);
+        }}
+      >
+        <Icon name="plus" className="ic-sm" />
+        Add tag
+      </button>
+      <dialog ref={ref} className="slidevault sv-dialog fb-sheet tag-sheet" data-theme={runtime.theme} aria-labelledby={titleId} onClose={close} onClick={(e) => backdropClose(close)(e)}>
+        {open && (
+          <>
+            <div className="dlg-head">
+              <h2 id={titleId}>Add a tag</h2>
+              <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={close}>
+                <Icon name="x" />
+              </Button>
+            </div>
+            <div className="dlg-body tag-sheet-body">
+              <form
+                className="tag-sheet-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  add(text);
+                }}
+              >
+                <label className="sr-only" htmlFor={`${titleId}-in`}>
+                  {label}
+                </label>
+                <input
+                  id={`${titleId}-in`}
+                  ref={input}
+                  className="input"
+                  type="text"
+                  value={text}
+                  maxLength={80}
+                  placeholder="Tag name"
+                  enterKeyHint="done"
+                  autoComplete="off"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v.endsWith(',')) add(v.slice(0, -1));
+                    else setText(v);
+                  }}
+                />
+                <Button type="submit" variant="primary" disabled={!typed || taken(typed)}>
+                  Add
+                </Button>
+              </form>
+              {added.length > 0 && <p className="meta tag-sheet-added">Added: {added.join(', ')}</p>}
+              {options.length > 0 && (
+                <>
+                  <p className="meta">{typed ? 'Matching tags' : 'Tags already in use'}</p>
+                  <ul className="tag-sheet-list">
+                    {options.map((o) => (
+                      <li key={o.tag}>
+                        <button type="button" className="tag-add" onClick={() => add(o.tag)}>
+                          <Icon name="plus" className="ic-sm" />
+                          {o.create ? `Add “${o.tag}”` : o.tag}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </dialog>
+    </>
+  );
+}
+
+/** Wider screens: the pill turns into a small box right there in the row, with a list of matches under it. */
+function AddTagInline({ label, known, have, disabled, onAdd }: { label: string; known: TagSuggestion[]; have: string[]; disabled?: boolean; onAdd: (name: string) => void }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [active, setActive] = useState(-1);
@@ -522,7 +654,8 @@ export function SuggestedTagChips({ suggestions, have, disabled, onAdd, label = 
 
 /** The suggestions for one saved slide; empty while loading, for sample decks, or when meaning search isn't set up. */
 function useSlideTagSuggestions(slideId: string | undefined): TagSuggestionItem[] {
-  const { runtime, search } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { search } = useSearch();
   /* Kept with the slide they belong to, so moving to another slide never shows the last one's suggestions. */
   const [got, setGot] = useState<{ id: string; list: TagSuggestionItem[] } | null>(null);
   useEffect(() => {
@@ -586,7 +719,7 @@ export function LocalTagList({ label, value, onChange, inherited = [], inherited
  * folded away underneath.
  */
 function TagList({ api, what, canEdit, onNavigate, suggestFor, tail, addRow, lead }: { api: TagsApi; /** something fixed at the left end of the first row (the slide page: "also in other decks") */ lead?: ReactNode; what: 'slide' | 'deck'; canEdit: boolean; onNavigate?: () => void; /** more tag rows to show under these (the preview: the deck's tags and the team's labels) */ tail?: ReactElement | null; /** the "Add tag" pill goes in the suggestions row, under all the tags */ addRow?: boolean; /** a saved slide's id: show tag suggestions for it (FD-82) */ suggestFor?: string }) {
-  const { toast, announce } = useWorkspace();
+  const { toast, announce } = useNotify();
   const known = useKnownTags();
   const suggested = useSlideTagSuggestions(canEdit ? suggestFor : undefined);
   const [asking, setAsking] = useState<FreeTag | null>(null);
@@ -711,11 +844,12 @@ function TagList({ api, what, canEdit, onNavigate, suggestFor, tail, addRow, lea
   );
 }
 
-const useCanEdit = () => useWorkspace().runtime.capabilities.has('metadata.edit');
+const useCanEdit = () => useRuntime().runtime.capabilities.has('metadata.edit');
 
 /** The slide page: the slide's own tags, the deck's tags beside them (changed on the deck page), and the labels. */
 export function SlideTagsPanel({ slide, loaded, also }: { slide: SlideSummary; loaded?: SlideDetail | null; /** the "also in other decks" icon, at the right of the heading */ also?: ReactNode }) {
-  const { runtime, profile } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { profile } = useAccount();
   const seed = useSeed(slide, loaded ? (loaded.tags ?? []) : undefined);
   const own = useTags(runtime, profile, 'slide', slide.id, seed, true);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, seed);
@@ -743,7 +877,8 @@ export function SlideTagsPanel({ slide, loaded, also }: { slide: SlideSummary; l
 
 /** The preview: the slide's own tags, small. */
 export function PreviewTags({ slide, onNavigate, lead }: { slide: SlideSummary; onNavigate: () => void; lead?: ReactNode }) {
-  const { runtime, profile } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { profile } = useAccount();
   const seed = useSeed(slide);
   const own = useTags(runtime, profile, 'slide', slide.id, seed);
   const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, seed);
@@ -775,7 +910,8 @@ export function PreviewTags({ slide, onNavigate, lead }: { slide: SlideSummary; 
 
 /** The deck page: the deck's tags, which every slide in it also shows. Read from any one slide's detail. */
 export function DeckTags({ deck }: { deck: Deck }) {
-  const { runtime, profile } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { profile } = useAccount();
   const first = deck.slides[0];
   const [seed, setSeed] = useState<{ id: string; tags: FreeTag[] } | null>(null);
   useEffect(() => {

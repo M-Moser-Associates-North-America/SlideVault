@@ -1,5 +1,5 @@
-import type { SlideSummary } from '../contracts/dto';
-import { hasSlideType } from './search-rules';
+import type { SearchFacets, SlideSummary } from '../contracts/dto';
+import { hasSlideType, SLIDE_TYPES } from './search-rules';
 
 /**
  * Pure helpers over the slides the API returns. Decks, clients, years and categories are all
@@ -254,11 +254,37 @@ export function hiddenGap(slides: SlideSummary[]): number {
 
 /** Names for the standard deck sections (server/services/sections.ts SectionKind); "other" isn't offered. */
 export const SECTION_LABEL: Record<string, string> = {
+  /* In the order they usually run in a proposal: who we are, what we heard, how we'd do it, who'd do it, proof, price, then the back matter. */
   firm: 'Firm overview',
-  'case-studies': 'Case studies',
+  understanding: 'Understanding',
   approach: 'Approach',
   team: 'Team',
+  'case-studies': 'Case studies',
   fees: 'Fees',
-  understanding: 'Understanding',
   appendix: 'Appendix',
 };
+
+/** The year presets of the Year filter: this many years back, counting this one. */
+export const YEAR_PRESETS: [number, string][] = [
+  [1, 'This year'],
+  [2, 'Last 2 years'],
+  [5, 'Last 5 years'],
+];
+
+/**
+ * Counts for the filter lists over `slides`: each list counts what ticking one of its values leaves, with every other
+ * filter applied and its own left out. The same function runs on the server (over everything the words found, before the
+ * filters narrow it) and on the screen (over the library when nothing is searched).
+ */
+export function facetCounts(slides: SlideSummary[], f: Filters, thisYear: number): SearchFacets {
+  const without = (omit: Partial<Filters>) => slides.filter((s) => slideMatches(s, { ...f, ...omit }));
+  const plain = (m: Map<string, number>) => Object.fromEntries(m);
+  const typeBase = without({ slideType: [] });
+  const yearBase = without({ yfrom: null, yto: null });
+  return {
+    client: plain(countBy(without({ client: [] }), clientOf) as Map<string, number>),
+    category: plain(countBy(without({ category: [] }), categoryOf) as Map<string, number>),
+    slideType: Object.fromEntries(SLIDE_TYPES.map((t) => [t.label, typeBase.filter((s) => hasSlideType(s, t.label)).length])),
+    year: Object.fromEntries(YEAR_PRESETS.map(([k]) => [String(k), yearBase.filter((s) => (yearOf(s) ?? -1) >= thisYear - k + 1).length])),
+  };
+}

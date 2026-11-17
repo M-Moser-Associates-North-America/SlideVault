@@ -4,7 +4,7 @@ import { useHeroOut } from '../client/hero-visibility';
 import { Icon } from './icons';
 import { useRoot } from './root';
 import { useWorkspacePhoneLike } from './size';
-import { useWorkspace } from './state';
+import { useSearch } from './state';
 
 /**
  * Phones only: a slim search shortcut in the header, shown only while the big search bar on Home is scrolled
@@ -13,7 +13,7 @@ import { useWorkspace } from './state';
 export function CompactSearch() {
   const out = useHeroOut();
   const compact = useWorkspacePhoneLike();
-  const { query } = useWorkspace();
+  const { query } = useSearch();
   const { scroll } = useRoot();
   /* Wider screens get the slim search above the sticky filter row instead (StickySearch). */
   if (!out || !compact) return null;

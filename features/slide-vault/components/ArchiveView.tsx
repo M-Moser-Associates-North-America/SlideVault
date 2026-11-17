@@ -1,11 +1,12 @@
 'use client';
 
+import { Button, buttonClass } from './ui/Button';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { listLibrary } from '../client/api';
 import { Icon } from './icons';
 import { groupDecks, folderLabel, plural, type Deck } from './library';
 import { Link, StateBlock, Thumb } from './parts';
-import { useWorkspace } from './state';
+import { useOverlays, useRuntime } from './state';
 
 type Loaded = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; decks: Deck[] };
 
@@ -14,7 +15,8 @@ type Loaded = { status: 'loading' } | { status: 'error'; message: string } | { s
  * Restore button on each. Opened from the profile menu. Nothing here is deleted. For the MVP anyone can restore.
  */
 export function ArchiveView() {
-  const { runtime, openArchiveDialog, archiveDialog, openPreview } = useWorkspace();
+  const { runtime } = useRuntime();
+  const { openArchiveDialog, archiveDialog, openPreview } = useOverlays();
   const { request, onSessionExpired } = runtime;
   const [loaded, setLoaded] = useState<Loaded>({ status: 'loading' });
   const [tries, setTries] = useState(0);
@@ -62,13 +64,13 @@ export function ArchiveView() {
       {loaded.status === 'loading' && <div className="skel" style={{ height: 120 }} aria-hidden="true" />}
       {loaded.status === 'error' && (
         <StateBlock icon="alert" title="Could not load archived decks" text={loaded.message} error>
-          <button type="button" className="btn" onClick={() => setTries((n) => n + 1)}>
+          <Button  onClick={() => setTries((n) => n + 1)}>
             Try again
-          </button>
+          </Button>
         </StateBlock>
       )}
       {loaded.status === 'ready' && loaded.decks.length === 0 && <StateBlock icon="archive" title="Nothing is archived" text="Decks you archive show up here, ready to restore.">
-          <Link className="btn" to={{ view: 'pages' }}>
+          <Link className={buttonClass()} to={{ view: 'pages' }}>
             Browse slides
           </Link>
         </StateBlock>}
@@ -100,10 +102,10 @@ export function ArchiveView() {
                     <Icon name="folder" className="ic-sm" /> {folderLabel(d)}
                   </p>
                 </div>
-                <button type="button" className="btn btn-sm btn-primary" onClick={() => restore(d)} aria-label={`Restore deck: ${d.title}`}>
+                <Button size="sm" variant="primary" onClick={() => restore(d)} aria-label={`Restore deck: ${d.title}`}>
                   <Icon name="refresh" />
                   <span>Restore</span>
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

@@ -1,0 +1,232 @@
+/* Home search (views/home.tsx, Rail.tsx)
+   The big search box, example searches and the Home hero.
+*/
+
+.slidevault .try { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.slidevault .try .meta { margin-right: 2px; }
+
+/* ------------------------------------------------------------------
+   v3 three-column layout: filters + search (left), content, cart (right)
+------------------------------------------------------------------- */
+.slidevault .rail { position: sticky; top: 61px; margin-top: 0; min-height: calc(var(--sv-h, 100%) - 61px); max-height: calc(var(--sv-h, 100%) - 61px); overflow-y: auto; overflow-x: hidden; padding: 24px 22px 24px 0; border-radius: 0; scrollbar-width: thin; }
+/* full-bleed: the colour runs to the window edge behind the column */
+.slidevault .rail { background: var(--rail-bg); margin-left: calc(-1 * var(--gut)); padding-left: var(--gut); --rail-bg: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); --rail-line: color-mix(in srgb, var(--sv-brand) 28%, transparent); }
+.slidevault .rail { display: flex; flex-direction: column; gap: 18px; }
+
+/* Cart: thin and quiet */
+.slidevault .no-rail .rail { display: none; }
+@media (max-width: 960px) {
+.slidevault .rail { position: static; min-height: 0; max-height: none; overflow: visible; }
+.slidevault .rail { margin: 12px -20px 0; padding: 16px 20px; }
+.slidevault .rail { padding-top: 12px; gap: 10px; } }
+@media (max-width: 480px) {
+.slidevault .rail { margin-left: -16px; margin-right: -16px; padding: 16px; } }
+
+/* contrast */
+.slidevault .rail { --sv-text-secondary: color-mix(in srgb, var(--sv-text) 84%, transparent); --sv-placeholder: color-mix(in srgb, var(--sv-text) 72%, transparent); }
+
+/* hierarchy and rhythm */
+.slidevault .try { margin-top: 10px; }
+/* Try asking: directly under the search box */
+.slidevault .rail-try { margin: -4px 0 18px; }
+.slidevault .try-h { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 10px; }
+.slidevault .try-h .ic { color: var(--sv-brand-strong); width: 15px; height: 15px; }
+.slidevault .try-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.slidevault a.try-chip { display: inline-flex; align-items: center; padding: 5px 9px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--sv-brand) 65%, transparent); background: var(--sv-surface); color: var(--sv-text); font-size: 12.25px; line-height: 1.35; text-decoration: none; }
+.slidevault a.try-chip:hover { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 10%, var(--sv-surface)); }
+.slidevault a.try-chip[aria-current="true"] { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); font-weight: 600; }
+@media (max-width: 960px) {
+.slidevault .try-list { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+.slidevault .try-list li { flex: none; max-width: 260px; } }
+
+/* Example-search chips are buttons here (the prototype used links). */
+.slidevault button.try-chip { display: inline-flex; align-items: center; padding: 5px 9px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--sv-brand) 65%, transparent); background: var(--sv-surface); color: var(--sv-text); font-size: 12.25px; line-height: 1.35; cursor: pointer; }
+.slidevault button.try-chip:hover { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 10%, var(--sv-surface)); }
+.slidevault button.try-chip[aria-current="true"] { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); font-weight: 600; }
+
+/* The filter group list used inside the rail's second block. */
+.slidevault .rail > div { min-width: 0; }
+
+/*
+ * The bare Home hero: the original reference HTML's search (reference/SlideVault.html),
+ * values copied from it directly (34px/500/-0.02em headline, 10px 10px 10px 20px search
+ * padding, 44px controls), mapped onto the real app's --sv-* tokens instead of the
+ * reference's unprefixed ones. Sits above Khushali's existing rows, which are untouched.
+ */
+.slidevault .home-hero { padding: 40px 0 0; max-width: 840px; }
+.slidevault .home-try { max-width: 840px; }
+.slidevault .home-hero-caret {
+  display: inline-block;
+  width: 3px;
+  height: 20px;
+  margin-left: 3px;
+  vertical-align: -3px;
+  border-radius: 1px;
+  background: var(--sv-brand);
+  animation: svHeroCaret 1.1s step-end infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+.slidevault .home-hero-caret { animation: none; opacity: 1; } }
+.slidevault .home-hero-search {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+}
+.slidevault .home-hero-prefix { flex: none; font-size: 24px; font-weight: 500; letter-spacing: -0.02em; color: var(--sv-text); white-space: nowrap; }
+/* Sizes, colours and padding follow the HTML mockup's search bar (white bar, strong border, 20px left padding, 16px text), a little smaller. */
+.slidevault .home-hero-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 7px 7px 7px 24px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); box-shadow: var(--sv-shadow-card); }
+.slidevault .home-hero-field:focus-within { border-color: var(--sv-brand); }
+.slidevault .home-hero-field input { flex: 1; width: 100%; height: 44px; font-size: 18px; font-weight: 400; }
+.slidevault .home-hero-anim { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); font-size: 18px; font-weight: 400; color: color-mix(in srgb, var(--sv-text) 64%, transparent); pointer-events: none; white-space: nowrap; }
+.slidevault .home-hero-search .ic { flex: none; color: var(--sv-text-secondary); }
+.slidevault .home-hero-search input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  border: none;
+  background: transparent;
+  font-family: var(--sv-font-sans);
+  font-size: 16px;
+  color: var(--sv-text);
+}
+.slidevault .home-hero-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: var(--sv-action-bg);
+  color: var(--sv-action-fg);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.slidevault .home-hero-btn .ic { color: inherit; width: 18px; height: 18px; }
+.slidevault .home-hero-btn:hover { opacity: .88; }
+/* Talk instead of type: a quiet icon inside the bar, just left of the search button */
+.slidevault .home-hero-mic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; margin-right: -4px; border: none; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: pointer; }
+.slidevault .home-hero-mic:hover, .slidevault .home-hero-mic:focus-visible { background: var(--sv-surface-sunken); color: var(--sv-text); box-shadow: inset 0 0 0 1px var(--sv-border-strong); }
+.slidevault .home-hero-mic .ic { width: 20px; height: 20px; }
+.slidevault .home-hero-mic.is-on { background: var(--sv-brand-tint); color: var(--sv-brand-strong); box-shadow: inset 0 0 0 2px var(--sv-brand); }
+/* Not set up here yet: still looks and feels clickable (hover circle, tooltip, a polite message on click), just a little quieter */
+.slidevault .home-hero-mic[aria-disabled="true"] { color: var(--sv-text-secondary); }
+.slidevault .home-hero-try { display: flex; align-items: center; flex-wrap: wrap; }
+.slidevault .home-hero-try ul { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+/* The whole search card shows the focus (orange border), so the input itself needs no second ring. */
+.slidevault .home-hero-field input:focus-visible { outline: none; }
+/* Home "Try" suggestions: sized like the mockup's chips (30px high, 12.5px text, light grey fill, thin border). */
+.slidevault .home-hero-try { margin-top: 14px; gap: 8px; }
+.slidevault .home-hero-try > span { font-size: 12px; color: color-mix(in srgb, var(--sv-text) 66%, transparent); }
+.slidevault .home-hero-try button.try-chip { height: 30px; padding: 0 13px; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); color: var(--sv-text-secondary); font-size: 12.5px; font-weight: 500; }
+.slidevault .home-hero-try button.try-chip:hover { border-color: var(--sv-border-strong); background: var(--sv-surface-sunken); color: var(--sv-text); }
+.slidevault .home-hero-try button.try-chip[aria-current="true"] { background: var(--sv-brand-tint); border-color: var(--sv-brand); color: var(--sv-text); font-weight: 600; }
+.slidevault .home-hero-field input::-webkit-search-cancel-button { display: none; } /* the browser's own cross only shows on hover; ours (.home-hero-clear) stays while there is text */
+.slidevault .home-hero-clear { flex: none; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-text); cursor: pointer; }
+.slidevault .home-hero-clear[hidden] { display: none; }
+.slidevault .home-hero-clear:hover { background: var(--sv-surface-muted); }
+.slidevault .home-hero-clear .ic { width: 15px; height: 15px; }
+.slidevault .home-try { margin-bottom: 36px; }
+/* container width: compact */
+.slidevault .sv-app[data-size="compact"] .home-hero { padding-top: 20px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-search { flex-direction: column; gap: 8px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-prefix { font-size: 20px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-field { padding-left: 18px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-anim { left: 18px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-try { flex-wrap: nowrap; }
+.slidevault .sv-app[data-size="compact"] .home-hero-try > span { flex: none; }
+.slidevault .sv-app[data-size="compact"] .home-hero-try ul { flex-wrap: nowrap; overflow-x: auto; min-width: 0; padding-bottom: 4px; scrollbar-width: none; }
+.slidevault .sv-app[data-size="compact"] .home-hero-try ul::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="compact"] .home-hero-try ul li { flex: none; }
+/* Home: the search bar gives up width so the eye and the Storyboard button both fit beside it. */
+.slidevault .home-hero:has(.sb-launch) > .home-hero-search { flex: 1 1 360px; min-width: 0; }
+.slidevault .home-hero-search .home-hero-field input { min-width: 0; }
+
+/* Phones: the hidden-slides eye sits beside the search bar, not on a line of its own; the "I'm looking for"
+   label keeps the row above. */
+.slidevault .sv-app[data-size="compact"] .home-hero-search { display: grid; align-items: center; column-gap: 8px; row-gap: 8px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-search > :not(.home-hero-field):not(.hid-wrap) { grid-column: 1 / -1; }
+.slidevault .sv-app[data-size="compact"] .home-hero-field { padding-top: 3px; padding-bottom: 3px; }
+/* A phone turned sideways: the slide on the left, everything about it on the right, and no tagline or big gap above the search. */
+@media (orientation: landscape) and (max-height: 520px) {
+.slidevault .home-hero { padding-top: 14px; } }
+/* The search text ends in an ellipsis instead of being cut mid-letter. */
+.slidevault .home-hero-field input { text-overflow: ellipsis; }
+
+/* Phone: the search bar has its own full row; under it the AI tick, the eye and a small Storyboard button share one row. */
+.slidevault .sv-app[data-size="compact"] .home-hero-search { grid-template-columns: minmax(0, 1fr); }
+/* No example searches above the results, on any screen. */
+.slidevault .home-try.in-results { display: none; }
+
+/* ---- Phone pass 14: results, simpler ---- */
+
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .home-hero.has-results .home-hero-prefix { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.slidevault .home-hero.has-results { padding-top: 14px; } }
+
+/* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .home-hero { padding-top: 8px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-search { display: flex; flex-direction: row; align-items: center; gap: 12px; }
+.slidevault .sv-app[data-size="compact"] .home-hero-prefix { font-size: 18px; } }
+/* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
+.slidevault .sv-app[data-size="medium"] .home-hero.has-results .home-hero-prefix { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Tablet upright: the filter row, Filters button, example searches and Home rows follow the phone. */
+.slidevault .sv-app[data-size="medium"] .home-hero-try { flex-wrap: nowrap; }
+.slidevault .sv-app[data-size="medium"] .home-hero-try > span { flex: none; }
+.slidevault .sv-app[data-size="medium"] .home-hero-try ul { flex-wrap: nowrap; overflow-x: auto; min-width: 0; padding-bottom: 4px; scrollbar-width: none; }
+.slidevault .sv-app[data-size="medium"] .home-hero-try ul::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-size="medium"] .home-hero-try ul li { flex: none; }
+.slidevault .sv-app[data-size="medium"] .home-hero-search { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; row-gap: 8px; }
+.slidevault .sv-app[data-size="medium"] .home-hero-search > :not(.home-hero-field):not(.hid-wrap) { grid-column: 1 / -1; }
+.slidevault .sv-app[data-size="medium"] .home-hero-field { padding-top: 3px; padding-bottom: 3px; }
+/* Tablet upright Home: "I'm looking for" and the search share one row, as on a phone on its side. */
+.slidevault .sv-app[data-size="medium"] .home-hero-field { flex: 1 1 0; min-width: 0; }
+
+/* Tablet upright Home: the search keeps its big, airy desktop size (the rest of the page follows the phone). */
+.slidevault .sv-app[data-size="medium"] .home-hero.has-results { padding-top: 28px; }
+.slidevault .sv-app[data-size="medium"] .home-hero-search { display: flex; flex-direction: row; align-items: center; gap: 16px; }
+.slidevault .sv-app[data-size="medium"] .home-hero-prefix { font-size: 24px; }
+.slidevault .sv-app[data-size="medium"] .home-hero-field { padding: 8px 8px 8px 26px; }
+.slidevault .sv-app[data-size="medium"] .home-hero-field input { height: 52px; font-size: 20px; }
+/* Tablet upright Home: a little less above the search, a little more to the left of "I'm looking for". */
+.slidevault .sv-app[data-size="medium"] .home-hero { padding-top: 40px; }
+.slidevault .sv-app[data-size="medium"] .home-hero:not(.has-results) .home-hero-search { padding-left: 14px; } /* the tick box sits 8 px inside its row */
+.slidevault .sv-app[data-size="medium"] .home-try { padding-left: 14px; }
+
+/* Touch screens: tapping the mic shows its own "coming soon" note, so the hover label stays away (it used to stick and overlap the note). */
+
+@media (hover: none) {
+.slidevault .home-hero-mic[data-tip]::before, .slidevault .home-hero-mic[data-tip]::after { display: none; } }
+
+/* A See all / tile page has its breadcrumb row above the search, so the search itself needs less room above it. */
+.slidevault .sv-app .sv-main:has(.res-browse) .home-hero { padding-top: 6px; }
+
+/* Tablet on its side: Home and the filter row follow the upright tablet (one Filters button, one row of Try examples, Storyboard beside Search with AI), because the draft deck panel leaves little width. */
+.slidevault .sv-app[data-tl] .home-hero.has-results .home-hero-prefix { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.slidevault .sv-app[data-tl] .home-hero-try { flex-wrap: nowrap; }
+.slidevault .sv-app[data-tl] .home-hero-try > span { flex: none; }
+.slidevault .sv-app[data-tl] .home-hero-try ul { flex-wrap: nowrap; overflow-x: auto; min-width: 0; padding-bottom: 4px; scrollbar-width: none; }
+.slidevault .sv-app[data-tl] .home-hero-try ul::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-tl] .home-hero-try ul li { flex: none; }
+.slidevault .sv-app[data-tl] .home-hero-search { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; row-gap: 8px; }
+.slidevault .sv-app[data-tl] .home-hero-search > :not(.home-hero-field):not(.hid-wrap) { grid-column: 1 / -1; }
+.slidevault .sv-app[data-tl] .home-hero-field { padding-top: 3px; padding-bottom: 3px; }
+.slidevault .sv-app[data-tl] .home-hero.has-results { padding-top: 28px; }
+.slidevault .sv-app[data-tl] .home-hero-prefix { font-size: 24px; }
+.slidevault .sv-app[data-tl] .home-hero-field { padding: 8px 8px 8px 26px; }
+.slidevault .sv-app[data-tl] .home-hero-field input { height: 52px; font-size: 20px; }
+.slidevault .sv-app[data-tl] .home-hero { padding-top: 40px; }
+.slidevault .sv-app[data-tl] .home-hero:not(.has-results) .home-hero-search { padding-left: 14px; } /* the tick box sits 8 px inside its row */
+.slidevault .sv-app[data-tl] .home-try { padding-left: 14px; }
+/* On a tablet on its side the search bar takes the width; Storyboard moved to the row below. */
+.slidevault .sv-app[data-tl] .home-hero-search { display: flex; flex-direction: row; align-items: center; gap: 16px; }
+.slidevault .sv-app[data-tl] .home-hero-field { flex: 1 1 0; min-width: 0; }
+
+/* Pressed look that stays (see tap-feedback.ts): the same orange as hover, on touch and on Enter or Space, so a slow page change still shows the press. */
+.slidevault .try-chip[data-tapped] { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
+/* Results page on a tablet on its side: the breadcrumb sits 40px above the search bar. */
+.slidevault .sv-app[data-tl] .sv-main:has(.res-wrap) .home-hero { margin-top: -4px; }

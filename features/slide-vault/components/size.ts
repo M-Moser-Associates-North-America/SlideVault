@@ -45,12 +45,23 @@ export function useWorkspaceSize(ref: RefObject<HTMLElement | null>, active: boo
         delete el.dataset.xxl;
         if (rootEl) delete rootEl.dataset.xxl;
       }
-      // Pixel sizes of this workspace, for CSS that needs a length (gutters, panel widths, heights).
+      // Pixel size and on-screen position of this workspace, for CSS that needs a length (gutters, panel widths, heights)
+      // and for things pinned over it (zoom, notes): they stay inside the tool's own box when a host page wraps it.
       el.style.setProperty('--sv-w', `${Math.round(box.width)}px`);
       el.style.setProperty('--sv-h', `${Math.round(box.height)}px`);
+      el.style.setProperty('--sv-x', `${Math.round(box.left)}px`);
+      el.style.setProperty('--sv-y', `${Math.round(box.top)}px`);
       return size;
     };
     apply();
+    /* The box can move without changing size (the host page scrolls or its header changes): keep the position current. */
+    const place = () => {
+      const box = el.getBoundingClientRect();
+      el.style.setProperty('--sv-x', `${Math.round(box.left)}px`);
+      el.style.setProperty('--sv-y', `${Math.round(box.top)}px`);
+    };
+    window.addEventListener('scroll', place, { passive: true });
+    window.addEventListener('resize', place);
     const observer = new ResizeObserver(() => {
       const size = apply();
       const tl = el.dataset.tl !== undefined;
@@ -63,9 +74,30 @@ export function useWorkspaceSize(ref: RefObject<HTMLElement | null>, active: boo
       }
     });
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', place);
+      window.removeEventListener('resize', place);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- measured once per mount; the latest onChange is not needed to re-subscribe
   }, [ref, active]);
+}
+
+/**
+ * The on-screen box of the workspace that contains `from` (or the window, outside one). Pop-ups and notes clamp to this,
+ * not to the browser window, so inside a host page they never spill over the host's own header or sidebar.
+ */
+export function workspaceBounds(from: Element | null): { left: number; top: number; right: number; bottom: number; width: number; height: number } {
+  const box = from?.closest('.sv-app')?.getBoundingClientRect();
+  if (!box) return { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight, width: window.innerWidth, height: window.innerHeight };
+  return {
+    left: Math.max(0, box.left),
+    top: Math.max(0, box.top),
+    right: Math.min(window.innerWidth, box.right),
+    bottom: Math.min(window.innerHeight, box.bottom),
+    width: box.width,
+    height: box.height,
+  };
 }
 
 /** The current size of the workspace that contains `from`, for code that cannot use CSS. */
@@ -78,7 +110,7 @@ function subscribeToSize(onChange: () => void) {
   const el = rootEl();
   if (!el) return () => {};
   const observer = new MutationObserver(onChange);
-  observer.observe(el, { attributes: true, attributeFilter: ['data-size', 'data-tl'] });
+  observer.observe(el, { attributes: true, attributeFilter: ['data-size', 'data-tl', 'data-land'] });
   return () => observer.disconnect();
 }
 
@@ -114,4 +146,19 @@ export function useWorkspaceFiltersRolled(): boolean {
 /** True on a tablet on its side (wide layout with limited width). */
 export function useWorkspaceTabletLandscape(): boolean {
   return useSyncExternalStore(subscribeToSize, () => rootEl()?.hasAttribute('data-tl') === true, () => false);
+}
+
+/**
+ * True on a phone held upright (the narrow layout, not turned on its side). There the Storyboard button gets a line of
+ * its own above the filter row; elsewhere it sits in the filter row.
+ */
+export function useWorkspacePhoneUpright(): boolean {
+  return useSyncExternalStore(
+    subscribeToSize,
+    () => {
+      const el = rootEl();
+      return el?.getAttribute('data-size') === 'compact' && !el.hasAttribute('data-land');
+    },
+    () => false,
+  );
 }
