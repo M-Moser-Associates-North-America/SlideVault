@@ -286,8 +286,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
   .slidevault .row-head .acts .btn-icon { display: none; }
   .slidevault .fb-verdict .sb-icon-btn[data-tip]::after { display: none; }
 }
-/* The breadcrumb wraps onto a second line instead of running under the text beside it. */
-.slidevault .sv-app[data-size="compact"] .navgroup .back-results { padding-top: 1px; }
 
 /* ---- Phone pass 5: the preview ---- */
 @media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
@@ -498,7 +496,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* ======== Tablet held upright (FD-106): the phone-on-its-side page layouts (Home, results, slide page, deck page) with the tabs along the bottom. The slide preview keeps the desktop layout. ======== */
 .slidevault .sv-app[data-size="medium"] .card-body .meta.clip { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
-.slidevault .sv-app[data-size="medium"] .navgroup .back-results { padding-top: 1px; }
 .slidevault .sv-app[data-size="medium"] .lbl-long { display: none; }
 .slidevault .sv-app[data-size="medium"] .lbl-short { display: inline; }
 .slidevault .sv-app[data-size="medium"] .grid > [data-card] { scroll-margin-top: 12px; }

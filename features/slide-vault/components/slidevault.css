@@ -139,19 +139,12 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault [data-tip-pos~="start"]::after { left: 0; transform: none; }
 .slidevault [data-tip-pos~="up"]::after { top: auto; bottom: calc(100% + 8px); }
 .slidevault [data-tip-pos~="left"]::after { top: 50%; left: auto; right: calc(100% + 8px); transform: translateY(-50%); }
-/* Navigation bar: back / forward and breadcrumbs */
-.slidevault .back-results { font-size: var(--sv-text-small); }
 /* Access control: one clean 40px frame, same size as the theme button */
 
 /* ------------------------------------------------------------------
    v3: Library is home. One slim header, compact search top right.
 ------------------------------------------------------------------- */
-.slidevault .tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.slidevault .back-results { white-space: nowrap; flex: none; }
 .slidevault[data-role="viewer"] [data-editor-only] { display: none; }
-@media (max-width: 900px) {
-  .slidevault .tools { order: 2; margin-left: auto; }
-}
 .slidevault .page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
 .slidevault .page-head .lede { color: var(--sv-text-secondary); }
 

@@ -1,6 +1,18 @@
 /* Header and tabs (SlideVaultWorkspace.tsx)
    Brand row, tab row, bottom bar on phones, back and forward, crumbs.
 */
+/* Navigation bar: back / forward and breadcrumbs */
+
+/* ------------------------------------------------------------------
+   v3: Library is home. One slim header, compact search top right.
+------------------------------------------------------------------- */
+.slidevault .tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.slidevault .back-results { font-size: var(--sv-text-small); white-space: nowrap; flex: none; }
+@media (max-width: 900px) {
+.slidevault .tools { order: 2; margin-left: auto; } }
+/* The breadcrumb wraps onto a second line instead of running under the text beside it. */
+/* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .navgroup .back-results { padding-top: 1px; }
 
 /* The one scrolling area of the workspace: everything that scrolls, sticks or measures scroll uses this element, not the window. */
 .slidevault .sv-scroll { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; background: var(--sv-bg); }
