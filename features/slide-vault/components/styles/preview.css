@@ -2,14 +2,11 @@
    The big picture window: deck arrows, results bar, filmstrip, zoom.
 */
 
-
 /* Dialogs */
-.slidevault .lb-stage { position: relative; background: var(--sv-surface-sunken); border-radius: 14px; overflow: hidden; aspect-ratio: 16/9; margin: 0 auto; }
 .slidevault .lb-stage svg { width: 100%; height: 100%; display: block; }
 .slidevault .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; border-radius: 50%; width: 44px; height: 44px; padding: 0; background: var(--sv-surface); box-shadow: var(--sv-shadow-popover); }
 .slidevault .lb-prev { left: 10px; }
 .slidevault .lb-next { right: 10px; }
-.slidevault .lb-caption { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
 
 /* Slide preview: results bar, deck filmstrip. The side arrows walk the deck; the bar walks the search results. */
 .slidevault .lb-results { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
@@ -29,16 +26,14 @@
 .slidevault .lb-deck-label { margin: 0; font-size: var(--sv-text-small); font-weight: 600; color: var(--sv-text-secondary); }
 .slidevault .lb-deck .lb-strip { margin-top: 4px; }
 /* The action buttons stay in view even when the results bar and filmstrip make the preview taller than the window. */
-.slidevault .lb-caption { position: sticky; bottom: -16px; z-index: 3; margin-top: 8px; padding: 10px 0 16px; background: var(--sv-surface); border-top: 1px solid var(--sv-border); }
-.slidevault .lb-stage { max-height: calc(var(--sv-h, 700px) * 0.5); }
+.slidevault .lb-caption { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; position: sticky; bottom: -16px; z-index: 3; margin-top: 8px; padding: 10px 0 16px; background: var(--sv-surface); border-top: 1px solid var(--sv-border); }
 /* Instant tooltip for the deck arrows (the browser's own title tooltip waits about a second). Opens sideways so the picture's edge doesn't clip it. */
-.slidevault .lb-nav[data-tip]::after { content: attr(data-tip); position: absolute; padding: 4px 8px; border-radius: 6px; background: var(--sv-text); color: var(--sv-surface); font-size: 12px; font-weight: 600; line-height: 1.2; white-space: nowrap; pointer-events: none; opacity: 0; }
 .slidevault .lb-nav[data-tip]:hover::after, .slidevault .lb-nav[data-tip]:focus-visible::after { opacity: 1; }
 /* Deck arrows sit on the left and right edges of the picture, not over it. */
 .slidevault .lb-row { position: relative; display: flex; align-items: center; gap: 10px; }
 .slidevault .lb-row > .lb-stage { flex: 1 1 0; min-width: 0; margin: 0; }
 .slidevault .lb-row > .lb-nav { position: relative; inset: auto; transform: none; flex: none; }
-.slidevault .lb-nav[data-tip]::after { top: auto; bottom: calc(100% + 6px); transform: none; }
+.slidevault .lb-nav[data-tip]::after { content: attr(data-tip); position: absolute; padding: 4px 8px; border-radius: 6px; background: var(--sv-text); color: var(--sv-surface); font-size: 12px; font-weight: 600; line-height: 1.2; white-space: nowrap; pointer-events: none; opacity: 0; top: auto; bottom: calc(100% + 6px); transform: none; }
 .slidevault .lb-prev[data-tip]::after { left: 0; right: auto; }
 .slidevault .lb-next[data-tip]::after { right: 0; left: auto; }
 /* Phones: no room beside the picture, so the arrows overlay it (swiping also works) */
@@ -92,7 +87,6 @@
 dialog.slidevault.sv-zoom { position: fixed; inset: auto; left: var(--sv-x, 0px); top: var(--sv-y, 0px); width: var(--sv-w, 100vw); height: var(--sv-h, 100dvh); max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: #000; color: #fff; overflow: hidden; }
 dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .sv-zoom-stage { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; touch-action: none; user-select: none; }
-.slidevault .sv-zoom-stage img { width: 100%; height: 100%; object-fit: contain; transform-origin: center; will-change: transform; }
 .slidevault .sv-zoom-bar { position: absolute; top: 12px; right: 12px; z-index: 2; display: flex; gap: 8px; }
 .slidevault .sv-zoom-bar .btn { background: rgba(255, 255, 255, 0.92); color: #111; border-color: transparent; width: 44px; height: 44px; }
 .slidevault .sv-zoom-bar .btn:disabled { opacity: 0.45; }
@@ -141,20 +135,19 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .sv-app[data-size="compact"] .slide-detail .lb-tags { margin-top: 14px; }
 
 /* ---- Phone pass 13: working drafts swipe to delete; tap areas; viewer loading ---- */
-.slidevault .sv-zoom-stage img { opacity: 0; transition: opacity 0.25s ease-out; }
+.slidevault .sv-zoom-stage img { width: 100%; height: 100%; object-fit: contain; transform-origin: center; will-change: transform; opacity: 0; transition: opacity 0.25s ease-out; }
 .slidevault .sv-zoom-stage img.is-loaded { opacity: 1; }
 .slidevault .sv-zoom-wait { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 
 /* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
 
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-.slidevault dialog.sv-dialog.wide .lb-head { padding: 16px 20px 6px; row-gap: 4px; }
 .slidevault dialog.sv-dialog.wide .lb-title h2 { font-size: 15px; -webkit-line-clamp: 1; }
 .slidevault dialog.sv-dialog.wide .lb-row { grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr); column-gap: 10px; grid-template-areas: "stage stage stage stage stage" ". prev where next ."; row-gap: 10px; margin-bottom: 0; }
 .slidevault dialog.sv-dialog.wide .lb-row > .lb-stage { justify-self: stretch; }
 .slidevault dialog.sv-dialog.wide .lb-row > .lb-prev, .slidevault dialog.sv-dialog.wide .lb-row > .lb-next { justify-self: auto; }
 .slidevault .lb-caption { bottom: 0; padding: 8px 0 8px; }
-.slidevault dialog.sv-dialog.wide .lb-head { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title tools"; }
+.slidevault dialog.sv-dialog.wide .lb-head { padding: 16px 20px 6px; row-gap: 4px; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title tools"; }
 .slidevault dialog.sv-dialog.wide .lb-head > .lb-rnav { display: none; }
 .slidevault dialog.sv-dialog.wide .lb-results { margin: 4px 0 10px; }
 .slidevault dialog.sv-dialog.wide .lb-head .dlg-head-tools { grid-area: tools; }
@@ -188,7 +181,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 /* Tips that a scrolling row or the window edge would cut off are left out where the control explains itself: the suggested-tag chips (inside a sideways-scrolling row) and the deck arrows under the preview picture (they have a name for screen readers). */
 .slidevault .sv-app[data-size="compact"] .lb-row > .lb-nav[data-tip]::after { display: none; }
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
-.slidevault .lb-stage { touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.slidevault .lb-stage { position: relative; background: var(--sv-surface-sunken); border-radius: 14px; overflow: hidden; aspect-ratio: 16/9; margin: 0 auto; max-height: calc(var(--sv-h, 700px) * 0.5); touch-action: pan-y; -webkit-user-select: none; user-select: none; }
 
 /* ---- Phone held upright: the preview opens with the result arrows and "Result 1 of 77", then the slide title, then the picture. ---- */
 .slidevault .lb-title-body { display: none; }
@@ -251,14 +244,12 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault dialog.sv-dialog.wide .lb-row[data-tablet] > .lb-next { justify-self: end; } }
 
 /* Phones and tablets: a faint round card behind each deck arrow, so it reads as a button to tap. Desktop keeps the bare arrows. */
-.slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-prev,
-.slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-next { border-radius: 50%; background: color-mix(in srgb, var(--sv-text) 6%, transparent); border: 1px solid color-mix(in srgb, var(--sv-text) 10%, transparent); }
 .slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-prev:disabled,
 .slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-next:disabled { background: transparent; border-color: transparent; }
 
 /* Circles a little smaller on phones and tablets. */
 .slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-prev,
-.slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-next { width: 30px; height: 30px; }
+.slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-next { border-radius: 50%; background: color-mix(in srgb, var(--sv-text) 6%, transparent); border: 1px solid color-mix(in srgb, var(--sv-text) 10%, transparent); width: 30px; height: 30px; }
 .slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-nav .ic { width: 18px; height: 18px; }
 
 /* Phone on its side, and tablets both ways up: the deck arrows sit on the left and right edges of the picture itself (they may cover a little of the slide). "x/y in deck" stays under it. */
