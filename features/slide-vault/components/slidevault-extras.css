@@ -155,11 +155,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
   .slidevault .btn.sb-launch-btn:hover .sb-new { background: #fff; color: var(--sv-text); }
 }
 
-/* Packs (FD-38): slides that go together. */
-.slidevault .pack-strip .ps-t { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; border: 1px solid var(--sv-border-strong); background: var(--sv-surface-sunken); }
-.slidevault .pack-strip .is-here .ps-t { border: 2px solid var(--sv-brand); }
-.slidevault .pack-strip .ps-n { position: absolute; left: 3px; top: 3px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 11px; font-weight: 700; line-height: 16px; text-align: center; }
-
 /* Card titles stop at two lines. One very long title used to stretch every card in its row (all cards in a
    row share the tallest height), leaving the rest mostly empty. The full title is in the tooltip. */
 .slidevault .card-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.7em; }
