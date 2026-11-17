@@ -54,7 +54,6 @@
 .slidevault .select-sm { min-height: 36px; font-size: var(--sv-text-small); width: auto; }
 .slidevault .badge { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; padding: 0 9px; border-radius: var(--sv-radius-pill); font-size: 12px; font-weight: 600; background: var(--sv-surface-sunken); color: var(--sv-text); border: 1px solid var(--sv-border); white-space: nowrap; line-height: 1.2; }
 .slidevault .badge .ic { width: 13px; height: 13px; }
-.slidevault .badge.warn { background: var(--svp-warning-tint); border-color: transparent; }
 .slidevault .badge.danger { background: var(--svp-danger-tint); border-color: transparent; }
 
 /* Tooltips for disabled controls */
@@ -131,9 +130,6 @@ dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
 .slidevault .stat { background: var(--sv-surface-sunken); border-radius: 12px; padding: 12px 14px; }
 .slidevault .stat b { display: block; font-size: 20px; }
 .slidevault .form-grid .full { grid-column: 1 / -1; }
-.slidevault .radio-row { display: flex; flex-wrap: wrap; gap: 8px 16px; }
-.slidevault .radio-row label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--sv-text-small); min-height: 32px; cursor: pointer; }
-.slidevault .radio-row input { accent-color: var(--sv-brand-strong); width: 16px; height: 16px; margin: 0; }
 
 /* Tooltips (hover and keyboard focus) */
 .slidevault [data-tip] { position: relative; }
