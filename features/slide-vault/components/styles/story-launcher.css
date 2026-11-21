@@ -1,0 +1,63 @@
+/* Storyboard launch button (StoryLauncher.tsx): the way into the Storyboard, beside the search bar on Home and in the filter row.
+   Every rule for the button, its "New" badge, its label swap, its glow and its hint lives here, written once (Alina's notes 2 and 6).
+   Moved here from storyboard.css and slidevault-extras.css with the same values, the same selectors and no class renamed; where the filter row
+   or a phone sizes the button differently, that rule stays in filter-bar.css (labelled). Only the glowing text changed: it uses the Storyboard
+   text orange (--sb-orange-text, defined in storyboard.css), 4.79:1 on the tint where the brand's text orange gave 3.77:1 (A11).
+   Imported before slidevault-extras.css on purpose: the shared `text-wrap: pretty` there has always overridden the hint's `white-space: nowrap`,
+   so the hint wraps; loading this file first keeps it exactly as it looks today. StoryLauncher.tsx and the rest of storyboard.css are Schiffon's and are not changed. */
+
+/* Home: the search bar gives up width so the eye and the Storyboard button both fit beside it. */
+.slidevault .home-hero:has(.sb-launch) > .sb-launch { flex: none; }
+
+/* The way in, beside the search bar (FD-24). Lays the hero's search and this button out in one row
+   without changing the search itself; when the search moves into the filter row, this goes with it. */
+.slidevault .home-hero:has(.sb-launch) { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; max-width: 1040px; }
+.slidevault .home-hero:has(.sb-launch) > .home-hero-search { flex: 1 1 520px; }
+.slidevault .sb-launch { position: relative; z-index: 28; display: flex; flex-direction: column; align-items: flex-start; }
+.slidevault .btn.sb-launch-btn { height: 58px; padding: 0 22px; border-radius: 999px; font-size: 16px; gap: 8px; }
+.slidevault .sb-launch-btn .ic { color: var(--sv-brand); }
+.slidevault .btn.sb-launch-btn.is-glow { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sb-orange-text); animation: sb-glow-btn 1.8s ease-in-out infinite, sb-tick 0.5s ease-out 1; }
+.slidevault .sb-launch-hint { position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; display: flex; gap: 6px; align-items: center; white-space: nowrap; margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--sv-surface); border: 1px solid var(--sv-brand); box-shadow: var(--sv-shadow-card); font-size: var(--sv-text-small); }
+.slidevault .sb-launch-hint .ic { color: var(--sv-brand); }
+
+/* "New" badge on the Storyboard button, until it has been opened once. */
+.slidevault .sb-launch-btn { position: relative; }
+.slidevault .sb-new { position: absolute; top: -8px; right: 10px; padding: 1px 8px; border-radius: 999px; background: var(--sv-brand-tint); color: var(--sv-text); border: 1px solid var(--sv-brand); font-size: 11px; font-weight: 700; letter-spacing: 0.02em; line-height: 16px; }
+/* Storyboard button: white at rest, exactly like the eye and mic buttons beside it; it lights up orange
+   and says Build with AI on hover, focus and tap. (The brief glow keeps its own.) */
+.slidevault .btn.sb-launch-btn:not(.is-glow) { background: var(--sv-surface); border: 1px solid var(--sv-border-strong); color: var(--sv-text); box-shadow: var(--sv-shadow-card); }
+.slidevault .btn.sb-launch-btn:not(.is-glow) .ic { color: inherit; }
+.slidevault .btn.sb-launch-btn:not(.is-glow):focus-visible { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .btn.sb-launch-btn { -webkit-tap-highlight-color: transparent; }
+.slidevault .btn.sb-launch-btn:not(.is-glow):active { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+.slidevault .btn.sb-launch-btn:not(.is-glow):active .ic { color: #fff; }
+.slidevault .btn.sb-launch-btn:active .sb-new { background: #fff; color: var(--sv-text); }
+@media (hover: hover) {
+  .slidevault .btn.sb-launch-btn:not(.is-glow):hover { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+  .slidevault .btn.sb-launch-btn:not(.is-glow):hover .ic { color: #fff; }
+  .slidevault .btn.sb-launch-btn:hover .sb-new { background: #fff; color: var(--sv-text); }
+}
+
+/* The Storyboard button's label slides up to "Build with AI" on hover, focus and tap. Both words share one
+   grid cell, so the button is as wide as the longer one from the start and never changes size. */
+.slidevault .sb-swap { display: grid; overflow: hidden; line-height: 1.35; }
+.slidevault .sb-swap > span { grid-area: 1 / 1; text-align: center; white-space: nowrap; transition: transform .22s ease, opacity .22s ease; }
+.slidevault .sb-swap2 { transform: translateY(110%); opacity: 0; }
+.slidevault .btn.sb-launch-btn:focus-visible .sb-swap1, .slidevault .btn.sb-launch-btn:active .sb-swap1 { transform: translateY(-110%); opacity: 0; }
+.slidevault .btn.sb-launch-btn:focus-visible .sb-swap2, .slidevault .btn.sb-launch-btn:active .sb-swap2 { transform: none; opacity: 1; }
+@media (hover: hover) {
+  .slidevault .btn.sb-launch-btn:hover .sb-swap1 { transform: translateY(-110%); opacity: 0; }
+  .slidevault .btn.sb-launch-btn:hover .sb-swap2 { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .slidevault .sb-swap > span { transition: none; } }
+
+/* Pressed look that stays (see tap-feedback.ts): the same orange as hover, on touch and on Enter or Space. */
+.slidevault .btn.sb-launch-btn[data-tapped]:not(.is-glow) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
+
+@keyframes sb-glow-btn { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sv-brand) 45%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--sv-brand) 0%, transparent); } }
+@keyframes sb-tick { 0% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } 75% { transform: rotate(-2deg); } 100% { transform: rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .slidevault .sb-launch-btn.is-glow { animation: none; } }
+@media (max-width: 640px) {
+  .slidevault .sb-launch, .slidevault .sb-launch-btn { width: 100%; justify-content: center; }
+  .slidevault .sb-launch-hint { position: static; margin-top: 8px; white-space: normal; }
+}
