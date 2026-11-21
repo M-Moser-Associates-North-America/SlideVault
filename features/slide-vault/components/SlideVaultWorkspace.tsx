@@ -24,6 +24,7 @@ import { PackDialog } from './Packs';
 import { Tour } from './Tour';
 import { HistoryButtons } from './HistoryButtons';
 import { LeaveUploadDialog } from './LeaveUploadDialog';
+import { UnsavedDeckDialog } from './UnsavedDeckDialog';
 import { AiAskDialog } from './AiAskDialog';
 import { UploadView } from './UploadView';
 import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './views';
@@ -373,6 +374,7 @@ function Workspace({ header }: { header?: ReactNode }) {
       <PackDialog />
       <ArchiveDialog />
       <LeaveUploadDialog />
+      <UnsavedDeckDialog />
       <AiAskDialog />
     </div>
     </RootContext.Provider>
