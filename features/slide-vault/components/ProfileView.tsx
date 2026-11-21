@@ -1,5 +1,6 @@
 'use client';
 
+import type { Draft } from '../client/profile-store';
 import { ScrollRow } from './scroll-row';
 import { Button, buttonClass } from './ui/Button';
 import { useEffect, useRef, useState } from 'react';
@@ -8,6 +9,8 @@ import { Icon } from './icons';
 import { timeAgo } from './library';
 import { Link, SlideCard, StateBlock } from './parts';
 import { ConfirmDialog } from './TagBits';
+import { draftStatus } from '../client/draft-status';
+import { OpenDraftDialog, useDraftOpeners } from './OpenDraftDialog';
 import { useAccount, useDraft, useLibrary, useNotify } from './state';
 
 /**
@@ -17,10 +20,13 @@ import { useAccount, useDraft, useLibrary, useNotify } from './state';
  */
 export function ProfileView() {
   const { library } = useLibrary();
-  const { drafts, loadDraft, deleteDraft, selection } = useDraft();
+  const { drafts, deleteDraft, selection, draftOrigin, draftTitle } = useDraft();
+  const { open: openDraft, add: addDraft } = useDraftOpeners();
   const { toast } = useNotify();
   const { profile, savedIds } = useAccount();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  /* A saved draft waiting for the answer to "your draft deck already has slides". */
+  const [opening, setOpening] = useState<Draft | null>(null);
   /* Arriving from the account menu's "Saved" item: scroll to the Saved section once the page is up. */
   useEffect(() => {
     if (window.location.hash !== '#saved') return;
@@ -78,17 +84,20 @@ export function ProfileView() {
                 key={d.id}
                 name={d.name}
                 meta={`${d.slideIds.length === 1 ? '1 slide' : `${d.slideIds.length} slides`} · saved ${timeAgo(d.savedAt)}`}
-                title={selection.length ? 'Replaces what is in your draft deck now' : undefined}
                 onOpen={() => {
-                  const found = loadDraft(d);
-                  toast(found === d.slideIds.length ? `Opened “${d.name}” in your draft deck` : `Opened “${d.name}”. ${d.slideIds.length - found} slide(s) are no longer in the library.`);
+                  /* Unsaved slides in the draft deck: ask what to do with them first. Nothing there, or all saved: just open it. */
+                  const status = draftStatus(selection, draftOrigin, draftTitle);
+                  if (status === 'new' || status === 'changed') return setOpening(d);
+                  openDraft(d);
                 }}
+                onAdd={() => addDraft(d)}
                 onAskDelete={() => setConfirmDelete(d.id)}
               />
             ))}
           </ul>
         )}
       </section>
+      <OpenDraftDialog key={opening?.id ?? 'none'} draft={opening} onClose={() => setOpening(null)} />
       <ConfirmDialog
         open={confirmDelete !== null}
         title="Delete this draft?"
@@ -111,7 +120,7 @@ export function ProfileView() {
 }
 
 /** One working draft. On a phone, swiping it to the left asks to delete it (the Delete button does the same). */
-function DraftRow({ name, meta, title, onOpen, onAskDelete }: { name: string; meta: string; title?: string; onOpen: () => void; onAskDelete: () => void }) {
+function DraftRow({ name, meta, onOpen, onAdd, onAskDelete }: { name: string; meta: string; onOpen: () => void; onAdd: () => void; onAskDelete: () => void }) {
   const start = useRef<{ x: number; y: number } | null>(null);
   const [dx, setDx] = useState(0);
   const LIMIT = 96;
@@ -154,13 +163,17 @@ function DraftRow({ name, meta, title, onOpen, onAskDelete }: { name: string; me
         <span className="meta">{meta}</span>
       </div>
       <div className="draft-acts">
-        <Button size="sm" title={title} onClick={onOpen}>
+        <Button size="sm" title="Replaces what is in your draft deck" onClick={onOpen}>
           Open in draft deck
         </Button>
-        <Button variant="ghost" size="sm" onClick={onAskDelete}>
-          Delete
+        <Button size="sm" title="Keeps what is in your draft deck and adds these slides" onClick={onAdd}>
+          Add to draft deck
         </Button>
       </div>
+      {/* The same trash icon at the right end of the card on every screen. */}
+      <Button variant="ghost" size="sm" iconOnly className="draft-del" aria-label={`Delete ${name}`} title="Delete" onClick={onAskDelete}>
+        <Icon name="trash" />
+      </Button>
     </li>
   );
 }

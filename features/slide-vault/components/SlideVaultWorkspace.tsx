@@ -37,6 +37,7 @@ import './styles/sticky-search.css';
 import './styles/filter-bar.css';
 import './styles/section-conflict.css';
 import './styles/draft-deck.css';
+import './styles/open-draft.css';
 import './styles/preview.css';
 import './styles/tags.css';
 import './styles/cards.css';
