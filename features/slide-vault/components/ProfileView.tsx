@@ -1,5 +1,6 @@
 'use client';
 
+import { ScrollRow } from './scroll-row';
 import { Button, buttonClass } from './ui/Button';
 import { useEffect, useRef, useState } from 'react';
 import { firstNameOf } from '../client/first-name';
@@ -50,13 +51,13 @@ export function ProfileView() {
             </Link>
           </StateBlock>
         ) : (
-          <ul className="row-scroller">
+          <ScrollRow as="ul" className="row-scroller">
             {saved.map((s) => (
               <li key={s.id}>
                 <SlideCard slide={s} list={saved} />
               </li>
             ))}
-          </ul>
+          </ScrollRow>
         )}
       </section>
 

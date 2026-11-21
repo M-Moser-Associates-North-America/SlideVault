@@ -1,5 +1,6 @@
 'use client';
 
+import { useEdgeFade } from '../edge-fade';
 import { Button, buttonClass } from '../ui/Button';
 import { useRef, type ReactNode } from 'react';
 import type { SlideSummary } from '../../contracts/dto';
@@ -18,6 +19,7 @@ export function TileRow({ children }: { children: ReactNode }) {
 /** One horizontally scrolling row of cards, with "See all". */
 export function Row({ id, title, sub, seeAll, total, children }: { id: string; title: string; sub?: string; seeAll?: string; total?: number; children: ReactNode }) {
   const ref = useRef<HTMLUListElement>(null);
+  useEdgeFade(ref);
   const scroll = (dir: -1 | 1) =>
     ref.current?.scrollBy({
       left: dir * ref.current.clientWidth * 0.85,
