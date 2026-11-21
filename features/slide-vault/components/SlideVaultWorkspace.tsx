@@ -10,6 +10,7 @@ import { installTapFeedback } from './tap-feedback';
 import { Icon, type IconName } from './icons';
 import { browseTitle } from './library';
 import { Crumbs, Link, type Crumb } from './parts';
+import { buttonClass } from './ui/Button';
 import { CompactSearch } from './CompactSearch';
 import { WorkspaceProvider, useAccount, useDraft, useLibrary, useNotices, useNotify, useOverlays, useRuntime, useSearch } from './state';
 import { LoginView } from './AuthView';
@@ -123,7 +124,7 @@ function Workspace({ header }: { header?: ReactNode }) {
   /* Home (browsing or searching) uses the reference HTML's hero search (views/home.tsx HomeHeader)
      instead of a side rail; it stays mounted across that transition so typing never loses focus. */
   const noRail = true; // the search bar and filter row now sit at the top of Home and the browse lists
-  const narrow = view === 'create' || view === 'upload' || view === 'profile' || view === 'settings' || view === 'archive';
+  const narrow = view === 'create' || view === 'upload' || view === 'profile' || view === 'settings' || view === 'archive' || view === 'notfound';
 
   /* New page: scroll to the top and move focus to its heading, like a page load would. */
   const key = `${view}/${loc.id ?? ''}`;
@@ -240,6 +241,22 @@ function Workspace({ header }: { header?: ReactNode }) {
       );
   }
   const showBack = deep && searched !== '';
+  /* The browser tab, the history list and bookmarks say where you are: the page's own name first (the tail of a long name is cut off in a tab), then SlideVault. */
+  const pageName = (() => {
+    if (view === 'deck') return crumbs[crumbs.length - 1]?.label;
+    if (view === 'slide') return library.status === 'ready' ? library.slides.find((s) => s.id === loc.id)?.title : undefined;
+    if (view === 'browse') return browseTitle(loc.id ?? '');
+    if (view === 'pages') return searched !== '' ? `Results for “${searched}”` : undefined;
+    return { create: 'Create', upload: 'Upload a deck', profile: 'My decks', settings: 'Settings', archive: 'Archived decks', story: 'Storyboard', notfound: 'Page not found' }[view as string];
+  })();
+  const startTitle = useRef<string | null>(null);
+  useEffect(() => {
+    startTitle.current ??= document.title;
+    document.title = pageName ? `${pageName} · SlideVault` : 'SlideVault';
+  }, [pageName]);
+  useEffect(() => () => {
+    if (startTitle.current !== null) document.title = startTitle.current;
+  }, []);
 
 
   if (!profile) return <LoginView />;
@@ -318,6 +335,21 @@ function Workspace({ header }: { header?: ReactNode }) {
             {view === 'profile' && <ProfileView />}
             {view === 'settings' && <SettingsView />}
             {view === 'archive' && <ArchiveView />}
+            {view === 'notfound' && (
+              <div className="sv-wrap">
+                <div className="page-head">
+                  <div>
+                    <h1 className="h1" tabIndex={-1}>
+                      That page does not exist
+                    </h1>
+                    <p className="lede">The address may be mistyped, or the page may have moved.</p>
+                  </div>
+                </div>
+                <Link className={buttonClass()} to={{ view: 'pages' }}>
+                  Back to Home
+                </Link>
+              </div>
+            )}
           </main>
         </div>
         <aside className="cart-col" aria-label="Draft deck">
