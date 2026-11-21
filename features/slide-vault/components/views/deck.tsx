@@ -105,16 +105,20 @@ function RangeAdd({ slides, from, to, setFrom, setTo, onDone }: { slides: SlideS
         add();
       }}
     >
-      <span>Add slides</span>
-      <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="next" autoComplete="off" aria-label={`From slide, a number from 1 to ${slides.length}`} value={from} onFocus={keepInView} onBlur={() => setFrom(String(Math.min(slides.length, Math.max(1, Math.round(Number(from)) || 1))))} onChange={(e) => setFrom(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, from, setFrom)} />
-      <span>to</span>
-      <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="go" autoComplete="off" aria-label={`To slide, a number from 1 to ${slides.length}`} value={to} onFocus={keepInView} onBlur={() => setTo(String(Math.min(slides.length, Math.max(1, Math.round(Number(to)) || slides.length))))} onChange={(e) => setTo(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, to, setTo)} />
-      <Button type="submit" size="sm" variant="primary">
-        Add {hi - lo + 1}
-      </Button>
-      <Button size="sm" variant="ghost" iconOnly className="range-close" aria-label="Close, and show the whole deck" onClick={onDone}>
-        <Icon name="x" />
-      </Button>
+      <div className="range-fields">
+        <span>Add slides</span>
+        <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="next" autoComplete="off" aria-label={`From slide, a number from 1 to ${slides.length}`} value={from} onFocus={keepInView} onBlur={() => setFrom(String(Math.min(slides.length, Math.max(1, Math.round(Number(from)) || 1))))} onChange={(e) => setFrom(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, from, setFrom)} />
+        <span>to</span>
+        <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="go" autoComplete="off" aria-label={`To slide, a number from 1 to ${slides.length}`} value={to} onFocus={keepInView} onBlur={() => setTo(String(Math.min(slides.length, Math.max(1, Math.round(Number(to)) || slides.length))))} onChange={(e) => setTo(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, to, setTo)} />
+      </div>
+      <div className="range-actions">
+        <Button type="submit" size="sm" variant="primary">
+          Add {hi - lo + 1}
+        </Button>
+        <Button variant="link" className="range-close" aria-label="Cancel, and show the whole deck" onClick={onDone}>
+          Cancel
+        </Button>
+      </div>
     </form>
   );
 }
