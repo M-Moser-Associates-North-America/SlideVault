@@ -13,7 +13,7 @@ import { useRuntime, useSearch } from './state';
  */
 export function AiAskDialog() {
   const { runtime } = useRuntime();
-  const { aiAsk, aiAskKind, answerAiAsk } = useSearch();
+  const { aiAsk, aiAskKind, answerAiAsk, dismissAiAsk } = useSearch();
   const ref = useRef<HTMLDialogElement>(null);
   const yesRef = useRef<HTMLButtonElement>(null);
   useDialogOpen(ref, !!aiAsk);
@@ -28,11 +28,12 @@ export function AiAskDialog() {
       className="slidevault sv-dialog ai-ask"
       data-theme={runtime.theme}
       aria-labelledby="sv-ai-ask-title"
+      /* Escape and a click outside only close the question: nothing is searched, nothing is changed. Only the two buttons answer it. */
       onCancel={(e) => {
         e.preventDefault();
-        no();
+        dismissAiAsk();
       }}
-      onClick={(e) => e.target === e.currentTarget && no()}
+      onClick={(e) => e.target === e.currentTarget && dismissAiAsk()}
     >
       <div className="ai-ask-body">
         <span className="ai-ask-ic" aria-hidden="true">
