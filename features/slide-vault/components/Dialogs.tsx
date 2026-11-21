@@ -3,7 +3,7 @@
 import { Button, buttonClass } from './ui/Button';
 import { PreviewActions, ShareIconButton } from './SlideActions';
 import { PreviewTags } from './TagBits';
-import { useEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { exportPptx, getSection } from '../client/api';
 import type { SlideSummary } from '../contracts/dto';
 import { useEdgeFade } from './edge-fade';
@@ -352,6 +352,8 @@ export function Lightbox() {
                 </Button>
               )}
             </div>
+            {/* Useful / Not useful sit right under the deck arrows and number, above the film strip (the strip is only on tablets and desktops). */}
+            <PreviewActions key={slide.id} slide={slide} />
             {deckLoading && sibs.length <= 1 && (
               <div className="sv-loading" role="status">
                 <span className="sv-ring is-small" aria-hidden="true" />
@@ -402,7 +404,6 @@ export function Lightbox() {
                 </div>
               </div>
             )}
-            <PreviewActions key={slide.id} slide={slide} />
             <PreviewTags slide={slide} onNavigate={closePreview} />
             <div className="lb-caption">
               <span className={`counter${sibs.length > 1 ? ' is-dup' : ''}`} aria-live="polite">
@@ -485,6 +486,8 @@ export function NumberJump({ value, max, label, onGo, always }: { value: number;
     setSeen(value);
     setText(String(value));
   }
+  /* The Go button shows while the box is being typed in (touch screens only, see the CSS): a phone's number pad has no Enter key. */
+  const [editing, setEditing] = useState(false);
   const commit = () => {
     const n = Math.round(Number(text));
     if (!text.trim() || !Number.isFinite(n)) return setText(String(value));
@@ -493,40 +496,53 @@ export function NumberJump({ value, max, label, onGo, always }: { value: number;
     if (always || to !== value) onGo(to - 1);
   };
   return (
-    <input
-      className="num-jump"
-      type="text"
-      inputMode="numeric"
-      pattern="[0-9]*"
-      value={text}
-      maxLength={String(max).length}
-      enterKeyHint="go"
-      autoComplete="off"
-      spellCheck={false}
-      style={{ width: `calc(${String(max).length}ch + 10px)` }}
-      aria-label={`${label}, a number from 1 to ${max}`}
-      onChange={(e) => setText(e.target.value.replace(/[^0-9]/g, ''))}
-      onFocus={(e) => e.currentTarget.select()}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          e.stopPropagation();
+    <span className="num-jump-wrap">
+      <input
+        className="num-jump"
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={text}
+        maxLength={String(max).length}
+        enterKeyHint="go"
+        autoComplete="off"
+        spellCheck={false}
+        style={{ '--nj-digits': String(max).length } as CSSProperties}
+        aria-label={`${label}, a number from 1 to ${max}`}
+        onChange={(e) => setText(e.target.value.replace(/[^0-9]/g, ''))}
+        onFocus={(e) => {
+          setEditing(true);
+          e.currentTarget.select();
+        }}
+        onBlur={() => {
+          setEditing(false);
           commit();
-          e.currentTarget.blur();
-        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-          /* Up and down step the number, like any number box; Enter (or leaving the box) goes there. */
-          e.preventDefault();
-          e.stopPropagation();
-          const now = Math.round(Number(text)) || value;
-          setText(String(Math.min(max, Math.max(1, now + (e.key === 'ArrowUp' ? 1 : -1)))));
-        } else if (e.key === 'Escape' && text !== String(value)) {
-          e.preventDefault();
-          e.stopPropagation();
-          setText(String(value));
-        } else e.stopPropagation(); /* typing digits and arrows here must not move the preview */
-      }}
-    />
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            commit();
+            e.currentTarget.blur();
+          } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            /* Up and down step the number, like any number box; Enter (or leaving the box) goes there. */
+            e.preventDefault();
+            e.stopPropagation();
+            const now = Math.round(Number(text)) || value;
+            setText(String(Math.min(max, Math.max(1, now + (e.key === 'ArrowUp' ? 1 : -1)))));
+          } else if (e.key === 'Escape' && text !== String(value)) {
+            e.preventDefault();
+            e.stopPropagation();
+            setText(String(value));
+          } else e.stopPropagation(); /* typing digits and arrows here must not move the preview */
+        }}
+      />
+      {editing && (
+        <Button variant="primary" size="sm" className="num-jump-go" aria-label={`Go to slide ${Math.min(max, Math.max(1, Math.round(Number(text)) || value))}`} onPointerDown={(e) => e.preventDefault()} onClick={(e) => (e.currentTarget.previousElementSibling as HTMLInputElement | null)?.blur()}>
+          Go
+        </Button>
+      )}
+    </span>
   );
 }
 

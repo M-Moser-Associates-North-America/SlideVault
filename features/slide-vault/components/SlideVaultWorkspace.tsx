@@ -31,6 +31,7 @@ import { StoryboardView } from './StoryboardView';
 import './slidevault.css';
 import './styles/story-launcher.css';
 import './slidevault-extras.css';
+import './styles/number-jump.css';
 import './styles/search-toggles.css';
 import './styles/sticky-search.css';
 import './styles/filter-bar.css';

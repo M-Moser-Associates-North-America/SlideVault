@@ -30,14 +30,14 @@ function tooSoon(last: { current: number }) {
 }
 
 /** The up / down pill. A vote on a slide you found by searching also teaches that search (Useful / Not relevant, FD-59). */
-function VotePill({ slide, engage, small }: { slide: SlideSummary; engage: EngageApi; small?: boolean }) {
+function VotePill({ slide, engage, small, place }: { slide: SlideSummary; engage: EngageApi; small?: boolean; place?: 'preview' }) {
   const { runtime } = useRuntime();
   const { query, search } = useSearch();
   const { toast } = useNotify();
   const v = SHOW_VOTES_AND_COMMENTS ? engage.votes : undefined;
   const searched = search.status === 'ready' ? query.trim() : '';
   /* No vote counts from the server yet: the same arrows still teach the search you came from. */
-  if (!v) return searched && !demoTagsOn() ? <FeedbackPill slide={slide} searched={searched} small={small} /> : null;
+  if (!v) return searched && !demoTagsOn() ? <FeedbackPill slide={slide} searched={searched} small={small} place={place} /> : null;
   const cast = async (value: 1 | -1) => {
     const next = v.myVote === value ? 0 : value;
     try {
@@ -126,7 +126,7 @@ function answerFor(key: string) {
  * The server keeps it only for people who turned on "learn from my activity", with the search's
  * words and no name; it teaches the search and, through it, the storyboard (FD-75).
  */
-function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searched: string; small?: boolean }) {
+function FeedbackPill({ slide, searched, small, place }: { slide: SlideSummary; searched: string; small?: boolean; place?: 'preview' }) {
   const { runtime } = useRuntime();
   const { toast } = useNotify();
   const key = answerKey(searched, slide.id);
@@ -172,7 +172,7 @@ function FeedbackPill({ slide, searched, small }: { slide: SlideSummary; searche
   };
   /* The Storyboard's Useful / Not useful row (same classes): ticks and crosses, small capitals, one on each side of a card. */
   return (
-    <div className={`sb-verdict fb-verdict${small ? ' is-small' : ''}`} role="group" aria-label="Is this slide useful for your search?">
+    <div className={`sb-verdict fb-verdict${small ? ' is-small' : ''}${place === 'preview' ? ' in-preview' : ''}`} role="group" aria-label="Is this slide useful for your search?">
       <button type="button" className="sb-icon-btn" aria-pressed={shown === 1} aria-label="Useful for this search" data-tip="Ranks this higher in similar searches." data-tip-pos={small ? 'up start' : undefined} onClick={() => cast(1)}>
         <Icon name="check" className="ic-sm" />
         Useful
@@ -213,13 +213,13 @@ export function ShareIconButton({ slideId }: { slideId: string }) {
 }
 
 /** The full bar: vote pill, comments, Share (the slide page has Share in its Use this slide card instead: noShare). */
-export function SlideActions({ slide, commentsOpen, onComments, noShare, trailing }: { slide: SlideSummary; commentsOpen?: boolean; onComments: () => void; noShare?: boolean; /** something at the far end of the bar (the slide page's "also in other decks" icon) */ trailing?: ReactNode }) {
+export function SlideActions({ slide, commentsOpen, onComments, noShare, trailing, place }: { /** the preview card gives the Useful / Not useful row its own spacing (.in-preview) */ place?: 'preview'; slide: SlideSummary; commentsOpen?: boolean; onComments: () => void; noShare?: boolean; /** something at the far end of the bar (the slide page's "also in other decks" icon) */ trailing?: ReactNode }) {
   const { runtime } = useRuntime();
   const engage = useEngagement(runtime, slide);
   const share = useShareSlide(slide.id);
   return (
     <div className="slide-actions" role="group" aria-label="Slide actions">
-      <VotePill slide={slide} engage={engage} />
+      <VotePill slide={slide} engage={engage} place={place} />
       {SHOW_VOTES_AND_COMMENTS && engage.commentCount !== undefined && (
         <button type="button" className="actpill" aria-expanded={!!commentsOpen} onClick={onComments}>
           <Icon name="comment" />
@@ -255,7 +255,7 @@ export function PreviewActions({ slide }: { slide: SlideSummary }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <SlideActions slide={slide} commentsOpen={open} onComments={() => setOpen((o) => !o)} noShare />
+      <SlideActions slide={slide} commentsOpen={open} onComments={() => setOpen((o) => !o)} noShare place="preview" />
       {open && <CommentsSection slide={slide} />}
     </>
   );

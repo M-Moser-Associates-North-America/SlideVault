@@ -185,21 +185,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* Useful / Not useful on a narrow card: each label stays on one line; the pair wraps to a second line if it must. */
 .slidevault .fb-verdict .sb-icon-btn { white-space: nowrap; }
 /* The preview window scrolls: a soft edge at the bottom shows there is more below. */
-@media (max-width: 700px) {
-  .slidevault dialog.sv-dialog.wide .dlg-body {
-    background:
-      linear-gradient(var(--sv-surface) 30%, transparent) top / 100% 24px no-repeat local,
-      linear-gradient(transparent, var(--sv-surface) 70%) bottom / 100% 24px no-repeat local,
-      radial-gradient(farthest-side at 50% 0, color-mix(in srgb, var(--sv-text) 16%, transparent), transparent) top / 100% 8px no-repeat scroll,
-      radial-gradient(farthest-side at 50% 100%, color-mix(in srgb, var(--sv-text) 16%, transparent), transparent) bottom / 100% 8px no-repeat scroll;
-  }
-}
 /* A phone turned sideways: the slide on the left, everything about it on the right, and no tagline or big gap above the search. */
-@media (orientation: landscape) and (max-height: 520px) {
-  dialog.slidevault.sv-dialog.wide { width: min(calc(var(--sv-w, 852px) - 24px), 920px); }
-  .slidevault dialog.sv-dialog.wide .dlg-body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); column-gap: 18px; align-content: start; background: none; }
-  .slidevault dialog.sv-dialog.wide .dlg-body > * { grid-column: 2; }
-}
 /* A row that scrolls sideways fades on the side where more is hidden (edge-fade.ts sets data-fade). */
 .slidevault [data-fade~="end"]:not([data-fade~="start"]) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
 .slidevault [data-fade~="start"]:not([data-fade~="end"]) { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
@@ -216,26 +202,9 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 }
 
 /* ---- Phone pass 5: the preview ---- */
-@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  /* All the tags in one row that scrolls sideways. */
-  /* The window is the same height for every slide; the buttons stay at the bottom and the details scroll. */
-  dialog.slidevault.sv-dialog.wide { height: min(calc(var(--sv-h, 100%) - 32px), 612px); }
-  .slidevault dialog.sv-dialog.wide .dlg-body { padding-inline: 16px; }
-}
 
 /* ---- Phone pass 6: the title opens the slide page; the buttons stay at the bottom ---- */
-.slidevault .lbl-short { display: none; }
-@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  .slidevault .lbl-long { display: none; }
-  .slidevault .lbl-short { display: inline; }
-}
 /* Same bar, same place, for every slide: Add, Download, and a small Open deck button. */
-@media (max-width: 700px) and (orientation: portrait) {
-  .slidevault dialog.sv-dialog.wide[open] { display: flex; flex-direction: column; }
-  .slidevault dialog.sv-dialog.wide .dlg-head { flex: none; }
-  .slidevault dialog.sv-dialog.wide .dlg-body { flex: 1 1 auto; display: flex; flex-direction: column; padding-bottom: 0; }
-  .slidevault dialog.sv-dialog.wide .dlg-body > * { flex: none; }
-}
 /* Useful / Not useful: tips open above the pair, as wide as the pair, so no card or window cuts them off. */
 .slidevault .fb-verdict .sb-icon-btn[data-tip] { position: static; white-space: nowrap; }
 .slidevault .fb-verdict .sb-icon-btn[data-tip]::after { text-transform: none; letter-spacing: normal; font-size: 12.5px; font-weight: 500; top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; width: max-content; max-width: 100%; text-align: left; white-space: normal; }
@@ -252,14 +221,9 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 @container (max-width: 190px) { .slidevault .fb-verdict .sb-icon-btn .ic-sm { display: none; } }
 
 /* The number you can type in, in "Result [1] of 95" and "Slide [68] of 75 in this deck". */
-.slidevault .num-jump { box-sizing: content-box; height: 22px; padding: 0 2px; margin: 0 2px; font-size: 0.88em; line-height: 1; border: 1px solid var(--sv-border-strong); border-radius: 6px; background: var(--sv-surface); color: var(--sv-text); font: inherit; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; vertical-align: baseline; }
-.slidevault .num-jump:hover { border-color: var(--sv-text-secondary); }
-.slidevault .num-jump:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 1px; border-color: var(--sv-brand); }
-.slidevault .lb-where .num-jump { margin: 0 2px 0 0; }
 
 /* ---- Phone pass 11: the deck page ---- */
 .slidevault .sv-app[data-size="compact"] .grid.is-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.slidevault .range-add .num-jump { width: 52px; height: 32px; }
 /* Pictures show a soft shimmer until they arrive, then fade in. */
 .slidevault .meta-wrap[hidden] { display: none; }
 
@@ -324,7 +288,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
   .slidevault .grid.is-dense .matched .why-text:not(.is-open) { -webkit-line-clamp: 2; }
   /* The draft deck is a panel down the right side, not a sheet. */
   /* Preview: the slide on the left; title, actions and details on the right. Result arrows are icons here. */
-  .slidevault dialog.sv-dialog.wide .dlg-body { padding: 4px 20px 6px; }
 }
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
   /* The heading sits over the slide only; the cards on the right start level with the top of the slide. */
@@ -338,15 +301,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 
 /* Phone landscape preview, fixed layout: results row level with the top of the slide, Add / Download level with the bottom of the deck arrows,
    the free space in between. No line above the buttons. Tags as in portrait: the tag row, then Add tag with the suggestions beside it. */
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  .slidevault dialog.sv-dialog.wide .dlg-body { grid-template-rows: auto auto auto 1fr auto; }
-  .slidevault dialog.sv-dialog.wide .fb-verdict .sb-icon-btn { font-weight: 500; letter-spacing: 0.04em; }
-}
 /* Small phones on their side (iPhone SE 667×375, small Android 640×360, 568×320): the preview's right-hand column is narrow, so it gets a little more width, tighter spacing and buttons without icons, so nothing is cut off or pushed onto another line. */
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
-  .slidevault dialog.sv-dialog.wide .dlg-body { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 12px; }
-  .slidevault dialog.sv-dialog.wide .fb-verdict .sb-icon-btn { font-size: 10px; letter-spacing: 0.02em; }
-}
 /* Small phones on their side (667×375, 640×360, 568×320): keep every part in its place and make it fit. */
 @media (orientation: landscape) and (max-height: 400px) and (max-width: 1000px) {
   /* Draft deck panel: a shorter header, so the list has room, and buttons whose names fit. */
@@ -354,15 +309,8 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
   .slidevault .sv-app[data-size="compact"] .h1 { font-size: 18px; }
 }
 /* Results: the sort box and the section pills share a row on a phone on its side; the box stays put, the pills scroll. */
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-  /* The Useful / Not useful tips open downward in the preview here, where there is no room above the pair. */
-  .slidevault dialog.sv-dialog.wide .fb-verdict .sb-icon-btn[data-tip]::after { top: calc(100% + 6px); bottom: auto; }
-}
 
 /* Small phones on their side: the preview takes the height its content needs instead of standing tall with blank space under it, and the sort row sits clear of the results heading. */
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
-  dialog.slidevault.sv-dialog.wide { height: fit-content; }
-}
 
 /* Slide page title and its pencil: the pencil is exactly as tall as one line of the title and centred in it, so it sits on the first line's horizontal axis at every size. */
 .slidevault .slide-title-row .h1 { margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: var(--ttl-fs); line-height: var(--ttl-lh); }
@@ -404,8 +352,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* ======== Tablet held upright (FD-106): the phone-on-its-side page layouts (Home, results, slide page, deck page) with the tabs along the bottom. The slide preview keeps the desktop layout. ======== */
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .card-body .meta.clip { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
-.slidevault .sv-app[data-size="medium"] .lbl-long { display: none; }
-.slidevault .sv-app[data-size="medium"] .lbl-short { display: inline; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .grid > [data-card] { scroll-margin-top: 12px; }
 .slidevault .sv-app[data-size="medium"] .matched { position: relative; }
 .slidevault .sv-app[data-size="medium"] .matched .why-text { display: block; }
@@ -449,10 +395,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* Desktop slide page, Tags card: "Also in N other decks" (icon and number) at the right of the heading. */
 .slidevault .panel-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 /* Tablet held upright preview: room between the picture and the deck arrows, and "Open deck" written out. */
-@media (orientation: portrait) and (min-width: 701px) and (max-width: 1100px) {
-  .slidevault .sv-app[data-size="medium"] dialog.sv-dialog .lb-open-deck .lbl-long, .slidevault dialog.sv-dialog .lb-open-deck .lbl-long { display: inline; }
-  .slidevault dialog.sv-dialog .lb-open-deck .lbl-short { display: none; }
-}
 /* A deck or file name such as "M Moser_Atlas Logistics_RFP_SF_2026" fills the line and breaks inside itself, instead of dropping to a new line after "M". */
 .slidevault .panel-h .also-words { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; font-weight: 600; white-space: nowrap; }
 .slidevault .panel-h .also-words .ic { width: 16px; height: 16px; }
