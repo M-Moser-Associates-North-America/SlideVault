@@ -706,7 +706,10 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const [lastCount, setLastCount] = useState(selection.length);
   if (selection.length !== lastCount) {
     setLastCount(selection.length);
-    if (selection.length === 0 && originId !== null) setOriginId(null);
+    if (selection.length === 0) {
+      if (originId !== null) setOriginId(null);
+      setDraftTitle(''); /* emptied: the name (a saved deck's, or one typed) goes too, so the next draft deck starts unnamed */
+    }
   if (selection.length === 0 && !combine) setCombine(true);
   }
   const draftOrigin = selection.length > 0 && originId ? (drafts.find((d) => d.id === originId) ?? null) : null;
