@@ -211,9 +211,3 @@
 /* touch: 44px targets */
 /* Only Filters, Year and Client sit in the row; the rest are in the Filters sheet. */
 .slidevault .mic-soon { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; padding: 6px 12px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12.5px; font-weight: 500; white-space: nowrap; pointer-events: none; }
-
-/* Storyboard's button while it glows (exception: StoryLauncher and storyboard.css are Schiffon's and are not changed).
-   Its text uses the Storyboard's own text orange (--sb-orange-text: #c22d07 in light, the brand's in dark) so it reads on the pale tint:
-   4.79:1 in light, where the brand's text orange gave 3.77:1 (A11). Written once, here; `.sv-app` makes it win over the Storyboard file
-   whatever order the files load in. */
-.slidevault .sv-app .btn.sb-launch-btn.is-glow { color: var(--sb-orange-text); }

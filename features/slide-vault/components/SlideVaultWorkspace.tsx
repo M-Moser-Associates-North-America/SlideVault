@@ -29,6 +29,7 @@ import { UploadView } from './UploadView';
 import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './views';
 import { StoryboardView } from './StoryboardView';
 import './slidevault.css';
+import './styles/story-launcher.css';
 import './slidevault-extras.css';
 import './styles/search-toggles.css';
 import './styles/sticky-search.css';
