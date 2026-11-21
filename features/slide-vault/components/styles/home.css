@@ -211,3 +211,8 @@
 /* touch: 44px targets */
 /* Only Filters, Year and Client sit in the row; the rest are in the Filters sheet. */
 .slidevault .mic-soon { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; padding: 6px 12px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12.5px; font-weight: 500; white-space: nowrap; pointer-events: none; }
+
+/* The small "i" beside a row's title (Row, in views/shared.tsx): a finger gets a bigger area around it, without changing how it looks. */
+@media (pointer: coarse) {
+.slidevault .row-info { position: relative; }
+.slidevault .row-info::before { content: ""; position: absolute; inset: -10px; } }

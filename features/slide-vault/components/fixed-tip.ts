@@ -34,15 +34,27 @@ export function showTip(target: HTMLElement, text: string) {
   }
   tip.textContent = text;
   tip.style.visibility = 'hidden';
-  const r = target.getBoundingClientRect();
-  const w = tip.offsetWidth;
-  const h = tip.offsetHeight;
-  const area = workspaceBounds(target);
-  const left = Math.min(Math.max(area.left + 8, r.left + r.width / 2 - w / 2), area.right - w - 8);
-  const top = r.top - h - 8 >= area.top + 8 ? r.top - h - 8 : r.bottom + 8;
-  tip.style.left = `${left}px`;
-  tip.style.top = `${top}px`;
+  const note = tip;
+  const place = () => {
+    const r = target.getBoundingClientRect();
+    const w = note.offsetWidth;
+    const h = note.offsetHeight;
+    const area = workspaceBounds(target);
+    const left = Math.min(Math.max(area.left + 8, r.left + r.width / 2 - w / 2), area.right - w - 8);
+    const top = r.top - h - 8 >= area.top + 8 ? r.top - h - 8 : r.bottom + 8;
+    note.style.left = `${left}px`;
+    note.style.top = `${top}px`;
+  };
+  place();
   tip.style.visibility = 'visible';
+  /* A card lifts a few pixels while the pointer settles on it, so the thing the note names is still moving when the note first appears. Follow it for a moment so the note ends up at the same height every time. */
+  let frames = 0;
+  const follow = () => {
+    if (owner !== target || !note.isConnected) return;
+    place();
+    if (++frames < 24) requestAnimationFrame(follow);
+  };
+  requestAnimationFrame(follow);
   /* If the thing it names leaves the page (a new page has replaced it), the note goes too. */
   owner = target;
   window.clearInterval(watch);
@@ -69,9 +81,10 @@ export function installLongPressTips(): () => void {
     if (e.pointerType !== 'touch') return;
     hideTip();
     shown = false;
-    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault [data-tip]');
+    /* data-tip: a note the page may also draw in place (and which this draws when it hides that). data-fixed-tip: a note drawn only here, above the page, so a card's edge cannot cut it off. */
+    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault :is([data-tip], [data-fixed-tip])');
     if (!el) return;
-    const text = el.getAttribute('data-tip');
+    const text = el.getAttribute('data-tip') ?? el.getAttribute('data-fixed-tip');
     if (!text) return;
     start = { x: e.clientX, y: e.clientY };
     timer = window.setTimeout(() => {
@@ -84,12 +97,13 @@ export function installLongPressTips(): () => void {
   const move = (e: PointerEvent) => {
     if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) clear();
   };
-  /* Only things that do nothing when pressed (the little "i", a disabled button) lose their click after a long press; a button or link that does something still does it, so a slow tap is never lost. */
+  /* Only things that do nothing when pressed (the little "i", a disabled button) lose their click after a long press; a button or link that does something still does it, so a slow tap is never lost (the card's tick and heart are the exception: they are quick toggles, so reading their note does not switch them). */
   const click = (e: MouseEvent) => {
     if (!shown) return;
     shown = false;
-    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault [data-tip]');
-    if (el && (el.getAttribute('aria-disabled') === 'true' || el.matches('.row-info, .helpdot'))) {
+    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault :is([data-tip], [data-fixed-tip])');
+    /* The card's tick and heart are quick toggles: a long press that read their note must not also switch them. */
+    if (el && (el.getAttribute('aria-disabled') === 'true' || el.matches('.row-info, .helpdot, .pick, .save-tg'))) {
       e.preventDefault();
       e.stopPropagation();
     }
@@ -98,14 +112,15 @@ export function installLongPressTips(): () => void {
   let hovered: HTMLElement | null = null;
   const over = (e: PointerEvent) => {
     if (e.pointerType === 'touch') return;
-    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault [data-tip]');
+    const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault :is([data-tip], [data-fixed-tip])');
     if (el === hovered) return;
     hovered = el ?? null;
     if (!el) return hideTip();
-    const text = el.getAttribute('data-tip');
+    const own = el.getAttribute('data-fixed-tip');
+    const text = el.getAttribute('data-tip') ?? own;
     /* The preview's deck arrows on phones and tablets hide their label on purpose; don't bring it back on hover. */
     if (el.closest('.lb-row[data-handheld]')) return hideTip();
-    if (text && getComputedStyle(el, '::after').display === 'none') showTip(el, text);
+    if (text && (own !== null || getComputedStyle(el, '::after').display === 'none')) showTip(el, text);
   };
   const out = (e: PointerEvent) => {
     if (e.pointerType === 'touch') return;
@@ -115,7 +130,7 @@ export function installLongPressTips(): () => void {
     }
   };
   const menu = (e: Event) => {
-    if ((e.target as Element | null)?.closest('.slidevault [data-tip]')) e.preventDefault();
+    if ((e.target as Element | null)?.closest('.slidevault :is([data-tip], [data-fixed-tip])')) e.preventDefault();
   };
   document.addEventListener('pointerdown', down, true);
   document.addEventListener('pointermove', move, true);

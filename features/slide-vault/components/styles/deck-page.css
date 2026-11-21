@@ -2,13 +2,8 @@
    The deck page: heading, badges, actions, tag bar, jump.
 */
 
-/* Archive (FD-32): the Archived badge, and the small archive button on a deck card. */
-.slidevault .deck-arch { position: absolute; top: 8px; right: 8px; z-index: 3; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; opacity: 0; transition: opacity var(--sv-duration-fast); }
-.slidevault .deck-arch .ic { width: 16px; height: 16px; }
-.slidevault .vcard:hover .deck-arch, .slidevault .deck-arch:focus-visible { opacity: 1; }
-@media (hover: none) {
-.slidevault .deck-arch { opacity: 1; } }
-.slidevault .deck-arch:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+/* Archive (FD-32): the Archived badge on a deck card (archiving itself is done inside the deck page). */
+
 .slidevault .deck-arch-badge { position: absolute; top: 8px; left: 8px; z-index: 3; }
 
 /* ---- Phone pass 11: the deck page ---- */

@@ -1,6 +1,7 @@
 'use client';
 
 import { Badge } from './ui/Badge';
+import { hideTip, showTip } from './fixed-tip';
 import { CardVotes } from './SlideActions';
 import { useWorkspaceCompact } from './size';
 import { CompactTags } from './TagBits';
@@ -233,12 +234,13 @@ export function PackBadge({ pack, slideId }: { pack: Pack; slideId: string }) {
 
 /** Save or unsave a slide for the signed-in person (kept on the server when there is a database, FD-18). */
 export function useSavedToggle() {
-  const { announce } = useNotify();
+  const { announce, toast } = useNotify();
   const { savedIds, toggleSaved } = useAccount();
   const isSaved = (id: string) => savedIds.has(id);
   const toggle = (slide: SlideSummary) => {
     const was = isSaved(slide.id);
     toggleSaved(slide);
+    toast(was ? 'Removed from your saved slides' : 'Saved in My decks');
     announce(was ? `Removed from saved: ${slide.title}` : `Saved: ${slide.title}`);
   };
   return { isSaved, toggle };
@@ -308,17 +310,14 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
           }
         >
           <Thumb slide={slide} />
-          <span className="zoom" aria-hidden="true">
+          <span className="zoom" aria-hidden="true" data-fixed-tip="Preview">
             <Icon name="expand" className="ic-sm" />
           </span>
         </button>
-        <label className="pick">
-          <input type="checkbox" checked={sel} onChange={(e) => set(slide, e.target.checked)} aria-label={`Add to draft deck: ${slide.title}`} />
+        <label className="pick" data-fixed-tip={sel ? 'Remove from draft deck' : 'Add to draft deck'}>
+          <input type="checkbox" checked={sel} onChange={(e) => set(slide, e.target.checked)} onFocus={(e) => e.currentTarget.matches(':focus-visible') && showTip(e.currentTarget.closest('label') ?? e.currentTarget, sel ? 'Remove from draft deck' : 'Add to draft deck')} onBlur={hideTip} aria-label={`Add to draft deck: ${slide.title}`} />
           <span className="box" aria-hidden="true">
             <Icon name="check" />
-          </span>
-          <span className="pick-tip" aria-hidden="true">
-            {sel ? 'Remove from draft deck' : 'Add to draft deck'}
           </span>
         </label>
         {num !== undefined && (
@@ -336,7 +335,9 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
         <button
           type="button"
           className={`save-tg${saved ? ' is-saved' : ''}`}
-          title={saved ? 'Saved' : 'Save'}
+          data-fixed-tip={saved ? 'Saved' : 'Save'}
+          onFocus={(e) => e.currentTarget.matches(':focus-visible') && showTip(e.currentTarget, saved ? 'Saved' : 'Save')}
+          onBlur={hideTip}
           aria-pressed={saved}
           aria-label={saved ? `Remove from saved: ${slide.title}` : `Save: ${slide.title}`}
           onClick={() => toggleSave(slide)}
@@ -417,20 +418,10 @@ export function SlideCard({ slide, list, why, aiRead, note, num }: { slide: Slid
 
 /** Deck card: a 2×2 mosaic of its first real slide previews. */
 export function DeckCard({ deck }: { deck: Deck }) {
-  const { openArchiveDialog } = useOverlays();
   const first = deck.slides.slice(0, 4);
   const cells = [...first, ...Array.from({ length: 4 - first.length }, () => null)];
   return (
     <article className="card vcard" data-deck={deck.id}>
-      <button
-        type="button"
-        className="deck-arch"
-        title={deck.archived ? 'Restore this deck' : 'Archive this deck'}
-        aria-label={`${deck.archived ? 'Restore' : 'Archive'} deck: ${deck.title}`}
-        onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}
-      >
-        <Icon name="archive" />
-      </button>
       {deck.archived && <span className="deck-arch-badge badge badge-archived">Archived</span>}
       <Link to={{ view: 'deck', id: deck.id }} tabIndex={-1} ariaHidden>
         <div className="mosaic" aria-hidden="true">
