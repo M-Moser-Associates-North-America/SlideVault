@@ -2,6 +2,7 @@
 
 import { Button, buttonClass } from './ui/Button';
 import { PreviewActions, ShareIconButton } from './SlideActions';
+import { MoreMenu } from './MoreMenu';
 import { PreviewTags } from './TagBits';
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { exportPptx, getSection } from '../client/api';
@@ -465,6 +466,16 @@ export function Lightbox() {
                     <span className="lbl-long">Open deck</span>
                   </Link>
                 )}
+                {/* A phone has no room for two more buttons: they become the items of a "⋯" menu. */}
+                <MoreMenu
+                  className="lb-more"
+                  up
+                  label="More: open the slide page or the deck"
+                  items={[
+                    { label: 'Open slide page', icon: 'open', onClick: () => { closePreview(); runtime.navigate({ view: 'slide', id: slide.id }); } },
+                    ...(deck ? [{ label: 'Open deck', icon: 'deck' as const, onClick: () => { closePreview(); runtime.navigate({ view: 'deck', id: deck.id }); } }] : []),
+                  ]}
+                />
               </span>
             </div>
           </div>

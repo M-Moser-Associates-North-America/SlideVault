@@ -5,65 +5,19 @@ import { Badge } from '../ui/Badge';
 import { DeckTags } from '../TagBits';
 import { useEffect, useRef, useState } from 'react';
 import type { SlideSummary } from '../../contracts/dto';
-import { Icon, type IconName } from '../icons';
+import { Icon } from '../icons';
 import { dateLabel, hiddenGap, folderLabel, plural } from '../library';
 import { GroupTool } from '../Packs';
 import { Link, SlideCard, StateBlock } from '../parts';
 import { ScrollRow } from '../scroll-row';
 import { NumberJump } from '../Dialogs';
+import { MoreMenu } from '../MoreMenu';
 import { useWorkspaceCompact, useWorkspacePhoneLike } from '../size';
 import { useRoot } from '../root';
 import { useDraft, useLibrary, useNotify, useOverlays } from '../state';
 import { useReadyLibrary, SelectAll, ColumnsToggle, FILE_CREATED_TIP } from './shared';
 
 /** A "⋯" button that opens a small list of less-used actions. Closes on a tap outside, on Escape, and after a choice. */
-function MoreMenu({ label, items }: { label: string; items: { label: string; icon: IconName; onClick: () => void }[] }) {
-  const [open, setOpen] = useState(false);
-  const wrap = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: Event) => !wrap.current?.contains(e.target as Node) && setOpen(false);
-    const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setOpen(false);
-        wrap.current?.querySelector<HTMLElement>('button')?.focus();
-      }
-    };
-    document.addEventListener('pointerdown', away);
-    document.addEventListener('keydown', key);
-    return () => {
-      document.removeEventListener('pointerdown', away);
-      document.removeEventListener('keydown', key);
-    };
-  }, [open]);
-  return (
-    <div className="more-menu" ref={wrap}>
-      <Button size="sm" iconOnly aria-haspopup="menu" aria-expanded={open} aria-label={label} onClick={() => setOpen((o) => !o)}>
-        <Icon name="more" />
-      </Button>
-      {open && (
-        <div className="more-menu-list" role="menu">
-          {items.map((it) => (
-            <button
-              key={it.label}
-              type="button"
-              role="menuitem"
-              className="more-menu-item"
-              onClick={() => {
-                setOpen(false);
-                it.onClick();
-              }}
-            >
-              <Icon name={it.icon} />
-              {it.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** The slide numbers a typed range means: both ends kept inside the deck, in order. */
 function rangeBounds(count: number, from: string, to: string): [number, number] {
   const a = Math.min(count, Math.max(1, Math.round(Number(from)) || 1));

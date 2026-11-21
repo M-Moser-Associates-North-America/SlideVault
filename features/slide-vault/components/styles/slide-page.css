@@ -251,3 +251,5 @@
    them a little closer (28px) than a tablet on its side or a laptop (56px). A phone keeps its own layout above (one at each side). */
 .slidevault .sv-app:not([data-size="compact"]) .fb-verdict.in-preview { justify-content: center; gap: 4px 56px; margin-top: 0; }
 .slidevault .sv-app[data-size="medium"] .fb-verdict.in-preview { gap: 4px 28px; }
+/* "Also in N other decks": a link under the four buttons in the Use this slide card. */
+.slidevault .panel-use .also-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 13px; }

@@ -3,7 +3,7 @@
 import { Button, buttonClass } from '../ui/Button';
 import { SlideTitle } from '../RenameSlide';
 import { SlideEngagement, useShareSlide } from '../SlideActions';
-import { SlideLabelsPanel, SlideTagsPanel, PreviewTags } from '../TagBits';
+import { SlideLabelsPanel, PreviewTags } from '../TagBits';
 import { useEffect, useRef, useState } from 'react';
 import { getSlide } from '../../client/api';
 import type { SlideDetail, SlideSummary } from '../../contracts/dto';
@@ -111,13 +111,6 @@ export function SlideView({ id }: { id: string }) {
     </>
   );
   /* "Also in N other decks": in the row with the actions on a portrait phone; at the left end of the tag row on a phone on its side. */
-  const alsoChip =
-    slide.alsoIn ? (
-      <Button variant="ghost" size="sm" className="lb-also-chip" aria-label={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} data-tip={`Also in ${plural(slide.alsoIn.otherDeckCount, 'other deck')}`} onClick={() => openAlso(slide)}>
-        <Icon name="folders" />
-        <span aria-hidden="true">{slide.alsoIn.otherDeckCount}</span>
-      </Button>
-    ) : undefined;
   return (
     <div className="sv-wrap">
       <div className="slide-detail">
@@ -215,8 +208,8 @@ export function SlideView({ id }: { id: string }) {
               </span>
             )}
           </div>
-          {/* Phone: the tags are a scrolling row of pills here, in place of the Tags card (the Add tag pill and the suggestions in a second row). */}
-          {compact && <PreviewTags slide={slide} onNavigate={() => undefined} lead={alsoChip && <span className="tag-lead">{alsoChip}</span>} />}
+          {/* The tags are rows of pills under the pager on every screen (the Add tag pill and the suggestions in a second row): scrolling on a phone and a tablet, wrapping on a desktop. */}
+          <PreviewTags slide={slide} onNavigate={() => undefined} />
           <SlideEngagement key={slide.id} slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />
           {!compact && (
             <section className="panel slide-text-panel" style={{ marginTop: 16 }}>
@@ -253,14 +246,14 @@ export function SlideView({ id }: { id: string }) {
                 <span>Open deck</span>
               </Link>
             </div>
+            {slide.alsoIn && (
+              <Button variant="link" className="also-link" onClick={() => openAlso(slide)}>
+                <Icon name="folders" className="ic-sm" />
+                <span>Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</span>
+              </Button>
+            )}
           </section>
           {slidePack && <PackPanel slide={slide} pack={slidePack} />}
-          {!compact && <SlideTagsPanel also={slide.alsoIn ? (
-            <Button variant="ghost" size="sm" className="also-words" onClick={() => openAlso(slide)}>
-              <Icon name="folders" />
-              <span>Also in {plural(slide.alsoIn.otherDeckCount, 'other deck')}</span>
-            </Button>
-          ) : undefined} slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />}
           <SlideLabelsPanel fold={compact} open={upright} story={(detail && detail.id === id && 'slide' in detail ? detail.slide.story : undefined) ?? slide.story} />
           {compact ? (
             <FoldPanel className="panel-details" open={upright} title="Details" hint={p.sourceTitle}>
@@ -272,7 +265,7 @@ export function SlideView({ id }: { id: string }) {
                 <button type="button" className="btn-link arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
                   <Icon name="archive" className="ic-sm" />
                   <span className="arch-text">
-                    <span className="arch-l">{deck.archived ? 'Restore this deck' : 'Archive this deck'}</span> <span className="arch-n">({deck.slides.length} slides)</span>
+                    <span className="arch-l">{deck.archived ? 'Restore this deck' : 'Archive this deck'}</span>
                   </span>
                 </button>
               </dd>
@@ -333,7 +326,7 @@ export function SlideView({ id }: { id: string }) {
                 <button type="button" className="btn-link arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
                   <Icon name="archive" className="ic-sm" />
                   <span className="arch-text">
-                    <span className="arch-l">{deck.archived ? 'Restore this deck' : 'Archive this deck'}</span> <span className="arch-n">({deck.slides.length} slides)</span>
+                    <span className="arch-l">{deck.archived ? 'Restore this deck' : 'Archive this deck'}</span>
                   </span>
                 </button>
               </dd>

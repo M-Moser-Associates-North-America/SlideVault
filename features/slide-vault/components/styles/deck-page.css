@@ -134,3 +134,4 @@
 .slidevault .deck-actions-row > .deck-archive { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 /* On a phone the deck line's parts wrap onto their own lines, so the "·" between them would dangle at a line end. */
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .deck-meta .dm:not(:last-child)::after { content: none; }
+.slidevault .more-menu-list.is-up { top: auto; bottom: calc(100% + 6px); }

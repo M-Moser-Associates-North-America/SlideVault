@@ -163,7 +163,10 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .lb-caption .row-flex { display: flex; flex-wrap: nowrap; gap: 8px; width: 100%; }
 .slidevault .lb-caption .row-flex > .btn { flex: 1 1 0; min-width: 0; justify-content: center; padding-inline: 10px; }
 .slidevault .lb-caption .row-flex > .lb-open-deck { flex: none; width: 44px; padding-inline: 0; }
-.slidevault .lb-caption .lb-open-page { display: none; } }
+.slidevault .lb-caption .lb-open-page, .slidevault .lb-caption .lb-open-deck { display: none; }
+.slidevault .lb-caption .row-flex > .lb-more { display: block; flex: none; } }
+/* Only a phone shows the "⋯" menu (it holds Open slide page and Open deck there); wider screens have those as labelled buttons. */
+.slidevault .lb-more { display: none; }
 /* Same bar, same place, for every slide: Add, Download, and a small Open deck button. */
 @media (max-width: 700px) and (orientation: portrait) {
 .slidevault dialog.sv-dialog.wide .lb-caption { margin-top: auto; bottom: 0; padding: 10px 0 calc(12px + env(safe-area-inset-bottom)); } }
