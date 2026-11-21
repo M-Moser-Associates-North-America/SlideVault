@@ -135,8 +135,7 @@ export function SelectAll({ slides }: { slides: SlideSummary[] }) {
   return (
     <Button size="sm" onClick={click} aria-label={all ? 'Remove all from draft deck' : `Add all ${slides.length} to draft deck`}>
       <Icon name="check" />
-      <span className="lbl-long" aria-hidden="true">{all ? 'Remove all from draft deck' : `Add all ${slides.length} to draft deck`}</span>
-      <span className="lbl-short" aria-hidden="true">{all ? 'Remove all' : `Add all ${slides.length}`}</span>
+      <span aria-hidden="true">{all ? 'Remove all' : `Add all ${slides.length}`}</span>
     </Button>
   );
 }

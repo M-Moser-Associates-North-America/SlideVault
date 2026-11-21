@@ -927,12 +927,11 @@ export function DeckTags({ deck }: { deck: Deck }) {
   }, [runtime, first, deck.id]);
   const api = useTags(runtime, profile, 'deck', deck.id, seed?.id === deck.id ? seed.tags : first?.tags, true);
   const canEdit = useCanEdit();
-  const compact = useWorkspacePhoneLike();
-  /* Phone: the tags in one row that scrolls sideways, and the "Add tag" pill under them, as in the preview and on the slide page. */
+  /* One row on every screen: the deck's tags, then the "Add tag" chip last; it scrolls sideways and never wraps. */
   return (
     <div className="deck-tags">
-      <h2 className={compact ? 'sr-only' : 'h3'}>Tags</h2>
-      <TagList api={api} what="deck" canEdit={canEdit} addRow={compact} />
+      <h2 className="sr-only">Tags</h2>
+      <TagList api={api} what="deck" canEdit={canEdit} />
     </div>
   );
 }
