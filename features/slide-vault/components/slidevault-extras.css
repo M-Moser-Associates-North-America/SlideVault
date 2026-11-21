@@ -88,29 +88,9 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* Phones: Home rows show two slides and the edge of a third (the peek says "scroll"), so a row is
    scannable at a glance. Wider sizes keep the larger cards. */
 .slidevault .sv-app[data-size="compact"] .row-scroller .card-title { font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.6em; }
-/* Home: the search bar gives up width so the eye and the Storyboard button both fit beside it. */
-.slidevault .home-hero:has(.sb-launch) > .sb-launch { flex: none; }
-
 /* A simple orange ring that revolves around the Draft deck button until clicked (client/draft-nudge.ts). */
 @property --sv-spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 @keyframes svSpin { to { --sv-spin: 360deg; } }
-/* "New" badge on the Storyboard button, until it has been opened once. */
-.slidevault .sb-launch-btn { position: relative; }
-.slidevault .sb-new { position: absolute; top: -8px; right: 10px; padding: 1px 8px; border-radius: 999px; background: var(--sv-brand-tint); color: var(--sv-text); border: 1px solid var(--sv-brand); font-size: 11px; font-weight: 700; letter-spacing: 0.02em; line-height: 16px; }
-/* Storyboard button: white at rest, exactly like the eye and mic buttons beside it; it lights up orange
-   and says Build with AI on hover, focus and tap. (The brief glow keeps its own.) */
-.slidevault .btn.sb-launch-btn:not(.is-glow) { background: var(--sv-surface); border: 1px solid var(--sv-border-strong); color: var(--sv-text); box-shadow: var(--sv-shadow-card); }
-.slidevault .btn.sb-launch-btn:not(.is-glow) .ic { color: inherit; }
-.slidevault .btn.sb-launch-btn:not(.is-glow):focus-visible { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
-.slidevault .btn.sb-launch-btn { -webkit-tap-highlight-color: transparent; }
-.slidevault .btn.sb-launch-btn:not(.is-glow):active { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
-.slidevault .btn.sb-launch-btn:not(.is-glow):active .ic { color: #fff; }
-.slidevault .btn.sb-launch-btn:active .sb-new { background: #fff; color: var(--sv-text); }
-@media (hover: hover) {
-  .slidevault .btn.sb-launch-btn:not(.is-glow):hover { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
-  .slidevault .btn.sb-launch-btn:not(.is-glow):hover .ic { color: #fff; }
-  .slidevault .btn.sb-launch-btn:hover .sb-new { background: #fff; color: var(--sv-text); }
-}
 
 /* Card titles stop at two lines. One very long title used to stretch every card in its row (all cards in a
    row share the tallest height), leaving the rest mostly empty. The full title is in the tooltip. */
@@ -125,18 +105,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
   .slidevault .sv-dialog:has(.arch-body) .dlg-foot .btn { width: 100%; justify-content: center; }
 }
 
-/* The Storyboard button's label slides up to "Build with AI" on hover, focus and tap. Both words share one
-   grid cell, so the button is as wide as the longer one from the start and never changes size. */
-.slidevault .sb-swap { display: grid; overflow: hidden; line-height: 1.35; }
-.slidevault .sb-swap > span { grid-area: 1 / 1; text-align: center; white-space: nowrap; transition: transform .22s ease, opacity .22s ease; }
-.slidevault .sb-swap2 { transform: translateY(110%); opacity: 0; }
-.slidevault .btn.sb-launch-btn:focus-visible .sb-swap1, .slidevault .btn.sb-launch-btn:active .sb-swap1 { transform: translateY(-110%); opacity: 0; }
-.slidevault .btn.sb-launch-btn:focus-visible .sb-swap2, .slidevault .btn.sb-launch-btn:active .sb-swap2 { transform: none; opacity: 1; }
-@media (hover: hover) {
-  .slidevault .btn.sb-launch-btn:hover .sb-swap1 { transform: translateY(-110%); opacity: 0; }
-  .slidevault .btn.sb-launch-btn:hover .sb-swap2 { transform: none; opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) { .slidevault .sb-swap > span { transition: none; } }
 
 /* Upload: category pills and the tag box */
 .slidevault .field-opt { font-weight: 400; color: var(--sv-text-secondary); margin-left: 4px; }
@@ -572,7 +540,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* Pressed look that stays (see tap-feedback.ts): the same orange as hover, on touch and on Enter or Space, so a slow page change still shows the press. */
 .slidevault .btn-primary[data-tapped]:not(:disabled) { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); opacity: .86; }
 .slidevault .btn-ghost[data-tapped] { color: var(--sv-brand-strong); background: var(--sv-brand-tint); }
-.slidevault .btn.sb-launch-btn[data-tapped]:not(.is-glow) { background: var(--sv-brand); border-color: var(--sv-brand); color: #fff; }
 .slidevault .tag[data-tapped], .slidevault .chip-x[data-tapped] { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
 .slidevault .btn-link[data-tapped] { color: var(--sv-brand-strong); text-decoration-thickness: 2px; }
 
