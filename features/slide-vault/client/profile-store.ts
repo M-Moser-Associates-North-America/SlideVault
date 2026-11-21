@@ -205,6 +205,8 @@ function parseDrafts(raw: string | null): Draft[] {
 }
 
 const SERVER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** A draft the server has stored (its id came from the server); the others live only in this browser. */
+export const isServerDraft = (id: string) => SERVER_ID.test(id);
 const localId = () => `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 /** A named set of slides kept under "My decks". On the server when it's available. */

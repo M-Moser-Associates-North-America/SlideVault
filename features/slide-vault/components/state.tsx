@@ -7,7 +7,7 @@ import { withDemoDetails } from '../client/demo-details';
 import { useLocalPacks } from '../client/pack-store';
 import { buildPacks, NO_PACKS, type Pack, type PacksIndex } from '../client/packs';
 import { useActivity, useDrafts, useProfile, useSaved, type ActivityEntry, type Draft } from '../client/profile-store';
-import type { DraftSnapshot } from '../client/draft-status';
+import { slidesOutOfSight, type DraftSnapshot } from '../client/draft-status';
 import { adoptServerRole, currentStoryRole, onRoleChange } from '../client/role-store';
 import { demoTagsOn } from '../client/tag-store';
 import { useSelection } from '../client/selection-store';
@@ -192,7 +192,8 @@ type Workspace = {
   /** Save the draft deck as a new deck in My decks. Resolves to the saved deck's id. */
   saveDraft: (name: string, slides: SlideSummary[]) => Promise<string | null>;
   /** Re-save an older deck with the draft deck's slides (and a name). */
-  replaceDraft: (id: string, name: string, slides: SlideSummary[]) => Promise<void>;
+  /** Re-save a saved draft with new contents. Resolves to its id, which can be a new one (the server saves the new version, then removes the old). */
+  replaceDraft: (id: string, name: string, slides: SlideSummary[]) => Promise<string>;
   /** The saved deck the draft deck came from (opened from My decks, or saved from here), while the draft deck has slides in it. */
   draftOrigin: Draft | null;
   deleteDraft: (id: string) => void;
@@ -202,7 +203,8 @@ type Workspace = {
   slidesOfDraft: (draft: Draft) => SlideSummary[] | null;
   /** The draft deck as it is now, and a way to put it back (for an Undo). */
   snapshotDraft: () => DraftSnapshot;
-  restoreDraft: (snapshot: DraftSnapshot) => void;
+  /** Put the draft deck back as it was. With `expect` (the slide ids the action left), it only does so while the draft deck still holds exactly those. */
+  restoreDraft: (snapshot: DraftSnapshot, expect?: string[]) => boolean;
 };
 
 /*
@@ -712,12 +714,22 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const { drafts, save: saveDraftStore, replace: replaceDraftStore, remove: deleteDraft } = useDrafts(profile, transport);
   /* Which saved deck the draft deck is "of", so saving again can ask: update that deck, or save a new one? It ends when the draft deck is emptied. */
   const [originId, setOriginId] = useState<string | null>(null);
+  /* A different person (or nobody) is signed in now: the draft deck of the one before is not theirs, so it starts empty. */
+  const [lastProfile, setLastProfile] = useState(profile);
+  if (profile !== lastProfile) {
+    setLastProfile(profile);
+    updateSelectionRaw(() => []);
+    setOriginId(null);
+    setDraftTitle('');
+    setExcludedList([]);
+  }
   const [lastCount, setLastCount] = useState(selection.length);
   if (selection.length !== lastCount) {
     setLastCount(selection.length);
     if (selection.length === 0) {
       if (originId !== null) setOriginId(null);
       setDraftTitle(''); /* emptied: the name (a saved deck's, or one typed) goes too, so the next draft deck starts unnamed */
+      if (excludedList.length > 0) setExcludedList([]); /* and the unticked slides: a slide added later starts ticked */
     }
   if (selection.length === 0 && !combine) setCombine(true);
   }
@@ -733,10 +745,16 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   );
   const replaceDraft = useCallback(
     async (id: string, name: string, slides: SlideSummary[]) => {
-      setOriginId(await replaceDraftStore(id, name, slides.map((s) => s.id)));
+      /* Slides of the saved deck that are hidden or gone from the library cannot be in the draft deck; they stay in the saved deck. */
+      const known = library.status === 'ready' ? new Set(library.slides.map((s) => s.id)) : null;
+      const inDeck = new Set(slides.map((s) => s.id));
+      const kept = slidesOutOfSight(drafts.find((d) => d.id === id) ?? null, known, inDeck);
+      const finalId = await replaceDraftStore(id, name, [...slides.map((s) => s.id), ...kept]);
+      setOriginId(finalId);
       setDraftTitle(name);
+      return finalId;
     },
-    [replaceDraftStore],
+    [replaceDraftStore, library, drafts],
   );
   const slidesOfDraft = useCallback(
     (draft: Draft): SlideSummary[] | null => {
@@ -750,20 +768,33 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     (draft: Draft) => {
       const found = slidesOfDraft(draft) ?? [];
       updateSelection(() => found);
+      setExcludedList([]); /* everything in the opened draft deck is ticked */
       setOriginId(draft.id);
       setDraftTitle(draft.name);
       return found.length;
     },
     [slidesOfDraft, updateSelection],
   );
-  const snapshotDraft = useCallback((): DraftSnapshot => ({ slides: selection, title: draftTitle, originId }), [selection, draftTitle, originId]);
+  const snapshotDraft = useCallback((): DraftSnapshot => ({ slides: selection, title: draftTitle, originId, excluded: excludedList }), [selection, draftTitle, originId, excludedList]);
+  /* What the draft deck holds right now, for Undo to check against (a callback made earlier would see an old copy). */
+  const nowIds = useRef('');
+  useEffect(() => {
+    nowIds.current = selection.map((s) => s.id).join(',');
+  });
   const restoreDraft = useCallback(
-    (snap: DraftSnapshot) => {
+    (snap: DraftSnapshot, expect?: string[]): boolean => {
+      /* Undo only while the draft deck is still as the action left it; otherwise it would wipe out what was done since. */
+      if (expect && nowIds.current !== expect.join(',')) {
+        toast('The draft deck has changed since, so that can no longer be undone.');
+        return false;
+      }
       updateSelection(() => snap.slides);
+      setExcludedList(snap.excluded ?? []);
       setOriginId(snap.originId);
       setDraftTitle(snap.title);
+      return true;
     },
-    [updateSelection],
+    [updateSelection, toast],
   );
 
   /* While the AI question is waiting, the results show as loading. */
