@@ -122,11 +122,9 @@ test('steps 9–11: Preview opens a dialog named for the slide, focus inside, it
   await expect(opener).toBeFocused();
 });
 
-// WCAG 4.1.3 Status Messages (AA): a search that finds nothing should be announced. The "No slides found" block is not
-// a live region and nothing is announced (StateBlock in parts.tsx has a role only for errors; no announce() call), so a
-// screen-reader user hears nothing after pressing Enter. Found 11 Nov; marked failing until fixed.
-test('step 12: a search that finds nothing is announced (known issue: WCAG 4.1.3)', async ({ page }) => {
-  test.fail(true, 'Known: "No slides found" is not announced (no live region, no announce()).');
+// WCAG 4.1.3 Status Messages (AA): a search that finds nothing is announced in the page's polite live region (ResultsView calls announce()).
+// Found 11 Nov (A1); fixed 17 Nov.
+test('step 12: a search that finds nothing is announced (WCAG 4.1.3)', async ({ page }) => {
   await searchFor(page, 'zzqq');
   await expect(page.getByRole('heading', { name: /No slides found matching/ })).toBeVisible();
   const announced = await page.evaluate(() =>

@@ -19,6 +19,15 @@ import { Row, useReadyLibrary, ColumnsToggle } from './shared';
  * The results page. With `browse` set (a Home row's "See all", or a client / year / category tile) it shows the same page
  * for a list that no search produced: same heading, filter pills, sort, section pills and cards, just without the "why it fits" lines.
  */
+/** Tells a screen reader what the page now says when a search or list comes back empty (WCAG 4.1.3); draws nothing. */
+function AnnounceEmpty({ message }: { message: string }) {
+  const { announce } = useNotify();
+  useEffect(() => {
+    announce(message);
+  }, [message, announce]);
+  return null;
+}
+
 export function ResultsView({ browse }: { browse?: string } = {}) {
   const { searched, search, filters, patchFilters, clearFilters, retrySearch, setQuery, aiAsk, autoSection, sectionsFromSearch, sectionsInWords, ignoreChip, refreshing } = useSearch();
   const { toast } = useNotify();
@@ -229,6 +238,7 @@ export function ResultsView({ browse }: { browse?: string } = {}) {
                     : 'Try fewer words, or say it a different way. For example, “team intro” instead of “introduction to our team”.'
               }
             >
+              <AnnounceEmpty message={browse ? 'No slides here' : byFilters ? 'No slides match these filters' : `No slides found matching ${q}`} />
               {filterCount(filters) > 0 && (
                 <Button  onClick={clearFilters}>
                   Clear all filters
