@@ -6,7 +6,7 @@ Build it as a complete standalone application with modular interfaces that allow
 
 ## Start here
 
-**Status, 7 October 2026:** a runnable prototype exists. It covers the slide library, search, slide preview, ordered selection and editable PowerPoint export, built and tested on synthetic fixtures. Setup and commands: [docs/foundry/RUNNING.md](docs/foundry/RUNNING.md). How we build: [docs/foundry/CONVENTIONS.md](docs/foundry/CONVENTIONS.md). Prototype shortcuts are recorded as proposed decisions FD-01 to FD-08 in [Decisions](docs/DECISIONS.md). There is no database, job worker, sign-in or upload yet, and exports combine slides from one deck at a time. The HTML is an interactive mockup with simulated behavior. The documents below describe the intended implementation; only what the run guide lists is working.
+**Status, 20 November 2026 (hand-off):** SlideVault is a working standalone application, handed over from `foundry-release` at `3b0cac0`. It covers the slide library and upload, search (by words, by meaning with pgvector, by what a slide looks like, with an optional AI reader), the Storyboard, saved slides and draft decks, and editable PowerPoint export of slides from one or several decks. It runs on M Moser's Supabase project through personal database logins, or on the synthetic decks in `tests/fixtures/` with no settings at all. Setup and every command: [docs/foundry/RUNNING.md](docs/foundry/RUNNING.md). Every choice, with its evidence and tests: [Decisions](docs/DECISIONS.md), FD-01 to FD-107. How well it works on the real library: [docs/foundry/EVALS.md](docs/foundry/EVALS.md). Accessibility: [docs/foundry/ACCESSIBILITY.md](docs/foundry/ACCESSIBILITY.md). Licenses of the packages it ships with: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Still to come from M Moser: your sign-in (replace `userOf()` in `features/slide-vault/server/principal.ts`), access rules, hosting, retention and an AI provider (D-02, D-07, D-08, D-12, D-13). The HTML in `reference/` is the original mockup, kept for comparison.
 
 | Read | Purpose |
 | --- | --- |
@@ -41,8 +41,16 @@ Current owner instructions take precedence. For implementation, use the written 
 
 Treat these as reference artifacts. The HTML demonstrates screens and navigation; its login, upload, sharing, and export demonstrations are not production implementations. The presentation establishes trust, reuse, curation, and human editorial control as product goals.
 
-## First delivery from the team
+## What the team delivered
 
-Produce the Gate 0 scope and technical evidence described in the [delivery plan](docs/DELIVERY_PLAN.md), particularly editable PowerPoint fidelity and the embeddable feature boundary. Then add a runnable standalone harness, setup commands, a complete placeholder-only `env.example`, synthetic fixtures, and CI. Replace this repository-status paragraph only when those files and commands actually exist.
+A runnable standalone application (Next.js 16, React 19, TypeScript), its API under `/api/slide-vault/v1`, database setup for M Moser's Supabase project (`npm run db:setup`, adds only), placeholder-only `env.example`, synthetic fixture decks, automated tests and CI (typecheck, lint, export checks, build and browser accessibility tests on every pull request), an operating guide, and the decision log. The feature can run standalone or mount inside another page (`SlideVaultWorkspace` from `features/slide-vault/index.ts`, contract in `features/slide-vault/contracts/runtime.ts`).
 
-The team delivers a working standalone application, source, migrations, worker packaging, tests, operating instructions, and a portability demonstration. Any future integration into another system will be scoped separately. Repository publication and deployment are separate from preparing this handoff.
+Quick start:
+
+```bash
+npm ci
+npm run ingest   # read the sample decks
+npm run dev      # open http://localhost:3000/slide-vault
+```
+
+Needs Node.js 22 or newer, LibreOffice and poppler. Database, AI and meaning-search settings, the library upload, the look import and the support jobs are in [docs/foundry/RUNNING.md](docs/foundry/RUNNING.md). Any future integration into another system will be scoped separately.
