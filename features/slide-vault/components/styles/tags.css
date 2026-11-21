@@ -205,6 +205,17 @@ dialog.slidevault.tag-sheet .tag-sheet-added { color: var(--sv-text); }
 dialog.slidevault.tag-sheet .meta { margin: 0; }
 /* The sheet sits clear of the screen's bottom edge (and the phone's home bar): room under the box and the matching tags. */
 dialog.slidevault.tag-sheet .tag-sheet-body { display: grid; gap: 12px; padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+/* The phone keyboard (keyboard-lift.ts sets --sv-kb, the height it covers, --sv-vvh, the visible height, and data-keyboard): the sheet rides up on top of the keyboard, fits
+   the room that is left (the matching tags scroll, the box and Add stay put) and gives up the big gap under the box. A phone on its side, where the keyboard leaves
+   about 150px, keeps just the title and the box. */
+dialog.slidevault.tag-sheet.fb-sheet { margin-bottom: var(--sv-kb, 0px); max-height: min(86%, calc(var(--sv-vvh, 100vh) - 12px)); display: flex; flex-direction: column; }
+dialog.slidevault.tag-sheet .tag-sheet-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+dialog.slidevault.tag-sheet .tag-sheet-form { position: sticky; top: 0; z-index: 1; background: var(--sv-surface); padding-bottom: 2px; }
+dialog.slidevault.tag-sheet[data-keyboard] .tag-sheet-body { padding-bottom: 14px; }
+@media (max-height: 520px) {
+  dialog.slidevault.tag-sheet .dlg-head { padding-top: 10px; padding-bottom: 2px; min-height: 0; }
+  dialog.slidevault.tag-sheet[data-keyboard] :is(.tag-sheet-list, .tag-sheet-added, .meta) { display: none; }
+}
 
 /* The Add tag sheet sits inside a slide-page panel, whose heading rule (15px) would otherwise shrink the sheet's title. */
 .slidevault .panel dialog.sv-dialog .dlg-head h2 { font-size: 18px; }

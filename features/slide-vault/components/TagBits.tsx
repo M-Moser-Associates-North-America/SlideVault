@@ -7,6 +7,7 @@ import { getSlide, listTags, searchTagSuggestions, tagSuggestions, type TagSugge
 import { demoTagsOn, ranked, TagsUnavailable, useTags, type TagsApi } from '../client/tag-store';
 import type { FreeTag, SlideDetail, SlideStory, SlideSummary, TagRemoval } from '../contracts/dto';
 import { useEdgeFade } from './edge-fade';
+import { useKeyboardLift } from './keyboard-lift';
 import { FoldPanel } from './fold-panel';
 import { Icon } from './icons';
 import { plural, type Deck } from './library';
@@ -407,6 +408,7 @@ function AddTagSheet({ label, known, have, disabled, onAdd }: { label: string; k
   const pill = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   useDialogOpen(ref, open);
+  useKeyboardLift(ref, open);
   const typed = cleanTag(text);
   const taken = (t: string) => [...have, ...added].some((h) => h.toLowerCase() === t.toLowerCase());
   const q = typed.toLowerCase();
