@@ -23,7 +23,7 @@ import { askedOrder, configuredReader, limitFor, looksWrongFor, readerForSearch,
 // search; aiAvailable tells the screen whether to offer the checkbox at all. ignore=case studies|2024 (the words behind a chip the person
 // crossed out) reads the request as if those words were not there (they are searched as plain words only when nothing else is left).
 // sections=off: the words ask for no section. filters=<json>: the filters the person ticked, applied here over a larger pool of what the
-// words found, so they search the whole library and not only the first slides (response: facets, the counts for the filter lists). Each result says why it fits; near-identical slides are grouped.
+// words found, so they search the top 400 matches of the words and not only the first slides (response: facets, the counts for the filter lists). Each result says why it fits; near-identical slides are grouped.
 // Response: { query, reader, readerNote, plan, chips, relaxed, items: [{ slide, why, matched }] }
 export async function GET(request: Request) {
   const limited = await rateLimit(request, RATE_POLICIES.smartSearch);
