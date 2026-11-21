@@ -5,65 +5,19 @@ import { Badge } from '../ui/Badge';
 import { DeckTags } from '../TagBits';
 import { useEffect, useRef, useState } from 'react';
 import type { SlideSummary } from '../../contracts/dto';
-import { Icon, type IconName } from '../icons';
+import { Icon } from '../icons';
 import { dateLabel, hiddenGap, folderLabel, plural } from '../library';
 import { GroupTool } from '../Packs';
 import { Link, SlideCard, StateBlock } from '../parts';
 import { ScrollRow } from '../scroll-row';
 import { NumberJump } from '../Dialogs';
+import { MoreMenu } from '../MoreMenu';
 import { useWorkspaceCompact, useWorkspacePhoneLike } from '../size';
 import { useRoot } from '../root';
 import { useDraft, useLibrary, useNotify, useOverlays } from '../state';
 import { useReadyLibrary, SelectAll, ColumnsToggle, FILE_CREATED_TIP } from './shared';
 
 /** A "⋯" button that opens a small list of less-used actions. Closes on a tap outside, on Escape, and after a choice. */
-function MoreMenu({ label, items }: { label: string; items: { label: string; icon: IconName; onClick: () => void }[] }) {
-  const [open, setOpen] = useState(false);
-  const wrap = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: Event) => !wrap.current?.contains(e.target as Node) && setOpen(false);
-    const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setOpen(false);
-        wrap.current?.querySelector<HTMLElement>('button')?.focus();
-      }
-    };
-    document.addEventListener('pointerdown', away);
-    document.addEventListener('keydown', key);
-    return () => {
-      document.removeEventListener('pointerdown', away);
-      document.removeEventListener('keydown', key);
-    };
-  }, [open]);
-  return (
-    <div className="more-menu" ref={wrap}>
-      <Button size="sm" iconOnly aria-haspopup="menu" aria-expanded={open} aria-label={label} onClick={() => setOpen((o) => !o)}>
-        <Icon name="more" />
-      </Button>
-      {open && (
-        <div className="more-menu-list" role="menu">
-          {items.map((it) => (
-            <button
-              key={it.label}
-              type="button"
-              role="menuitem"
-              className="more-menu-item"
-              onClick={() => {
-                setOpen(false);
-                it.onClick();
-              }}
-            >
-              <Icon name={it.icon} />
-              {it.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /** The slide numbers a typed range means: both ends kept inside the deck, in order. */
 function rangeBounds(count: number, from: string, to: string): [number, number] {
   const a = Math.min(count, Math.max(1, Math.round(Number(from)) || 1));
@@ -95,7 +49,6 @@ function RangeAdd({ slides, from, to, setFrom, setTo, onDone }: { slides: SlideS
     updateSelection((cur) => [...cur, ...picked.filter((s) => !cur.some((c) => c.id === s.id))]);
     toast(`Added slides ${lo} to ${hi}`);
     announce(`${plural(picked.length, 'slide')} added to draft deck`);
-    onDone();
   };
   return (
     <form
@@ -105,16 +58,20 @@ function RangeAdd({ slides, from, to, setFrom, setTo, onDone }: { slides: SlideS
         add();
       }}
     >
-      <span>Add slides</span>
-      <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="next" autoComplete="off" aria-label={`From slide, a number from 1 to ${slides.length}`} value={from} onFocus={keepInView} onBlur={() => setFrom(String(Math.min(slides.length, Math.max(1, Math.round(Number(from)) || 1))))} onChange={(e) => setFrom(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, from, setFrom)} />
-      <span>to</span>
-      <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="go" autoComplete="off" aria-label={`To slide, a number from 1 to ${slides.length}`} value={to} onFocus={keepInView} onBlur={() => setTo(String(Math.min(slides.length, Math.max(1, Math.round(Number(to)) || slides.length))))} onChange={(e) => setTo(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, to, setTo)} />
-      <Button type="submit" size="sm" variant="primary">
-        Add {hi - lo + 1}
-      </Button>
-      <Button size="sm" variant="ghost" iconOnly className="range-close" aria-label="Close, and show the whole deck" onClick={onDone}>
-        <Icon name="x" />
-      </Button>
+      <div className="range-fields">
+        <span className="range-label">Add slides</span>
+        <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="next" autoComplete="off" aria-label={`From slide, a number from 1 to ${slides.length}`} value={from} onFocus={keepInView} onBlur={() => setFrom(String(Math.min(slides.length, Math.max(1, Math.round(Number(from)) || 1))))} onChange={(e) => setFrom(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, from, setFrom)} />
+        <span>to</span>
+        <input className="num-jump" inputMode="numeric" pattern="[0-9]*" maxLength={String(slides.length).length} enterKeyHint="go" autoComplete="off" aria-label={`To slide, a number from 1 to ${slides.length}`} value={to} onFocus={keepInView} onBlur={() => setTo(String(Math.min(slides.length, Math.max(1, Math.round(Number(to)) || slides.length))))} onChange={(e) => setTo(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => step(e, to, setTo)} />
+      </div>
+      <div className="range-actions">
+        <Button type="submit" size="sm" variant="primary">
+          Add {hi - lo + 1}
+        </Button>
+        <Button variant="ghost" iconOnly className="range-close" aria-label="Close, and show the whole deck" onClick={onDone}>
+          <Icon name="x" />
+        </Button>
+      </div>
     </form>
   );
 }
@@ -228,7 +185,12 @@ export function DeckView({ id }: { id: string }) {
   const openRange = () => {
     setRangeFrom('1');
     setRangeTo(String(deck.slides.length));
+    setGrouping(false); /* the range box and grouping never share the page */
     setRangeOpen(true);
+  };
+  const toggleGrouping = () => {
+    setRangeOpen(false);
+    setGrouping((g) => !g);
   };
   /* While the range box is open, only those slides are shown below it; they keep their numbers from the deck. */
   const [rangeLo, rangeHi] = rangeOpen ? rangeBounds(deck.slides.length, rangeFrom, rangeTo) : [1, deck.slides.length];
@@ -257,6 +219,8 @@ export function DeckView({ id }: { id: string }) {
               <Icon name="folder" />
               {folderLabel(deck)}
             </Badge>
+            {/* The deck's own tags join the row after the badges; "Add tag" is its last chip. */}
+            <DeckTags deck={deck} />
           </ScrollRow>
           {/* One line (it wraps to a second if it must): how many slides, who made the file, who uploaded it. */}
           <p className="lede deck-meta">
@@ -287,6 +251,7 @@ export function DeckView({ id }: { id: string }) {
           </p>
         </div>
         {compact ? (
+          <>
           <div className="row-flex deck-actions">
             <SelectAll slides={deck.slides} />
             {tablet && (
@@ -303,16 +268,20 @@ export function DeckView({ id }: { id: string }) {
               label="More deck actions"
               items={[
                 ...(tablet ? [] : [{ label: 'Add a range of slides', icon: 'plus' as const, onClick: openRange }]),
+                { label: grouping ? 'Stop grouping' : 'Group slides into a pack', icon: 'layers', onClick: toggleGrouping },
                 { label: deck.archived ? 'Restore deck' : 'Archive deck', icon: 'archive', onClick: () => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived }) },
-                { label: grouping ? 'Stop grouping' : 'Group slides into a pack', icon: 'layers', onClick: () => setGrouping((g) => !g) },
               ]}
             />
-            {/* A phone on its side: the deck's tags sit in this row, after a thin divider (hidden elsewhere). */}
-            <span className="deck-sep" aria-hidden="true" />
-            <div className="deck-tags-inline">
-              <DeckTags deck={deck} />
-            </div>
           </div>
+          {/* While grouping, the choice stays in view as a selected chip (it would otherwise be hidden in the menu). */}
+          {grouping && (
+            <Button size="sm" aria-pressed className="deck-group-chip" onClick={() => setGrouping(false)}>
+              <Icon name="layers" />
+              <span>Stop grouping</span>
+              <Icon name="x" />
+            </Button>
+          )}
+          </>
         ) : (
           <div className="row-flex deck-actions-row">
             <SelectAll slides={deck.slides} />
@@ -320,11 +289,7 @@ export function DeckView({ id }: { id: string }) {
               <Icon name="plus" />
               <span>Add a range of slides</span>
             </Button>
-            <Button size="sm" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}>
-              <Icon name="archive" />
-              <span>{deck.archived ? 'Restore deck' : 'Archive deck'}</span>
-            </Button>
-            <Button size="sm" aria-pressed={grouping} onClick={() => setGrouping((g) => !g)}>
+            <Button size="sm" aria-pressed={grouping} onClick={toggleGrouping}>
               <Icon name="layers" />
               <span>{grouping ? 'Stop grouping' : 'Group slides into a pack'}</span>
             </Button>
@@ -332,15 +297,16 @@ export function DeckView({ id }: { id: string }) {
               <Icon name="download" />
               <span>Download whole deck</span>
             </Button>
+            <Button variant="link" className="deck-archive" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived })}>
+              <Icon name="archive" className="ic-sm" />
+              <span>{deck.archived ? 'Restore deck' : 'Archive deck'}</span>
+            </Button>
           </div>
         )}
       </div>
       {rangeOpen && <RangeAdd slides={deck.slides} from={rangeFrom} to={rangeTo} setFrom={setRangeFrom} setTo={setRangeTo} onDone={() => setRangeOpen(false)} />}
-      {/* One wrapper so a phone on its side can put "Go to slide" and the tags on the same row (it adds no box on a portrait phone). */}
+      {/* "Go to slide" and the card-size toggle. */}
       <div className="deck-tagbar">
-        <div className="deck-tags-main">
-          <DeckTags deck={deck} />
-        </div>
         {compact && !grouping && <DeckJump slides={shown} dense={dense} setDense={setDense} />}
       </div>
       {grouping ? (

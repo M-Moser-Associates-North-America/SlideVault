@@ -7,6 +7,7 @@ import { getSlide, listTags, searchTagSuggestions, tagSuggestions, type TagSugge
 import { demoTagsOn, ranked, TagsUnavailable, useTags, type TagsApi } from '../client/tag-store';
 import type { FreeTag, SlideDetail, SlideStory, SlideSummary, TagRemoval } from '../contracts/dto';
 import { useEdgeFade } from './edge-fade';
+import { useKeyboardLift } from './keyboard-lift';
 import { FoldPanel } from './fold-panel';
 import { Icon } from './icons';
 import { plural, type Deck } from './library';
@@ -407,6 +408,7 @@ function AddTagSheet({ label, known, have, disabled, onAdd }: { label: string; k
   const pill = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   useDialogOpen(ref, open);
+  useKeyboardLift(ref, open);
   const typed = cleanTag(text);
   const taken = (t: string) => [...have, ...added].some((h) => h.toLowerCase() === t.toLowerCase());
   const q = typed.toLowerCase();
@@ -925,12 +927,11 @@ export function DeckTags({ deck }: { deck: Deck }) {
   }, [runtime, first, deck.id]);
   const api = useTags(runtime, profile, 'deck', deck.id, seed?.id === deck.id ? seed.tags : first?.tags, true);
   const canEdit = useCanEdit();
-  const compact = useWorkspacePhoneLike();
-  /* Phone: the tags in one row that scrolls sideways, and the "Add tag" pill under them, as in the preview and on the slide page. */
+  /* One row on every screen: the deck's tags, then the "Add tag" chip last; it scrolls sideways and never wraps. */
   return (
     <div className="deck-tags">
-      <h2 className={compact ? 'sr-only' : 'h3'}>Tags</h2>
-      <TagList api={api} what="deck" canEdit={canEdit} addRow={compact} />
+      <h2 className="sr-only">Tags</h2>
+      <TagList api={api} what="deck" canEdit={canEdit} />
     </div>
   );
 }

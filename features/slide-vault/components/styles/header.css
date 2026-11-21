@@ -10,9 +10,7 @@
 .slidevault .back-results { font-size: var(--sv-text-small); white-space: nowrap; flex: none; }
 @media (max-width: 900px) {
 .slidevault .tools { order: 2; margin-left: auto; } }
-/* The breadcrumb wraps onto a second line instead of running under the text beside it. */
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .navgroup .back-results { padding-top: 1px; }
 
 /* The one scrolling area of the workspace: everything that scrolls, sticks or measures scroll uses this element, not the window. */
 .slidevault .sv-scroll { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; background: var(--sv-bg); }
@@ -42,12 +40,19 @@
 .slidevault .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--sv-text); margin-right: 10px; flex: none; }
 .slidevault .sv-nav { min-width: 0; }
 .slidevault .navrow { padding-top: 10px; padding-bottom: 2px; }
-.slidevault .navgroup { display: flex; align-items: center; gap: 8px 12px; min-width: 0; }
+/* The breadcrumb and "← Results" share one line, centred on each other, with room between them on every screen. */
+.slidevault .navgroup { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px 20px; min-width: 0; }
 .slidevault .navgroup .crumbs { margin: 0; min-width: 0; flex: 1 1 0; overflow: hidden; }
 .slidevault .navgroup .crumbs nav { min-width: 0; max-width: 100%; }
-.slidevault .navgroup .crumbs ol { flex-wrap: nowrap; overflow: hidden; }
-.slidevault .navgroup .crumbs li { white-space: nowrap; }
+/* The breadcrumb is always one line, on every screen size and turn: Home and the last step ("Slide 6") keep their words, and the long name between
+   them (a deck's file name) shortens with an ellipsis first. With only two steps the last one is the long name and shortens. The little padding (cancelled by the negative margin) leaves room for a focus ring. */
+.slidevault .navgroup .crumbs ol { flex-wrap: nowrap; overflow: hidden; padding: 3px 4px; margin: -3px -4px; }
+.slidevault .navgroup .crumbs li { white-space: nowrap; flex: 0 1 auto; }
+.slidevault .navgroup .crumbs li:first-child { flex: none; }
+.slidevault .navgroup .crumbs li:not(:first-child):not(:last-child) { flex: 0 1000 auto; }
 .slidevault .navgroup .crumbs li:last-child { min-width: 0; }
+.slidevault .navgroup .crumbs li:last-child:nth-child(n+3) { flex: none; }
+.slidevault .navgroup .crumbs a { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .slidevault .navgroup .crumbs [aria-current] { display: block; overflow: hidden; text-overflow: ellipsis; max-width: 46ch; }
 @media (max-width: 900px) {
 .slidevault .brand { order: 1; margin-right: 0; }
@@ -176,7 +181,6 @@
 
 @media (prefers-reduced-motion: no-preference) {
 .slidevault .sv-bottombar .bb-n { animation: bbBump 0.24s ease-out; } }
-/* The breadcrumb wraps onto a second line instead of running under the text beside it. */
 /* With the example searches gone, the results heading needs its own room under the filter row. */
 .slidevault .sv-app .sv-wrap > .page-head { margin-top: 22px; }
 
@@ -200,17 +204,12 @@
 /* Deck page on a phone turned sideways: less space above the title; "Created / Uploaded" on one line; "Go to slide" on the left of the tags. */
 
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-.slidevault .sv-app[data-size="compact"] .sv-wrap > .crumbs, .slidevault .sv-app[data-size="compact"] .crumbs { margin-bottom: 4px; } }
+.slidevault .sv-app[data-size="compact"] .navgroup { margin-bottom: 4px; } }
 /* Phone on its side: the narrow pages (Settings, Create, Upload) line up with every other page's left edge instead of floating in the middle. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
 .slidevault .sv-shell.narrow .center .sv-main .sv-wrap { margin-left: 0; margin-right: 0; } }
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .navgroup .crumbs ol { flex-wrap: wrap; overflow: visible; }
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .navgroup .crumbs li { white-space: normal; overflow-wrap: anywhere; }
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .navgroup .crumbs [aria-current] { display: inline; max-width: none; overflow: visible; text-overflow: clip; white-space: normal; }
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .navgroup { flex-wrap: nowrap; align-items: flex-start; }
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .navgroup .crumbs { overflow: visible; flex: 1 1 0; }
-.slidevault .sv-app[data-size="medium"] .crumbs { margin-bottom: 4px; }
+.slidevault .sv-app[data-size="medium"] .navgroup { margin-bottom: 4px; }
 /* Slide page on an upright tablet: a little more air between the breadcrumb and the heading. */
 .slidevault .sv-app[data-size="medium"] .slide-detail .crumbs, .slidevault .sv-app[data-size="medium"] .navrow { padding-bottom: 8px; }
 

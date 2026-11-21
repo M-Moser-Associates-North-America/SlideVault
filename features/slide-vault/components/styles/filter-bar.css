@@ -19,9 +19,11 @@
 
 /* ===== The bar ===== */
 .slidevault .fbar-sentinel { height: 0; }
-.slidevault .fbar { position: sticky; z-index: 25; margin: 0; padding: 12px 0 4px; background: var(--sv-bg); }
+.slidevault .fbar { position: sticky; z-index: 25; margin: 0; padding: 12px 0 4px; }
 /* The bar's background reaches the edges of the scrolling area (and the draft deck panel), so no slide cards show beside or under it. */
-.slidevault .fbar::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(-1 * var(--fb-l, 0px)); right: calc(-1 * var(--fb-r, 0px)); background: var(--sv-bg); pointer-events: none; }
+.slidevault .fbar::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(-1 * var(--fb-l, 0px)); right: calc(-1 * var(--fb-r, 0px)); pointer-events: none; }
+/* The bar paints the page colour only while it is pinned (or holds the slim search), when content scrolls underneath it. Not pinned, it paints nothing: an opaque band there covered the deck tray's soft edge shadow and showed as a lighter patch beside the tray. */
+.slidevault .fbar:is(.is-stuck, .has-search), .slidevault .fbar:is(.is-stuck, .has-search)::before { background: var(--sv-bg); }
 .slidevault .sv-app[data-size="wide"] .fbar { --fb-l: var(--sv-side); --fb-r: 24px; }
 .slidevault .sv-app[data-size="wide"] .cart-min .fbar { --fb-r: var(--sv-side); }
 .slidevault .sv-app[data-size="medium"] .fbar { --fb-l: 20px; --fb-r: 20px; }
@@ -119,6 +121,8 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar { position: static; display: block; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.fbar:has(.fb-chips), .sv-main:has(.res-wrap) .fbar) { margin-bottom: 24px; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar > .fbar-row { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px 10px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; max-width: none; padding: 6px 0 4px; }
+/* While the Storyboard hint is a callout beside its button, the row does not scroll or clip: the callout is taller than the row and would be cut off. (The row has room: the filters take about half of it.) */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar > .fbar-row:has(.sb-launch-hint) { overflow: visible; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row::-webkit-scrollbar { display: none; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row > * { flex: none; margin: 0; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fb-all { display: inline-flex; }
@@ -134,7 +138,8 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 /* The line above the row that holds Storyboard. */
 .slidevault .fb-tools { position: relative; align-items: center; gap: 8px; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar > .fb-tools { display: block; margin: 0 0 12px; }
-.slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar > .fb-tools { flex: 1 1 100%; }
+/* Phone upright: the Storyboard button has the same room above it (from the search bar) as below it (to Search with AI): 18px each. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar > .fb-tools { flex: 1 1 100%; margin-top: 10px; }
 
 /* ===== Phone on its side ===== */
 @media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {

@@ -7,6 +7,7 @@ import { withDemoDetails } from '../client/demo-details';
 import { useLocalPacks } from '../client/pack-store';
 import { buildPacks, NO_PACKS, type Pack, type PacksIndex } from '../client/packs';
 import { useActivity, useDrafts, useProfile, useSaved, type ActivityEntry, type Draft } from '../client/profile-store';
+import type { DraftSnapshot } from '../client/draft-status';
 import { adoptServerRole, currentStoryRole, onRoleChange } from '../client/role-store';
 import { demoTagsOn } from '../client/tag-store';
 import { useSelection } from '../client/selection-store';
@@ -96,6 +97,8 @@ type Workspace = {
   aiAskKind: 'short' | 'long';
   /** Yes: the AI reads this short search. No: the regular search reads it. Either way the search runs now. */
   answerAiAsk: (useAi: boolean) => void;
+  /** Close the question without answering: nothing is searched and nothing is changed (outside click, Escape). */
+  dismissAiAsk: () => void;
   /** Archived decks are left out of every list unless this is on (FD-50) */
   includeArchived: boolean;
   setIncludeArchived: (on: boolean) => void;
@@ -195,6 +198,11 @@ type Workspace = {
   deleteDraft: (id: string) => void;
   /** Replace the draft deck with a saved draft's slides. Returns how many slides were found. */
   loadDraft: (draft: Draft) => number;
+  /** A saved draft's slides as the library knows them (ones no longer in the library are left out); null while the library is still loading. */
+  slidesOfDraft: (draft: Draft) => SlideSummary[] | null;
+  /** The draft deck as it is now, and a way to put it back (for an Undo). */
+  snapshotDraft: () => DraftSnapshot;
+  restoreDraft: (snapshot: DraftSnapshot) => void;
 };
 
 /*
@@ -205,8 +213,8 @@ type Workspace = {
  */
 export type RuntimeGroup = Pick<Workspace, 'runtime'>;
 export type LibraryGroup = Pick<Workspace, 'library' | 'reloadLibrary' | 'includeHidden' | 'setIncludeHidden' | 'includeArchived' | 'setIncludeArchived' | 'archiveDeck' | 'renameSlide' | 'packs' | 'makePack' | 'ungroupPack' | 'renamePack' | 'setPackStatus'>;
-export type SearchGroup = Pick<Workspace, 'aiAvailable' | 'deeperAi' | 'setDeeperAi' | 'aiAsk' | 'aiAskKind' | 'answerAiAsk' | 'query' | 'setQuery' | 'typeQuery' | 'searched' | 'submitSearch' | 'retrySearch' | 'search' | 'filters' | 'patchFilters' | 'clearFilters' | 'sectionsFromSearch' | 'autoSection' | 'dismissAutoSection' | 'sectionsInWords' | 'ignoreChip' | 'ignoreWords' | 'sectionsOff' | 'refreshing' | 'searchRun'>;
-export type DraftGroup = Pick<Workspace, 'selection' | 'updateSelection' | 'excluded' | 'setIncluded' | 'cartMin' | 'setCartMin' | 'draftTitle' | 'setDraftTitle' | 'combine' | 'setCombine' | 'addPackToDraft' | 'removePackFromDraft' | 'drafts' | 'saveDraft' | 'replaceDraft' | 'draftOrigin' | 'deleteDraft' | 'loadDraft'>;
+export type SearchGroup = Pick<Workspace, 'aiAvailable' | 'deeperAi' | 'setDeeperAi' | 'aiAsk' | 'aiAskKind' | 'answerAiAsk' | 'dismissAiAsk' | 'query' | 'setQuery' | 'typeQuery' | 'searched' | 'submitSearch' | 'retrySearch' | 'search' | 'filters' | 'patchFilters' | 'clearFilters' | 'sectionsFromSearch' | 'autoSection' | 'dismissAutoSection' | 'sectionsInWords' | 'ignoreChip' | 'ignoreWords' | 'sectionsOff' | 'refreshing' | 'searchRun'>;
+export type DraftGroup = Pick<Workspace, 'selection' | 'updateSelection' | 'excluded' | 'setIncluded' | 'cartMin' | 'setCartMin' | 'draftTitle' | 'setDraftTitle' | 'combine' | 'setCombine' | 'addPackToDraft' | 'removePackFromDraft' | 'drafts' | 'saveDraft' | 'replaceDraft' | 'draftOrigin' | 'deleteDraft' | 'loadDraft' | 'slidesOfDraft' | 'snapshotDraft' | 'restoreDraft'>;
 export type OverlaysGroup = Pick<Workspace, 'preview' | 'openPreview' | 'closePreview' | 'movePreview' | 'goToPreview' | 'downloadSlides' | 'openDownload' | 'closeDownload' | 'alsoFor' | 'openAlso' | 'closeAlso' | 'archiveDialog' | 'openArchiveDialog' | 'closeArchiveDialog' | 'packDialog' | 'openPackDialog' | 'closePackDialog'>;
 export type NotifyGroup = Pick<Workspace, 'toast' | 'dismissToast' | 'announce'>;
 export type NoticesGroup = Pick<Workspace, 'toasts' | 'announcement'>;
@@ -383,6 +391,7 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
      "No" is remembered for that search so it reads with the rules. It asks again every time, on every short search. */
   const [forceAiFor, setForceAiFor] = useState('');
   const [declineAiFor, setDeclineAiFor] = useState('');
+  const dismissAiAsk = useCallback(() => setAiAsk(null), []);
   const answerAiAsk = useCallback(
     (useAi: boolean) => {
       const q = aiAsk;
@@ -706,7 +715,10 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const [lastCount, setLastCount] = useState(selection.length);
   if (selection.length !== lastCount) {
     setLastCount(selection.length);
-    if (selection.length === 0 && originId !== null) setOriginId(null);
+    if (selection.length === 0) {
+      if (originId !== null) setOriginId(null);
+      setDraftTitle(''); /* emptied: the name (a saved deck's, or one typed) goes too, so the next draft deck starts unnamed */
+    }
   if (selection.length === 0 && !combine) setCombine(true);
   }
   const draftOrigin = selection.length > 0 && originId ? (drafts.find((d) => d.id === originId) ?? null) : null;
@@ -726,24 +738,40 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     },
     [replaceDraftStore],
   );
+  const slidesOfDraft = useCallback(
+    (draft: Draft): SlideSummary[] | null => {
+      if (library.status !== 'ready') return null;
+      const all = library.slides;
+      return draft.slideIds.map((id) => all.find((s) => s.id === id)).filter((s): s is SlideSummary => s !== undefined);
+    },
+    [library],
+  );
   const loadDraft = useCallback(
     (draft: Draft) => {
-      const all = library.status === 'ready' ? library.slides : [];
-      const found = draft.slideIds.map((id) => all.find((s) => s.id === id)).filter((s): s is SlideSummary => s !== undefined);
+      const found = slidesOfDraft(draft) ?? [];
       updateSelection(() => found);
       setOriginId(draft.id);
       setDraftTitle(draft.name);
       return found.length;
     },
-    [library, updateSelection],
+    [slidesOfDraft, updateSelection],
+  );
+  const snapshotDraft = useCallback((): DraftSnapshot => ({ slides: selection, title: draftTitle, originId }), [selection, draftTitle, originId]);
+  const restoreDraft = useCallback(
+    (snap: DraftSnapshot) => {
+      updateSelection(() => snap.slides);
+      setOriginId(snap.originId);
+      setDraftTitle(snap.title);
+    },
+    [updateSelection],
   );
 
   /* While the AI question is waiting, the results show as loading. */
   const shownSearch = useMemo<SearchState>(() => (aiAsk ? { status: 'loading' } : search), [aiAsk, search]);
   const runtimeValue = useMemo<RuntimeGroup>(() => ({ runtime }), [runtime]);
   const libraryValue = useMemo<LibraryGroup>(() => ({ library, reloadLibrary, includeHidden, setIncludeHidden, includeArchived, setIncludeArchived, archiveDeck, renameSlide, packs, makePack, ungroupPack, renamePack, setPackStatus }), [library, reloadLibrary, includeHidden, setIncludeHidden, includeArchived, setIncludeArchived, archiveDeck, renameSlide, packs, makePack, ungroupPack, renamePack, setPackStatus]);
-  const searchValue = useMemo<SearchGroup>(() => ({ aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, searched: submitted, submitSearch, retrySearch, search: shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, ignoreWords, sectionsOff, refreshing, searchRun: searchTry }), [aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, query, setQuery, typeQuery, submitted, submitSearch, retrySearch, shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, ignoreWords, sectionsOff, refreshing, searchTry]);
-  const draftValue = useMemo<DraftGroup>(() => ({ selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft }), [selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft]);
+  const searchValue = useMemo<SearchGroup>(() => ({ aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, dismissAiAsk, query, setQuery, typeQuery, searched: submitted, submitSearch, retrySearch, search: shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, ignoreWords, sectionsOff, refreshing, searchRun: searchTry }), [aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, dismissAiAsk, query, setQuery, typeQuery, submitted, submitSearch, retrySearch, shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, ignoreWords, sectionsOff, refreshing, searchTry]);
+  const draftValue = useMemo<DraftGroup>(() => ({ selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft, slidesOfDraft, snapshotDraft, restoreDraft }), [selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft, slidesOfDraft, snapshotDraft, restoreDraft]);
   const overlaysValue = useMemo<OverlaysGroup>(() => ({ preview, openPreview, closePreview, movePreview, goToPreview, downloadSlides, openDownload, closeDownload, alsoFor, openAlso, closeAlso, archiveDialog, openArchiveDialog, closeArchiveDialog, packDialog, openPackDialog, closePackDialog }), [preview, openPreview, closePreview, movePreview, goToPreview, downloadSlides, openDownload, closeDownload, alsoFor, openAlso, closeAlso, archiveDialog, openArchiveDialog, closeArchiveDialog, packDialog, openPackDialog, closePackDialog]);
   const notifyValue = useMemo<NotifyGroup>(() => ({ toast, dismissToast, announce }), [toast, dismissToast, announce]);
   const noticesValue = useMemo<NoticesGroup>(() => ({ toasts, announcement }), [toasts, announcement]);

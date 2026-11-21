@@ -3,6 +3,7 @@
 import { Button } from './ui/Button';
 import { stopNudge, useNudge } from '../client/draft-nudge';
 import { useTourOpen } from '../client/tour-store';
+import { draftStatus } from '../client/draft-status';
 import { Fragment, useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
 import { Icon } from './icons';
 import { downloadPlan, plural } from './library';
@@ -21,7 +22,7 @@ import { cleanTag, TAG_MAX_LENGTH } from './TagField';
 export function Cart() {
   const { runtime } = useRuntime();
   const { packs } = useLibrary();
-  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, saveDraft, replaceDraft, draftOrigin, combine, setCombine, addPackToDraft } = useDraft();
+  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, saveDraft, replaceDraft, draftOrigin, snapshotDraft, restoreDraft, combine, setCombine, addPackToDraft } = useDraft();
   const { openDownload, openPreview, openPackDialog } = useOverlays();
   const { announce, toast } = useNotify();
   const n = selection.length;
@@ -50,6 +51,8 @@ export function Cart() {
   const reordered = !!origin && added === 0 && removed === 0 && nowIds.join() !== savedIds.join();
   const unchanged = !!origin && added === 0 && removed === 0 && !reordered;
   const title = draftTitle.trim();
+  /* Saved, or not: shown in the header, and it decides whether Clear needs a confirmation. */
+  const status = draftStatus(selection, origin, draftTitle);
   /* What the name box starts with: the deck's own name to update it, or a fresh name for a copy. */
   const suggestedName = !origin ? title : choice === 'update' ? title || origin.name : title && title.toLowerCase() !== origin.name.toLowerCase() ? title : `${origin.name} copy`;
   const draftName = typedName ?? suggestedName;
@@ -274,6 +277,13 @@ export function Cart() {
   }
 
   const none = included.length === 0;
+  /* Clearing never loses saved work, and an Undo brings the slides back either way. */
+  const clearNow = () => {
+    const before = snapshotDraft();
+    updateSelection(() => []);
+    announce('Draft deck cleared');
+    toast('Draft deck cleared', { label: 'Undo', run: () => restoreDraft(before) });
+  };
   return (
     <>
       <div className="cart" role="region" aria-label="Draft deck">
@@ -285,7 +295,20 @@ export function Cart() {
             <span className="cart-tools">{toggleButton}</span>
           </div>
           {titleField}
-          <p className="cart-title">{plural(n, 'slide')}</p>
+          <p className="cart-title">
+            {plural(n, 'slide')}
+            <span className={`cart-state is-${status}`}>
+              {status === 'saved' ? (
+                <>
+                  <Icon name="check" className="ic-sm" /> Saved
+                </>
+              ) : status === 'changed' ? (
+                'Unsaved changes'
+              ) : (
+                'Not saved yet'
+              )}
+            </span>
+          </p>
           <div className="cart-acts">
             <Button size="sm" onClick={openSave}>
               <Icon name="folder" />
@@ -391,15 +414,14 @@ export function Cart() {
           <div className="cart-list-acts">
             {confirming ? (
               <div className="cart-confirm" role="group" aria-label="Confirm clearing the draft deck">
-                <span className="cc-q">Are you sure?</span>
+                <span className="cc-q">{status === 'changed' ? 'Changes not saved. Clear?' : 'Not saved. Clear?'}</span>
                 <Button
                   size="sm" iconOnly className="cc-yes"
                   aria-label="Yes, clear the draft deck"
                   title="Yes, clear it"
                   onClick={() => {
-                    updateSelection(() => []);
                     setConfirmFor(null);
-                    announce('Draft deck cleared');
+                    clearNow();
                   }}
                 >
                   <Icon name="check" />
@@ -414,7 +436,7 @@ export function Cart() {
                   <Icon name="eye" />
                   <span>Preview</span>
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setConfirmFor(signature)}>
+                <Button variant="ghost" size="sm" onClick={() => (status === 'saved' ? clearNow() : setConfirmFor(signature))}>
                   <Icon name="trash" />
                   <span>Clear</span>
                 </Button>
@@ -445,25 +467,27 @@ export function Cart() {
               </Button>
             </div>
             <div className="dlg-body">
-              {origin && (
-                <fieldset className="save-opts">
-                  <legend className="sr-only">How to save</legend>
-                  <label className={`save-opt${choice === 'update' ? ' on' : ''}${unchanged ? ' off' : ''}`}>
-                    <input type="radio" name={`${nameId}-how`} checked={choice === 'update'} disabled={unchanged} onChange={() => setChoice('update')} />
-                    <span className="so-t">Update “{origin.name}”</span>
-                    <span className="so-d">Replaces the saved version with this one.</span>
+              {origin && choice === 'update' ? (
+                <>
+                  <p className="save-lead">Update “{origin.name}” with these changes?</p>
+                  {draftName.trim() && draftName.trim().toLowerCase() !== origin.name.toLowerCase() && <p className="meta">It will be renamed “{draftName.trim()}”.</p>}
+                  <Button variant="link" className="save-copy" onClick={() => { setTypedName(null); setChoice('new'); }}>
+                    Save as a new copy instead
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <label className="save-name" htmlFor={nameId}>
+                    <span>Name this draft</span>
+                    <input id={nameId} type="text" value={draftName} onChange={(e) => setTypedName(e.target.value)} maxLength={80} placeholder="For example, Harbor Bank pitch" autoFocus autoComplete="off" />
                   </label>
-                  <label className={`save-opt${choice === 'new' ? ' on' : ''}`}>
-                    <input type="radio" name={`${nameId}-how`} checked={choice === 'new'} onChange={() => setChoice('new')} />
-                    <span className="so-t">Save as a new deck</span>
-                    <span className="so-d">Keeps “{origin.name}” as it is and adds this as another deck.</span>
-                  </label>
-                </fieldset>
+                  {origin && !unchanged && (
+                    <Button variant="link" className="save-copy" onClick={() => { setTypedName(null); setChoice('update'); }}>
+                      Back: update “{origin.name}” instead
+                    </Button>
+                  )}
+                </>
               )}
-              <label className="save-name" htmlFor={nameId}>
-                <span>{origin && choice === 'update' ? 'Deck name' : 'Name this draft'}</span>
-                <input id={nameId} type="text" value={draftName} onChange={(e) => setTypedName(e.target.value)} maxLength={80} placeholder="For example, Harbor Bank pitch" autoFocus={!origin} autoComplete="off" />
-              </label>
               <p className="meta" style={{ marginTop: 10 }}>
                 {plural(n, 'slide')} will be saved.
               </p>
@@ -473,7 +497,7 @@ export function Cart() {
                 Cancel
               </Button>
               <Button type="submit" variant="primary" disabled={!draftName.trim() || saving}>
-                {saving ? 'Saving…' : origin ? (choice === 'update' ? 'Update deck' : 'Save new deck') : 'Save draft'}
+                {saving ? 'Saving…' : origin ? (choice === 'update' ? `Update “${origin.name}”` : 'Save as new copy') : 'Save draft'}
               </Button>
             </div>
           </form>

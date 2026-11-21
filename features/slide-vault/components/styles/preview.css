@@ -2,7 +2,58 @@
    The big picture window: deck arrows, results bar, filmstrip, zoom.
 */
 
-/* Dialogs */
+/* ---- The preview window's own layout, moved here from slidevault-extras.css (Alina's notes 2 and 6): the same rules in the same order, placed before the rest of this file as they were loaded before it. ---- */
+@media (max-width: 700px) {
+.slidevault dialog.sv-dialog.wide > .dlg-body {
+    background:
+      linear-gradient(var(--sv-surface) 30%, transparent) top / 100% 24px no-repeat local,
+      linear-gradient(transparent, var(--sv-surface) 70%) bottom / 100% 24px no-repeat local,
+      radial-gradient(farthest-side at 50% 0, color-mix(in srgb, var(--sv-text) 16%, transparent), transparent) top / 100% 8px no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, color-mix(in srgb, var(--sv-text) 16%, transparent), transparent) bottom / 100% 8px no-repeat scroll;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+dialog.slidevault.sv-dialog.wide { width: min(calc(var(--sv-w, 852px) - 24px), 920px); }
+.slidevault dialog.sv-dialog.wide > .dlg-body { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); column-gap: 18px; align-content: start; background: none; }
+.slidevault dialog.sv-dialog.wide > .dlg-body > * { grid-column: 2; }
+}
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+dialog.slidevault.sv-dialog.wide { height: min(calc(var(--sv-h, 100%) - 32px), 612px); }
+.slidevault dialog.sv-dialog.wide > .dlg-body { padding-inline: 16px; }
+}
+.slidevault .lbl-short { display: none; }
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .lbl-long { display: none; }
+.slidevault .lbl-short { display: inline; }
+}
+@media (max-width: 700px) and (orientation: portrait) {
+.slidevault dialog.sv-dialog.wide[open] { display: flex; flex-direction: column; }
+.slidevault dialog.sv-dialog.wide > .dlg-head { flex: none; }
+.slidevault dialog.sv-dialog.wide > .dlg-body { flex: 1 1 auto; display: flex; flex-direction: column; padding-bottom: 0; }
+.slidevault dialog.sv-dialog.wide > .dlg-body > * { flex: none; }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault dialog.sv-dialog.wide > .dlg-body { padding: 4px 20px 6px; }
+.slidevault dialog.sv-dialog.wide > .dlg-body { grid-template-rows: auto auto auto 1fr auto; }
+.slidevault dialog.sv-dialog.wide .fb-verdict .sb-icon-btn { font-weight: 500; letter-spacing: 0.04em; }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
+.slidevault dialog.sv-dialog.wide > .dlg-body { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 12px; }
+.slidevault dialog.sv-dialog.wide .fb-verdict .sb-icon-btn { font-size: 10px; letter-spacing: 0.02em; }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault dialog.sv-dialog.wide .fb-verdict .sb-icon-btn[data-tip]::after { top: calc(100% + 6px); bottom: auto; }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 700px) {
+dialog.slidevault.sv-dialog.wide { height: fit-content; }
+}
+.slidevault .sv-app[data-size="medium"] .lbl-long { display: none; }
+.slidevault .sv-app[data-size="medium"] .lbl-short { display: inline; }
+@media (orientation: portrait) and (min-width: 701px) and (max-width: 1100px) {
+.slidevault .sv-app[data-size="medium"] dialog.sv-dialog .lb-open-deck .lbl-long, .slidevault dialog.sv-dialog .lb-open-deck .lbl-long { display: inline; }
+.slidevault dialog.sv-dialog .lb-open-deck .lbl-short { display: none; }
+}
+
 .slidevault .lb-stage svg { width: 100%; height: 100%; display: block; }
 .slidevault .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; border-radius: 50%; width: 44px; height: 44px; padding: 0; background: var(--sv-surface); box-shadow: var(--sv-shadow-popover); }
 .slidevault .lb-prev { left: 10px; }
@@ -23,6 +74,8 @@
 @media (max-width: 640px) {
 .slidevault .lb-deck { display: none; } }
 .slidevault .lb-deck { margin-top: 10px; }
+/* Tablets and desktops: Useful / Not useful sit above the strip now, so the strip keeps room above the line that holds the buttons. */
+.slidevault .sv-app:not([data-size="compact"]) dialog.sv-dialog.wide .lb-deck { margin-bottom: 10px; }
 .slidevault .lb-deck-label { margin: 0; font-size: var(--sv-text-small); font-weight: 600; color: var(--sv-text-secondary); }
 .slidevault .lb-deck .lb-strip { margin-top: 4px; }
 /* The action buttons stay in view even when the results bar and filmstrip make the preview taller than the window. */
@@ -60,6 +113,8 @@
 .slidevault dialog.sv-dialog.wide .lb-stage { max-height: calc(var(--sv-h, 393px) - 110px); }
 .slidevault dialog.sv-dialog.wide .lb-deck { display: none; } }
 
+/* The slide's name in the preview's header is one line on every screen, with "…" when it is longer, so the card never changes height as you step through slides. (A phone held upright shows the name in the body instead and keeps two lines of room for it, below.) */
+.slidevault .lb-title h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The slide preview on a phone. */
 .slidevault .lb-zoom, .slidevault .lb-rnav { display: none; }
 .slidevault .lb-save { display: inline-grid; } /* the heart sits beside Share in the preview on every screen */
@@ -72,7 +127,7 @@
 .slidevault .lb-head > .lb-rnav:first-child { grid-area: prev; }
 .slidevault .lb-head > .lb-rnav:not(:first-child) { grid-area: next; }
 .slidevault .lb-title { grid-area: title; min-width: 0; }
-.slidevault .lb-title h2 { font-size: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.slidevault .lb-title h2 { font-size: 16px; }
 .slidevault .lb-title .meta { font-size: 12px; margin: 2px 0 0; white-space: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
 .slidevault .lb-title .meta::-webkit-scrollbar { display: none; }
 .slidevault .lb-results .btn { display: none; }
@@ -80,7 +135,7 @@
 .slidevault .lb-zoom { display: block; position: absolute; inset: 0; z-index: 1; border: 0; padding: 0; background: transparent; cursor: zoom-in; }
 .slidevault .lb-row { display: grid; grid-template-columns: auto 1fr auto; row-gap: 8px; align-items: center; }
 .slidevault .lb-row > .lb-stage { grid-area: stage; }
-.slidevault .lb-row > .lb-prev, .slidevault .lb-row > .lb-next { position: static; transform: none; width: 44px; height: 36px; border-radius: 999px; box-shadow: none; border: 1px solid var(--sv-border-strong); }
+.slidevault .lb-row > .lb-prev, .slidevault .lb-row > .lb-next { position: relative; transform: none; width: 44px; height: 36px; border-radius: 999px; box-shadow: none; border: 1px solid var(--sv-border-strong); }
 .slidevault .lb-row > .lb-prev { grid-area: prev; justify-self: start; }
 .slidevault .lb-row > .lb-next { grid-area: next; justify-self: end; } }
 /* The full-screen slide. */
@@ -101,14 +156,17 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault .lb-head { row-gap: 14px; } }
 
 /* ---- Phone pass 6: the title opens the slide page; the buttons stay at the bottom ---- */
-.slidevault .lb-title-link { color: inherit; text-decoration: none; }
-.slidevault .lb-title-link:hover { text-decoration: underline; text-decoration-color: var(--sv-brand); text-underline-offset: 3px; }
+/* The title is a link to the slide page, so it always carries a thin orange underline; thicker on hover and tap. */
+.slidevault .lb-title-link { color: inherit; text-decoration: underline; text-decoration-color: var(--sv-brand); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.slidevault .lb-title-link:hover, .slidevault .lb-title-link[data-tapped] { text-decoration-thickness: 2px; }
 @media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-.slidevault .lb-title-link { text-decoration: underline; text-decoration-color: var(--sv-border-strong); text-underline-offset: 3px; }
 .slidevault .lb-caption .row-flex { display: flex; flex-wrap: nowrap; gap: 8px; width: 100%; }
 .slidevault .lb-caption .row-flex > .btn { flex: 1 1 0; min-width: 0; justify-content: center; padding-inline: 10px; }
 .slidevault .lb-caption .row-flex > .lb-open-deck { flex: none; width: 44px; padding-inline: 0; }
-.slidevault .lb-caption .lb-open-page { display: none; } }
+.slidevault .lb-caption .lb-open-page, .slidevault .lb-caption .lb-open-deck { display: none; }
+.slidevault .lb-caption .row-flex > .lb-more { display: block; flex: none; } }
+/* Only a phone shows the "⋯" menu (it holds Open slide page and Open deck there); wider screens have those as labelled buttons. */
+.slidevault .lb-more { display: none; }
 /* Same bar, same place, for every slide: Add, Download, and a small Open deck button. */
 @media (max-width: 700px) and (orientation: portrait) {
 .slidevault dialog.sv-dialog.wide .lb-caption { margin-top: auto; bottom: 0; padding: 10px 0 calc(12px + env(safe-area-inset-bottom)); } }
@@ -142,7 +200,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 /* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
 
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-.slidevault dialog.sv-dialog.wide .lb-title h2 { font-size: 15px; -webkit-line-clamp: 1; }
+.slidevault dialog.sv-dialog.wide .lb-title h2 { font-size: 15px; }
 .slidevault dialog.sv-dialog.wide .lb-row { grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr); column-gap: 10px; grid-template-areas: "stage stage stage stage stage" ". prev where next ."; row-gap: 10px; margin-bottom: 0; }
 .slidevault dialog.sv-dialog.wide .lb-row > .lb-stage { justify-self: stretch; }
 .slidevault dialog.sv-dialog.wide .lb-row > .lb-prev, .slidevault dialog.sv-dialog.wide .lb-row > .lb-next { justify-self: auto; }
@@ -190,8 +248,9 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault dialog.sv-dialog.wide .lb-head > .lb-rnav { display: none; }
 .slidevault dialog.sv-dialog.wide .lb-head > .lb-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .slidevault dialog.sv-dialog.wide .lb-title-body { display: block; margin: 0 0 18px; min-width: 0; }
-.slidevault dialog.sv-dialog.wide .lb-title-text { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.slidevault dialog.sv-dialog.wide .lb-title-body .lb-title-link { color: var(--sv-text); text-decoration: none; }
+/* Two lines of room whatever the title: a one-line title leaves its second line empty, so the card keeps its height as you step through slides. */
+.slidevault dialog.sv-dialog.wide .lb-title-text { margin: 0; min-height: 2.6em; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.slidevault dialog.sv-dialog.wide .lb-title-body .lb-title-link { color: var(--sv-text); }
 .slidevault dialog.sv-dialog.wide .lb-title-body .meta { margin: 5px 0 0; font-size: 12px; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
 .slidevault dialog.sv-dialog.wide .lb-title-body .meta::-webkit-scrollbar { display: none; }
 .slidevault dialog.sv-dialog.wide .lb-results { margin: 10px 0 22px; } }
@@ -230,8 +289,8 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 @media (min-width: 701px) and (not ((orientation: landscape) and (max-height: 520px) and (max-width: 1000px))) {
 .slidevault dialog.sv-dialog.wide .lb-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr); grid-template-areas: "stage stage stage stage stage" ". prev where next ."; column-gap: 12px; row-gap: 8px; align-items: center; }
 .slidevault dialog.sv-dialog.wide .lb-row > .lb-stage { grid-area: stage; justify-self: stretch; }
-.slidevault dialog.sv-dialog.wide .lb-row > .lb-prev { grid-area: prev; position: static; transform: none; justify-self: auto; }
-.slidevault dialog.sv-dialog.wide .lb-row > .lb-next { grid-area: next; position: static; transform: none; justify-self: auto; }
+.slidevault dialog.sv-dialog.wide .lb-row > .lb-prev { grid-area: prev; position: relative; transform: none; justify-self: auto; }
+.slidevault dialog.sv-dialog.wide .lb-row > .lb-next { grid-area: next; position: relative; transform: none; justify-self: auto; }
 .slidevault dialog.sv-dialog.wide .lb-row > .lb-where { display: block; grid-area: where; text-align: center; font-size: 13px; font-weight: 600; color: var(--sv-text-secondary); white-space: nowrap; }
 .slidevault .lb-caption .counter.is-dup { display: none; }
 .slidevault dialog.sv-dialog.wide .lb-caption { justify-content: flex-end; } }
@@ -271,6 +330,7 @@ dialog.slidevault.sv-zoom::backdrop { background: #000; }
 .slidevault dialog.sv-dialog .lb-row[data-tablet] > .lb-next { justify-self: end; margin-right: 10px; }
 .slidevault dialog.sv-dialog .lb-row[data-tablet] > .lb-nav:disabled { opacity: 0.4; background: color-mix(in srgb, var(--sv-surface) 45%, transparent); border-color: transparent; } }
 /* A 44px touch target around the 30px circle (the stage's zoom button sits underneath, so a near miss does not open full screen). */
+/* The arrows must be positioned (relative), or this larger tap area is measured from the whole row and covers the picture and the "x/y in deck" number box, so tapping the number hit an arrow instead. */
 .slidevault dialog.sv-dialog .lb-row[data-handheld] > .lb-nav::before { content: ""; position: absolute; inset: -7px; border-radius: 50%; }
 
 /* Tablet held upright: the deck arrows go back under the picture, at the far left and right edges, with "x/y in deck" between them. */

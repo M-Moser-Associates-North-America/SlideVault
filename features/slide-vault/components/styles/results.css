@@ -103,6 +103,8 @@
 /* "We read this as" pills: more room before the slide cards below, and tucked closer under the heading (a phone held upright already has them close). */
 .slidevault .res-wrap .interp { margin: 0 0 22px; }
 .slidevault .sv-app:not([data-size="compact"]:not([data-land])) .res-wrap > .interp { margin-top: -8px; }
+/* Phone upright: "We read this as" sits 12px under the heading (it was touching it) and 8px above the Sort row (it was 22px), so it belongs to the heading. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .res-wrap > .interp { margin: 12px 0 8px; }
 
 /* "We read this as": one row of pills that scrolls sideways (with the faded edge), never wrapping onto a second line. */
 .slidevault .interp { display: flex; gap: 8px; align-items: center; margin: 12px 0 4px; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 2px 0; }

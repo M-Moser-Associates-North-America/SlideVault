@@ -15,7 +15,9 @@
 .slidevault .deck-sticky { position: absolute; top: 0; left: 0; right: 0; z-index: 45; display: flex; align-items: center; gap: 10px; padding: 8px 16px; padding-top: calc(8px + env(safe-area-inset-top)); background: var(--sv-bg); border-bottom: 1px solid var(--sv-border); font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .deck-sticky .deck-jump-go { flex: 1; }
 .slidevault .deck-jump { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; font-size: var(--sv-text-small); font-weight: 600; }
-.slidevault .sv-app[data-size="compact"] .deck-badges { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin-top: 12px; }
+/* Phone: the title sits closer to the breadcrumb (6px above it instead of the page's usual 22px; sideways it is 2px, below), and the tags get a little more room under it. */
+.slidevault .sv-app[data-size="compact"] .sv-wrap > .deck-head { margin-top: 6px; }
+.slidevault .sv-app[data-size="compact"] .deck-badges { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin-top: 18px; }
 .slidevault .sv-app[data-size="compact"] .deck-badges > * { flex: none; }
 .slidevault .sv-app[data-size="compact"] .deck-actions { margin-top: 14px; flex-wrap: nowrap; gap: 8px; }
 .slidevault .sv-app[data-size="compact"] .deck-actions > .btn:not(.btn-icon) { flex: 1 1 0; min-width: 0; justify-content: center; }
@@ -47,13 +49,14 @@
 .slidevault .sv-app[data-size="compact"] .deck-tagbar { align-items: center; } }
 
 /* Deck page: the tags appear once. Normally under the buttons; on a phone on its side in the buttons' row (Add tag, a thin divider, then the tags scrolling). */
-.slidevault .deck-sep { display: none; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .range-add .range-fields { flex: 1 1 auto; min-width: 0; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .range-add .range-fields .num-jump { flex: 1 1 0; min-width: 40px; width: auto; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .range-add .range-actions { flex: none; }
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-.slidevault .sv-app[data-size="compact"] .deck-actions { flex-wrap: nowrap; align-items: center; }
-.slidevault .sv-app[data-size="compact"] .deck-sep { display: block; flex: none; align-self: center; width: 1px; height: 28px; margin: 0 8px; background: var(--sv-border-strong); } }
+.slidevault .sv-app[data-size="compact"] .deck-actions { flex-wrap: nowrap; align-items: center; } }
 /* The deck page's button row on a phone on its side: the buttons keep their own width however many tags there are. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
-.slidevault .sv-app[data-size="compact"] .deck-actions > .btn, .slidevault .sv-app[data-size="compact"] .deck-actions > div:not(.deck-tags-inline) { flex: none; }
+.slidevault .sv-app[data-size="compact"] .deck-actions > .btn, .slidevault .sv-app[data-size="compact"] .deck-actions > div { flex: none; }
 .slidevault .sv-app[data-size="compact"] .deck-actions .btn-primary { flex: none; }
 .slidevault .sv-app[data-size="compact"] .deck-actions > .btn:not(.btn-icon) { flex: none; } }
 /* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
@@ -67,8 +70,7 @@
 .slidevault .sv-app[data-size="medium"] .deck-tagbar .deck-jump-go { white-space: nowrap; order: 0; flex: none; align-self: center; }
 .slidevault .sv-app[data-size="medium"] .deck-tagbar { display: flex; gap: 16px; align-items: center; }
 .slidevault .sv-app[data-size="medium"] .deck-actions { margin-top: 14px; gap: 8px; flex-wrap: nowrap; align-items: center; }
-.slidevault .sv-app[data-size="medium"] .deck-sep { display: block; flex: none; align-self: center; width: 1px; height: 28px; margin: 0 8px; background: var(--sv-border-strong); }
-.slidevault .sv-app[data-size="medium"] .deck-actions > .btn, .slidevault .sv-app[data-size="medium"] .deck-actions > div:not(.deck-tags-inline) { flex: none; }
+.slidevault .sv-app[data-size="medium"] .deck-actions > .btn, .slidevault .sv-app[data-size="medium"] .deck-actions > div { flex: none; }
 .slidevault .sv-app[data-size="medium"] .deck-actions .btn-primary { flex: none; }
 .slidevault .sv-app[data-size="medium"] .deck-actions > .btn:not(.btn-icon) { min-width: 0; justify-content: center; flex: none; }
 
@@ -108,10 +110,15 @@
 .slidevault .more-menu-item { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
 .slidevault .more-menu-item:hover, .slidevault .more-menu-item:focus-visible { background: var(--sv-surface-sunken); }
 .slidevault .more-menu-item .ic { color: var(--sv-text-secondary); }
-.slidevault .range-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface); font-size: var(--sv-text-small); font-weight: 600; }
+.slidevault .range-add { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface); font-size: var(--sv-text-small); font-weight: 600; }
 /* Deck page: "105 slides · Created by … · Uploaded by …" runs on one line and wraps between the parts when it has to, on every screen. */
 .slidevault .deck-meta .dm:not(:last-child)::after { content: "·"; margin: 0 8px; }
-.slidevault .range-add .range-close { min-width: 32px; padding-inline: 0; }
+/* The numbers and the buttons are two groups: on a wide screen they share one row; on a phone the second group (Add, then Cancel as a link) wraps as a whole under the numbers. */
+.slidevault .range-fields, .slidevault .range-actions { display: flex; align-items: center; gap: 8px; }
+.slidevault .range-actions { gap: 8px; }
+/* Phone: everything on one row: the numbers, Add, and the cross. The "Add slides" words give way to the room (the Add button says what it does). */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .range-add { flex-wrap: nowrap; gap: 8px; }
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .range-add .range-label { display: none; }
 /* Balance pass: each part of the deck line ("Created by … · date") stays together and wraps as a whole, and the slide page's Use this slide buttons are equal halves on every phone. */
 /* Loading placeholders never make the page wider than the screen (the page could be dragged sideways while it loaded). */
 .slidevault .deck-meta .dm { display: inline; white-space: normal; max-width: 100%; overflow-wrap: anywhere; }
@@ -119,3 +126,12 @@
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .deck-actions .more-menu { flex: none; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .deck-meta .dm { display: inline-block; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .deck-meta .dm:not(:last-child)::after { margin: 0 6px; }
+/* The "Stop grouping" chip: its own row under the buttons on a phone and an upright tablet; a phone on its side keeps it in the menu. */
+.slidevault .deck-group-chip { margin-top: 8px; }
+.slidevault .sv-app[data-land] .deck-group-chip { display: none; }
+/* Archive deck sits apart, at the far end of the row, away from the everyday buttons. */
+.slidevault .deck-actions-row { flex: 1 1 100%; }
+.slidevault .deck-actions-row > .deck-archive { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+/* On a phone the deck line's parts wrap onto their own lines, so the "·" between them would dangle at a line end. */
+.slidevault .sv-app[data-size="compact"]:not([data-land]) .deck-meta .dm:not(:last-child)::after { content: none; }
+.slidevault .more-menu-list.is-up { top: auto; bottom: calc(100% + 6px); }

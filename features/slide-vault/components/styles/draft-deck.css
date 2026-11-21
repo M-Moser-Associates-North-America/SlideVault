@@ -277,3 +277,11 @@
     bottom: 0; right: calc(-1 * min(calc(var(--sv-w, 390px) * 0.88), 360px) - 24px); visibility: hidden; box-shadow: none;
   }
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .cart-head { padding-top: calc(18px + env(safe-area-inset-top)); } }
+
+/* The draft deck's header says whether it is saved; the Save as draft box asks one thing at a time. */
+.slidevault .cart-state { margin-left: 8px; font-size: 12px; font-weight: 600; color: var(--sv-text-secondary); }
+.slidevault .cart-state.is-saved { color: var(--sv-text); }
+.slidevault .cart-state .ic-sm { vertical-align: -2px; }
+.slidevault .cart-state.is-changed { color: var(--sv-brand-strong); }
+.slidevault .save-lead { margin: 0 0 4px; font-size: 15px; line-height: 1.5; }
+.slidevault .save-copy { display: inline-block; margin-top: 12px; font-size: 13px; }
