@@ -1,0 +1,7 @@
+/* The "⋯" menu (MoreMenu.tsx): a button that opens a short list of labelled actions. Used on the deck page and in the slide preview on a phone. */
+.slidevault .more-menu { position: relative; }
+.slidevault .more-menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 230px; padding: 6px; display: grid; gap: 2px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: 12px; box-shadow: var(--sv-shadow-panel); }
+.slidevault .more-menu-item { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+.slidevault .more-menu-item:hover, .slidevault .more-menu-item:focus-visible { background: var(--sv-surface-sunken); }
+.slidevault .more-menu-item .ic { color: var(--sv-text-secondary); }
+.slidevault .more-menu-list.is-up { top: auto; bottom: calc(100% + 6px); }

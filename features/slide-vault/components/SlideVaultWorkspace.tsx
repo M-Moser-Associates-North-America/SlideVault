@@ -46,6 +46,7 @@ import './styles/cards.css';
 import './styles/home.css';
 import './styles/header.css';
 import './styles/results.css';
+import './styles/more-menu.css';
 import './styles/deck-page.css';
 import './styles/slide-page.css';
 import './styles/upload.css';

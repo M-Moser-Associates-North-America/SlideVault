@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type Ref } from 'react';
 import { Icon } from './icons';
+import { Button } from './ui/Button';
 
 /** `remove` answers false when nothing could be taken off (a reading that no typed word can be tied to). */
 export type FilterChip = { id: string; kind: string; text: string; remove: () => boolean | void; fromSearch?: boolean };
@@ -44,9 +45,9 @@ export function FilterChips({ chips, showClearAll, onClearAll, onCannotRemove, l
       ))}
       {showClearAll && (
         <li className="fb-chips-clear">
-          <button type="button" className="btn-link fb-clear-all" onClick={onClearAll}>
+          <Button variant="link" className="fb-clear-all" onClick={onClearAll}>
             Clear all
-          </button>
+          </Button>
         </li>
       )}
     </ul>

@@ -157,9 +157,9 @@ function Cards({ groups }: { groups: SectionGroup[] }) {
         })}
       </ul>
       {groups.length > FIRST && (
-        <button type="button" className="btn-link" onClick={() => setAll(!all)}>
+        <Button variant="link" onClick={() => setAll(!all)}>
           {all ? 'Show fewer sections' : `Show all ${groups.length} sections`}
-        </button>
+        </Button>
       )}
     </section>
   );

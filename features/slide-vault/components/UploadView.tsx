@@ -654,9 +654,9 @@ export function UploadView() {
               {state.tagNote ? ` ${state.tagNote}` : ''}{' '}
               <Link to={{ view: 'deck', id: state.deck.id }}>Open the deck</Link>
               {' · '}
-              <button type="button" className="btn-link" onClick={() => document.getElementById(`${fieldId}-file`)?.click()}>
+              <Button variant="link" onClick={() => document.getElementById(`${fieldId}-file`)?.click()}>
                 Upload another
-              </button>
+              </Button>
             </span>
           </div>
         )}

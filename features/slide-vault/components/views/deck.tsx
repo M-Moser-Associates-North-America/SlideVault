@@ -230,9 +230,9 @@ export function DeckView({ id }: { id: string }) {
                 <>
                   {' · '}
                   {hiddenGap(deck.slides)} hidden{' '}
-                  <button type="button" className="btn-link" aria-label={`Show ${plural(hiddenGap(deck.slides), 'hidden slide')}`} onClick={() => setIncludeHidden(true)}>
+                  <Button variant="link" aria-label={`Show ${plural(hiddenGap(deck.slides), 'hidden slide')}`} onClick={() => setIncludeHidden(true)}>
                     Show
-                  </button>
+                  </Button>
                 </>
               )}
             </span>

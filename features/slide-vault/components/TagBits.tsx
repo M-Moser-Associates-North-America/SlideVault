@@ -822,9 +822,9 @@ function TagList({ api, what, canEdit, onNavigate, suggestFor, tail, addRow, lea
                   {r.removedBy ? <span className="meta"> · removed by {r.removedBy}{r.removedAt ? `, ${day(r.removedAt)}` : ''}</span> : null}
                 </span>
                 {canEdit && (
-                  <button type="button" className="btn-link" onClick={() => void bringBack(r)}>
+                  <Button variant="link" onClick={() => void bringBack(r)}>
                     Restore
-                  </button>
+                  </Button>
                 )}
               </li>
             ))}
@@ -878,7 +878,8 @@ export function SlideTagsPanel({ slide, loaded, also }: { slide: SlideSummary; l
 }
 
 /** The preview: the slide's own tags, small. */
-export function PreviewTags({ slide, onNavigate, lead }: { slide: SlideSummary; onNavigate: () => void; lead?: ReactNode }) {
+/** `place="page"`: the tags sit under the picture's pager on the slide page (its own look in tags.css: `.lb-tags.on-page`); without it, as in the preview. */
+export function PreviewTags({ slide, onNavigate, lead, place }: { slide: SlideSummary; onNavigate: () => void; lead?: ReactNode; place?: 'page' }) {
   const { runtime } = useRuntime();
   const { profile } = useAccount();
   const seed = useSeed(slide);
@@ -907,7 +908,7 @@ export function PreviewTags({ slide, onNavigate, lead }: { slide: SlideSummary; 
   );
   /* The slide's tags, the deck's and the team's first; the "Add tag" pill and the suggestions share the last row. */
   const withList = seed !== undefined || demoTagsOn();
-  return <div className="lb-tags">{withList ? <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} suggestFor={slide.id} tail={more} addRow lead={lead} /> : lead ? <div className="tag-first">{lead}<TagLine>{more}</TagLine></div> : <TagLine>{more}</TagLine>}</div>;
+  return <div className={`lb-tags${place === 'page' ? ' on-page' : ''}`}>{withList ? <TagList api={own} what="slide" canEdit={canEdit} onNavigate={onNavigate} suggestFor={slide.id} tail={more} addRow lead={lead} /> : lead ? <div className="tag-first">{lead}<TagLine>{more}</TagLine></div> : <TagLine>{more}</TagLine>}</div>;
 }
 
 /** The deck page: the deck's tags, which every slide in it also shows. Read from any one slide's detail. */
