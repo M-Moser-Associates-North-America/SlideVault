@@ -2,13 +2,7 @@
    The deck page: heading, badges, actions, tag bar, jump.
 */
 
-/* Archive (FD-32): the Archived badge, and the small archive button on a deck card. */
-.slidevault .deck-arch { position: absolute; top: 8px; right: 8px; z-index: 3; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); color: var(--sv-text); cursor: pointer; opacity: 0; transition: opacity var(--sv-duration-fast); }
-.slidevault .deck-arch .ic { width: 16px; height: 16px; }
-.slidevault .vcard:hover .deck-arch, .slidevault .deck-arch:focus-visible { opacity: 1; }
-@media (hover: none) {
-.slidevault .deck-arch { opacity: 1; } }
-.slidevault .deck-arch:focus-visible { outline: 2px solid var(--sv-brand); outline-offset: 2px; }
+/* Archive (FD-32): the Archived badge on a deck card (archiving itself is done inside the deck page). */
 .slidevault .deck-arch-badge { position: absolute; top: 8px; left: 8px; z-index: 3; }
 
 /* ---- Phone pass 11: the deck page ---- */
@@ -105,11 +99,6 @@
 .slidevault .badges { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* ---- Phone pass 11: the deck page ---- */
-.slidevault .more-menu { position: relative; }
-.slidevault .more-menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 230px; padding: 6px; display: grid; gap: 2px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: 12px; box-shadow: var(--sv-shadow-panel); }
-.slidevault .more-menu-item { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: var(--sv-text); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
-.slidevault .more-menu-item:hover, .slidevault .more-menu-item:focus-visible { background: var(--sv-surface-sunken); }
-.slidevault .more-menu-item .ic { color: var(--sv-text-secondary); }
 .slidevault .range-add { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface); font-size: var(--sv-text-small); font-weight: 600; }
 /* Deck page: "105 slides · Created by … · Uploaded by …" runs on one line and wraps between the parts when it has to, on every screen. */
 .slidevault .deck-meta .dm:not(:last-child)::after { content: "·"; margin: 0 8px; }
@@ -134,4 +123,4 @@
 .slidevault .deck-actions-row > .deck-archive { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 /* On a phone the deck line's parts wrap onto their own lines, so the "·" between them would dangle at a line end. */
 .slidevault .sv-app[data-size="compact"]:not([data-land]) .deck-meta .dm:not(:last-child)::after { content: none; }
-.slidevault .more-menu-list.is-up { top: auto; bottom: calc(100% + 6px); }
+

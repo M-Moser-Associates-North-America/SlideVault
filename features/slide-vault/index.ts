@@ -8,3 +8,4 @@ export { firstNameOf } from './client/first-name';
 export { useRoleLabel } from './client/role-store';
 export { startTour } from './client/tour-store';
 export { askBeforeLeavingUpload } from './client/upload-draft-store';
+export { askBeforeLosingDraftDeck } from './client/unsaved-deck-store';

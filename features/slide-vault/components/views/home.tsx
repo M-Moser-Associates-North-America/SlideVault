@@ -344,7 +344,7 @@ function LibraryView() {
             </Row>
           )}
           {decks.length > 0 && (
-            <Row id="decks" title="Decks" sub="Arranged by client and year. Folder names TBD.">
+            <Row id="decks" title="Decks" sub="Whole decks, not single slides." seeAll="decks" total={decks.length}>
               {decks.slice(0, 24).map((d) => (
                 <li key={d.id}>
                   <DeckCard deck={d} />

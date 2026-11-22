@@ -4,7 +4,10 @@ import { Button } from './ui/Button';
 import { stopNudge, useNudge } from '../client/draft-nudge';
 import { useTourOpen } from '../client/tour-store';
 import { draftStatus } from '../client/draft-status';
-import { Fragment, useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
+import { isServerDraft } from '../client/profile-store';
+import { setUnsavedDeck } from '../client/unsaved-deck-store';
+import { onDraftSaveRequest, type AfterSave } from '../client/draft-save-request';
+import { Fragment, useEffect, useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent } from 'react';
 import { Icon } from './icons';
 import { downloadPlan, plural } from './library';
 import { useRoot } from './root';
@@ -21,8 +24,8 @@ import { cleanTag, TAG_MAX_LENGTH } from './TagField';
  */
 export function Cart() {
   const { runtime } = useRuntime();
-  const { packs } = useLibrary();
-  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, saveDraft, replaceDraft, draftOrigin, snapshotDraft, restoreDraft, combine, setCombine, addPackToDraft } = useDraft();
+  const { packs, library } = useLibrary();
+  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, saveDraft, replaceDraft, draftOrigin, snapshotDraft, restoreDraft, drafts, combine, setCombine, addPackToDraft } = useDraft();
   const { openDownload, openPreview, openPackDialog } = useOverlays();
   const { announce, toast } = useNotify();
   const n = selection.length;
@@ -44,7 +47,9 @@ export function Cart() {
   const [saving, setSaving] = useState(false);
   const nameId = useId();
   const origin = draftOrigin;
-  const savedIds = origin?.slideIds ?? [];
+  /* Every slide the library shows now: saved slides that are hidden or gone cannot be in the draft deck, so they are not counted as removed. */
+  const known = useMemo(() => (library.status === 'ready' ? new Set(library.slides.map((s) => s.id)) : null), [library]);
+  const savedIds = (origin?.slideIds ?? []).filter((id) => !known || known.has(id));
   const nowIds = selection.map((s) => s.id);
   const added = origin ? nowIds.filter((id) => !savedIds.includes(id)).length : 0;
   const removed = origin ? savedIds.filter((id) => !nowIds.includes(id)).length : 0;
@@ -52,10 +57,31 @@ export function Cart() {
   const unchanged = !!origin && added === 0 && removed === 0 && !reordered;
   const title = draftTitle.trim();
   /* Saved, or not: shown in the header, and it decides whether Clear needs a confirmation. */
-  const status = draftStatus(selection, origin, draftTitle);
+  const status = draftStatus(selection, origin, draftTitle, known);
+  /* A saved draft the server does not hold lives only in this browser; say so. */
+  const deviceOnly = status === 'saved' && !!origin && !isServerDraft(origin.id);
+  /* Closing or reloading the tab with a draft deck that is not saved asks first (the draft deck is not kept anywhere else). Not in automated test browsers, which have nobody to answer. */
+  const unsaved = status === 'new' || status === 'changed';
+  /* The app's Sign out asks first while there is an unsaved draft deck. */
+  useEffect(() => {
+    setUnsavedDeck(unsaved ? selection.length : 0);
+    return () => setUnsavedDeck(0);
+  }, [unsaved, selection.length]);
+  useEffect(() => {
+    if (!unsaved || navigator.webdriver) return;
+    const ask = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', ask);
+    return () => window.removeEventListener('beforeunload', ask);
+  }, [unsaved]);
   /* What the name box starts with: the deck's own name to update it, or a fresh name for a copy. */
   const suggestedName = !origin ? title : choice === 'update' ? title || origin.name : title && title.toLowerCase() !== origin.name.toLowerCase() ? title : `${origin.name} copy`;
   const draftName = typedName ?? suggestedName;
+  /* A name that is already a saved draft's (another one: updating a deck may keep its own name) must be changed first; delete the old one and the name is free again. */
+  const keepsOwnName = !!origin && choice === 'update' && draftName.trim().toLowerCase() === origin.name.trim().toLowerCase();
+  const nameTaken = keepsOwnName ? null : (drafts.find((d) => d.name.trim().toLowerCase() === draftName.trim().toLowerCase()) ?? null);
   const changes = [added > 0 && `${plural(added, 'slide')} added`, removed > 0 && `${plural(removed, 'slide')} removed`, reordered && 'order changed'].filter(Boolean).join(', ');
   const openSave = () => {
     setTypedName(null);
@@ -64,28 +90,50 @@ export function Cart() {
     setSaveOpen(true);
     saveRef.current?.showModal();
   };
+  const afterSave = useRef<AfterSave | null>(null);
   const closeSave = () => {
+    afterSave.current = null; /* closed without saving: whatever was waiting on the save does not happen */
     saveRef.current?.close();
     setSaveOpen(false);
   };
+  /* "Save them first" from My decks: the draft deck opens and shows this same box; what was waiting happens only once the draft is saved. */
+  const openSaveNow = useRef(openSave);
+  useEffect(() => {
+    openSaveNow.current = openSave;
+  });
+  useEffect(
+    () =>
+      onDraftSaveRequest((after) => {
+        setCartMin(false);
+        openSaveNow.current();
+        afterSave.current = after;
+      }),
+    [setCartMin],
+  );
   const submitSave = async (e: FormEvent) => {
     e.preventDefault();
     const name = draftName.trim();
     if (!name || saving) return;
     const updating = !!origin && choice === 'update';
+    if (nameTaken) return;
     setSaving(true);
+    let savedId: string | null = null;
     try {
-      if (updating && origin) await replaceDraft(origin.id, name, selection);
-      else await saveDraft(name, selection);
+      if (updating && origin) savedId = await replaceDraft(origin.id, name, selection);
+      else savedId = await saveDraft(name, selection);
     } catch {
       setSaving(false);
       toast(updating ? 'Could not update the deck. Nothing was changed. Try again.' : 'Could not save the deck. Try again.');
       return;
     }
     setSaving(false);
-    toast(updating ? `Updated “${name}” in My decks` : `Saved “${name}” to My decks`);
+    /* When something is waiting on this save (opening a saved draft), its own toast says both; otherwise say what was saved. */
+    const here = savedId !== null && !isServerDraft(savedId) ? ' on this device only' : '';
+    if (!afterSave.current) toast(updating ? `Updated “${name}” in My decks${here}` : `Saved “${name}” to My decks${here}`);
     announce(updating ? `Updated ${name} in My decks` : `Saved ${name} as a new deck in My decks`);
+    const after = afterSave.current;
     closeSave();
+    after?.({ id: savedId, name });
   };
 
   const listRef = useRef<HTMLUListElement>(null);
@@ -282,7 +330,7 @@ export function Cart() {
     const before = snapshotDraft();
     updateSelection(() => []);
     announce('Draft deck cleared');
-    toast('Draft deck cleared', { label: 'Undo', run: () => restoreDraft(before) });
+    toast('Draft deck cleared', { label: 'Undo', run: () => restoreDraft(before, []) });
   };
   return (
     <>
@@ -300,7 +348,7 @@ export function Cart() {
             <span className={`cart-state is-${status}`}>
               {status === 'saved' ? (
                 <>
-                  <Icon name="check" className="ic-sm" /> Saved
+                  <Icon name="check" className="ic-sm" /> {deviceOnly ? 'Saved on this device only' : 'Saved'}
                 </>
               ) : status === 'changed' ? (
                 'Unsaved changes'
@@ -341,9 +389,9 @@ export function Cart() {
                         {pack.label ?? 'Pack'} · {present} of {pack.slideIds.length}
                       </span>
                       {present < pack.slideIds.length && (
-                        <button type="button" className="btn-link" onClick={() => addPackToDraft(pack)}>
+                        <Button variant="link" onClick={() => addPackToDraft(pack)}>
                           Add the rest
-                        </button>
+                        </Button>
                       )}
                     </li>
                   )}
@@ -375,7 +423,12 @@ export function Cart() {
                       aria-label={`Remove from draft deck: ${s.title}`}
                       onClick={() => {
                         if (pack && present > 1) openPackDialog({ kind: 'remove', pack, slide: s });
-                        else updateSelection((cur) => cur.filter((x) => x.id !== s.id));
+                        else {
+                          const before = snapshotDraft();
+                          const after = selection.filter((x) => x.id !== s.id).map((x) => x.id);
+                          updateSelection((cur) => cur.filter((x) => x.id !== s.id));
+                          toast(`Removed “${s.title}”`, { label: 'Undo', run: () => restoreDraft(before, after) });
+                        }
                       }}
                     >
                       <Icon name="x" />
@@ -450,7 +503,10 @@ export function Cart() {
         className="slidevault sv-dialog"
         data-theme={runtime.theme}
         aria-labelledby={`${nameId}-t`}
-        onClose={() => setSaveOpen(false)}
+        onClose={() => {
+          afterSave.current = null;
+          setSaveOpen(false);
+        }}
         onClick={(e) => e.target === e.currentTarget && closeSave()}
       >
         {saveOpen && (
@@ -471,6 +527,11 @@ export function Cart() {
                 <>
                   <p className="save-lead">Update “{origin.name}” with these changes?</p>
                   {draftName.trim() && draftName.trim().toLowerCase() !== origin.name.toLowerCase() && <p className="meta">It will be renamed “{draftName.trim()}”.</p>}
+                  {nameTaken && (
+                    <p className="save-taken" role="alert">
+                      A draft called “{nameTaken.name}” already exists. Change the draft deck’s name first, or save as a new copy.
+                    </p>
+                  )}
                   <Button variant="link" className="save-copy" onClick={() => { setTypedName(null); setChoice('new'); }}>
                     Save as a new copy instead
                   </Button>
@@ -479,8 +540,13 @@ export function Cart() {
                 <>
                   <label className="save-name" htmlFor={nameId}>
                     <span>Name this draft</span>
-                    <input id={nameId} type="text" value={draftName} onChange={(e) => setTypedName(e.target.value)} maxLength={80} placeholder="For example, Harbor Bank pitch" autoFocus autoComplete="off" />
+                    <input id={nameId} type="text" value={draftName} onChange={(e) => setTypedName(e.target.value)} maxLength={80} placeholder="For example, Harbor Bank pitch" autoFocus autoComplete="off" aria-invalid={!!nameTaken} aria-describedby={nameTaken ? `${nameId}-taken` : undefined} />
                   </label>
+                  {nameTaken && (
+                    <p id={`${nameId}-taken`} className="save-taken" role="alert">
+                      A draft called “{nameTaken.name}” already exists. Please rename this one.
+                    </p>
+                  )}
                   {origin && !unchanged && (
                     <Button variant="link" className="save-copy" onClick={() => { setTypedName(null); setChoice('update'); }}>
                       Back: update “{origin.name}” instead
@@ -496,7 +562,7 @@ export function Cart() {
               <Button  onClick={closeSave}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" disabled={!draftName.trim() || saving}>
+              <Button type="submit" variant="primary" disabled={!draftName.trim() || saving || !!nameTaken}>
                 {saving ? 'Saving…' : origin ? (choice === 'update' ? `Update “${origin.name}”` : 'Save as new copy') : 'Save draft'}
               </Button>
             </div>
@@ -556,9 +622,9 @@ function TagAll({ slides }: { slides: SlideSummary[] }) {
   if (!slides.length) return null;
   if (!open)
     return (
-      <button type="button" className="btn-link cart-tagall-open" title="Adds one tag to every slide in this draft deck. Everyone can see it." onClick={() => setOpen(true)}>
+      <Button variant="link" className="cart-tagall-open" title="Adds one tag to every slide in this draft deck. Everyone can see it." onClick={() => setOpen(true)}>
         <Icon name="tag" className="ic-sm" /> Tag {slides.length === 1 ? 'this slide' : `all ${slides.length} slides`}
-      </button>
+      </Button>
     );
   const submit = async (e: FormEvent) => {
     e.preventDefault();

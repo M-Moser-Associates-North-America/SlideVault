@@ -62,3 +62,9 @@
 @media (prefers-reduced-motion: reduce) {
   .slidevault .ai-check { transition: none; }
 }
+/* The Hidden slides card (a phone and a tablet): what it does, and the two choices; the one that is current is outlined in orange. */
+.slidevault dialog.hid-dialog .hid-lead { margin: 0 0 10px; font-size: 15px; line-height: 1.5; }
+.slidevault dialog.hid-dialog .hid-now { margin: 0; font-size: 14px; color: var(--sv-text-secondary); }
+.slidevault dialog.hid-dialog .dlg-foot { flex-wrap: wrap; }
+.slidevault dialog.hid-dialog .dlg-foot > .btn { flex: 1 1 0; justify-content: center; }
+.slidevault dialog.hid-dialog .dlg-foot > .btn[aria-pressed="true"] { border-color: var(--sv-brand); background: var(--sv-brand-tint); }

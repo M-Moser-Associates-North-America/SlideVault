@@ -1,5 +1,6 @@
 'use client';
 
+import { hideTip, showTip } from '../fixed-tip';
 import { useEdgeFade } from '../edge-fade';
 import { Button, buttonClass } from '../ui/Button';
 import { useRef, type ReactNode } from 'react';
@@ -34,9 +35,12 @@ export function Row({ id, title, sub, seeAll, total, children }: { id: string; t
             <button
               type="button"
               className="row-info"
-              data-tip={sub}
-              data-tip-pos="start"
-              aria-label={`About ${title}`}
+              aria-label={`About ${title}: ${sub}`}
+              onMouseEnter={(e) => showTip(e.currentTarget, sub)}
+              onMouseLeave={hideTip}
+              onFocus={(e) => showTip(e.currentTarget, sub)}
+              onBlur={hideTip}
+              onClick={(e) => showTip(e.currentTarget, sub)}
             >
               <Icon name="info" />
             </button>

@@ -192,9 +192,9 @@ export function SlideView({ id }: { id: string }) {
                 <>
                   {' · '}
                   {hiddenGap(sibs)} hidden{' '}
-                  <button type="button" className="btn-link" aria-label={`Show ${plural(hiddenGap(sibs), 'hidden slide')}`} onClick={() => setIncludeHidden(true)}>
+                  <Button variant="link" aria-label={`Show ${plural(hiddenGap(sibs), 'hidden slide')}`} onClick={() => setIncludeHidden(true)}>
                     Show
-                  </button>
+                  </Button>
                 </>
               )}
             </span>
@@ -209,7 +209,7 @@ export function SlideView({ id }: { id: string }) {
             )}
           </div>
           {/* The tags are rows of pills under the pager on every screen (the Add tag pill and the suggestions in a second row): scrolling on a phone and a tablet, wrapping on a desktop. */}
-          <PreviewTags slide={slide} onNavigate={() => undefined} />
+          <PreviewTags slide={slide} onNavigate={() => undefined} place="page" />
           <SlideEngagement key={slide.id} slide={slide} loaded={detail && detail.id === id && 'slide' in detail ? detail.slide : null} />
           {!compact && (
             <section className="panel slide-text-panel" style={{ marginTop: 16 }}>
@@ -262,12 +262,12 @@ export function SlideView({ id }: { id: string }) {
               <dt>Deck</dt>
               <dd className="break-name">
                 {p.sourceTitle}
-                <button type="button" className="btn-link arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
+                <Button variant="link" className="arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
                   <Icon name="archive" className="ic-sm" />
                   <span className="arch-text">
                     <span className="arch-l">{deck.archived ? 'Restore this deck' : 'Archive this deck'}</span>
                   </span>
-                </button>
+                </Button>
               </dd>
               <dt>File</dt>
               <dd className="break-name">{p.sourceFileName}</dd>
@@ -323,12 +323,12 @@ export function SlideView({ id }: { id: string }) {
               <dt>Deck</dt>
               <dd className="break-name">
                 {p.sourceTitle}
-                <button type="button" className="btn-link arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
+                <Button variant="link" className="arch-link" onClick={() => openArchiveDialog({ deck: { id: deck.id, title: deck.title, slideCount: deck.slides.length }, restore: !!deck.archived, fromSlide: slide.title })}>
                   <Icon name="archive" className="ic-sm" />
                   <span className="arch-text">
                     <span className="arch-l">{deck.archived ? 'Restore this deck' : 'Archive this deck'}</span>
                   </span>
-                </button>
+                </Button>
               </dd>
               <dt>File</dt>
               <dd className="break-name">{p.sourceFileName}</dd>

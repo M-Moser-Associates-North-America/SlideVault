@@ -380,9 +380,9 @@ export function FilterBar() {
           {fromYear && (
             <p className="fb-note">
               From your search: <strong>{fromYear.label}</strong>{' '}
-              <button type="button" className="btn-link" onClick={() => switchOff(fromYear)}>
+              <Button variant="link" onClick={() => switchOff(fromYear)}>
                 Remove
-              </button>
+              </Button>
             </p>
           )}
           <div className="fb-presets">
@@ -534,11 +534,6 @@ export function FilterBar() {
     <div ref={sentinel} className="fbar-sentinel" aria-hidden="true" />
     <div className={`fbar${stuck && !compact ? ' is-stuck' : ''}${heroOut && !compact ? ' has-search' : ''}`} ref={wrap} style={{ top }} role="region" aria-label="Filters">
       {heroOut && !compact && <StickySearch place="bar" />}
-      {compact && upright && searched === '' && runtime.location.view !== 'browse' && (
-        <div className="fb-tools">
-          <StoryLauncher part="button" />
-        </div>
-      )}
       <div className="fbar-row" ref={rowRef} role="toolbar" aria-label="Filter slides">
         <DeeperAiToggle />
         {compact && <HiddenToggle place="row" />}
@@ -547,8 +542,8 @@ export function FilterBar() {
           <span className="fb-lbl">Filters</span>
           {activeTotal > 0 && <span className="fb-n-on" aria-hidden="true">{activeTotal}</span>}
         </button>
-        {/* Phone on its side and tablets: Storyboard is in this same row, after Filters (a phone held upright keeps it on a line above). */}
-        {compact && !upright && searched === '' && runtime.location.view !== 'browse' && <StoryLauncher part="button" />}
+        {/* Phones and tablets: Storyboard is in this same row, after Filters. */}
+        {compact && searched === '' && runtime.location.view !== 'browse' && <StoryLauncher part="button" />}
         {/* Phones and upright tablets: one Filters button; the sheet it opens starts with Year and Client. */}
         {!compact && items.map((it) => (
           <div key={it.key} className="fb-item">
@@ -572,9 +567,9 @@ export function FilterBar() {
           </div>
         ))}
         {n > 0 && chips.length === 0 && (
-          <button type="button" className="btn-link fb-clear-all" onClick={clearFilters}>
+          <Button variant="link" className="fb-clear-all" onClick={clearFilters}>
             Clear all
-          </button>
+          </Button>
         )}
       {chips.length > 0 && (
         <FilterChips chips={chips} showClearAll={n > 0} onClearAll={clearFilters} onCannotRemove={() => toast('That one cannot be taken off from here. Change your words to drop it.')} listRef={chipsRef} />

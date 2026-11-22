@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { askBeforeLeavingUpload, firstNameOf, startTour, useProfile, useRoleLabel } from '@/features/slide-vault';
+import { askBeforeLeavingUpload, askBeforeLosingDraftDeck, firstNameOf, startTour, useProfile, useRoleLabel } from '@/features/slide-vault';
 import { useTheme } from './theme';
 import styles from './shell.module.css';
 
@@ -163,7 +163,7 @@ export function ShellHeader() {
                     className={styles.menuItem}
                     onClick={() => {
                       setOpen(false);
-                      askBeforeLeavingUpload(signOut); /* asks first when an upload would be lost */
+                      askBeforeLeavingUpload(() => askBeforeLosingDraftDeck(signOut)); /* asks first when an upload or an unsaved draft deck would be lost */
                     }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

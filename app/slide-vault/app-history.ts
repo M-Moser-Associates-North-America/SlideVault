@@ -63,7 +63,7 @@ export function useAppHistory(pathname: string, go: { back(): void; forward(): v
 }
 
 /**
- * An open pop-up (slide preview, download, and so on) closes before Back leaves the page, whether the
+ * An open pop-up (slide preview, download, and so on), or the draft deck where it covers the page (a phone and an upright tablet), closes before Back leaves the page, whether the
  * person used the buttons, the keyboard, a mouse button or the phone's back swipe. While any <dialog>
  * is open, one extra history step with the same address stands in front of the real page; Back
  * lands on it and we close the dialog instead.
@@ -74,9 +74,14 @@ export function useDialogBack() {
     let heldUrl = '';
     let skipPop = false; // the next popstate is us removing our own step
     const open = () => Array.from(document.querySelectorAll<HTMLDialogElement>('dialog[open]'));
+    /* The draft deck covers the page only where its dimmed backdrop is drawn; on a wide screen it sits beside the page and Back leaves as usual. */
+    const scrim = () => {
+      const s = document.querySelector<HTMLElement>('.slidevault .cart-scrim');
+      return s && getComputedStyle(s).display !== 'none' ? s : null;
+    };
 
     const sync = () => {
-      const any = open().length > 0;
+      const any = open().length > 0 || scrim() !== null;
       if (any && !held) {
         held = true;
         heldUrl = location.href;
@@ -108,12 +113,13 @@ export function useDialogBack() {
       if (held) {
         held = false;
         open().forEach((d) => d.close());
-      } else if (history.state?.svDialog && open().length === 0) {
+        scrim()?.click(); /* the draft deck closes like a pop-up */
+      } else if (history.state?.svDialog && open().length === 0 && scrim() === null) {
         history.back(); // a leftover step from a dialog that closed while we moved on: step over it
       }
     };
     const observer = new MutationObserver(sync);
-    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] });
+    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'], childList: true });
     window.addEventListener('popstate', onPop);
     return () => {
       observer.disconnect();

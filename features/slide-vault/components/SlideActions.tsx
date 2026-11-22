@@ -348,9 +348,9 @@ function CommentsSection({ slide }: { slide: SlideSummary }) {
                 <p className="comment-head">
                   <b>{c.author}</b> <span className="meta">· {when(c.at)}</span>
                   {c.author === profile && (
-                    <button type="button" className="btn-link comment-del" onClick={() => setAsking(c)}>
+                    <Button variant="link" className="comment-del" onClick={() => setAsking(c)}>
                       Delete
-                    </button>
+                    </Button>
                   )}
                 </p>
                 <p className="comment-text">{c.text}</p>

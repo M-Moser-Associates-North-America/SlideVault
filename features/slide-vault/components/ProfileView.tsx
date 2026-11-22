@@ -3,13 +3,14 @@
 import type { Draft } from '../client/profile-store';
 import { ScrollRow } from './scroll-row';
 import { Button, buttonClass } from './ui/Button';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { firstNameOf } from '../client/first-name';
 import { Icon } from './icons';
 import { timeAgo } from './library';
 import { Link, SlideCard, StateBlock } from './parts';
 import { ConfirmDialog } from './TagBits';
 import { draftStatus } from '../client/draft-status';
+import { isServerDraft } from '../client/profile-store';
 import { OpenDraftDialog, useDraftOpeners } from './OpenDraftDialog';
 import { useAccount, useDraft, useLibrary, useNotify } from './state';
 
@@ -22,6 +23,7 @@ export function ProfileView() {
   const { library } = useLibrary();
   const { drafts, deleteDraft, selection, draftOrigin, draftTitle } = useDraft();
   const { open: openDraft, add: addDraft } = useDraftOpeners();
+  const known = useMemo(() => (library.status === 'ready' ? new Set(library.slides.map((s) => s.id)) : null), [library]);
   const { toast } = useNotify();
   const { profile, savedIds } = useAccount();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -83,10 +85,10 @@ export function ProfileView() {
               <DraftRow
                 key={d.id}
                 name={d.name}
-                meta={`${d.slideIds.length === 1 ? '1 slide' : `${d.slideIds.length} slides`} · saved ${timeAgo(d.savedAt)}`}
+                meta={`${d.slideIds.length === 1 ? '1 slide' : `${d.slideIds.length} slides`} · saved ${timeAgo(d.savedAt)}${isServerDraft(d.id) ? '' : ' · this device only'}`}
                 onOpen={() => {
                   /* Unsaved slides in the draft deck: ask what to do with them first. Nothing there, or all saved: just open it. */
-                  const status = draftStatus(selection, draftOrigin, draftTitle);
+                  const status = draftStatus(selection, draftOrigin, draftTitle, known);
                   if (status === 'new' || status === 'changed') return setOpening(d);
                   openDraft(d);
                 }}

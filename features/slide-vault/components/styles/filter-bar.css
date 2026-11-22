@@ -5,7 +5,6 @@
    How FilterBar.tsx builds it (these rules rely on it):
      .fbar
        StickySearch                      desktop, once the Home search has scrolled away
-       .fb-tools                         phone held upright only: a line above the row with Storyboard
        .fbar-row                         AI tick, eye (phones and tablets), Filters (.fb-all), Storyboard,
                                          the filter buttons (.fb-item, desktop only), Clear all, .fb-chips
        .fb-pin-bar                       phones and tablets, once the row has scrolled away;
@@ -116,7 +115,7 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 }
 
 /* ===== Phones and tablets: one Filters button and one row that scrolls sideways =====
-   Search with AI, the eye, Filters, Storyboard (on a phone held upright it has its own line above) and then
+   Search with AI, the eye, Filters, Storyboard and then
    Clear all with the chosen filters are all one row. */
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar { position: static; display: block; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.fbar:has(.fb-chips), .sv-main:has(.res-wrap) .fbar) { margin-bottom: 24px; }
@@ -135,11 +134,6 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 
 /* ===== Phone held upright ===== */
 .slidevault .sv-app[data-size="compact"] .fbar { padding-top: 8px; }
-/* The line above the row that holds Storyboard. */
-.slidevault .fb-tools { position: relative; align-items: center; gap: 8px; }
-.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar > .fb-tools { display: block; margin: 0 0 12px; }
-/* Phone upright: the Storyboard button has the same room above it (from the search bar) as below it (to Search with AI): 18px each. */
-.slidevault .sv-app[data-size="compact"]:not([data-land]) .fbar > .fb-tools { flex: 1 1 100%; margin-top: 10px; }
 
 /* ===== Phone on its side ===== */
 @media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
@@ -206,11 +200,8 @@ dialog.slidevault.fb-sheet .fb-list { max-height: none; overflow: visible; }
 /* ===== Storyboard's button in the filter bar (exception) =====
    StoryLauncher is Schiffon's and is not changed, so where the filter bar shows it, the bar sizes it here:
    a shorter, flat button, and the "New" badge shrunk to a dot. */
-/* On the line above the row (phone held upright). */
-.slidevault .fb-tools .sb-launch { width: auto; z-index: auto; }
-.slidevault .fb-tools .btn.sb-launch-btn { height: 36px; padding: 0 14px 0 12px; font-size: 13px; font-weight: 600; width: auto; box-shadow: none; }
-.slidevault .fb-tools .sb-launch-btn .sb-new { top: -3px; right: -3px; width: 10px; height: 10px; padding: 0; overflow: hidden; font-size: 0; color: transparent; background: var(--sv-brand); border: 2px solid var(--sv-bg); }
 /* In the row (a phone on its side and tablets). */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row > .sb-launch { flex: none; width: auto; }
 .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .fbar-row .btn.sb-launch-btn { order: 4; height: 36px; min-height: 36px; padding: 0 14px 0 12px; font-size: 13px; font-weight: 700; width: auto; }
 .slidevault .fbar-row .sb-launch-btn .sb-new { top: -3px; right: -3px; width: 10px; height: 10px; padding: 0; overflow: hidden; font-size: 0; color: transparent; background: var(--sv-brand); border: 2px solid var(--sv-bg); }
 

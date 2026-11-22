@@ -10,11 +10,11 @@ export const API_ROOT = '/api/slide-vault/v1';
 const VIEWS: readonly View[] = ['home', 'library', 'pages', 'browse', 'story', 'create', 'upload', 'deck', 'slide', 'profile', 'settings', 'archive'];
 export const DEFAULT_LOCATION: Location = { view: 'pages' };
 
-/** URL path segments after UI_BASE → workspace Location. Unknown paths fall back to the default. */
+/** URL path segments after UI_BASE → workspace Location. An unknown first segment is the "page not found" screen; a missing id falls back to Home. */
 export function locationFromSegments(segments: string[] = []): Location {
   const [view, id] = segments;
   if (!view) return DEFAULT_LOCATION;
-  if (!(VIEWS as readonly string[]).includes(view)) return DEFAULT_LOCATION;
+  if (!(VIEWS as readonly string[]).includes(view)) return { view: 'notfound' }; /* an address that is not a page of the app says so, instead of quietly showing Home */
   if ((view === 'deck' || view === 'slide' || view === 'browse') && !id) return DEFAULT_LOCATION;
   return id ? { view: view as View, id } : { view: view as View };
 }

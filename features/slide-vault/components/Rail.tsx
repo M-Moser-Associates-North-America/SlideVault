@@ -293,9 +293,9 @@ export function FilterPanel({ decks, slidesAll }: { decks: Deck[]; slidesAll: im
                 );
               })}
             </div>
-            <button type="button" className="btn-link y-link" aria-expanded={showYear} onClick={() => setYearCustom(!showYear)}>
+            <Button variant="link" className="y-link" aria-expanded={showYear} onClick={() => setYearCustom(!showYear)}>
               {showYear ? 'Hide custom range' : 'Custom range'}
-            </button>
+            </Button>
             {showYear && (
               <div className="yr">
                 <label className="sr-only" htmlFor="sv-y-from">

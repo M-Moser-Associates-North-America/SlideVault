@@ -188,16 +188,16 @@ dialog.slidevault.tag-sheet[data-keyboard] .tag-sheet-body { padding-bottom: 14p
 .slidevault .deck-tags .tag-add { position: relative; }
 .slidevault .deck-tags .tag-add::before { content: ""; position: absolute; inset: -10px -6px; } }
 
-/* Slide page, tablet on its side and desktop: the tags are rows under the picture's pager, as on an upright tablet (no Tags card). Desktop: the tags wrap to the next row and the suggestions stay on one row; tablet on its side: both rows scroll sideways. */
-.slidevault .sv-app[data-size="wide"] .slide-detail .tag-first { align-items: flex-start; }
-.slidevault .sv-app[data-size="wide"] .slide-detail .tag-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 2px 0; }
-.slidevault .sv-app[data-size="wide"] .slide-detail .tag-line .tagrows, .slidevault .sv-app[data-size="wide"] .slide-detail .tag-line .tags-compact { display: contents; }
-.slidevault .sv-app[data-size="wide"] .slide-detail .tag-line .tagrow, .slidevault .sv-app[data-size="wide"] .slide-detail .tag-line .tag { flex: none; max-width: none; }
-.slidevault .sv-app[data-size="wide"] .slide-detail .tag-line .tag-t { max-width: none; }
-.slidevault .sv-app[data-size="wide"] .slide-detail .tag-suggested { flex-wrap: nowrap; }
-.slidevault .sv-app[data-size="wide"] .slide-detail .tag-suggested > * { flex: none; }
-.slidevault .sv-app[data-tl] .slide-detail .tag-first { align-items: center; }
-.slidevault .sv-app[data-tl] .slide-detail .tag-line { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
-.slidevault .sv-app[data-tl] .slide-detail .tag-line::-webkit-scrollbar { display: none; }
-.slidevault .sv-app[data-tl] .slide-detail .tag-suggested { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
-.slidevault .sv-app[data-tl] .slide-detail .tag-suggested::-webkit-scrollbar { display: none; }
+/* The tags on the slide page (`place="page"`, the named version `.lb-tags.on-page`), tablet on its side and desktop: rows under the picture's pager, as on an upright tablet (no Tags card). Desktop: the tags wrap to the next row and the suggestions stay on one row; tablet on its side: both rows scroll sideways. */
+.slidevault .sv-app[data-size="wide"] .lb-tags.on-page .tag-first { align-items: flex-start; }
+.slidevault .sv-app[data-size="wide"] .lb-tags.on-page .tag-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 2px 0; }
+.slidevault .sv-app[data-size="wide"] .lb-tags.on-page .tag-line .tagrows, .slidevault .sv-app[data-size="wide"] .lb-tags.on-page .tag-line .tags-compact { display: contents; }
+.slidevault .sv-app[data-size="wide"] .lb-tags.on-page .tag-line .tagrow, .slidevault .sv-app[data-size="wide"] .lb-tags.on-page .tag-line .tag { flex: none; max-width: none; }
+.slidevault .sv-app[data-size="wide"] .lb-tags.on-page .tag-line .tag-t { max-width: none; }
+.slidevault .sv-app[data-size="wide"] .lb-tags.on-page .tag-suggested { flex-wrap: nowrap; }
+.slidevault .sv-app[data-size="wide"] .lb-tags.on-page .tag-suggested > * { flex: none; }
+.slidevault .sv-app[data-tl] .lb-tags.on-page .tag-first { align-items: center; }
+.slidevault .sv-app[data-tl] .lb-tags.on-page .tag-line { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.slidevault .sv-app[data-tl] .lb-tags.on-page .tag-line::-webkit-scrollbar { display: none; }
+.slidevault .sv-app[data-tl] .lb-tags.on-page .tag-suggested { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.slidevault .sv-app[data-tl] .lb-tags.on-page .tag-suggested::-webkit-scrollbar { display: none; }

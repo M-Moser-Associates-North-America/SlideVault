@@ -47,7 +47,6 @@
 .slidevault .row-info { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: help; }
 .slidevault .row-info:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
 .slidevault .row-info .ic { width: 15px; height: 15px; }
-.slidevault .row-info[data-tip]::after { white-space: normal; width: 230px; font-weight: 500; line-height: 1.4; text-align: left; }
 
 /* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
 @keyframes svFade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
@@ -181,7 +180,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts.lift { bottom: calc(76px + env(safe-area-inset-bottom)); }
 /* The (i) tip under a row title opens at the row's left edge and is never wider than the row, so it can't run off the screen. */
 .slidevault .sv-app[data-size="compact"] .row-title, .slidevault .sv-app[data-size="compact"] .row-info { position: static; }
-.slidevault .sv-app[data-size="compact"] .row-info[data-tip]::after { left: 0; right: auto; transform: none; width: max-content; max-width: min(280px, 100%); }
 /* Useful / Not useful on a narrow card: each label stays on one line; the pair wraps to a second line if it must. */
 .slidevault .fb-verdict .sb-icon-btn { white-space: nowrap; }
 /* The preview window scrolls: a soft edge at the bottom shows there is more below. */
