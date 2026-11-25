@@ -4,7 +4,7 @@
  * needs all of them. The words still decide what is searched for, minus the ones whose reading the person switched off.
  */
 import type { SearchFacets, SlideSummary } from '../../contracts/dto';
-import { facetCounts, NO_FILTERS, slideMatches, type Filters } from '../../components/library';
+import { facetCounts, NO_FILTERS, slideMatches, type Filters } from '../../domain/filters';
 
 const MAX_VALUES = 40;
 const MAX_LENGTH = 120;

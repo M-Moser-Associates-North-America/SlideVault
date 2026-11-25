@@ -2,7 +2,7 @@ import 'server-only';
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { StoryUserRole } from '../contracts/dto';
-import { isStopWord } from '../components/search-rules';
+import { isStopWord } from '../domain/search-rules';
 import { roleOf } from './ai/roles';
 import { hasMmoserConfig, readConfig } from './config';
 import { sql } from './db';

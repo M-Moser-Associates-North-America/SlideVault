@@ -1,4 +1,4 @@
-import { BASIC_MAX_WORDS, isBasicQuery, isStopWord, parseQuery, topicNames } from '../../components/search-rules';
+import { BASIC_MAX_WORDS, isBasicQuery, isStopWord, parseQuery, topicNames } from '../../domain/search-rules';
 
 /**
  * Quick AI search (docs/DECISIONS.md FD-16, FD-17): how a typed request becomes a search, and how
@@ -6,7 +6,7 @@ import { BASIC_MAX_WORDS, isBasicQuery, isStopWord, parseQuery, topicNames } fro
  *
  *   1. Read the request into a SearchPlan: keywords (with likely synonyms) plus optional filters.
  *      The configured AI reader does this (ai/reader.ts); with none configured, or if it fails, the
- *      stand-in below does, using the same rules as the filter row (components/search-rules.ts).
+ *      stand-in below does, using the same rules as the filter row (domain/search-rules.ts).
  *   2. Search Postgres for slides matching ANY keyword, inside the filters, best match first.
  *   3. Explain each result from what actually matched. The note is worked out from the slide's
  *      own words, not written by the model, so it can't claim something the slide doesn't say.

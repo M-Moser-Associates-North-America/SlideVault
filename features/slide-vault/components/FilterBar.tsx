@@ -11,7 +11,7 @@ import type { SlideSummary, SmartSearchChip } from '../contracts/dto';
 import { rowReading } from './search-reading';
 import { FilterChips, type FilterChip } from './FilterChips';
 import { SectionConflictDialog } from './SectionConflictDialog';
-import { SLIDE_TYPES, hasSlideType } from './search-rules';
+import { SLIDE_TYPES, hasSlideType } from '../domain/search-rules';
 import { useHeroOut } from '../client/hero-visibility';
 import { StickySearch } from './StickySearch';
 import { HiddenToggle } from './HiddenToggle';

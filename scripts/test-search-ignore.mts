@@ -8,7 +8,7 @@ import { smartSearch } from '../features/slide-vault/server/services/smart-searc
 import { sectionWordsIn } from '../features/slide-vault/server/services/sections';
 import { applyFilters, parseFilters } from '../features/slide-vault/server/services/search-filters';
 import { wordsBehindChip } from '../features/slide-vault/components/search-reading';
-import { parseQuery } from '../features/slide-vault/components/search-rules';
+import { parseQuery } from '../features/slide-vault/domain/search-rules';
 
 assert.deepEqual(parseIgnore(null), []);
 assert.deepEqual(parseIgnore('case studies| 2024 |case studies||'), ['case studies', '2024']);

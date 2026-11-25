@@ -1,5 +1,5 @@
 import type { SmartSearchChip, SmartSearchResult } from '../contracts/dto';
-import { parseQuery, slideTypeForTopic } from './search-rules';
+import { parseQuery, slideTypeForTopic } from '../domain/search-rules';
 
 /**
  * How the server read the search (GET /smart-search chips), shared by the filter row and the

@@ -3,7 +3,7 @@
  * should know that Moira Moser is the head of M Moser"). Read by the AI with every search, so "a photo of
  * our founder" means Moira Moser and "all our studios" means the offices. One fact per line, in plain words:
  * M Moser can add to it without touching the search code. The rules keep the same facts as search words
- * (components/search-rules.ts: founder, offices, IDD).
+ * (domain/search-rules.ts: founder, offices, IDD).
  */
 export const FIRM_FACTS: readonly string[] = [
   'Moira Moser founded M Moser Associates and leads it. "Our founder", "the founder" or "Moira" means Moira Moser.',

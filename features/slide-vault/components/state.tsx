@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { isBasicQuery } from './search-rules';
+import { isBasicQuery } from '../domain/search-rules';
 import { archiveDeck as archiveDeckApi, fetchAiAvailable, createPack as createPackApi, deletePack as deletePackApi, getMySettings, listLibrary, renamePack as renamePackApi, renameSlide as renameSlideApi, setMyRole, setPackStatus as setPackStatusApi, smartSearch } from '../client/api';
 import { withDemoDetails } from '../client/demo-details';
 import { useLocalPacks } from '../client/pack-store';
