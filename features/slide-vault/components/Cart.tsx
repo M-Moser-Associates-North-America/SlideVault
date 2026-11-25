@@ -25,7 +25,7 @@ import { cleanTag, TAG_MAX_LENGTH } from './TagField';
 export function Cart() {
   const { runtime } = useRuntime();
   const { packs, library } = useLibrary();
-  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, saveDraft, replaceDraft, draftOrigin, snapshotDraft, restoreDraft, drafts, combine, setCombine, addPackToDraft } = useDraft();
+  const { selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, saveDraft, replaceDraft, draftOrigin, snapshotDraft, putBackSlides, drafts, combine, setCombine, addPackToDraft } = useDraft();
   const { openDownload, openPreview, openPackDialog } = useOverlays();
   const { announce, toast } = useNotify();
   const n = selection.length;
@@ -133,7 +133,7 @@ export function Cart() {
     announce(updating ? `Updated ${name} in My decks` : `Saved ${name} as a new deck in My decks`);
     const after = afterSave.current;
     closeSave();
-    after?.({ id: savedId, name });
+    after?.({ id: savedId, name, updated: updating });
   };
 
   const listRef = useRef<HTMLUListElement>(null);
@@ -330,7 +330,7 @@ export function Cart() {
     const before = snapshotDraft();
     updateSelection(() => []);
     announce('Draft deck cleared');
-    toast('Draft deck cleared', { label: 'Undo', run: () => restoreDraft(before, []) });
+    toast('Draft deck cleared', { label: 'Undo', run: () => putBackSlides(before, before.slides.map((x) => x.id)) });
   };
   return (
     <>
@@ -425,9 +425,9 @@ export function Cart() {
                         if (pack && present > 1) openPackDialog({ kind: 'remove', pack, slide: s });
                         else {
                           const before = snapshotDraft();
-                          const after = selection.filter((x) => x.id !== s.id).map((x) => x.id);
                           updateSelection((cur) => cur.filter((x) => x.id !== s.id));
-                          toast(`Removed “${s.title}”`, { label: 'Undo', run: () => restoreDraft(before, after) });
+                          /* Undo puts back this slide only, where it was; anything done since stays. */
+                          toast(`Removed “${s.title}”`, { label: 'Undo', run: () => putBackSlides(before, [s.id]) });
                         }
                       }}
                     >

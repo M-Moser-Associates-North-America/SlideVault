@@ -25,3 +25,18 @@ export function slidesOutOfSight(origin: Draft | null, known: ReadonlySet<string
 
 /** The draft deck as it was, so an Undo can put it back. */
 export type DraftSnapshot = { slides: SlideSummary[]; title: string; originId: string | null; excluded?: string[] };
+
+/**
+ * The draft deck as an action left it, so its Undo can check nothing was done since: the slide ids, and the name, saved deck and unticked
+ * slides where the action changed them (left out: as they were before the action). An empty draft deck has no name, saved deck or unticked slides.
+ */
+export type DraftAfter = { ids: string[]; title?: string; originId?: string | null; excluded?: string[] };
+
+/** One string for comparing two states of the draft deck. */
+export const draftKey = (ids: string[], title: string, originId: string | null, excluded: string[]) => JSON.stringify([ids, title, originId, [...excluded].sort()]);
+
+/** What `after` means in full, filled in from the snapshot taken before the action. */
+export function expectedKey(before: DraftSnapshot, after: DraftAfter): string {
+  if (after.ids.length === 0) return draftKey([], '', null, []);
+  return draftKey(after.ids, after.title ?? before.title, after.originId === undefined ? before.originId : after.originId, after.excluded ?? before.excluded ?? []);
+}

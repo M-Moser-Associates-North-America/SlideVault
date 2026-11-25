@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useRef } from 'react';
-import type { DraftSnapshot } from '../client/draft-status';
+import type { DraftAfter, DraftSnapshot } from '../client/draft-status';
 import { requestDraftSave } from '../client/draft-save-request';
 import type { Draft } from '../client/profile-store';
 import { backdropClose, useDialogOpen } from './Dialogs';
@@ -15,11 +15,11 @@ import { Button } from './ui/Button';
  * "open" replaces what is there; "add" puts the saved draft's slides after the ones already there.
  */
 export function useDraftOpeners() {
-  const { selection, updateSelection, setCartMin, loadDraft, slidesOfDraft, snapshotDraft, restoreDraft } = useDraft();
+  const { selection, updateSelection, setCartMin, loadDraft, slidesOfDraft, snapshotDraft, restoreDraft, takeOutSlides } = useDraft();
   const { toast, announce } = useNotify();
   const loading = () => toast('The library is still loading. Please try again in a moment.');
   /* Undo only while the draft deck is still as this action left it (restoreDraft checks), and only if there was something to bring back. */
-  const undoFor = (before: DraftSnapshot, after: string[]) => (before.slides.length > 0 ? { label: 'Undo', run: () => restoreDraft(before, after) } : undefined);
+  const undoFor = (before: DraftSnapshot, after: DraftAfter) => (before.slides.length > 0 ? { label: 'Undo', run: () => restoreDraft(before, after) } : undefined);
 
   /** Replace the draft deck with the saved draft. `before` is what Undo brings back (default: the draft deck as it is now); `lead` starts the toast. */
   const open = (draft: Draft, before: DraftSnapshot = snapshotDraft(), lead = '') => {
@@ -32,7 +32,7 @@ export function useDraftOpeners() {
     loadDraft(draft);
     setCartMin(false);
     const gone = draft.slideIds.length - found.length;
-    toast(`${lead}Opened “${draft.name}” in your draft deck.${gone > 0 ? ` ${plural(gone, 'slide')} in it ${gone === 1 ? 'is' : 'are'} hidden or no longer in the library and stay${gone === 1 ? 's' : ''} in the saved deck.` : ''}`, undoFor(before, found.map((s) => s.id)));
+    toast(`${lead}Opened “${draft.name}” in your draft deck.${gone > 0 ? ` ${plural(gone, 'slide')} in it ${gone === 1 ? 'is' : 'are'} hidden or no longer in the library and stay${gone === 1 ? 's' : ''} in the saved deck.` : ''}`, undoFor(before, { ids: found.map((s) => s.id), title: draft.name, originId: draft.id, excluded: [] }));
     announce(`Opened ${draft.name} in the draft deck`);
   };
 
@@ -40,7 +40,6 @@ export function useDraftOpeners() {
   const add = (draft: Draft) => {
     const found = slidesOfDraft(draft);
     if (!found) return loading();
-    const before = snapshotDraft();
     const fresh = found.filter((s) => !selection.some((c) => c.id === s.id));
     if (fresh.length === 0) {
       toast(found.length === 0 && draft.slideIds.length > 0 ? `None of the slides in “${draft.name}” are in the library right now (they may be hidden or removed).` : `Everything in “${draft.name}” was already in your draft deck.`);
@@ -48,7 +47,8 @@ export function useDraftOpeners() {
     }
     updateSelection((cur) => [...cur, ...fresh.filter((s) => !cur.some((c) => c.id === s.id))]);
     setCartMin(false);
-    toast(`Added ${plural(fresh.length, 'slide')} from “${draft.name}” to your draft deck.`, undoFor(before, [...selection, ...fresh].map((s) => s.id)));
+    /* Undo takes out just the slides this added; anything done since stays. */
+    toast(`Added ${plural(fresh.length, 'slide')} from “${draft.name}” to your draft deck.`, { label: 'Undo', run: () => takeOutSlides(fresh.map((s) => s.id)) });
     announce(`${plural(fresh.length, 'slide')} from ${draft.name} added to the draft deck`);
   };
   return { open, add };
@@ -62,7 +62,7 @@ export function useDraftOpeners() {
  */
 export function OpenDraftDialog({ draft, onClose }: { draft: Draft | null; onClose: () => void }) {
   const { runtime } = useRuntime();
-  const { selection, draftOrigin } = useDraft();
+  const { selection, draftOrigin, slidesOfDraft } = useDraft();
   const { open, add } = useDraftOpeners();
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -72,10 +72,21 @@ export function OpenDraftDialog({ draft, onClose }: { draft: Draft | null; onClo
   const shown = draft?.name ?? '';
   const sameDeck = !!draft && draftOrigin?.id === draft.id;
 
+  /* What an update saves: the draft deck's slides, then the saved deck's slides that are hidden or gone from the library (as state.tsx replaceDraft keeps them). */
+  const savedSlideIds = (d: Draft, slides: typeof selection) => {
+    const inLibrary = new Set((slidesOfDraft(d) ?? []).map((s) => s.id));
+    const inDeck = new Set(slides.map((s) => s.id));
+    return [...inDeck, ...d.slideIds.filter((id) => !inLibrary.has(id) && !inDeck.has(id))];
+  };
+
   const saveFirst = () => {
     if (!draft) return;
     const slides = selection;
-    requestDraftSave((saved) => open(draft, { slides, title: saved.name, originId: saved.id }, `Saved “${saved.name}”. `));
+    requestDraftSave((saved) => {
+      /* Saving over this very deck changed its saved record: reopen that one, not the copy taken before the save (it would bring the old slides back). */
+      const record = sameDeck && saved.updated && saved.id ? { ...draft, id: saved.id, name: saved.name, slideIds: savedSlideIds(draft, slides) } : draft;
+      open(record, { slides, title: saved.name, originId: saved.id }, `Saved “${saved.name}”. `);
+    });
     onClose();
   };
 

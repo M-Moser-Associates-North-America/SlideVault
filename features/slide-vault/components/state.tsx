@@ -7,7 +7,7 @@ import { withDemoDetails } from '../client/demo-details';
 import { useLocalPacks } from '../client/pack-store';
 import { buildPacks, NO_PACKS, type Pack, type PacksIndex } from '../client/packs';
 import { useActivity, useDrafts, useProfile, useSaved, type ActivityEntry, type Draft } from '../client/profile-store';
-import { slidesOutOfSight, type DraftSnapshot } from '../client/draft-status';
+import { draftKey, expectedKey, slidesOutOfSight, type DraftAfter, type DraftSnapshot } from '../client/draft-status';
 import { adoptServerRole, currentStoryRole, onRoleChange } from '../client/role-store';
 import { demoTagsOn } from '../client/tag-store';
 import { demoSwitchesAllowed } from '../client/demo-switches';
@@ -204,8 +204,15 @@ type Workspace = {
   slidesOfDraft: (draft: Draft) => SlideSummary[] | null;
   /** The draft deck as it is now, and a way to put it back (for an Undo). */
   snapshotDraft: () => DraftSnapshot;
-  /** Put the draft deck back as it was. With `expect` (the slide ids the action left), it only does so while the draft deck still holds exactly those. */
-  restoreDraft: (snapshot: DraftSnapshot, expect?: string[]) => boolean;
+  /** Put the draft deck back as it was. With `expect` (the draft deck as the action left it), it only does so while nothing has changed since: slides, name, saved deck or ticks. */
+  restoreDraft: (snapshot: DraftSnapshot, expect?: DraftAfter) => boolean;
+  /**
+   * The Undo of an action that took slides out (removing one, clearing): put back just `ids` from the snapshot, each where it was.
+   * Whatever was done since stays as it is. Only if the draft deck is still empty do its name, saved deck and ticks come back too.
+   */
+  putBackSlides: (snapshot: DraftSnapshot, ids: string[]) => void;
+  /** The Undo of an action that added slides: take out just those. Whatever was done since stays as it is. */
+  takeOutSlides: (ids: string[]) => void;
 };
 
 /*
@@ -217,7 +224,7 @@ type Workspace = {
 export type RuntimeGroup = Pick<Workspace, 'runtime'>;
 export type LibraryGroup = Pick<Workspace, 'library' | 'reloadLibrary' | 'includeHidden' | 'setIncludeHidden' | 'includeArchived' | 'setIncludeArchived' | 'archiveDeck' | 'renameSlide' | 'packs' | 'makePack' | 'ungroupPack' | 'renamePack' | 'setPackStatus'>;
 export type SearchGroup = Pick<Workspace, 'aiAvailable' | 'deeperAi' | 'setDeeperAi' | 'aiAsk' | 'aiAskKind' | 'answerAiAsk' | 'dismissAiAsk' | 'query' | 'setQuery' | 'typeQuery' | 'searched' | 'submitSearch' | 'retrySearch' | 'search' | 'filters' | 'patchFilters' | 'clearFilters' | 'sectionsFromSearch' | 'autoSection' | 'dismissAutoSection' | 'sectionsInWords' | 'ignoreChip' | 'ignoreWords' | 'sectionsOff' | 'refreshing' | 'searchRun'>;
-export type DraftGroup = Pick<Workspace, 'selection' | 'updateSelection' | 'excluded' | 'setIncluded' | 'cartMin' | 'setCartMin' | 'draftTitle' | 'setDraftTitle' | 'combine' | 'setCombine' | 'addPackToDraft' | 'removePackFromDraft' | 'drafts' | 'saveDraft' | 'replaceDraft' | 'draftOrigin' | 'deleteDraft' | 'loadDraft' | 'slidesOfDraft' | 'snapshotDraft' | 'restoreDraft'>;
+export type DraftGroup = Pick<Workspace, 'selection' | 'updateSelection' | 'excluded' | 'setIncluded' | 'cartMin' | 'setCartMin' | 'draftTitle' | 'setDraftTitle' | 'combine' | 'setCombine' | 'addPackToDraft' | 'removePackFromDraft' | 'drafts' | 'saveDraft' | 'replaceDraft' | 'draftOrigin' | 'deleteDraft' | 'loadDraft' | 'slidesOfDraft' | 'snapshotDraft' | 'restoreDraft' | 'putBackSlides' | 'takeOutSlides'>;
 export type OverlaysGroup = Pick<Workspace, 'preview' | 'openPreview' | 'closePreview' | 'movePreview' | 'goToPreview' | 'downloadSlides' | 'openDownload' | 'closeDownload' | 'alsoFor' | 'openAlso' | 'closeAlso' | 'archiveDialog' | 'openArchiveDialog' | 'closeArchiveDialog' | 'packDialog' | 'openPackDialog' | 'closePackDialog'>;
 export type NotifyGroup = Pick<Workspace, 'toast' | 'dismissToast' | 'announce'>;
 export type NoticesGroup = Pick<Workspace, 'toasts' | 'announcement'>;
@@ -778,15 +785,15 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     [slidesOfDraft, updateSelection],
   );
   const snapshotDraft = useCallback((): DraftSnapshot => ({ slides: selection, title: draftTitle, originId, excluded: excludedList }), [selection, draftTitle, originId, excludedList]);
-  /* What the draft deck holds right now, for Undo to check against (a callback made earlier would see an old copy). */
-  const nowIds = useRef('');
+  /* The whole draft deck right now (slides, name, saved deck, ticks), for Undo to check against (a callback made earlier would see an old copy). */
+  const nowDraft = useRef('');
   useEffect(() => {
-    nowIds.current = selection.map((s) => s.id).join(',');
+    nowDraft.current = draftKey(selection.map((s) => s.id), draftTitle, originId, excludedList);
   });
   const restoreDraft = useCallback(
-    (snap: DraftSnapshot, expect?: string[]): boolean => {
-      /* Undo only while the draft deck is still as the action left it; otherwise it would wipe out what was done since. */
-      if (expect && nowIds.current !== expect.join(',')) {
+    (snap: DraftSnapshot, expect?: DraftAfter): boolean => {
+      /* Undo only while the draft deck is still as the action left it; otherwise it would wipe out what was done since (a rename, a tick). */
+      if (expect && nowDraft.current !== expectedKey(snap, expect)) {
         toast('The draft deck has changed since, so that can no longer be undone.');
         return false;
       }
@@ -799,12 +806,36 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
     [updateSelection, toast],
   );
 
+  const putBackSlides = useCallback(
+    (snap: DraftSnapshot, ids: string[]) => {
+      const wasEmpty = nowDraft.current === draftKey([], '', null, []);
+      updateSelection((cur) => {
+        const next = [...cur];
+        snap.slides.forEach((s, at) => {
+          if (!ids.includes(s.id) || next.some((x) => x.id === s.id)) return;
+          /* Back where it was: just before the nearest slide that came after it and is still there (so a slide taken out earlier,
+             and put back since, stays ahead of it); with none of those, at the end. */
+          const after = snap.slides.slice(at + 1).find((p) => next.some((x) => x.id === p.id));
+          next.splice(after ? next.findIndex((x) => x.id === after.id) : next.length, 0, s);
+        });
+        return next;
+      });
+      if (wasEmpty) {
+        setExcludedList(snap.excluded ?? []);
+        setOriginId(snap.originId);
+        setDraftTitle(snap.title);
+      }
+    },
+    [updateSelection],
+  );
+  const takeOutSlides = useCallback((ids: string[]) => updateSelection((cur) => cur.filter((s) => !ids.includes(s.id))), [updateSelection]);
+
   /* While the AI question is waiting, the results show as loading. */
   const shownSearch = useMemo<SearchState>(() => (aiAsk ? { status: 'loading' } : search), [aiAsk, search]);
   const runtimeValue = useMemo<RuntimeGroup>(() => ({ runtime }), [runtime]);
   const libraryValue = useMemo<LibraryGroup>(() => ({ library, reloadLibrary, includeHidden, setIncludeHidden, includeArchived, setIncludeArchived, archiveDeck, renameSlide, packs, makePack, ungroupPack, renamePack, setPackStatus }), [library, reloadLibrary, includeHidden, setIncludeHidden, includeArchived, setIncludeArchived, archiveDeck, renameSlide, packs, makePack, ungroupPack, renamePack, setPackStatus]);
   const searchValue = useMemo<SearchGroup>(() => ({ aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, dismissAiAsk, query, setQuery, typeQuery, searched: submitted, submitSearch, retrySearch, search: shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, ignoreWords, sectionsOff, refreshing, searchRun: searchTry }), [aiAvailable, deeperAi, setDeeperAi, aiAsk, aiAskKind, answerAiAsk, dismissAiAsk, query, setQuery, typeQuery, submitted, submitSearch, retrySearch, shownSearch, filters, patchFilters, clearFilters, sectionsFromSearch, autoSection, dismissAutoSection, sectionsInWords, ignoreChip, ignoreWords, sectionsOff, refreshing, searchTry]);
-  const draftValue = useMemo<DraftGroup>(() => ({ selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft, slidesOfDraft, snapshotDraft, restoreDraft }), [selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft, slidesOfDraft, snapshotDraft, restoreDraft]);
+  const draftValue = useMemo<DraftGroup>(() => ({ selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft, slidesOfDraft, snapshotDraft, restoreDraft, putBackSlides, takeOutSlides }), [selection, updateSelection, excluded, setIncluded, cartMin, setCartMin, draftTitle, setDraftTitle, combine, setCombine, addPackToDraft, removePackFromDraft, drafts, saveDraft, replaceDraft, draftOrigin, deleteDraft, loadDraft, slidesOfDraft, snapshotDraft, restoreDraft, putBackSlides, takeOutSlides]);
   const overlaysValue = useMemo<OverlaysGroup>(() => ({ preview, openPreview, closePreview, movePreview, goToPreview, downloadSlides, openDownload, closeDownload, alsoFor, openAlso, closeAlso, archiveDialog, openArchiveDialog, closeArchiveDialog, packDialog, openPackDialog, closePackDialog }), [preview, openPreview, closePreview, movePreview, goToPreview, downloadSlides, openDownload, closeDownload, alsoFor, openAlso, closeAlso, archiveDialog, openArchiveDialog, closeArchiveDialog, packDialog, openPackDialog, closePackDialog]);
   const notifyValue = useMemo<NotifyGroup>(() => ({ toast, dismissToast, announce }), [toast, dismissToast, announce]);
   const noticesValue = useMemo<NoticesGroup>(() => ({ toasts, announcement }), [toasts, announcement]);

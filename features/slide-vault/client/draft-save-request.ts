@@ -3,7 +3,8 @@
  * It asks for it here, with what to do once the draft is saved; the draft deck opens, shows its box, and calls `after` only when the person saved.
  * Closing the box (outside click, Escape, Cancel) drops the request and nothing else happens. Kept in memory only.
  */
-export type Saved = { id: string | null; name: string };
+/** `updated`: the save replaced the saved deck the draft deck came from (so it now holds these slides), rather than saving a new one. */
+export type Saved = { id: string | null; name: string; updated: boolean };
 export type AfterSave = (saved: Saved) => void;
 
 const handlers = new Set<(after: AfterSave) => void>();
