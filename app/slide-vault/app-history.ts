@@ -23,6 +23,9 @@ function load(): Trail | null {
    ready, which can take a while, so a pop-up that closes meanwhile must not step back and cancel it. */
 let moveStarted = 0;
 let moveDone = true;
+/* The last two addresses the app was at (set when the address changes), so a Back or Forward can tell where the person came from. */
+let prevHref = '';
+let lastHref = '';
 
 export function useAppHistory(pathname: string, go: { back(): void; forward(): void }) {
   const [trail, setTrail] = useState<Trail>({ urls: [pathname], at: 0 });
@@ -31,6 +34,7 @@ export function useAppHistory(pathname: string, go: { back(): void; forward(): v
 
   useEffect(() => {
     moveDone = true; /* the address changed: any move that was on its way has arrived */
+    if (location.href !== lastHref) [prevHref, lastHref] = [lastHref, location.href];
     setTrail((cur) => {
       const base = cur.urls.length === 1 && cur.urls[0] === pathname ? (load() ?? cur) : cur;
       let next = base;
@@ -73,6 +77,7 @@ export function useDialogBack() {
     let held = false; // our extra step is in the history
     let heldUrl = '';
     let skipPop = false; // the next popstate is us removing our own step
+    if (!lastHref) prevHref = lastHref = location.href;
     const open = () => Array.from(document.querySelectorAll<HTMLDialogElement>('dialog[open]'));
     /* The draft deck covers the page only where its dimmed backdrop is drawn; on a wide screen it sits beside the page and Back leaves as usual. */
     const scrim = () => {
@@ -106,6 +111,9 @@ export function useDialogBack() {
       }
     };
     const onPop = () => {
+      /* Where the person came from: the router may already have noted this address, or not yet. */
+      const from = lastHref === location.href ? prevHref : lastHref;
+      prevHref = lastHref = location.href;
       if (skipPop) {
         skipPop = false;
         return;
@@ -115,7 +123,10 @@ export function useDialogBack() {
         open().forEach((d) => d.close());
         scrim()?.click(); /* the draft deck closes like a pop-up */
       } else if (history.state?.svDialog && open().length === 0 && scrim() === null) {
-        history.back(); // a leftover step from a dialog that closed while we moved on: step over it
+        /* A leftover step from a dialog that closed while we moved on (a link from the preview): step over it the way the person was going.
+           Arriving from the same address is a Forward from the page under it; arriving from elsewhere is a Back from the page after it. */
+        if (from === location.href) history.forward();
+        else history.back();
       }
     };
     const observer = new MutationObserver(sync);

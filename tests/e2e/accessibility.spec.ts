@@ -224,6 +224,23 @@ test('preview: focus moves into the dialog and returns to the opener on Escape',
   await expect(opener).toBeFocused();
 });
 
+test('preview: after following its Open deck link, Back returns to the results and Forward to the deck (the full round trip)', async ({ page }) => {
+  await openResults(page, 'services');
+  const results = page.url();
+  await page.getByRole('button', { name: 'Preview: Services' }).click();
+  await page.getByRole('dialog').getByRole('link', { name: 'Open deck' }).click();
+  await expect(page.getByRole('button', { name: 'Download whole deck' })).toBeVisible();
+  const deck = page.url();
+  await page.goBack();
+  await expect(page).toHaveURL(results);
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await page.goForward();
+  await expect(page).toHaveURL(deck);
+  await expect(page.getByRole('button', { name: 'Download whole deck' })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(results);
+});
+
 test('one banner, one main, one h1; no skipped heading levels', async ({ page }) => {
   await openResults(page, 'leadership');
   await expect(page.getByRole('banner')).toHaveCount(1);
