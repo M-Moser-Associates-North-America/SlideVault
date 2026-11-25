@@ -102,9 +102,6 @@ export function PackDialog() {
       );
       actions = (
         <>
-          <Button variant="ghost" onClick={closePackDialog}>
-            Cancel
-          </Button>
           <Button  disabled={busy} onClick={() => run(() => setOne(slide, true))}>
             Only this slide
           </Button>
@@ -132,9 +129,6 @@ export function PackDialog() {
       );
       actions = (
         <>
-          <Button variant="ghost" onClick={closePackDialog}>
-            Cancel
-          </Button>
           <Button  disabled={busy} onClick={() => run(() => addNow(sec.name, sec.slides))}>
             Only this section ({sec.slides.length})
           </Button>
@@ -168,9 +162,6 @@ export function PackDialog() {
       );
       actions = (
         <>
-          <Button variant="ghost" onClick={closePackDialog}>
-            Cancel
-          </Button>
           <Button  disabled={busy} onClick={() => run(() => setOne(slide, false))}>
             Only this slide
           </Button>
@@ -192,9 +183,6 @@ export function PackDialog() {
       );
       actions = (
         <>
-          <Button variant="ghost" onClick={closePackDialog}>
-            Cancel
-          </Button>
           <Button variant="primary" disabled={busy} autoFocus onClick={ungroup}>
             {pack.status === 'suggested' ? 'Dismiss suggestion' : 'Ungroup'}
           </Button>
@@ -207,7 +195,7 @@ export function PackDialog() {
     <dialog ref={ref} className="slidevault sv-dialog pack-dialog" data-theme={runtime.theme} aria-labelledby="sv-pack-title" onClose={closePackDialog} onClick={backdropClose(closePackDialog)}>
       <div className="dlg-head">
         <h2 id="sv-pack-title">{title}</h2>
-        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={closePackDialog}>
+        <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={closePackDialog}>
           <Icon name="x" />
         </Button>
       </div>

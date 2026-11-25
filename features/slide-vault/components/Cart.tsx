@@ -518,7 +518,7 @@ export function Cart() {
                   {origin ? (unchanged ? `Started from “${origin.name}”. Nothing has changed since you saved it.` : `Started from “${origin.name}”. Since then: ${changes}.`) : 'Saved under Working drafts in My decks.'}
                 </p>
               </div>
-              <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={closeSave}>
+              <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={closeSave}>
                 <Icon name="x" />
               </Button>
             </div>
@@ -559,9 +559,6 @@ export function Cart() {
               </p>
             </div>
             <div className="dlg-foot">
-              <Button  onClick={closeSave}>
-                Cancel
-              </Button>
               <Button type="submit" variant="primary" disabled={!draftName.trim() || saving || !!nameTaken}>
                 {saving ? 'Saving…' : origin ? (choice === 'update' ? `Update “${origin.name}”` : 'Save as new copy') : 'Save draft'}
               </Button>

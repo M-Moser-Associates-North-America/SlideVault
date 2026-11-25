@@ -209,7 +209,7 @@ export function Lightbox() {
                 <Icon name="heart" />
               </Button>
               <ShareIconButton slideId={slide.id} />
-              <Button variant="ghost" iconOnly size="sm" aria-label="Close preview" onClick={closePreview}>
+              <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close preview" onClick={closePreview}>
                 <Icon name="x" />
               </Button>
             </div>
@@ -745,7 +745,7 @@ export function DownloadDialog() {
             You get {planSummary(plan, combine)}. Slides stay editable.
           </p>
         </div>
-        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={closeDownload}>
+        <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={closeDownload}>
           <Icon name="x" />
         </Button>
       </div>
@@ -791,9 +791,7 @@ export function DownloadDialog() {
         )}
       </div>
       <div className="dlg-foot">
-        <Button  onClick={closeDownload}>
-          {run.kind === 'done' ? 'Done' : 'Cancel'}
-        </Button>
+        {run.kind === 'done' && <Button onClick={closeDownload}>Done</Button>}
         {run.kind !== 'done' && (
           <Button variant="primary" disabled={!canExport || !slides.length || run.kind === 'busy'} aria-busy={run.kind === 'busy'} onClick={go}>
             <Icon name={run.kind === 'busy' ? 'spinner' : 'download'} className={run.kind === 'busy' ? 'spin' : ''} />
@@ -823,7 +821,7 @@ export function AlsoDialog() {
           <h2 id="sv-also-title">Also in {plural(others || alsoFor?.alsoIn?.otherDeckCount || 0, 'other deck')}</h2>
           <p className="meta">Also in these decks.</p>
         </div>
-        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={closeAlso}>
+        <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={closeAlso}>
           <Icon name="x" />
         </Button>
       </div>
@@ -846,11 +844,6 @@ export function AlsoDialog() {
             </li>
           ))}
         </ul>
-      </div>
-      <div className="dlg-foot">
-        <Button  onClick={closeAlso}>
-          Close
-        </Button>
       </div>
     </dialog>
   );

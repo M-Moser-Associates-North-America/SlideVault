@@ -96,7 +96,7 @@ export function OpenDraftDialog({ draft, onClose }: { draft: Draft | null; onClo
         <>
           <div className="dlg-head">
             <h2 id={titleId}>{sameDeck ? `“${shown}” has changes you have not saved` : 'Your draft deck has slides in it'}</h2>
-            <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={onClose}>
+            <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={onClose}>
               <Icon name="x" />
             </Button>
           </div>
@@ -108,9 +108,7 @@ export function OpenDraftDialog({ draft, onClose }: { draft: Draft | null; onClo
             </p>
           </div>
           <div className="dlg-foot">
-            <Button variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
+            {/* No Cancel: the ✕, Escape and a click outside the box already close it without doing anything. */}
             {sameDeck ? (
               <Button
                 onClick={() => {

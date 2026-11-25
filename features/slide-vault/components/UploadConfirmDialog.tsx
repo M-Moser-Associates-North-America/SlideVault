@@ -33,7 +33,7 @@ export function UploadConfirmDialog({ open, summary, onCancel, onConfirm }: { op
     <dialog ref={ref} className="slidevault sv-dialog" data-theme={runtime.theme} aria-labelledby="sv-upc-title" onClose={onCancel} onClick={backdropClose(onCancel)}>
       <div className="dlg-head">
         <h2 id="sv-upc-title">Upload this deck?</h2>
-        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={onCancel}>
+        <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={onCancel}>
           <Icon name="x" />
         </Button>
       </div>
@@ -61,9 +61,6 @@ export function UploadConfirmDialog({ open, summary, onCancel, onConfirm }: { op
         )}
       </div>
       <div className="dlg-foot">
-        <Button variant="ghost" onClick={onCancel}>
-          Cancel
-        </Button>
         <Button variant="primary" autoFocus onClick={onConfirm}>
           Upload deck
         </Button>

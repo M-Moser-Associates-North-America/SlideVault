@@ -23,7 +23,7 @@ export function LeaveUploadDialog() {
     <dialog ref={ref} className="slidevault sv-dialog" data-theme={runtime.theme} aria-labelledby="sv-leave-title" onClose={stay} onClick={backdropClose(stay)}>
       <div className="dlg-head">
         <h2 id="sv-leave-title">Leave your upload behind?</h2>
-        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={stay}>
+        <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={stay}>
           <Icon name="x" />
         </Button>
       </div>
@@ -39,7 +39,7 @@ export function LeaveUploadDialog() {
         )}
       </div>
       <div className="dlg-foot">
-        <Button variant="ghost" onClick={() => answerLeaveUpload(true)}>
+        <Button onClick={() => answerLeaveUpload(true)}>
           Sign out anyway
         </Button>
         <Button ref={stayRef} variant="primary" onClick={stay}>

@@ -361,7 +361,7 @@ export function ConfirmDialog({ open, title, kind, subject, detail, lead, confir
     <dialog ref={ref} className="slidevault sv-dialog" data-theme={runtime.theme} aria-labelledby={titleId} onClose={onCancel} onClick={backdropClose(onCancel)}>
       <div className="dlg-head">
         <h2 id={titleId}>{title}</h2>
-        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={onCancel}>
+        <Button ref={cancelRef} variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={onCancel}>
           <Icon name="x" />
         </Button>
       </div>
@@ -374,9 +374,6 @@ export function ConfirmDialog({ open, title, kind, subject, detail, lead, confir
         <p className="arch-lead">{lead}</p>
       </div>
       <div className="dlg-foot">
-        <Button ref={cancelRef} variant="ghost" onClick={onCancel}>
-          Cancel
-        </Button>
         <Button variant="primary" onClick={onConfirm}>
           {confirmLabel}
         </Button>
@@ -453,7 +450,7 @@ function AddTagSheet({ label, known, have, disabled, onAdd }: { label: string; k
           <>
             <div className="dlg-head">
               <h2 id={titleId}>Add a tag</h2>
-              <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={close}>
+              <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={close}>
                 <Icon name="x" />
               </Button>
             </div>

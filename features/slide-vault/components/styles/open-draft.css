@@ -1,5 +1,4 @@
-/* "Your draft deck has slides in it" (opening a saved draft while the draft deck holds slides). The buttons wrap and share the room on a narrow screen. */
+/* "Your draft deck has slides in it" (opening a saved draft while the draft deck holds slides). On a phone the buttons stack like every pop-up's (dialog.css). */
 .slidevault dialog.open-draft .dlg-foot { flex-wrap: wrap; }
-.slidevault .sv-app[data-size="compact"] dialog.open-draft .dlg-foot > .btn { flex: 1 1 auto; justify-content: center; }
 .slidevault dialog.open-draft .open-draft-note { margin-top: 10px; }
 .slidevault dialog.open-draft .open-draft-lead { margin: 0; font-size: 15px; line-height: 1.5; }

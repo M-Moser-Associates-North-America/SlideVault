@@ -41,7 +41,7 @@ export function SectionConflictDialog({ picked, inWords, onProceed, onRecheck }:
         )}
       </div>
       <div className="dlg-foot">
-        <Button variant="ghost" onClick={onRecheck}>
+        <Button onClick={onRecheck}>
           Recheck my search
         </Button>
         <Button ref={proceedRef} variant="primary" onClick={onProceed}>

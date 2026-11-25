@@ -65,7 +65,7 @@ export function HiddenToggle({ place }: { place: 'hero' | 'search' | 'row' }) {
             <>
               <div className="dlg-head">
                 <h2 id={titleId}>Hidden slides</h2>
-                <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={() => setOpen(false)}>
+                <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={() => setOpen(false)}>
                   <Icon name="x" />
                 </Button>
               </div>

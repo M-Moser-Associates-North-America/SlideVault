@@ -388,7 +388,7 @@ test('upload: see the slides, tag the deck and a slide, confirm, and everything 
   await expect(dialog).toContainText('Deck tags: Healthcare');
   await expect(dialog).toContainText('3 tags on 3 slides');
   expect(await axe(page)).toEqual([]);
-  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await dialog.getByRole('button', { name: 'Close' }).click();
   expect(uploads).toBe(0);
   await page.getByRole('button', { name: 'Upload deck' }).click();
   await dialog.getByRole('button', { name: 'Upload deck' }).click();
@@ -761,5 +761,5 @@ test('upload: tags the AI fills in are marked "please check", can be removed, an
   await page.getByRole('textbox', { name: 'Year' }).fill('2025');
   await page.getByRole('button', { name: 'Upload deck' }).click();
   await expect(page.getByRole('dialog').getByText('1 tag filled in by the AI: please check it before you upload')).toBeVisible();
-  await page.getByRole('button', { name: 'Cancel' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
 });

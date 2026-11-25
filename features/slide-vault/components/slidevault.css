@@ -103,14 +103,6 @@
 .slidevault .toast .x { border: 0; width: 32px; padding: 0; display: grid; place-items: center; }
 
 /* Dialogs */
-dialog.slidevault.sv-dialog { border: 1px solid var(--sv-border); padding: 0; border-radius: var(--sv-radius-panel); background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); width: min(560px, calc(var(--sv-w, 1280px) - 24px)); max-height: calc(var(--sv-h, 100%) - 32px); }
-dialog.slidevault.sv-dialog[open] { display: flex; flex-direction: column; }
-dialog.slidevault.sv-dialog::backdrop { background: rgba(10,10,14,.6); }
-dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
-.slidevault .dlg-head { padding: 18px 20px 10px 24px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.slidevault .dlg-head h2 { font-size: 18px; }
-.slidevault .dlg-body { padding: 4px 24px 16px; overflow: auto; min-height: 0; }
-.slidevault .dlg-foot { padding: 12px 24px 20px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--sv-border); }
 .slidevault .counter { font-variant-numeric: tabular-nums; font-size: var(--sv-text-small); font-weight: 600; }
 .slidevault .steps li.now { background: var(--sv-surface-sunken); font-weight: 700; }
 .slidevault .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }

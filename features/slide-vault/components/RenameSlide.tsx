@@ -87,7 +87,7 @@ export function SlideTitle({ slide, loaded }: { slide: SlideSummary; loaded?: Sl
         <form onSubmit={save}>
           <div className="dlg-head">
             <h2 id={`${id}-t`}>Rename this slide?</h2>
-            <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={close}>
+            <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={close}>
               <Icon name="x" />
             </Button>
           </div>
@@ -110,9 +110,6 @@ export function SlideTitle({ slide, loaded }: { slide: SlideSummary; loaded?: Sl
             )}
           </div>
           <div className="dlg-foot">
-            <Button variant="ghost" onClick={close} disabled={busy}>
-              Cancel
-            </Button>
             <Button type="submit" variant="primary" disabled={!changed || busy}>
               {busy ? 'Renaming…' : 'Rename for everyone'}
             </Button>

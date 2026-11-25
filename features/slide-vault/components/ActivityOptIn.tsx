@@ -56,7 +56,7 @@ export function ActivityOptInDialog({ mode, onClose }: { mode: OptInMode | null;
         <>
           <div className="dlg-head">
             <h2 id="sv-optin-title">{done === 'on' ? 'Personalization is on' : 'Personalization is off'}</h2>
-            <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={close}>
+            <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={close}>
               <Icon name="x" />
             </Button>
           </div>
@@ -87,7 +87,7 @@ export function ActivityOptInDialog({ mode, onClose }: { mode: OptInMode | null;
           <>
             <div className="dlg-head">
               <h2 id="sv-optin-title">{turningOff ? 'Turn off personalization?' : 'Personalize my Vault?'}</h2>
-              <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={close}>
+              <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={close}>
                 <Icon name="x" />
               </Button>
             </div>

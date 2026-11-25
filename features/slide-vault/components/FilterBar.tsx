@@ -616,7 +616,7 @@ export function FilterBar() {
           <>
             <div className="dlg-head">
               <h2 id="sv-sheet-title">{sheet === 'all' ? 'Filters' : (items.find((it) => it.key === sheet)?.label ?? 'Filters')}</h2>
-              <Button variant="ghost" iconOnly size="sm" aria-label="Close filters" onClick={() => setSheet(null)}>
+              <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close filters" onClick={() => setSheet(null)}>
                 <Icon name="x" />
               </Button>
             </div>

@@ -48,7 +48,7 @@ export function AiAskDialog() {
         </p>
       </div>
       <div className="dlg-foot ai-ask-foot">
-        <Button variant="ghost" onClick={no}>
+        <Button onClick={no}>
           {long ? 'No, regular search' : 'No, search normally'}
         </Button>
         <Button ref={yesRef} variant="primary" onClick={() => answerAiAsk(true)}>

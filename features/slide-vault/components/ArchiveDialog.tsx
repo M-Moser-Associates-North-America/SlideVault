@@ -34,7 +34,7 @@ export function ArchiveDialog() {
     <dialog ref={ref} className="slidevault sv-dialog" data-theme={runtime.theme} aria-labelledby="sv-arch-title" onClose={closeArchiveDialog} onClick={backdropClose(closeArchiveDialog)}>
       <div className="dlg-head">
         <h2 id="sv-arch-title">{d?.restore ? 'Restore this deck?' : 'Archive this deck?'}</h2>
-        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={closeArchiveDialog}>
+        <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={closeArchiveDialog}>
           <Icon name="x" />
         </Button>
       </div>
@@ -67,9 +67,6 @@ export function ArchiveDialog() {
         )}
       </div>
       <div className="dlg-foot">
-        <Button variant="ghost" onClick={closeArchiveDialog}>
-          Cancel
-        </Button>
         <Button variant="primary" disabled={busy} autoFocus onClick={go}>
           {d?.restore ? 'Restore deck' : 'Archive deck'}
         </Button>

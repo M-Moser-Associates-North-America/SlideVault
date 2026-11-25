@@ -23,7 +23,7 @@ export function UnsavedDeckDialog() {
     <dialog ref={ref} className="slidevault sv-dialog" data-theme={runtime.theme} aria-labelledby="sv-unsaved-title" onClose={stay} onClick={backdropClose(stay)}>
       <div className="dlg-head">
         <h2 id="sv-unsaved-title">Sign out with an unsaved draft deck?</h2>
-        <Button variant="ghost" iconOnly size="sm" aria-label="Close" onClick={stay}>
+        <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={stay}>
           <Icon name="x" />
         </Button>
       </div>
@@ -33,7 +33,7 @@ export function UnsavedDeckDialog() {
         </p>
       </div>
       <div className="dlg-foot">
-        <Button variant="ghost" onClick={() => takeLeaveAction()?.()}>
+        <Button onClick={() => takeLeaveAction()?.()}>
           Sign out anyway
         </Button>
         <Button

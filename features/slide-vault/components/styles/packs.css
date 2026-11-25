@@ -29,12 +29,6 @@
 .slidevault .gt-bar { position: sticky; bottom: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: -60px; padding: 12px 0; background: var(--sv-bg); border-top: 1px solid var(--sv-border); z-index: 5; }
 .slidevault .gt-bar input[type="text"] { flex: 1 1 200px; min-width: 0; height: 36px; padding: 0 12px; border: 1px solid var(--sv-border-strong); border-radius: 10px; background: var(--sv-surface); font: inherit; }
 
-/* Pack and archive questions on a phone: the main button on top and full width, the others under it. */
-
-@media (max-width: 480px) {
-.slidevault .pack-dialog .dlg-foot { flex-direction: column-reverse; align-items: stretch; }
-.slidevault .pack-dialog .dlg-foot .btn { width: 100%; justify-content: center; } }
-
 /* Section cards (FD-57): one card per deck section, above the slide cards when a "By section" pill is picked */
 .slidevault .seccards { margin: 0 0 18px; }
 .slidevault .seccards-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 12px; }

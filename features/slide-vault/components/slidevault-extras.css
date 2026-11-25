@@ -98,11 +98,6 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* Archive (FD-32): the Archived badge, and the small archive button on a deck card. */
 .slidevault .toast .toast-act { margin-left: 8px; color: inherit; font-weight: 700; text-decoration: underline; }
 
-/* Pack and archive questions on a phone: the main button on top and full width, the others under it. */
-@media (max-width: 480px) {
-  .slidevault .sv-dialog:has(.arch-body) .dlg-foot { flex-direction: column-reverse; align-items: stretch; }
-  .slidevault .sv-dialog:has(.arch-body) .dlg-foot .btn { width: 100%; justify-content: center; }
-}
 
 
 /* Upload: category pills and the tag box */
@@ -465,9 +460,10 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 /* The app header (it belongs to the application shell, so its class is hashed) stops at the same width. */
 .slidevault .sv-app[data-xxl] [class*="headerInner"] { max-width: 1960px; }
 
-/* No lonely last word: paragraphs and list text break so the last line is never a single word; headings and short notes balance their lines. */
+/* No lonely last word: paragraphs and list text break so the last line is never a single word; headings and short notes balance their lines.
+   Text in pop-ups is not balanced: balancing shortens every line and left a wide empty strip on the right of the box. */
 .slidevault :is(p, li, dd, .lede, .meta, .hint, .txt) { text-wrap: pretty; }
-.slidevault :is(h1, h2, h3, .h1, .h2, .h3, dialog p, .state p, .state h2, .tour-t, .tour-pop h2, .toast, .sv-fixed-tip) { text-wrap: balance; }
+.slidevault :is(h1, h2, h3, .h1, .h2, .h3, .state p, .state h2, .tour-t, .tour-pop h2, .toast, .sv-fixed-tip) { text-wrap: balance; }
 
 /* Storyboard is Schiffon's design: its buttons keep their own corners, outline and hover, and the Storyboard button keeps its solid orange. */
 .slidevault .sb .btn-primary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active) { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); opacity: .86; }
