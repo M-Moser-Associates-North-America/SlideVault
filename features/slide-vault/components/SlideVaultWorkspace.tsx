@@ -66,8 +66,9 @@ import './styles/fold-panel.css';
  * middle, a collapsible cart on the right.
  */
 export function SlideVaultWorkspace({ runtime, header }: SlideVaultWorkspaceProps) {
+  /* A new sessionScopeKey (sign-out, another person, another access scope) starts the workspace afresh, so no preview or cached results carry over. */
   return (
-    <WorkspaceProvider runtime={runtime}>
+    <WorkspaceProvider key={runtime.sessionScopeKey} runtime={runtime}>
       <Workspace header={header} />
     </WorkspaceProvider>
   );
