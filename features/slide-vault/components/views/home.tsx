@@ -8,7 +8,6 @@ import { Icon } from '../icons';
 import { browseSlides, categoryOf, clientOf, countBy, deckMatches, downloadedNote, filterCount, removeHint, plural, slideMatches, yearOf } from '../library';
 import { DeckCard, Link, SlideCard, StateBlock } from '../parts';
 import { MicButton } from '../MicButton';
-import { TRY_QUERIES } from '../Rail';
 import { FilterBar } from '../FilterBar';
 import { setHeroOut } from '../../client/hero-visibility';
 import { useEdgeFade } from '../edge-fade';
@@ -19,6 +18,12 @@ import { useAccount, useRuntime, useSearch } from '../state';
 import { StoryLauncher } from '../StoryLauncher';
 import { ROW_LIMIT, TileRow, Row, TopTenRow, useReadyLibrary } from './shared';
 import { ResultsView } from './results';
+
+/**
+ * Example searches shown under the box. The sentence-style ones are read by the smart search
+ * (FD-16, FD-17); the single words also work with the plain keyword search.
+ */
+const TRY_QUERIES = ['team intro for a law firm pitch', 'cost and fees', 'about us and values', 'recent logistics work', 'process and timeline 2025'];
 
 /**
  * The original reference HTML's typewriter headline, timing copied exactly from reference/SlideVault.html

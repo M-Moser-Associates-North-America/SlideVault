@@ -5,7 +5,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent, t
 import { createPortal } from 'react-dom';
 import { getSlide, listTags, searchTagSuggestions, tagSuggestions, type TagSuggestionItem } from '../client/api';
 import { demoTagsOn, ranked, TagsUnavailable, useTags, type TagsApi } from '../client/tag-store';
-import type { FreeTag, SlideDetail, SlideStory, SlideSummary, TagRemoval } from '../contracts/dto';
+import type { FreeTag, SlideStory, SlideSummary, TagRemoval } from '../contracts/dto';
 import { useEdgeFade } from './edge-fade';
 import { useKeyboardLift } from './keyboard-lift';
 import { FoldPanel } from './fold-panel';
@@ -847,35 +847,6 @@ function TagList({ api, what, canEdit, onNavigate, suggestFor, tail, addRow, lea
 }
 
 const useCanEdit = () => useRuntime().runtime.capabilities.has('metadata.edit');
-
-/** The slide page: the slide's own tags, the deck's tags beside them (changed on the deck page), and the labels. */
-export function SlideTagsPanel({ slide, loaded, also }: { slide: SlideSummary; loaded?: SlideDetail | null; /** the "also in other decks" icon, at the right of the heading */ also?: ReactNode }) {
-  const { runtime } = useRuntime();
-  const { profile } = useAccount();
-  const seed = useSeed(slide, loaded ? (loaded.tags ?? []) : undefined);
-  const own = useTags(runtime, profile, 'slide', slide.id, seed, true);
-  const deck = useTags(runtime, profile, 'deck', slide.provenance.sourceId, seed);
-  const canEdit = useCanEdit();
-  return (
-    <section className="panel">
-      <div className="panel-h">
-        <h2>Tags</h2>
-        {also}
-      </div>
-      <TagList api={own} what="slide" canEdit={canEdit} suggestFor={slide.id} />
-      {deck.shown.length > 0 && (
-        <div className="tags-fromdeck">
-          <p className="meta">From the deck</p>
-          <div className="tags-compact">
-            {deck.shown.map((t) => (
-              <TagChip key={t.id} tag={t} />
-            ))}
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
 
 /** The preview: the slide's own tags, small. */
 /** `place="page"`: the tags sit under the picture's pager on the slide page (its own look in tags.css: `.lb-tags.on-page`); without it, as in the preview. */
