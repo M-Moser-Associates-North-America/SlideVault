@@ -56,9 +56,9 @@ export function useDraftOpeners() {
 
 /**
  * Opening a saved draft while the draft deck holds unsaved work: ask first, in plain words.
- * "Save them first" opens the draft deck and its Save as draft box (which also refuses a name that is already taken); the saved draft opens once that is saved, and nothing happens if the box is closed.
- * "Add to them" keeps what is there and adds the saved draft's slides after it. Closing the box changes nothing.
- * When the saved draft is the very deck being edited, "Add to them" makes no sense, so the box offers to reopen the saved version instead.
+ * "Save my changes first" / "Save my draft deck first" opens the draft deck and its Save as draft box (which also refuses a name that is already taken); the saved draft opens once that is saved, and nothing happens if the box is closed.
+ * "Add to my draft deck" keeps what is there and adds the saved draft's slides after it. Closing the box (✕, Escape or a click outside) changes nothing.
+ * When the saved draft is the very deck being edited, "Add to my draft deck" makes no sense, so the box offers to reopen the saved version instead.
  */
 export function OpenDraftDialog({ draft, onClose }: { draft: Draft | null; onClose: () => void }) {
   const { runtime } = useRuntime();
@@ -95,16 +95,23 @@ export function OpenDraftDialog({ draft, onClose }: { draft: Draft | null; onClo
       {draft && (
         <>
           <div className="dlg-head">
-            <h2 id={titleId}>{sameDeck ? `“${shown}” has changes you have not saved` : 'Your draft deck has slides in it'}</h2>
+            <h2 id={titleId}>{sameDeck ? `Save your changes to “${shown}”?` : 'Your draft deck has unsaved slides'}</h2>
             <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={onClose}>
               <Icon name="x" />
             </Button>
           </div>
           <div className="dlg-body">
+            {/* Short, with the parts that matter in bold so the choice can be read at a glance. */}
             <p className="open-draft-lead">
-              {sameDeck
-                ? `“${shown}” is already in your draft deck, with changes that are not saved. Opening it again replaces those changes with the saved version. Do you want to save your changes first?`
-                : `There ${n === 1 ? 'is' : 'are'} already ${plural(n, 'slide')} in your draft deck that ${n === 1 ? 'is' : 'are'} not saved. Do you want to save ${n === 1 ? 'it' : 'them'} first, or add the slides from “${shown}” to ${n === 1 ? 'it' : 'them'}?`}
+              {sameDeck ? (
+                <>
+                  Your draft deck has <strong>unsaved changes to “{shown}”</strong>. Reopening the saved version <strong>replaces those changes</strong>.
+                </>
+              ) : (
+                <>
+                  Your draft deck has <strong>{plural(n, 'slide')}</strong> that {n === 1 ? 'isn’t' : 'aren’t'} saved. <strong>Save your draft deck first</strong>, or <strong>add</strong> the slides from “{shown}” to it.
+                </>
+              )}
             </p>
           </div>
           <div className="dlg-foot">
@@ -125,11 +132,12 @@ export function OpenDraftDialog({ draft, onClose }: { draft: Draft | null; onClo
                   onClose();
                 }}
               >
-                Add to them
+                Add to my draft deck
               </Button>
             )}
+            {/* Says what is saved: the changes to this very deck, or the draft deck as it is. */}
             <Button variant="primary" onClick={saveFirst}>
-              Save them first
+              {sameDeck ? 'Save my changes first' : 'Save my draft deck first'}
             </Button>
           </div>
         </>

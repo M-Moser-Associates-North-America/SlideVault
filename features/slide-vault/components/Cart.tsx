@@ -96,7 +96,7 @@ export function Cart() {
     saveRef.current?.close();
     setSaveOpen(false);
   };
-  /* "Save them first" from My decks: the draft deck opens and shows this same box; what was waiting happens only once the draft is saved. */
+  /* "Save my changes first" / "Save my draft deck first" from My decks: the draft deck opens and shows this same box; what was waiting happens only once the draft is saved. */
   const openSaveNow = useRef(openSave);
   useEffect(() => {
     openSaveNow.current = openSave;

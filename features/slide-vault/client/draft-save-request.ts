@@ -1,5 +1,5 @@
 /**
- * "Save them first" (opening a saved draft while the draft deck has unsaved work) hands the saving to the draft deck's own Save as draft box.
+ * "Save my changes first" / "Save my draft deck first" (opening a saved draft while the draft deck has unsaved work) hands the saving to the draft deck's own Save as draft box.
  * It asks for it here, with what to do once the draft is saved; the draft deck opens, shows its box, and calls `after` only when the person saved.
  * Closing the box (outside click, Escape, Cancel) drops the request and nothing else happens. Kept in memory only.
  */
