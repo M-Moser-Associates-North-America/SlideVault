@@ -81,7 +81,8 @@ export function Cart() {
   const draftName = typedName ?? suggestedName;
   /* A name that is already a saved draft's (another one: updating a deck may keep its own name) must be changed first; delete the old one and the name is free again. */
   const keepsOwnName = !!origin && choice === 'update' && draftName.trim().toLowerCase() === origin.name.trim().toLowerCase();
-  const nameTaken = keepsOwnName ? null : (drafts.find((d) => d.name.trim().toLowerCase() === draftName.trim().toLowerCase()) ?? null);
+  /* Not while saving: the new deck joins My decks at once, before the server answers, and would otherwise be taken for another deck of the same name. */
+  const nameTaken = keepsOwnName || saving ? null : (drafts.find((d) => d.name.trim().toLowerCase() === draftName.trim().toLowerCase()) ?? null);
   const changes = [added > 0 && `${plural(added, 'slide')} added`, removed > 0 && `${plural(removed, 'slide')} removed`, reordered && 'order changed'].filter(Boolean).join(', ');
   const openSave = () => {
     setTypedName(null);
@@ -407,7 +408,18 @@ export function Cart() {
                     >
                       <Icon name="grip" />
                     </button>
-                    <input type="checkbox" checked={!off} onChange={(e) => setIncluded(s.id, e.target.checked)} aria-label={`Include in download: ${s.title}`} />
+                    {/* Ticked slides go in the download; unticking keeps the slide here but leaves it out of the file (✕ removes it from the draft deck). */}
+                    <input
+                      type="checkbox"
+                      className="ci-include"
+                      checked={!off}
+                      onChange={(e) => {
+                        setIncluded(s.id, e.target.checked);
+                        if (!e.target.checked) toast(`Unticked “${s.title}” from download`, { label: 'Undo', run: () => setIncluded(s.id, true) }, s.title);
+                      }}
+                      aria-label={`Include in download: ${s.title}`}
+                      data-fixed-tip={off ? 'Left out of the download. Tick to put it back.' : 'In the download. Untick to leave it out.'}
+                    />
                     <div className="t">
                       <Thumb slide={s} />
                       <span className="ci-n" aria-hidden="true">
@@ -438,7 +450,7 @@ export function Cart() {
               );
             })}
           </ul>
-          {n > 1 && <p className="ci-hint">Drag the handle to reorder. Slides download in this order.</p>}
+          {n > 0 && <p className="ci-hint">{n > 1 ? 'Drag the handle to reorder. Slides download in this order. ' : ''}Untick a slide to leave it out of the download; ✕ removes it.</p>}
           <TagAll slides={included} />
           {plan.zip && (
             <div className="cart-zip">

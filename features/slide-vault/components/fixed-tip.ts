@@ -102,8 +102,8 @@ export function installLongPressTips(): () => void {
     if (!shown) return;
     shown = false;
     const el = (e.target as Element | null)?.closest<HTMLElement>('.slidevault :is([data-tip], [data-fixed-tip])');
-    /* The card's tick and heart are quick toggles: a long press that read their note must not also switch them. */
-    if (el && (el.getAttribute('aria-disabled') === 'true' || el.matches('.row-info, .helpdot, .pick, .save-tg'))) {
+    /* The card's tick and heart, and the draft deck's download tick, are quick toggles: a long press that read their note must not also switch them. */
+    if (el && (el.getAttribute('aria-disabled') === 'true' || el.matches('.row-info, .helpdot, .pick, .save-tg, .ci-include'))) {
       e.preventDefault();
       e.stopPropagation();
     }
