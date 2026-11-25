@@ -10,6 +10,7 @@ import { useActivity, useDrafts, useProfile, useSaved, type ActivityEntry, type 
 import { slidesOutOfSight, type DraftSnapshot } from '../client/draft-status';
 import { adoptServerRole, currentStoryRole, onRoleChange } from '../client/role-store';
 import { demoTagsOn } from '../client/tag-store';
+import { demoSwitchesAllowed } from '../client/demo-switches';
 import { useSelection } from '../client/selection-store';
 import { tourIsOpen } from '../client/tour-store';
 import type { SlideSummary, SmartSearchChip, SmartSearchResult, TitleEdit } from '../contracts/dto';
@@ -259,11 +260,12 @@ const SEARCH_DELAY_MS = 250;
 const CROSS_OUT_DELAY_MS = 500;
 const TOAST_MS = 5000;
 
-/** A pretend-data switch turned on by ?name=1 in the address and kept for the browser tab. Off unless asked for. */
+/** A pretend-data switch turned on by ?name=1 in the address and kept for the browser tab. Off unless asked for, and only where the demo switches are allowed (client/demo-switches.ts). */
 function useDemoFlag(name: string): boolean {
   return useSyncExternalStore(
     () => () => {},
     () => {
+      if (!demoSwitchesAllowed) return false;
       try {
         if (new RegExp(`[?&]${name}\\b`).test(window.location.search)) sessionStorage.setItem(`slidevault:${name}`, '1');
         return sessionStorage.getItem(`slidevault:${name}`) === '1';

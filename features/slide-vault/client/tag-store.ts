@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { FreeTag, SlideSummary, TagRemoval } from '../contracts/dto';
 import { addTag, listRemovedTags, removeTag, restoreTag, type Transport } from './api';
+import { demoSwitchesAllowed } from './demo-switches';
 
 /**
  * Tags on a slide or a deck, shared by every screen that shows them (card, preview, slide page, deck
@@ -9,7 +10,7 @@ import { addTag, listRemovedTags, removeTag, restoreTag, type Transport } from '
  * `metadata.edit`, and the server has the last word.
  *
  * Restore and the removal log are asked for from the server, not built yet: those calls come back
- * null, and the screen then says "isn't available yet" and changes nothing. ?demotags=1 in the
+ * null, and the screen then says "isn't available yet" and changes nothing. Where the demo switches are allowed (demo-switches.ts), ?demotags=1 in the
  * address shows pretend tags (and pretend votes and comments on slides) that you can use, all kept
  * in this browser tab only.
  */
@@ -36,6 +37,7 @@ export class TagsUnavailable extends Error {}
 /* ---------------------------------------------------------------- Pretend tags (?demotags=1) */
 
 export function demoTagsOn(): boolean {
+  if (!demoSwitchesAllowed) return false;
   try {
     if (/[?&]demotags\b/.test(window.location.search)) sessionStorage.setItem('slidevault:demotags', '1');
     return sessionStorage.getItem('slidevault:demotags') === '1';
