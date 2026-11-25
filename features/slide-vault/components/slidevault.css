@@ -96,11 +96,6 @@
 .slidevault .divider { border: 0; border-top: 1px solid var(--sv-border); margin: 16px 0; }
 
 /* Toasts */
-.slidevault .toasts { position: absolute; right: 16px; bottom: 16px; z-index: 60; display: flex; flex-direction: column; gap: 8px; max-width: min(420px, calc(var(--sv-w, 420px) - 32px)); }
-.slidevault .toast { background: var(--sv-action-bg); color: var(--sv-action-fg); border-radius: 12px; padding: 10px 10px 10px 14px; box-shadow: var(--sv-shadow-popover); display: flex; gap: 10px; align-items: center; font-size: var(--sv-text-small); }
-.slidevault .toast .msg { flex: 1; }
-.slidevault .toast button { background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 8px; min-height: 32px; padding: 0 10px; font-weight: 600; cursor: pointer; font-size: 12.5px; }
-.slidevault .toast .x { border: 0; width: 32px; padding: 0; display: grid; place-items: center; }
 
 /* Dialogs */
 .slidevault .counter { font-variant-numeric: tabular-nums; font-size: var(--sv-text-small); font-weight: 600; }

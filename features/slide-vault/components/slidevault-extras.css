@@ -130,7 +130,7 @@ dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area
 .slidevault .comments .h3 { margin: 0; font-size: var(--sv-text-small); font-weight: 600; }
 
 /* Toasts live in the browser's top layer (popover), so they show in front of the preview and other dialogs */
-.slidevault .toasts[popover] { position: fixed; inset: auto 16px 16px auto; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; width: auto; max-width: min(420px, calc(100vw - 32px)); color: inherit; }
+.slidevault .toasts[popover] { position: fixed; inset: auto 16px 16px auto; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; width: min(400px, calc(100vw - 32px)); color: inherit; }
 .slidevault .toasts[popover].lift { bottom: 100px; }
 .slidevault .toasts[popover]:not(:popover-open) { display: none; }
 

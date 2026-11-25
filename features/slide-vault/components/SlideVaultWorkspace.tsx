@@ -32,6 +32,7 @@ import { BrowseView, CreateView, DeckView, HomeView, SlideView } from './views';
 import { StoryboardView } from './StoryboardView';
 import './slidevault.css';
 import './styles/dialog.css';
+import './styles/toast.css';
 import './styles/story-launcher.css';
 import './slidevault-extras.css';
 import './styles/number-jump.css';
@@ -376,7 +377,7 @@ function Workspace({ header }: { header?: ReactNode }) {
       <div ref={toastHost} popover="manual" className={`toasts${selection.length ? ' lift' : ''}`}>
         {toasts.map((t) => (
           <div key={t.id} className="toast">
-            <span className="msg">{t.message}</span>
+            <ToastMessage text={t.message} name={t.name} />
             {t.action &&
               (Array.isArray(t.action) ? t.action : [t.action]).map((a) => (
                 <button
@@ -466,5 +467,18 @@ function BottomBar({ view, deep }: { view: string; deep: boolean }) {
         </li>
       </ul>
     </nav>
+  );
+}
+
+/** A toast's words. A note about one named thing (`name`, such as a slide's title) stays on one line, the name cut short with … if it does not fit; other notes wrap as usual. */
+function ToastMessage({ text, name }: { text: string; name?: string }) {
+  const at = name ? text.indexOf(name) : -1;
+  if (!name || at < 0) return <span className="msg">{text}</span>;
+  return (
+    <span className="msg one-name" title={text}>
+      <span>{text.slice(0, at)}</span>
+      <span className="toast-name">{name}</span>
+      <span>{text.slice(at + name.length)}</span>
+    </span>
   );
 }

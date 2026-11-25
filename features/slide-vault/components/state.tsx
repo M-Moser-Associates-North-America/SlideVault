@@ -45,7 +45,8 @@ export type LibraryState = { status: 'loading' } | { status: 'ready'; slides: Sl
 export type SearchState = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; result: SmartSearchResult } | { status: 'error'; message: string };
 
 export type ToastAction = { label: string; run: () => void };
-export type Toast = { id: number; message: string; action?: ToastAction | ToastAction[] };
+/** `name`: the one named thing the note is about (a slide's title, inside `message`); it is cut short with … when the note would not fit on one line. */
+export type Toast = { id: number; message: string; action?: ToastAction | ToastAction[]; name?: string };
 
 export type ArchiveDialogState = { deck: { id: string; title: string; slideCount: number }; restore: boolean; /** Opened from a slide's page: say so, and leave the page when the deck is gone */ fromSlide?: string };
 
@@ -154,7 +155,7 @@ type Workspace = {
   combine: boolean;
   setCombine: (on: boolean) => void;
   toasts: Toast[];
-  toast: (message: string, action?: ToastAction | ToastAction[]) => void;
+  toast: (message: string, action?: ToastAction | ToastAction[], name?: string) => void;
   dismissToast: (id: number) => void;
   announcement: string;
   announce: (message: string) => void;
@@ -499,11 +500,11 @@ export function WorkspaceProvider({ runtime: hostRuntime, children }: { runtime:
   const nextToast = useRef(1);
   const dismissToast = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
   const toast = useCallback(
-    (message: string, action?: ToastAction | ToastAction[]) => {
+    (message: string, action?: ToastAction | ToastAction[], name?: string) => {
       const id = nextToast.current++;
       /* A new note of the same kind ("Added. 3 slides ready" after "Added. 2 slides ready") replaces the old one instead of stacking up. */
       const kind = (m: string) => m.split(/[.:]/)[0];
-      setToasts((t) => [...t.filter((x) => x.action || kind(x.message) !== kind(message)), { id, message, action }]);
+      setToasts((t) => [...t.filter((x) => x.action || kind(x.message) !== kind(message)), { id, message, action, name }]);
       setTimeout(() => dismissToast(id), TOAST_MS);
     },
     [dismissToast],

@@ -1,0 +1,10 @@
+/* Toasts (the short notes in the corner, SlideVaultWorkspace.tsx). Moved here from slidevault.css and loaded right after it,
+   so the order against the other files is unchanged; where they sit on each screen size is still in slidevault-extras.css. */
+.slidevault .toasts { position: absolute; right: 16px; bottom: 16px; z-index: 60; display: flex; flex-direction: column; gap: 8px; width: min(400px, calc(var(--sv-w, 400px) - 32px)); }
+.slidevault .toast { background: var(--sv-action-bg); color: var(--sv-action-fg); border-radius: 12px; padding: 10px 10px 10px 14px; box-shadow: var(--sv-shadow-popover); display: flex; gap: 10px; align-items: center; font-size: var(--sv-text-small); }
+.slidevault .toast .msg { flex: 1; }
+.slidevault .toast button { background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 8px; min-height: 32px; padding: 0 10px; font-weight: 600; cursor: pointer; font-size: 12.5px; }
+.slidevault .toast .x { border: 0; width: 32px; padding: 0; display: grid; place-items: center; }
+/* A note about one named thing ("Removed “…”"): one line, the name cut short with … when it does not fit, the words around it whole. */
+.slidevault .toast .msg.one-name { display: flex; min-width: 0; white-space: nowrap; }
+.slidevault .toast .msg.one-name > .toast-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

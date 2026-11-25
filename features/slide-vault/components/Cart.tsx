@@ -427,7 +427,7 @@ export function Cart() {
                           const before = snapshotDraft();
                           updateSelection((cur) => cur.filter((x) => x.id !== s.id));
                           /* Undo puts back this slide only, where it was; anything done since stays. */
-                          toast(`Removed “${s.title}”`, { label: 'Undo', run: () => putBackSlides(before, [s.id]) });
+                          toast(`Removed “${s.title}”`, { label: 'Undo', run: () => putBackSlides(before, [s.id]) }, s.title);
                         }
                       }}
                     >
