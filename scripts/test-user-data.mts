@@ -95,6 +95,17 @@ const draft = made.body.data?.draft as { id: string; name: string; slideIds: str
 check(made.status === 200 && draft.name === 'Bank pitch' && JSON.stringify(draft.slideIds) === '["s2","s1"]', 'drafts: saved with its name trimmed and slide order kept', made);
 const benList = await json(await draftsRoute.GET(as('Ben', 'GET')));
 check((benList.body.data?.drafts as unknown[]).length === 0, "drafts: another person can't see my decks");
+const idOf = { params: Promise.resolve({ draftId: draft.id }) };
+const updated = await json(await draftRoute.PATCH(as('Ana', 'PATCH', { name: 'Bank pitch v2', slideIds: ['s1'] }), idOf));
+const afterUpdate = await json(await draftsRoute.GET(as('Ana', 'GET')));
+const kept = afterUpdate.body.data?.drafts as { id: string; name: string; slideIds: string[] }[];
+check(
+  updated.status === 200 && kept.length === 1 && kept[0].id === draft.id && kept[0].name === 'Bank pitch v2' && JSON.stringify(kept[0].slideIds) === '["s1"]',
+  'drafts: updating a deck changes it in place (same id, no second copy)',
+  { updated, kept },
+);
+check((await draftRoute.PATCH(as('Ben', 'PATCH', { name: 'Mine now', slideIds: [] }), idOf)).status === 404, "drafts: another person can't update my deck");
+check((await draftRoute.PATCH(as('Ana', 'PATCH', { name: '', slideIds: [] }), idOf)).status === 400, 'drafts: an update needs a name too');
 const benDelete = await draftRoute.DELETE(as('Ben', 'DELETE'), { params: Promise.resolve({ draftId: draft.id }) });
 check(benDelete.status === 404, "drafts: another person can't delete my deck");
 const anaDelete = await draftRoute.DELETE(as('Ana', 'DELETE'), { params: Promise.resolve({ draftId: draft.id }) });

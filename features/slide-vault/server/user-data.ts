@@ -94,6 +94,30 @@ export async function createDraft(user: string, name: string, slideIds: string[]
   return rows[0] ? toDraft(rows[0]) : null;
 }
 
+/** A deck's name and slides as sent by the screen, checked; or what is wrong with them. Shared by saving a new deck and updating one. */
+export function readDraftInput(body: Record<string, unknown> | null): { name: string; slideIds: string[] } | string {
+  const name = typeof body?.name === 'string' ? body.name.trim() : '';
+  const slideIds = body?.slideIds;
+  if (!name || name.length > LIMITS.draftName) return `Give the deck a name of up to ${LIMITS.draftName} characters.`;
+  if (!Array.isArray(slideIds) || slideIds.length > LIMITS.draftSlides || slideIds.some((id) => typeof id !== 'string' || !id || id.length > LIMITS.slideId))
+    return `Send slideIds as a list of up to ${LIMITS.draftSlides} slide ids.`;
+  return { name, slideIds: slideIds as string[] };
+}
+
+/**
+ * Update one of this person's decks in place: same id, new name and slides, in one statement, so it never counts against
+ * the deck limit and never leaves two copies. It moves to the top of My decks (newest first). null: not found (or not theirs).
+ */
+export async function updateDraft(user: string, draftId: string, name: string, slideIds: string[]): Promise<Draft | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(draftId)) return null;
+  const rows = await sql<DraftRow>(
+    `update drafts set name = $3, slide_ids = $4::text[], saved_at = now() where user_key = $1 and id = $2::uuid
+     returning id, name, slide_ids, saved_at`,
+    [user, draftId, name, slideIds],
+  );
+  return rows[0] ? toDraft(rows[0]) : null;
+}
+
 /** true when a draft of this person's was deleted. Another person's draft id simply isn't found. */
 export async function deleteDraft(user: string, draftId: string): Promise<boolean> {
   if (!/^[0-9a-f-]{36}$/i.test(draftId)) return false;

@@ -39,6 +39,8 @@ export const userApi = {
   listDrafts: (rt: Transport, user: string) => call<{ drafts: Draft[] }>(rt, user, '/me/drafts', 'GET').then((d) => d.drafts),
   createDraft: (rt: Transport, user: string, name: string, slideIds: string[]) =>
     call<{ draft: Draft }>(rt, user, '/me/drafts', 'POST', { name, slideIds }).then((d) => d.draft),
+  updateDraft: (rt: Transport, user: string, id: string, name: string, slideIds: string[]) =>
+    call<{ draft: Draft }>(rt, user, `/me/drafts/${encodeURIComponent(id)}`, 'PATCH', { name, slideIds }).then((d) => d.draft),
   deleteDraft: (rt: Transport, user: string, id: string) => call(rt, user, `/me/drafts/${encodeURIComponent(id)}`, 'DELETE'),
   getActivity: (rt: Transport, user: string) => call<ActivityResponse>(rt, user, '/me/activity', 'GET'),
   recordActivity: (rt: Transport, user: string, entry: Omit<ActivityEntry, 'at'>) =>

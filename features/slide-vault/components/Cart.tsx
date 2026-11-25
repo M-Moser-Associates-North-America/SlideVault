@@ -59,7 +59,7 @@ export function Cart() {
   /* Saved, or not: shown in the header, and it decides whether Clear needs a confirmation. */
   const status = draftStatus(selection, origin, draftTitle, known);
   /* A saved draft the server does not hold lives only in this browser; say so. */
-  const deviceOnly = status === 'saved' && !!origin && !isServerDraft(origin.id);
+  const deviceOnly = status === 'saved' && !!origin && (!isServerDraft(origin.id) || !!origin.pending); /* pending: updated while the server was out of reach */
   /* Closing or reloading the tab with a draft deck that is not saved asks first (the draft deck is not kept anywhere else). Not in automated test browsers, which have nobody to answer. */
   const unsaved = status === 'new' || status === 'changed';
   /* The app's Sign out asks first while there is an unsaved draft deck. */

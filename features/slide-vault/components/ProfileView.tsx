@@ -85,7 +85,7 @@ export function ProfileView() {
               <DraftRow
                 key={d.id}
                 name={d.name}
-                meta={`${d.slideIds.length === 1 ? '1 slide' : `${d.slideIds.length} slides`} · saved ${timeAgo(d.savedAt)}${isServerDraft(d.id) ? '' : ' · this device only'}`}
+                meta={`${d.slideIds.length === 1 ? '1 slide' : `${d.slideIds.length} slides`} · saved ${timeAgo(d.savedAt)}${isServerDraft(d.id) && !d.pending ? '' : ' · this device only'}`}
                 onOpen={() => {
                   /* Unsaved slides in the draft deck: ask what to do with them first. Nothing there, or all saved: just open it. */
                   const status = draftStatus(selection, draftOrigin, draftTitle, known);

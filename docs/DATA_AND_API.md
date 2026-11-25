@@ -78,7 +78,7 @@ Every route below exists under `/api/slide-vault/v1` (one `route.ts` per path in
 | `GET /me/settings`, `PATCH /me/settings` | The signed-in person's settings, including their role | FD-71 |
 | `GET/POST/PATCH /me/activity` | Opt-in activity (90 days) for Top 10 and Suggested rows | FD-18 |
 | `GET /me/saved`, `PATCH /me/saved` | Saved slides | FD-18 |
-| `GET/POST /me/drafts`, `DELETE /me/drafts/:id` | Saved decks under My decks | FD-18 |
+| `GET/POST /me/drafts`, `PATCH/DELETE /me/drafts/:id` | Saved decks under My decks (PATCH updates one in place, same id) | FD-18 |
 | `GET /me/suggested` | Suggested for you by role (no screen yet) | FD-71 |
 | `GET /me/ai-usage?days=30` | The signed-in person's own AI calls and tokens, by feature; everyone's totals: `npm run ai-usage` | FD-91 |
 | `GET /speech`, `POST /speech` | Whether talking instead of typing is set up; turn speech into text | |

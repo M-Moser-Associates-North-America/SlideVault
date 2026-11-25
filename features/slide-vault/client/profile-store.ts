@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import type { ActivityEntry, Draft, SlideSummary } from '../contracts/dto';
+import type { ActivityEntry, Draft as ServerDraft, SlideSummary } from '../contracts/dto';
 import type { Transport } from './api';
 import { userApi } from './user-api';
 
@@ -14,13 +14,19 @@ import { userApi } from './user-api';
  *
  * Sign-in itself is still a stand-in (a name kept in this browser) until M Moser's login plugs in.
  */
-export type { ActivityEntry, Draft };
+export type { ActivityEntry };
+/** A deck under My decks. `pending`: changed in this browser while the server could not be reached; sent when it next answers (until then it is not saved there). */
+export type Draft = ServerDraft & { pending?: boolean };
 
 // Higher than a simple recent-activity list would need, because Top 10 (views/shared.tsx TopTenRow)
 // counts how often each slide shows up in this history to rank "what this profile uses most."
 const ACTIVITY_LIMIT = 60;
 const PROFILE_KEY = 'slidevault:profile';
 const savedKey = (profile: string) => `slidevault:${profile}:saved`;
+/* Saves and unsaves made in this browser that the server has not taken yet ({ slideId: saved }), kept apart from the copy of the server's list. */
+const savedPendingKey = (profile: string) => `slidevault:${profile}:saved-pending`;
+/* Set once this browser has met the server: from then on an empty server list means "nothing saved", never "move this browser's saves up". */
+const savedMovedKey = (profile: string) => `slidevault:${profile}:saved-moved`;
 const activityKey = (profile: string) => `slidevault:${profile}:activity`;
 const draftsKey = (profile: string) => `slidevault:${profile}:drafts`;
 
@@ -82,7 +88,20 @@ function parseStrings(raw: string | null): string[] {
   }
 }
 
-/** Saved slides. On the server when it's available; ones saved only in this browser are moved up once. */
+function parsePending(raw: string | null): Record<string, boolean> {
+  try {
+    const value: unknown = raw ? JSON.parse(raw) : {};
+    return value && typeof value === 'object' && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).filter((e): e is [string, boolean] => typeof e[1] === 'boolean')) : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Saved slides. On the server when it's available. This browser keeps a copy of the server's list to show at once, and, apart from it,
+ * the saves and unsaves the server has not taken yet; those are sent when it answers. Saves made in this browser before there was a
+ * server are moved up once, the first time it answers, and never again (so an old copy cannot bring back a slide unsaved on another device).
+ */
 export function useSaved(profile: string | null, transport?: Transport) {
   const key = profile ? savedKey(profile) : null;
   const raw = useStored(key);
@@ -95,13 +114,24 @@ export function useSaved(profile: string | null, transport?: Transport) {
     userApi
       .listSaved(transport, profile)
       .then(async (serverIds) => {
-        const localOnly = parseStrings(read(key)).filter((id) => !serverIds.includes(id));
-        if (!serverIds.length && localOnly.length) {
-          await Promise.all(localOnly.map((id) => userApi.setSaved(transport, profile, id, true)));
-          serverIds = localOnly;
+        const next = new Set(serverIds);
+        if (read(savedMovedKey(profile)) === null) {
+          const localOnly = parseStrings(read(key)).filter((id) => !next.has(id));
+          if (!serverIds.length && localOnly.length) {
+            await Promise.all(localOnly.map((id) => userApi.setSaved(transport, profile, id, true)));
+            localOnly.forEach((id) => next.add(id));
+          }
+          write(savedMovedKey(profile), '1');
         }
+        const pending = parsePending(read(savedPendingKey(profile)));
+        await Promise.all(Object.entries(pending).map(([id, saved]) => userApi.setSaved(transport, profile, id, saved)));
+        for (const [id, saved] of Object.entries(pending)) {
+          if (saved) next.add(id);
+          else next.delete(id);
+        }
+        write(savedPendingKey(profile), null);
         if (!live) return;
-        write(key, JSON.stringify(serverIds));
+        write(key, JSON.stringify([...next]));
         setOnline(true);
       })
       .catch(() => live && setOnline(false));
@@ -118,7 +148,14 @@ export function useSaved(profile: string | null, transport?: Transport) {
       if (saved) current.add(slide.id);
       else current.delete(slide.id);
       write(key, JSON.stringify([...current]));
-      if (online && transport) userApi.setSaved(transport, profile, slide.id, saved).catch(warn('update a saved slide'));
+      /* Not sent yet (the server has not answered, or this send fails): kept as pending, and sent when the server next answers. */
+      const pend = () => write(savedPendingKey(profile), JSON.stringify({ ...parsePending(read(savedPendingKey(profile))), [slide.id]: saved }));
+      if (online && transport) {
+        userApi.setSaved(transport, profile, slide.id, saved).catch((e) => {
+          pend();
+          warn('update a saved slide')(e);
+        });
+      } else if (transport) pend();
     },
     [key, profile, online, transport],
   );
@@ -229,8 +266,15 @@ export function useDrafts(profile: string | null, transport?: Transport) {
           for (const d of [...localOnly].reverse()) await userApi.createDraft(transport, profile, d.name, d.slideIds);
           server = await userApi.listDrafts(transport, profile);
         }
+        /* Updates made while the server was out of reach go up now, so the server's older copy does not overwrite them. One that still cannot go up stays pending. */
+        const stillPending: Draft[] = [];
+        for (const d of parseDrafts(read(key)).filter((x) => x.pending && SERVER_ID.test(x.id))) {
+          await userApi.updateDraft(transport, profile, d.id, d.name, d.slideIds).catch(() => stillPending.push(d));
+        }
+        if (parseDrafts(read(key)).some((x) => x.pending)) server = await userApi.listDrafts(transport, profile);
+        const mine: Draft[] = server.map((d) => stillPending.find((p) => p.id === d.id) ?? d);
         if (!live) return;
-        write(key, JSON.stringify(server));
+        write(key, JSON.stringify(mine));
         setOnline(true);
       })
       .catch(() => live && setOnline(false));
@@ -258,22 +302,18 @@ export function useDrafts(profile: string | null, transport?: Transport) {
     [key, profile, online, transport],
   );
   /**
-   * Re-save an existing deck with new contents. The server has no edit call, so the new version is saved
-   * first and the old one removed after it, which means a failure never loses the older version. It then
-   * sits at the top of the list (newest first). Resolves to the deck's id.
+   * Update an existing deck in place: same id, new name and slides, moved to the top of the list (newest first).
+   * On the server when it can be reached (a refusal throws, and nothing changes). Otherwise the change is kept in this
+   * browser and marked pending, and goes up the next time the server answers. Resolves to the deck's id.
    */
   const replace = useCallback(
     async (id: string, name: string, slideIds: string[]): Promise<string> => {
       if (!key || !profile) return id;
-      let finalId = id;
       let draft: Draft = { id, name, slideIds, savedAt: Date.now() };
-      if (online && transport && SERVER_ID.test(id)) {
-        draft = await userApi.createDraft(transport, profile, name, slideIds); // throws if the server says no; nothing changes then
-        finalId = draft.id;
-        await userApi.deleteDraft(transport, profile, id).catch(warn('remove the older version of a deck'));
-      }
+      if (online && transport && SERVER_ID.test(id)) draft = await userApi.updateDraft(transport, profile, id, name, slideIds);
+      else if (transport && SERVER_ID.test(id)) draft.pending = true;
       write(key, JSON.stringify([draft, ...parseDrafts(read(key)).filter((d) => d.id !== id)]));
-      return finalId;
+      return draft.id;
     },
     [key, profile, online, transport],
   );
