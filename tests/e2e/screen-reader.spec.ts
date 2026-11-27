@@ -127,11 +127,18 @@ test('steps 9–11: Preview opens a dialog named for the slide, focus inside, it
 test('step 12: a search that finds nothing is announced (WCAG 4.1.3)', async ({ page }) => {
   await searchFor(page, 'zzqq');
   await expect(page.getByRole('heading', { name: /No slides found matching/ })).toBeVisible();
-  const announced = await page.evaluate(() =>
-    [...document.querySelectorAll('[aria-live="polite"], [aria-live="assertive"], [role="status"], [role="alert"]')]
-      .some((el) => /no slides found/i.test(el.textContent ?? '')),
-  );
-  expect(announced).toBe(true);
+  // announce() (components/state.tsx) clears the live region, then fills it 40 ms later so screen readers read it
+  // again. So wait for the message (up to 2 s) instead of checking once the instant the heading shows: checking once
+  // raced that 40 ms and failed about half the runs, on every branch, though the message always arrives.
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        [...document.querySelectorAll('[aria-live="polite"], [aria-live="assertive"], [role="status"], [role="alert"]')]
+          .some((el) => /no slides found/i.test(el.textContent ?? '')),
+      ),
+      { timeout: 2_000 },
+    )
+    .toBe(true);
 });
 
 test('step 12 (reachable): the "No slides found" message is a heading, and Clear search is a named button', async ({ page }) => {
