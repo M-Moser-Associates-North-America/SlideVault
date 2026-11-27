@@ -1,0 +1,497 @@
+/*
+ * Additions to the v3 prototype styles for the real app. Still scoped to .slidevault.
+ * Prototype-only tokens (readable status text, tints) and states the prototype did not need.
+ */
+.slidevault[data-theme="dark"], .dark .slidevault:not([data-theme="light"]) {
+  --svp-danger-text: #ff9a8f;
+  --svp-success-text: #6fdc9f;
+  --svp-warning-tint: rgba(224, 163, 60, 0.16);
+  --svp-danger-tint: rgba(240, 104, 90, 0.16);
+  --svp-success-tint: rgba(52, 199, 125, 0.14);
+  --sv-frame: #26272c;
+}
+
+.slidevault .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Card badges and notes. */
+.slidevault .card-note { display: flex; align-items: center; gap: 6px; font-size: var(--sv-text-meta); color: var(--sv-text); }
+.slidevault .card-note .ic { color: var(--sv-brand-strong); }
+.slidevault .also-list .t { display: block; }
+
+/*
+ * The bare Home hero: the original reference HTML's search (reference/SlideVault.html),
+ * values copied from it directly (34px/500/-0.02em headline, 10px 10px 10px 20px search
+ * padding, 44px controls), mapped onto the real app's --sv-* tokens instead of the
+ * reference's unprefixed ones. Sits above Khushali's existing rows, which are untouched.
+ */
+@keyframes svHeroCaret { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+/* The bar's background reaches the edges of the scrolling area (and the draft deck panel), so no slide cards show beside or under it. */
+.slidevault .fb-check input { accent-color: var(--sv-brand); width: 16px; height: 16px; }
+.slidevault .fb-check { display: flex; align-items: center; gap: 10px; font-size: var(--sv-text-small); cursor: pointer; }
+
+/* ---- Room at the sides and under the Try chips (the mockup centres its content, so on a laptop its side margin is well over 40px) ---- */
+/* Side gutters grow with the space (4% of the width, between 40px and 120px), so large screens use their width instead of leaving wide empty margins. */
+.slidevault .sv-app[data-size="wide"], .slidevault .sv-app[data-size="wide"] .slidevault { --sv-side: clamp(40px, calc(var(--sv-w, 1280px) * 0.04), 120px); }
+
+/* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
+@keyframes svFade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+/* container width: wide */
+/* container width: wide */
+  .slidevault .sv-app[data-size="wide"] .sv-shell { --gut: max(var(--sv-side), calc((var(--sv-w, 1280px) - 2200px) / 2 + var(--sv-side))); padding: 0 0 0 var(--sv-side); grid-template-columns: 272px minmax(0, 1fr) 264px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
+
+/* ---- Calmer row headings: plain title, details tucked behind a small info icon ---- */
+.slidevault .row-head h2::before { display: none; }
+.slidevault .row-head h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0; }
+.slidevault .row-title { display: flex; align-items: center; gap: 8px; }
+.slidevault .row-info { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--sv-text-secondary); cursor: help; }
+.slidevault .row-info:hover { background: var(--sv-surface-sunken); color: var(--sv-text); }
+.slidevault .row-info .ic { width: 15px; height: 15px; }
+
+/* ---- Slim search shortcut in the tabs row, shown once the big search bar has scrolled away ---- */
+@keyframes svFade { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+/* ---- Filter choices read from the typed sentence ---- */
+.slidevault .chip-x.from-search { border-style: dashed; }
+.slidevault .chip-x.from-search .ic-sm { color: var(--sv-brand); width: 13px; height: 13px; }
+
+/* container width: wide */
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 360px; column-gap: 0; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail .center { padding-right: 24px; }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 0; padding-right: var(--sv-side); }
+  .slidevault .sv-app[data-size="wide"] .sv-shell.no-rail.cart-min .center { padding-right: 0; }
+
+  .slidevault .sv-app[data-size="wide"] .toasts.lift, .slidevault .sv-app[data-size="wide"] .toasts { bottom: 16px; }
+  .slidevault .sv-app[data-size="wide"]:has(.cart-min) .toasts { bottom: 92px; }
+  .slidevault .sv-app[data-size="wide"]:not(:has(.cart-min)) .toasts { right: 376px; }
+/* container width: compact/wide */
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"],[data-size="wide"]) .cart-h .count { display: none; }
+/* container width: compact */
+  .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts, .slidevault .sv-app:is([data-size="compact"],[data-size="medium"]) .toasts.lift { bottom: calc(84px + env(safe-area-inset-bottom)); }
+
+/* Filters on phones: one swipeable row, every filter opens in a bottom sheet, and a pinned button
+   stays in reach once the row has scrolled away. */
+dialog.slidevault.fb-sheet { margin: auto 0 0; width: 100%; max-width: none; max-height: 86%; border-radius: 20px 20px 0 0; border-bottom: 0; }
+dialog.slidevault.fb-sheet .dlg-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+
+/* Phone tabs along the bottom (the default; "top" keeps them up with the page). The bar is part of the workspace and
+   sits inside it, not on the window. The draft deck is its fifth item, so the black button is not needed. */
+.slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts.lift { bottom: calc(76px + env(safe-area-inset-bottom)); }
+
+/* Stepping through a deck: the old slide leaves and the new one enters from the side; the page stays put. */
+@keyframes sv-in-next { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes sv-in-prev { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes sv-out-next { from { transform: none; } to { transform: translateX(-100%); } }
+@keyframes sv-out-prev { from { transform: none; } to { transform: translateX(100%); } }
+
+/* Phones: Home rows show two slides and the edge of a third (the peek says "scroll"), so a row is
+   scannable at a glance. Wider sizes keep the larger cards. */
+.slidevault .sv-app[data-size="compact"] .row-scroller .card-title { font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.6em; }
+/* A simple orange ring that revolves around the Draft deck button until clicked (client/draft-nudge.ts). */
+@property --sv-spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@keyframes svSpin { to { --sv-spin: 360deg; } }
+
+/* Card titles stop at two lines. One very long title used to stretch every card in its row (all cards in a
+   row share the tallest height), leaving the rest mostly empty. The full title is in the tooltip. */
+.slidevault .card-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.7em; }
+
+/* Archive (FD-32): the Archived badge, and the small archive button on a deck card. */
+.slidevault .toast .toast-act { margin-left: 8px; color: inherit; font-weight: 700; text-decoration: underline; }
+
+
+
+/* Upload: category pills and the tag box */
+.slidevault .field-opt { font-weight: 400; color: var(--sv-text-secondary); margin-left: 4px; }
+.slidevault .field-hint { margin: 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); }
+.slidevault .field-hint.is-auto { color: var(--svp-success-text); font-style: italic; }
+.slidevault .field-hint.is-missing { color: var(--svp-danger-text); font-style: italic; }
+
+/* Upload: progress bar, the slides of the deck being uploaded, and the submit area at the bottom */
+@keyframes upbarSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+
+/* Tags (FD-72): quiet grey pills; orange only on hover and focus */
+.slidevault .tag { --tag-rgb: 100, 116, 139; display: inline-flex; align-items: center; max-width: 100%; min-height: 24px; padding: 0 9px; border: 1px solid rgba(var(--tag-rgb), .75); border-radius: 999px; background: transparent; color: var(--sv-text); font: inherit; font-size: 12.5px; line-height: 1; cursor: pointer; transition: background var(--sv-duration-fast) var(--sv-ease-out), border-color var(--sv-duration-fast) var(--sv-ease-out), color var(--sv-duration-fast) var(--sv-ease-out); }
+.slidevault .tag[data-h="0"] { --tag-rgb: 59, 130, 246; }
+.slidevault .tag[data-h="1"] { --tag-rgb: 20, 184, 166; }
+.slidevault .tag[data-h="2"] { --tag-rgb: 34, 160, 90; }
+.slidevault .tag[data-h="3"] { --tag-rgb: 139, 92, 246; }
+.slidevault .tag[data-h="4"] { --tag-rgb: 219, 80, 140; }
+.slidevault .tag[data-h="5"] { --tag-rgb: 100, 116, 139; }
+.slidevault .tag:hover, .slidevault .tag:focus-visible { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
+.slidevault .tag[data-tip]::after { top: auto; bottom: calc(100% + 6px); left: 0; transform: none; max-width: 220px; }
+.slidevault .meta-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.slidevault .meta-wrap { display: block; flex: 1; min-width: 0; }
+.slidevault .meta-wrap[data-tip]::after { max-width: 100%; } /* wraps inside the card, never past its edge */
+.slidevault .meta-row .also { flex: none; align-self: center; min-height: 24px; padding: 0 8px; border-color: transparent; background: none; color: var(--sv-text-secondary); font-weight: 500; } /* where else the slide lives: a quiet marker on the meta line, not another row */
+.slidevault .meta-row .also:hover { background: var(--sv-surface-sunken); color: var(--sv-text); } /* the team's own labels: no colour, so they never look like a colleague's tag */
+.slidevault .deck-tags .h3 { margin: 0 0 8px; font-size: var(--sv-text-small); font-weight: 600; }
+
+/* Slide votes, comments and Share (FD-72): grey pills, orange on hover */
+.slidevault .comments .h3 { margin: 0; font-size: var(--sv-text-small); font-weight: 600; }
+
+/* Toasts live in the browser's top layer (popover), so they show in front of the preview and other dialogs */
+.slidevault .toasts[popover] { position: fixed; inset: auto 16px 16px auto; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; width: min(400px, calc(100vw - 32px)); color: inherit; }
+.slidevault .toasts[popover].lift { bottom: 100px; }
+.slidevault .toasts[popover]:not(:popover-open) { display: none; }
+
+/* Card: same zones in the same places. Title (two lines), meta, one line of tags, then a footer pinned to the bottom */ /* just tall enough for the small arrows or the Also-in chip (was 36px, from when votes with counts lived here) */
+.slidevault .card .card-body { padding-bottom: 10px; }
+.slidevault .card-foot:empty { display: none; }
+/* Useful on the left, Not useful on the right of the card, as in the Storyboard (FD-81) */
+.slidevault .card-foot { margin-top: auto; padding-top: 2px; display: flex; align-items: center; gap: 8px; min-height: 28px; min-width: 0; flex-wrap: wrap; }
+.slidevault .fb-verdict.is-small .sb-icon-btn { padding: 4px 2px; }
+.slidevault .fb-verdict .sb-icon-btn:disabled { opacity: 1; }
+
+/* Slide title with a pencil */
+/* Upload cards: thumbnails wait with a spinner, then fade the picture in; static tags (not saved yet) */
+.slidevault .tag.is-static { cursor: default; }
+.slidevault .tag.is-static:hover { border-color: rgba(var(--tag-rgb), .75); background: transparent; }
+.slidevault .tag.is-deck { opacity: .8; border-style: dashed; }
+
+/* Draft deck: one tag on every ticked slide (FD-58) */
+.slidevault .cart-tagall .input { flex: 1 1 auto; min-width: 0; height: 32px; }
+
+/* Loading: a turning ring, with the words beside it (it holds still when motion is reduced) */
+.slidevault .sv-loading { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--sv-text-secondary); }
+.slidevault .sv-ring { flex: none; width: 22px; height: 22px; border: 3px solid var(--sv-border); border-top-color: var(--sv-brand); border-radius: 50%; }
+.slidevault .sv-ring.is-small { width: 14px; height: 14px; border-width: 2px; }
+@media (prefers-reduced-motion: no-preference) { .slidevault .sv-ring { animation: sv-spin .9s linear infinite; } }
+
+/* Search results in groups (Decks, Sections, Slides): a heading each, with room above and below */
+.slidevault .state .btn + .btn { margin-left: 8px; } /* the slide page's bar has nothing in it when there are no votes or comments */
+.slidevault .dlg-head-tools { display: flex; align-items: center; gap: 2px; flex: none; }
+
+/* Suggested tags (FD-82): the same dashed pill as "+ Add tag", in a row of their own after "Suggested". */
+.slidevault .btn-ai { border-color: var(--sv-brand); } /* "Fill the rest with AI": an orange outline, orange sparkle and AI, as in "Search with AI" */
+.slidevault .btn-ai .ic { color: var(--sv-brand-strong); }
+.slidevault .btn-ai b { color: var(--sv-brand-strong); font-weight: 800; letter-spacing: 0.02em; }
+.slidevault .btn-ai:hover:not(:disabled) { background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); }
+.slidevault .tag.is-auto { gap: 4px; } /* a tag filled in for the person: a small orange sparkle before it, to check and remove if wrong */
+.slidevault .tag.is-auto .ic { color: var(--sv-brand-strong); width: 12px; height: 12px; flex: none; }
+
+/* Tablets held upright get the phone's bottom bar too (Schiffon, 6 Nov: "we just want bottom rows", as in the
+   nav-bottom mockups). The draft deck already opens as the same side sheet on both, so the bar's fifth item
+   opens it; the top tabs and the black pill step aside, as on a phone. */
+.slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="medium"][data-nav="bottom"] .toasts.lift { bottom: calc(76px + env(safe-area-inset-bottom)); }
+/* The (i) tip under a row title opens at the row's left edge and is never wider than the row, so it can't run off the screen. */
+.slidevault .sv-app[data-size="compact"] .row-title, .slidevault .sv-app[data-size="compact"] .row-info { position: static; }
+/* Useful / Not useful on a narrow card: each label stays on one line; the pair wraps to a second line if it must. */
+.slidevault .fb-verdict .sb-icon-btn { white-space: nowrap; }
+/* The preview window scrolls: a soft edge at the bottom shows there is more below. */
+/* A phone turned sideways: the slide on the left, everything about it on the right, and no tagline or big gap above the search. */
+/* A row that scrolls sideways fades on the side where more is hidden (edge-fade.ts sets data-fade). */
+.slidevault [data-fade~="end"]:not([data-fade~="start"]) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+.slidevault [data-fade~="start"]:not([data-fade~="end"]) { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }
+.slidevault [data-fade="start end"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
+/* Client, year and project type: up to two lines instead of one cut-off line. */
+
+/* Phone: the Draft deck count pops once when it changes (replaces the orange ring on the bottom tab). */
+@keyframes bbBump { 0% { transform: scale(0.6); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+/* Touch screens: the sideways-scroll arrows are not needed (swipe), and the Save heart is a little bigger. */
+@media (hover: none) and (pointer: coarse) {
+  .slidevault .row-head .acts .btn-icon { display: none; }
+  .slidevault .fb-verdict .sb-icon-btn[data-tip]::after { display: none; }
+}
+
+/* ---- Phone pass 5: the preview ---- */
+
+/* ---- Phone pass 6: the title opens the slide page; the buttons stay at the bottom ---- */
+/* Same bar, same place, for every slide: Add, Download, and a small Open deck button. */
+/* Useful / Not useful: tips open above the pair, as wide as the pair, so no card or window cuts them off. */
+.slidevault .fb-verdict .sb-icon-btn[data-tip] { position: static; white-space: nowrap; }
+.slidevault .fb-verdict .sb-icon-btn[data-tip]::after { text-transform: none; letter-spacing: normal; font-size: 12.5px; font-weight: 500; top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; width: max-content; max-width: 100%; text-align: left; white-space: normal; }
+/* Phone: Useful at one side, Not useful at the other. */
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .fb-verdict.is-small .sb-icon-btn { font-size: 10.5px; letter-spacing: 0.05em; gap: 3px; }
+  .slidevault .fb-verdict.is-small .sb-icon-btn .ic-sm { width: 12px; height: 12px; }
+  /* Sort and "Add all" share one row. */
+}
+@media (min-width: 701px) {
+  .slidevault .fb-verdict .sb-icon-btn[data-tip]::after { left: 50%; transform: translateX(-50%); max-width: min(100%, 320px); text-align: center; }
+}
+/* A narrow card (two across on a phone): the ticks and crosses go and the words stay, so both words fit on one line. */
+@container (max-width: 190px) { .slidevault .fb-verdict .sb-icon-btn .ic-sm { display: none; } }
+
+/* The number you can type in, in "Result [1] of 95" and "Slide [68] of 75 in this deck". */
+
+/* ---- Phone pass 11: the deck page ---- */
+.slidevault .sv-app[data-size="compact"] .grid.is-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+/* Pictures show a soft shimmer until they arrive, then fade in. */
+.slidevault .meta-wrap[hidden] { display: none; }
+
+/* ---- Phone pass 12: the slide page ---- */
+.slidevault .sv-app[data-size="compact"] .hero-wrap { position: relative; margin: 14px -16px 0; }
+.slidevault .hero-btn { position: absolute; z-index: 3; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 2px solid #fff; border-radius: 10px; background: rgba(0, 0, 0, 0.55); color: #fff; cursor: pointer; }
+.slidevault .hero-btn .ic { width: 18px; height: 18px; }
+.slidevault .hero-btn[aria-pressed="true"] { background: var(--sv-brand); border-color: var(--sv-brand); }
+.slidevault .hero-btn.is-saved .ic { fill: currentColor; }
+.slidevault .hero-add { top: 10px; left: 26px; }
+.slidevault .hero-corner { position: absolute; z-index: 3; top: 10px; right: 26px; display: flex; gap: 8px; }
+.slidevault .hero-corner .hero-btn { position: static; }
+.slidevault .hero-zoom { position: absolute; z-index: 3; right: 26px; bottom: 10px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: rgba(0, 0, 0, 0.55); color: #fff; pointer-events: none; }
+.slidevault .hero-zoom .ic { width: 16px; height: 16px; }
+/* Cards that open and close (About, Details, Slide text). */
+/* Only Filters, Year and Client sit in the row; the rest are in the Filters sheet. */
+.slidevault .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.slidevault .summary-row .summary { margin: 0; }
+.slidevault .why-more { display: none; }
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .matched { position: relative; }
+  .slidevault .matched .why-text { display: block; }
+  .slidevault .matched .why-text:not(.is-open) { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .slidevault .matched .why-more { display: grid; place-items: center; position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: none; color: var(--sv-text-secondary); cursor: pointer; }
+  .slidevault .matched .why-more .ic { width: 18px; height: 18px; transition: transform 0.15s; }
+  .slidevault .matched .why-more[aria-expanded="true"] .ic { transform: rotate(180deg); }
+}
+
+/* ---- Phone pass 13: working drafts swipe to delete; tap areas; viewer loading ---- */
+@media (pointer: coarse) {
+  .slidevault .row-info, .slidevault .helpdot, .slidevault .also, .slidevault .tag { position: relative; }
+  .slidevault .row-info::before, .slidevault .helpdot::before, .slidevault .also::before { content: ""; position: absolute; inset: -6px; }
+  .slidevault .tag::before { content: ""; position: absolute; inset: -6px -3px; }
+}
+
+/* Results on a phone: the count sits right under "Add all", and the rows have room between them. */
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .summary-row { align-items: flex-start; margin: 0 0 20px; }
+  .slidevault .summary-row .summary { text-align: right; }
+}
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .refine .select { max-width: 130px; }
+  .slidevault .summary-row { justify-content: flex-end; flex-direction: row; margin-top: 8px; }
+}
+
+/* ---- Phone pass 14: results, simpler ---- */
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  /* The words "I'm looking for" go once there are results. */
+  /* Heading with the slide count; the old count line stays for screen readers only. */
+  /* "Add all" is a plain link. */
+  /* Why it fits: one line in two-across cards; the arrow opens the rest. */
+  .slidevault .grid.is-dense .matched .why-text:not(.is-open) { -webkit-line-clamp: 1; }
+}
+
+/* ======== Phone on its side (landscape, about 400 high): the phone layout with the tabs in a rail down the left ======== */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  /* The tabs become a vertical rail. */
+  .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts, .slidevault .sv-app[data-size="compact"][data-nav="bottom"] .toasts.lift { bottom: 12px; }
+  /* Home and results: the search sits on one line with its label; the grid fills the width. */
+  .slidevault .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+  .slidevault .sv-app[data-size="compact"] .grid.is-dense { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .slidevault .grid.is-dense .matched .why-text:not(.is-open) { -webkit-line-clamp: 2; }
+  /* The draft deck is a panel down the right side, not a sheet. */
+  /* Preview: the slide on the left; title, actions and details on the right. Result arrows are icons here. */
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  /* The heading sits over the slide only; the cards on the right start level with the top of the slide. */
+  .slidevault .sv-app[data-size="compact"] .hero-wrap { margin: 10px 0 0; border-radius: 12px; overflow: hidden; }
+  .slidevault .sv-app[data-size="compact"] .hero-add { left: 10px; }
+  .slidevault .sv-app[data-size="compact"] .hero-corner, .slidevault .sv-app[data-size="compact"] .hero-zoom { right: 10px; }
+  .slidevault .sv-app[data-size="compact"] .h1 { font-size: 22px; }
+  /* Preview header on one row; the picture a little smaller so the arrows under it fit. */
+  /* The result arrows move down to sit either side of "Result 1 of 77". */
+}
+
+/* Phone landscape preview, fixed layout: results row level with the top of the slide, Add / Download level with the bottom of the deck arrows,
+   the free space in between. No line above the buttons. Tags as in portrait: the tag row, then Add tag with the suggestions beside it. */
+/* Small phones on their side (iPhone SE 667×375, small Android 640×360, 568×320): the preview's right-hand column is narrow, so it gets a little more width, tighter spacing and buttons without icons, so nothing is cut off or pushed onto another line. */
+/* Small phones on their side (667×375, 640×360, 568×320): keep every part in its place and make it fit. */
+@media (orientation: landscape) and (max-height: 400px) and (max-width: 1000px) {
+  /* Draft deck panel: a shorter header, so the list has room, and buttons whose names fit. */
+  /* Slide page heading a little smaller, so it does not take four lines. */
+  .slidevault .sv-app[data-size="compact"] .h1 { font-size: 18px; }
+}
+/* Results: the sort box and the section pills share a row on a phone on its side; the box stays put, the pills scroll. */
+
+/* Small phones on their side: the preview takes the height its content needs instead of standing tall with blank space under it, and the sort row sits clear of the results heading. */
+
+/* Slide page title and its pencil: the pencil is exactly as tall as one line of the title and centred in it, so it sits on the first line's horizontal axis at every size. */
+.slidevault .slide-title-row .h1 { margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: var(--ttl-fs); line-height: var(--ttl-lh); }
+/* Upload: the same space above the title as the Archive, Settings and My decks pages. */
+.slidevault .sv-app .sv-wrap.upload-wrap > .h1:first-child { margin-top: 22px; }
+
+/* "Also in 1 other deck" under a deck page card's tags: a quiet text link. */
+.slidevault .also-line { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: auto; padding: 4px 0; border: 0; background: none; font: inherit; font-size: var(--sv-text-small); font-weight: 600; color: var(--sv-text-secondary); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--sv-border-strong); cursor: pointer; }
+.slidevault .also-line:hover, .slidevault .also-line:focus-visible { color: var(--sv-text); text-decoration-color: currentColor; }
+
+/* The words already say it, so no tip; on a portrait phone the line is too wide, so it is just the icon and the number, with the tip. */
+.slidevault .also-line::after { display: none; }
+.slidevault .also-line .also-n { display: none; }
+@media (max-width: 700px) and (orientation: portrait) {
+  .slidevault .also-line .also-words { display: none; }
+  .slidevault .also-line .also-n { display: inline; font-variant-numeric: tabular-nums; }
+  .slidevault .also-line { text-decoration: none; min-height: 28px; padding: 2px 8px 2px 0; }
+  .slidevault .also-line:hover::after, .slidevault .also-line:focus-visible::after { display: block; top: auto; bottom: calc(100% + 6px); left: 0; right: auto; transform: none; }
+}
+/* Filters on a phone on its side: it rises from the bottom like on a portrait phone, but narrower and centred, so its words and boxes are not stretched across the whole screen. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  dialog.slidevault.fb-sheet { margin: auto auto 0; width: min(100%, 560px); max-height: 92%; border-radius: 20px 20px 0 0; border-bottom: 0; }
+  dialog.slidevault.fb-sheet .dlg-head { padding-left: 24px; padding-right: 20px; }
+  dialog.slidevault.fb-sheet .dlg-foot { padding: 10px 24px calc(10px + env(safe-area-inset-bottom)); }
+}
+/* The Filters sheet slides up from the bottom (and the dim behind it fades in), on every phone. People who ask their phone for less motion get it at once. */
+@keyframes svSheetUp { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes svDimIn { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 700px), (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  dialog.slidevault.fb-sheet[open] { animation: svSheetUp 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+  dialog.slidevault.fb-sheet[open]::backdrop { animation: svDimIn 0.3s ease-out; }
+}
+
+/* "Also in" list: a long deck name is cut with "…" on one line; it is a link to that slide's page, where the full name is shown. */
+.slidevault .also-list .also-txt { min-width: 0; }
+.slidevault .also-list .also-name { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slidevault .also-list .also-txt .meta { overflow-wrap: anywhere; }
+
+/* ======== Tablet held upright (FD-106): the phone-on-its-side page layouts (Home, results, slide page, deck page) with the tabs along the bottom. The slide preview keeps the desktop layout. ======== */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .card-body .meta.clip { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+/* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .grid > [data-card] { scroll-margin-top: 12px; }
+.slidevault .sv-app[data-size="medium"] .matched { position: relative; }
+.slidevault .sv-app[data-size="medium"] .matched .why-text { display: block; }
+.slidevault .sv-app[data-size="medium"] .matched .why-text:not(.is-open) { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.slidevault .sv-app[data-size="medium"] .matched .why-more { display: grid; place-items: center; position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: none; color: var(--sv-text-secondary); cursor: pointer; }
+.slidevault .sv-app[data-size="medium"] .matched .why-more .ic { width: 18px; height: 18px; transition: transform 0.15s; }
+.slidevault .sv-app[data-size="medium"] .matched .why-more[aria-expanded="true"] .ic { transform: rotate(180deg); }
+.slidevault .sv-app[data-size="medium"] .summary-row .summary { text-align: right; }
+.slidevault .sv-app[data-size="medium"] .refine .select { max-width: 130px; }
+.slidevault .sv-app[data-size="medium"] .summary-row { align-items: flex-start; margin: 0 0 20px; justify-content: flex-end; flex-direction: row; margin-top: 8px; }
+.slidevault .sv-app[data-size="medium"] .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.slidevault .sv-app[data-size="medium"] .grid.is-dense { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.slidevault .sv-app[data-size="medium"] .grid.is-dense .matched .why-text:not(.is-open) { -webkit-line-clamp: 2; }
+.slidevault .sv-app[data-size="medium"] .hero-wrap { position: relative; margin: 10px 0 0; border-radius: 12px; overflow: hidden; }
+.slidevault .sv-app[data-size="medium"] .hero-add { left: 10px; }
+.slidevault .sv-app[data-size="medium"] .hero-corner, .slidevault .sv-app[data-size="medium"] .hero-zoom { right: 10px; }
+.slidevault .sv-app[data-size="medium"] .h1 { font-size: 22px; }
+
+/* Tablet upright: the filter row, Filters button, example searches and Home rows follow the phone. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .row-scroller { grid-auto-columns: clamp(140px, calc(var(--sv-w, 390px) * 0.42), 200px); gap: 10px; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .row-scroller .card-body { padding: 8px 10px 10px; gap: 3px; }
+.slidevault .sv-app[data-size="medium"] .row-scroller .card-title { font-size: 13px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; min-height: 2.6em; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .row-scroller .meta { font-size: 12px; }
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .row-scroller .matched { display: none; }
+/* The (i) tip under a row title opens at the row's left edge and is never wider than the row, so it can't run off the screen. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .row-head { position: relative; }
+.slidevault .sv-app[data-size="medium"] .row-title, .slidevault .sv-app[data-size="medium"] .row-info { position: static; }
+.slidevault .sv-app[data-size="medium"] .row-info[data-tip]::after { left: 0; right: auto; transform: none; width: max-content; max-width: min(280px, 100%); }
+
+/* Tablet upright: the Filters sheet is the same size and slide-up as on a phone on its side, centred at the bottom instead of full width. */
+@media (orientation: portrait) and (min-width: 701px) and (max-width: 1100px) {
+  dialog.slidevault.fb-sheet { margin: auto auto 0; width: min(100%, 560px); max-height: 80%; }
+  dialog.slidevault.fb-sheet .dlg-head { padding-left: 24px; padding-right: 20px; }
+  dialog.slidevault.fb-sheet .dlg-foot { padding: 10px 24px calc(10px + env(safe-area-inset-bottom)); }
+  dialog.slidevault.fb-sheet[open] { animation: svSheetUp 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+  dialog.slidevault.fb-sheet[open]::backdrop { animation: svDimIn 0.3s ease-out; }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.slidevault.fb-sheet[open], dialog.slidevault.fb-sheet[open]::backdrop { animation: none; }
+}
+/* Desktop slide page, Tags card: "Also in N other decks" (icon and number) at the right of the heading. */
+.slidevault .panel-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* Tablet held upright preview: room between the picture and the deck arrows, and "Open deck" written out. */
+/* A deck or file name such as "M Moser_Atlas Logistics_RFP_SF_2026" fills the line and breaks inside itself, instead of dropping to a new line after "M". */
+.slidevault .panel-h .also-words { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; font-weight: 600; white-space: nowrap; }
+.slidevault .panel-h .also-words .ic { width: 16px; height: 16px; }
+
+/* Create on an upright tablet and on a phone on its side: the same centred column and top space as Upload, Settings and Archive; still two cards across on a tablet. */
+.slidevault .sv-app[data-size="medium"] .sv-wrap.create-wrap > .h1:first-child { margin-top: 22px; }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+  .slidevault .sv-app[data-size="compact"] .sv-wrap.create-wrap > .h1:first-child { margin-top: 22px; }
+}
+
+/* Browse tiles (client, year, category): every tile is the same width on every screen; a long name is cut with "…" (the full name shows as a tooltip). */
+.slidevault .tile { flex: 0 0 190px; width: 190px; min-width: 0; box-sizing: border-box; }
+.slidevault .tile b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The Filters sheet is a bottom card, not a full-width strip, on any screen wider than a phone. */
+@media (min-width: 701px) {
+  dialog.slidevault.fb-sheet { margin: auto auto 0; width: min(100%, 560px); max-height: 92%; border-radius: 20px 20px 0 0; border-bottom: 0; }
+}
+.slidevault .sv-app[data-tl]:not(:has(.cart-min)) .toasts { right: 16px; }
+.slidevault .sv-app[data-tl]:has(.cart-min) .toasts { bottom: 92px; }
+
+/* The note that names a cut-off tag in full: fixed to the screen, so a slide card or a scrolling row can never cut it off. */
+.slidevault .sv-fixed-tip { position: fixed; z-index: 120; max-width: 280px; padding: 4px 9px; border-radius: 6px; background: var(--sv-text); color: var(--sv-surface); font-size: 12px; font-weight: 600; line-height: 1.3; pointer-events: none; overflow-wrap: anywhere; visibility: hidden; }
+
+/* Tags: one quiet grey outline for every pill (no colour per tag); orange on hover, focus or when selected. */
+.slidevault .tag[data-h] { --tag-rgb: 100, 116, 139; }
+.slidevault .tag[aria-pressed="true"], .slidevault .tag.is-on, .slidevault .tag.is-selected { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
+
+/* Buttons: orange on hover, keyboard focus and while pressed (so a tap answers straight away, before the next page loads) and when selected. */
+.slidevault .btn[aria-pressed="true"]:not(.btn-primary) { background: var(--sv-brand-tint); }
+.slidevault .btn-primary:not(:disabled):not([aria-disabled="true"]):hover,
+.slidevault .btn-primary:not(:disabled):not([aria-disabled="true"]):focus-visible,
+.slidevault .btn-primary:not(:disabled):not([aria-disabled="true"]):active { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); opacity: .86; }
+.slidevault .btn-ghost:not(:disabled):hover, .slidevault .btn-ghost:not(:disabled):active, .slidevault .btn-ghost:not(:disabled):focus-visible { color: var(--sv-brand-strong); }
+
+/* Create, Upload, My decks, Archive and Settings start at the same height on every screen: the page's 16px top padding plus 22px above the title. */
+.slidevault .sv-app .sv-wrap.create-wrap > .h1:first-child { margin-top: 22px; }
+
+/* A link-button that has just been pressed: a small spinner in place of its icon, until the next page arrives. */
+.slidevault a.btn.is-pending { pointer-events: none; opacity: .85; position: relative; }
+.slidevault a.btn.is-pending .ic { visibility: hidden; width: 16px; margin-right: -16px; }
+.slidevault a.btn.is-pending::before { content: ""; flex: none; width: 14px; height: 14px; border: 2px solid color-mix(in srgb, currentColor 25%, transparent); border-top-color: var(--sv-brand-strong); border-radius: 50%; animation: svBtnSpin .7s linear infinite; order: -1; }
+.slidevault a.btn.is-pending.btn-primary::before { border-top-color: var(--sv-action-fg); }
+@keyframes svBtnSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .slidevault a.btn.is-pending::before { animation-duration: 2s; } }
+
+/* A long press must not pop the phone's own menu or text selection on things that carry a note. */
+.slidevault [data-tip] { -webkit-touch-callout: none; }
+
+/* Touch screens only (a finger, not a mouse): a larger area around small controls responds to a tap, without changing how they look.
+   Each control is its own positioned box, so the extra area is measured from the control itself and can never spread over the card. */
+@media (pointer: coarse) {
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.save-tg, .deck-arch) { position: absolute; }
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.row-info, .helpdot, .also, .tag, .tag-more) { position: relative; }
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.save-tg, .deck-arch)::before { content: ""; position: absolute; inset: -8px; }
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.row-info, .helpdot, .also)::before { content: ""; position: absolute; inset: -5px; }
+  .slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) .tag::before { content: ""; position: absolute; inset: -2px; }
+}
+
+/* Very large screens (1900px and up): the header and page content stop at 1960px and sit in the middle; the draft deck still reaches the screen's right edge. The base text is a notch bigger. */
+.slidevault .sv-app[data-xxl] .sv-shell { max-width: 1960px; }
+.slidevault .sv-app[data-xxl][data-size="wide"] .sv-shell { --gut: max(var(--sv-side, 28px), calc((var(--sv-w, 1280px) - 1960px) / 2 + var(--sv-side, 28px))); }
+.slidevault[data-xxl], .slidevault .sv-app[data-xxl] { --sv-text-body: 16px; --sv-text-small: 14.5px; --sv-text-meta: 13.5px; --sv-text-subheading: 20px; }
+.slidevault[data-xxl] .h1, .slidevault .sv-app[data-xxl] .h1 { font-size: 34px; }
+
+/* Empty states inside a page section (My decks: Saved, Working drafts): a smaller card with an icon, one line and a button. */
+.slidevault .row .state { padding: 28px 20px; margin-top: 4px; }
+.slidevault .row .state .ic-big { width: 28px; height: 28px; color: var(--sv-text-secondary); }
+.slidevault .row .state h2 { font-size: 16px; margin: 8px 0 4px; }
+.slidevault .row .state p { margin-bottom: 14px; }
+/* The app header (it belongs to the application shell, so its class is hashed) stops at the same width. */
+.slidevault .sv-app[data-xxl] [class*="headerInner"] { max-width: 1960px; }
+
+/* No lonely last word: paragraphs and list text break so the last line is never a single word; headings and short notes balance their lines.
+   Text in pop-ups is not balanced: balancing shortens every line and left a wide empty strip on the right of the box. */
+.slidevault :is(p, li, dd, .lede, .meta, .hint, .txt) { text-wrap: pretty; }
+.slidevault :is(h1, h2, h3, .h1, .h2, .h3, .state p, .state h2, .tour-t, .tour-pop h2, .toast, .sv-fixed-tip) { text-wrap: balance; }
+
+/* Storyboard is Schiffon's design: its buttons keep their own corners, outline and hover, and the Storyboard button keeps its solid orange. */
+.slidevault .sb .btn-primary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible, :active) { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); opacity: .86; }
+/* The bigger tap area of the small round controls is measured from the control itself, not from the row around it. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"], [data-tl]) :is(.row-info, .helpdot, .also) { position: relative; }
+
+/* An upright tablet of any width (iPad Pro 12.9 is 1024px across) uses one centred column: the wide-screen grid, with its empty draft deck column on the right, must not apply. */
+.slidevault .sv-app[data-size="medium"] .sv-shell { display: block; padding: 0 20px; }
+
+/* Pressed look that stays (see tap-feedback.ts): the same orange as hover, on touch and on Enter or Space, so a slow page change still shows the press. */
+.slidevault .btn-primary[data-tapped]:not(:disabled) { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); opacity: .86; }
+.slidevault .btn-ghost[data-tapped] { color: var(--sv-brand-strong); background: var(--sv-brand-tint); }
+.slidevault .tag[data-tapped], .slidevault .chip-x[data-tapped] { border-color: var(--sv-brand); background: var(--sv-brand-tint); color: var(--sv-text); }
+.slidevault .btn-link[data-tapped] { color: var(--sv-brand-strong); text-decoration-thickness: 2px; }
+
+/* Button edges: a mid-grey line that meets 3:1 on the page, with a very soft shadow. Dark mode uses the control border. */
+.slidevault {
+  --svp-danger-text: #b3261e;
+  --svp-success-text: #146c3a;
+  --svp-warning-tint: #fff4d6;
+  --svp-danger-tint: #fde8e6;
+  --svp-success-tint: #e3f5ec;
+  --sv-frame: #eceef1; --sv-side: 40px; --sv-btn-edge: #8e8e8e; }
+.slidevault[data-theme="dark"], .slidevault [data-theme="dark"] { --sv-btn-edge: var(--sv-control-border); }
+.slidevault .btn-ghost, .slidevault .btn-icon.btn-ghost { box-shadow: none; }
+
+/* Phone "Add a tag" sheet. */
+dialog.slidevault.tag-sheet .tag-sheet-form .input { flex: 1 1 auto; min-width: 0; min-height: 44px; font-size: 16px; }
+/* A section's own page (a section chosen on Home): the heading, its one line, then room before the section cards. */
+.slidevault .seccards-browse > .h1 { margin: 0; }
+.slidevault .seccards-browse > .h1 + .meta { margin: 6px 0 22px; }

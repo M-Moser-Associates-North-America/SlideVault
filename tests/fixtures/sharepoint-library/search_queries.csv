@@ -1,0 +1,23 @@
+id,style,query,expect_client,expect_year,expect_category,expect_type,expect_title_contains,why
+q01,keyword,Our values,,,,Values,,Exact words on the slide
+q02,keyword,Expert insight acoustics,,,,Subject matter expertise,Acoustics,Exact words on the slide
+q03,keyword,Your team for Halcyon Health,Halcyon Health,,,Team,,Exact title
+q04,natural,team slide from the Halcyon Health project,Halcyon Health,,,Team,,Alina's example: find one slide type from one past project
+q05,natural,team slide from the Halcyon project in 2024,Halcyon Health,2024,,Team,,Short client name plus a year
+q06,natural,team slide from the energy project last year,Pioneer Energy,2025,,Team,,Sector instead of name and a relative date (last year = 2025)
+q07,natural,about us slide,,,,About us,,Slide type in everyday words
+q08,natural,the values slide we showed Atlas Logistics,Atlas Logistics,,,Values,,Wording from the Oct 10 email to Alina
+q09,natural,case study about Atlas Logistics,,,,Case study,Atlas Logistics,Case study naming a past client
+q10,natural,case study for a life sciences client,,,,Case study,Lumen Biotech,Sector instead of client name
+q11,natural,fee breakdown for Verdant Foods,Verdant Foods,,,Fees,,Close but not exact words (breakdown vs summary)
+q12,natural,why us slide for a healthcare client,Halcyon Health,,,How we connect,,Everyday phrase for a pitch slide
+q13,natural,what we heard from the bank,Northgate Bank,,,About the client,,Client described by sector
+q14,natural,next steps slide from 2025,,2025,,Next steps,,Slide type plus a year from the folder path
+q15,natural,cover of the Mosaic Media IDD deck,Mosaic Media,,IDD,Cover,,Client plus category
+q16,natural,approach slide from an IDD proposal,,,IDD,Approach,,Slide type plus category from the folder path
+q17,meaning,who we are,,,,About us,,No shared words with the slide
+q18,meaning,meet the people working on the Lumen Biotech pitch,Lumen Biotech,,,Team,,Same meaning as Your team for
+q19,meaning,how much the Atlas Logistics project would cost,Atlas Logistics,,,Fees,,Cost means fees
+q20,meaning,project schedule for Sable Hotels,Sable Hotels,,,Timeline,,Schedule means timeline
+q21,meaning,sustainability expertise,,,,Subject matter expertise,Sustainability,Expertise means expert insight
+q22,meaning,our process from discovery to delivery,,,,Approach,,Describes the chevron steps

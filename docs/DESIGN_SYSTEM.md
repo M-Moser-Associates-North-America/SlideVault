@@ -39,7 +39,7 @@ These colors define SlideVault's interface palette. The stylesheet contains the 
 | Role | Light | Dark |
 | --- | --- | --- |
 | Brand accent | `#FF3F0A` | `#FF5A2C` |
-| Strong brand accent | `#D93407` | `#FF7048` |
+| Strong brand accent | `#E03408` | `#FF7048` |
 | Application background | `#F3F4F6` | `#0B0C0F` |
 | Panel surface | `#FFFFFF` | `#191A1E` |
 | Sunken surface | `#ECEEF1` | white at 8% |

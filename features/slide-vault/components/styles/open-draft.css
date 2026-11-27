@@ -1,0 +1,4 @@
+/* "Your draft deck has slides in it" (opening a saved draft while the draft deck holds slides). On a phone the buttons stack like every pop-up's (dialog.css). */
+.slidevault dialog.open-draft .dlg-foot { flex-wrap: wrap; }
+.slidevault dialog.open-draft .open-draft-note { margin-top: 10px; }
+.slidevault dialog.open-draft .open-draft-lead { margin: 0; font-size: 15px; line-height: 1.5; }

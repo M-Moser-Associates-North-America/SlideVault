@@ -1,0 +1,34 @@
+/* Pop-ups (every <dialog class="sv-dialog">): one size, one set of margins and one button row, so they all look alike.
+   Moved here from slidevault.css; loaded right after it, so the order against the other files is unchanged.
+   A pop-up that looks different in one way says so in its own file (preview.css: .wide; tags and filters: .fb-sheet). */
+dialog.slidevault.sv-dialog { border: 1px solid var(--sv-border); padding: 0; border-radius: var(--sv-radius-panel); background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); width: min(480px, calc(var(--sv-w, 1280px) - 32px)); max-height: calc(var(--sv-h, 100%) - 32px); }
+dialog.slidevault.sv-dialog[open] { display: flex; flex-direction: column; }
+dialog.slidevault.sv-dialog::backdrop { background: rgba(10,10,14,.6); }
+dialog.slidevault.sv-dialog.wide { width: min(1120px, calc(100% - 24px)); }
+.slidevault .dlg-head { padding: 24px 20px 8px 32px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.slidevault .dlg-head h2 { font-size: 18px; }
+.slidevault .dlg-body { padding: 4px 32px 20px; overflow: auto; min-height: 0; }
+.slidevault .dlg-foot { padding: 16px 32px 24px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--sv-border); }
+
+/* A question pop-up (not the large slide preview, and not the sheets that rise from the bottom on a phone: .fb-sheet): the ✕ sits in the top corner on its own line, above the title,
+   so the title and text use the full width; the buttons share the bottom row equally and fill it (the sheets' too). */
+dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > .dlg-head, dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > form > .dlg-head { flex-direction: column; align-items: stretch; gap: 0; padding: 12px 12px 8px 32px; }
+dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > .dlg-head > .dlg-close, dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > form > .dlg-head > .dlg-close { order: -1; align-self: flex-end; }
+dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > .dlg-head > :not(.dlg-close), dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > form > .dlg-head > :not(.dlg-close) { padding-right: 16px; }
+dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > .dlg-head:not(:has(> .dlg-close)), dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > form > .dlg-head:not(:has(> .dlg-close)) { padding-top: 24px; }
+dialog.slidevault.sv-dialog:not(.wide) > .dlg-foot > .btn, dialog.slidevault.sv-dialog:not(.wide) > form > .dlg-foot > .btn { flex: 1 1 0; min-width: max-content; justify-content: center; }
+
+/* The box itself takes focus when tapped inside; it is not a control, so it draws no ring (its buttons still do). */
+dialog.slidevault.sv-dialog:focus-visible { outline: none; }
+/* Titles fill the line before they wrap, instead of splitting into two short balanced lines. */
+dialog.slidevault.sv-dialog .dlg-head h2 { text-wrap: pretty; }
+/* The pop-up's own close button (.dlg-close, the ✕ each pop-up and the slide preview draw): orange, with a soft orange circle under it on hover. */
+.slidevault .btn.dlg-close { color: var(--sv-brand-strong); }
+.slidevault .btn.dlg-close:hover { background: var(--sv-brand-tint); }
+
+/* Phones (the shared compact size, .sv-app[data-size="compact"]): a little less margin, and the buttons stacked full width with the main one on top. */
+.slidevault .sv-app[data-size="compact"] dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > .dlg-head, .slidevault .sv-app[data-size="compact"] dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > form > .dlg-head { padding: 12px 12px 8px 20px; }
+.slidevault .sv-app[data-size="compact"] dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > .dlg-head:not(:has(> .dlg-close)), .slidevault .sv-app[data-size="compact"] dialog.slidevault.sv-dialog:not(.wide, .fb-sheet) > form > .dlg-head:not(:has(> .dlg-close)) { padding-top: 20px; }
+.slidevault .sv-app[data-size="compact"] dialog.slidevault.sv-dialog:not(.wide) > .dlg-body, .slidevault .sv-app[data-size="compact"] dialog.slidevault.sv-dialog:not(.wide) > form > .dlg-body { padding: 4px 20px 16px; }
+.slidevault .sv-app[data-size="compact"] dialog.slidevault.sv-dialog:not(.wide) > .dlg-foot, .slidevault .sv-app[data-size="compact"] dialog.slidevault.sv-dialog:not(.wide) > form > .dlg-foot { padding: 16px 20px 20px; flex-direction: column-reverse; align-items: stretch; }
+.slidevault .sv-app[data-size="compact"] dialog.slidevault.sv-dialog:not(.wide) > .dlg-foot > .btn, .slidevault .sv-app[data-size="compact"] dialog.slidevault.sv-dialog:not(.wide) > form > .dlg-foot > .btn { width: 100%; }

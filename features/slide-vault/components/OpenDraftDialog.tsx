@@ -1,0 +1,147 @@
+'use client';
+
+import { useId, useRef } from 'react';
+import type { DraftAfter, DraftSnapshot } from '../client/draft-status';
+import { requestDraftSave } from '../client/draft-save-request';
+import type { Draft } from '../client/profile-store';
+import { backdropClose, useDialogOpen } from './Dialogs';
+import { Icon } from './icons';
+import { plural } from './library';
+import { useDraft, useNotify, useRuntime } from './state';
+import { Button } from './ui/Button';
+
+/**
+ * The two ways to bring a saved draft into the draft deck, each ending the same way: the draft deck opens so the result is in view, and a toast offers Undo.
+ * "open" replaces what is there; "add" puts the saved draft's slides after the ones already there.
+ */
+export function useDraftOpeners() {
+  const { selection, updateSelection, setCartMin, loadDraft, slidesOfDraft, snapshotDraft, restoreDraft, takeOutSlides } = useDraft();
+  const { toast, announce } = useNotify();
+  const loading = () => toast('The library is still loading. Please try again in a moment.');
+  /* Undo only while the draft deck is still as this action left it (restoreDraft checks), and only if there was something to bring back. */
+  const undoFor = (before: DraftSnapshot, after: DraftAfter) => (before.slides.length > 0 ? { label: 'Undo', run: () => restoreDraft(before, after) } : undefined);
+
+  /** Replace the draft deck with the saved draft. `before` is what Undo brings back (default: the draft deck as it is now); `lead` starts the toast. */
+  const open = (draft: Draft, before: DraftSnapshot = snapshotDraft(), lead = '') => {
+    const found = slidesOfDraft(draft);
+    if (!found) return loading();
+    if (found.length === 0 && draft.slideIds.length > 0) {
+      toast(`None of the slides in “${draft.name}” are in the library right now (they may be hidden or removed), so it was not opened.`);
+      return;
+    }
+    loadDraft(draft);
+    setCartMin(false);
+    const gone = draft.slideIds.length - found.length;
+    toast(`${lead}Opened “${draft.name}” in your draft deck.${gone > 0 ? ` ${plural(gone, 'slide')} in it ${gone === 1 ? 'is' : 'are'} hidden or no longer in the library and stay${gone === 1 ? 's' : ''} in the saved deck.` : ''}`, undoFor(before, { ids: found.map((s) => s.id), title: draft.name, originId: draft.id, excluded: [] }));
+    announce(`Opened ${draft.name} in the draft deck`);
+  };
+
+  /** Keep what is in the draft deck and add the saved draft's slides after it (a slide already there is not added twice). */
+  const add = (draft: Draft) => {
+    const found = slidesOfDraft(draft);
+    if (!found) return loading();
+    const fresh = found.filter((s) => !selection.some((c) => c.id === s.id));
+    if (fresh.length === 0) {
+      toast(found.length === 0 && draft.slideIds.length > 0 ? `None of the slides in “${draft.name}” are in the library right now (they may be hidden or removed).` : `Everything in “${draft.name}” was already in your draft deck.`);
+      return;
+    }
+    updateSelection((cur) => [...cur, ...fresh.filter((s) => !cur.some((c) => c.id === s.id))]);
+    setCartMin(false);
+    /* Undo takes out just the slides this added; anything done since stays. */
+    toast(`Added ${plural(fresh.length, 'slide')} from “${draft.name}” to your draft deck.`, { label: 'Undo', run: () => takeOutSlides(fresh.map((s) => s.id)) });
+    announce(`${plural(fresh.length, 'slide')} from ${draft.name} added to the draft deck`);
+  };
+  return { open, add };
+}
+
+/**
+ * Opening a saved draft while the draft deck holds unsaved work: ask first, in plain words.
+ * "Save my changes first" / "Save my draft deck first" opens the draft deck and its Save as draft box (which also refuses a name that is already taken); the saved draft opens once that is saved, and nothing happens if the box is closed.
+ * "Add to my draft deck" keeps what is there and adds the saved draft's slides after it. Closing the box (✕, Escape or a click outside) changes nothing.
+ * When the saved draft is the very deck being edited, "Add to my draft deck" makes no sense, so the box offers to reopen the saved version instead.
+ */
+export function OpenDraftDialog({ draft, onClose }: { draft: Draft | null; onClose: () => void }) {
+  const { runtime } = useRuntime();
+  const { selection, draftOrigin, slidesOfDraft } = useDraft();
+  const { open, add } = useDraftOpeners();
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  useDialogOpen(ref, draft !== null);
+
+  const n = selection.length;
+  const shown = draft?.name ?? '';
+  const sameDeck = !!draft && draftOrigin?.id === draft.id;
+
+  /* What an update saves: the draft deck's slides, then the saved deck's slides that are hidden or gone from the library (as state.tsx replaceDraft keeps them). */
+  const savedSlideIds = (d: Draft, slides: typeof selection) => {
+    const inLibrary = new Set((slidesOfDraft(d) ?? []).map((s) => s.id));
+    const inDeck = new Set(slides.map((s) => s.id));
+    return [...inDeck, ...d.slideIds.filter((id) => !inLibrary.has(id) && !inDeck.has(id))];
+  };
+
+  const saveFirst = () => {
+    if (!draft) return;
+    const slides = selection;
+    requestDraftSave((saved) => {
+      /* Saving over this very deck changed its saved record: reopen that one, not the copy taken before the save (it would bring the old slides back). */
+      const record = sameDeck && saved.updated && saved.id ? { ...draft, id: saved.id, name: saved.name, slideIds: savedSlideIds(draft, slides) } : draft;
+      open(record, { slides, title: saved.name, originId: saved.id }, `Saved “${saved.name}”. `);
+    });
+    onClose();
+  };
+
+  return (
+    <dialog ref={ref} className="slidevault sv-dialog open-draft" data-theme={runtime.theme} aria-labelledby={titleId} onClose={onClose} onClick={backdropClose(onClose)}>
+      {draft && (
+        <>
+          <div className="dlg-head">
+            <h2 id={titleId}>{sameDeck ? `Save your changes to “${shown}”?` : 'Your draft deck has unsaved slides'}</h2>
+            <Button variant="ghost" iconOnly size="sm" className="dlg-close" aria-label="Close" onClick={onClose}>
+              <Icon name="x" />
+            </Button>
+          </div>
+          <div className="dlg-body">
+            {/* Short, with the parts that matter in bold so the choice can be read at a glance. */}
+            <p className="open-draft-lead">
+              {sameDeck ? (
+                <>
+                  Your draft deck has <strong>unsaved changes to “{shown}”</strong>. Reopening the saved version <strong>replaces those changes</strong>.
+                </>
+              ) : (
+                <>
+                  Your draft deck has <strong>{plural(n, 'slide')}</strong> that {n === 1 ? 'isn’t' : 'aren’t'} saved. <strong>Save your draft deck first</strong>, or <strong>add</strong> the slides from “{shown}” to it.
+                </>
+              )}
+            </p>
+          </div>
+          <div className="dlg-foot">
+            {/* No Cancel: the ✕, Escape and a click outside the box already close it without doing anything. */}
+            {sameDeck ? (
+              <Button
+                onClick={() => {
+                  open(draft);
+                  onClose();
+                }}
+              >
+                Reopen saved version
+              </Button>
+            ) : (
+              <Button
+                onClick={() => {
+                  add(draft);
+                  onClose();
+                }}
+              >
+                Add to my draft deck
+              </Button>
+            )}
+            {/* Says what is saved: the changes to this very deck, or the draft deck as it is. */}
+            <Button variant="primary" onClick={saveFirst}>
+              {sameDeck ? 'Save my changes first' : 'Save my draft deck first'}
+            </Button>
+          </div>
+        </>
+      )}
+    </dialog>
+  );
+}

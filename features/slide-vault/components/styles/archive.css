@@ -1,0 +1,67 @@
+/* Archive (ArchiveView.tsx)
+   Archived decks page.
+*/
+
+/* Archive dialog: deck name first, one clear sentence, then two short lines. */
+.slidevault .arch-body { display: flex; flex-direction: column; gap: 14px; }
+.slidevault .arch-deck { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--sv-border); border-radius: 12px; background: var(--sv-surface-sunken); }
+.slidevault .arch-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sv-text-secondary); }
+.slidevault .arch-name { font-size: 15px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.slidevault .arch-lead { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.35; letter-spacing: -0.01em; }
+.slidevault .arch-list { margin: 0; padding: 0 0 0 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; line-height: 1.45; }
+.slidevault .arch-note { margin: 0; font-size: 13px; color: var(--sv-text-secondary); }
+
+/* Archived decks page. */
+.slidevault .arch-find { display: flex; align-items: center; gap: 8px; max-width: 420px; height: 40px; padding: 0 14px; margin-top: 4px; border: 1px solid var(--sv-border-strong); border-radius: 999px; background: var(--sv-surface); }
+.slidevault .arch-find:focus-within { border-color: var(--sv-brand); }
+.slidevault .arch-find input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: var(--sv-text); outline: none; }
+.slidevault .arch-rows { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; max-width: 840px; }
+.slidevault .arch-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 12px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
+.slidevault .arch-mosaic { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; width: 120px; aspect-ratio: 16 / 9; padding: 0; border: 1px solid var(--sv-border-strong); border-radius: 8px; overflow: hidden; background: var(--sv-surface-sunken); cursor: pointer; }
+.slidevault .arch-mosaic span { display: block; overflow: hidden; }
+.slidevault .arch-title { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.slidevault .arch-info .meta { margin: 2px 0 0; }
+.slidevault .sv-app[data-size="compact"] .arch-row { grid-template-columns: 84px minmax(0, 1fr); }
+.slidevault .sv-app[data-size="compact"] .arch-row .arch-mosaic { width: 84px; }
+.slidevault .sv-app[data-size="compact"] .arch-row > .btn { grid-column: 2; justify-self: start; }
+
+/* Archived decks page: room between the heading, the explanation, the search and the cards. */
+.slidevault .arch-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-top: 28px; }
+.slidevault .arch-tools .arch-find { margin-top: 0; flex: 0 1 420px; width: 100%; }
+.slidevault .arch-tools .meta { margin: 0; }
+.slidevault .arch-page .arch-rows { margin-top: 20px; gap: 16px; }
+.slidevault .arch-page .arch-row { padding: 16px 18px; gap: 20px; }
+.slidevault .arch-page .arch-info { display: flex; flex-direction: column; gap: 6px; }
+.slidevault .arch-page .arch-info .meta { margin: 0; }
+.slidevault .arch-page .state { margin-top: 28px; }
+/* Archive on a phone on its side, and on tablets: the deck cards in two columns, not one stretched row. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .arch-page .arch-rows { margin-top: 14px; gap: 12px; }
+.slidevault .sv-app[data-size="compact"] .arch-page .arch-row { grid-template-columns: 96px minmax(0, 1fr) auto; padding: 12px; gap: 10px 14px; }
+.slidevault .sv-app[data-size="compact"] .arch-page .arch-row .arch-mosaic { width: 96px; }
+.slidevault .sv-app[data-size="compact"] .arch-page .arch-row > .btn { grid-column: auto; justify-self: end; } }
+.slidevault .sv-app[data-size="medium"] .arch-page .arch-rows { gap: 14px; }
+.slidevault .sv-app[data-size="medium"] .arch-page .arch-row { grid-template-columns: 100px minmax(0, 1fr) auto; }
+.slidevault .sv-app[data-size="medium"] .arch-page .arch-row .arch-mosaic { width: 100px; }
+/* A deck or file name such as "M Moser_Atlas Logistics_RFP_SF_2026" fills the line and breaks inside itself, instead of dropping to a new line after "M". */
+.slidevault .trust dd.break-name .arch-link { word-break: normal; }
+
+/* Archive on an upright tablet and on a phone on its side: the same centred column and top space as Settings and Upload. */
+.slidevault .sv-app[data-size="medium"] .sv-shell.narrow .center .sv-main .sv-wrap.arch-page { margin-left: auto; margin-right: auto; padding-top: 0; }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .sv-shell.narrow .center .sv-main .sv-wrap.arch-page { max-width: 560px; margin-left: auto; margin-right: auto; padding-top: 0; } }
+.slidevault .sv-app[data-size="medium"] .arch-page .page-head, .slidevault .sv-app[data-size="compact"] .arch-page .page-head { margin-top: 22px; }
+/* Archive: when the explanation needs two lines, share the words evenly so one word is never left alone. */
+.slidevault .arch-page .page-head .lede { margin-top: 10px; max-width: 62ch; line-height: 1.5; text-wrap: balance; }
+.slidevault .arch-page .arch-count { margin: 6px 0 0; font-style: italic; color: var(--sv-brand-strong); font-size: var(--sv-text-small); }
+
+/* "Archive this deck (107 slides)": the icon stays level with the first line; when the words do not fit on one line, the count drops to its own line under "Archive this deck". */
+.slidevault .arch-link { display: flex; justify-content: flex-start; text-align: left; gap: 6px; margin-top: 6px; font-size: 13px; align-items: flex-start; }
+.slidevault .arch-link .ic { flex: none; margin-top: 3px; }
+.slidevault .arch-link .arch-text { text-align: left; }
+.slidevault .arch-link .arch-l, .slidevault .arch-link .arch-n { white-space: nowrap; }
+
+/* Create, Upload, My decks, Archive and Settings start at the same height on every screen: the page's 16px top padding plus 22px above the title. */
+.slidevault .sv-shell .sv-wrap.arch-page { padding-bottom: 48px; padding-top: 0; }
+/* ...and on an upright tablet they are the same width. */
+.slidevault .sv-app[data-size="medium"] .sv-shell.narrow .center .sv-main .sv-wrap.arch-page { max-width: 660px; }

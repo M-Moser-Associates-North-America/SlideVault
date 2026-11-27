@@ -1,0 +1,5 @@
+/* Application shell only. Feature styles live in features/slide-vault and are scoped to .slidevault. */
+body {
+  margin: 0;
+  background: #f3f4f6;
+}

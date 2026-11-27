@@ -1,0 +1,1927 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SlideVault v3 prototype</title>
+<style>
+/* ------------------------------------------------------------------
+   Shell-owned document styles. In the real app the application shell
+   owns html/body; the workspace below never resets global elements.
+------------------------------------------------------------------- */
+html, body { margin: 0; }
+body { background: #f3f4f6; }
+body.sv-body-dark { background: #0b0c0f; }
+
+/* ------------------------------------------------------------------
+   Tokens: copied from docs/design-tokens.css (2026-09-29).
+------------------------------------------------------------------- */
+.slidevault {
+  color-scheme: light;
+  --sv-brand: #ff3f0a; --sv-brand-strong: #d93407; --sv-brand-tint: #ffe6dc;
+  --sv-bg: #f3f4f6; --sv-surface: #ffffff; --sv-surface-sunken: #eceef1; --sv-surface-muted: #e4e7eb;
+  --sv-text: #1a1a1a; --sv-text-secondary: #6b6b6b;
+  --sv-border: rgba(20,20,20,0.12); --sv-border-strong: rgba(20,20,20,0.20);
+  --sv-action-bg: #1a1a1a; --sv-action-fg: #ffffff;
+  --sv-success: #1f9d63; --sv-warning: #c9930c; --sv-danger: #d14b3c;
+  --sv-frame: #eceef1; --sv-placeholder: #6b6b6b; --sv-link: #b92d09; --sv-focus: #d93407; --sv-control-border: #777777;
+  --sv-font-sans: "Helvetica Neue", "Helvetica", "Arimo", Arial, system-ui, -apple-system, sans-serif;
+  --sv-text-body: 14.5px; --sv-text-small: 13px; --sv-text-meta: 12.5px;
+  --sv-text-heading: 32px; --sv-text-section: 23px; --sv-text-subheading: 18px;
+  --sv-leading-body: 1.55; --sv-leading-heading: 1.3;
+  --sv-radius-control: 11px; --sv-radius-card: 16px; --sv-radius-composer: 18px; --sv-radius-panel: 24px; --sv-radius-pill: 999px;
+  --sv-shadow-card: 0 1px 2px rgba(20,20,28,0.06), 0 10px 28px -22px rgba(20,20,28,0.30);
+  --sv-shadow-panel: 0 30px 70px -30px rgba(20,20,28,0.26), 0 6px 18px -12px rgba(20,20,28,0.08);
+  --sv-shadow-popover: 0 12px 30px -10px rgba(20,20,28,0.18);
+  --sv-ease-out: cubic-bezier(0,0,0.2,1);
+  --sv-duration-fast: 150ms; --sv-duration: 220ms; --sv-duration-slow: 320ms;
+  /* Prototype extensions (not in the token file): readable status text. */
+  --svp-danger-text: #b3261e; --svp-warning-tint: #fff4d6; --svp-danger-tint: #fde8e6; --svp-success-tint: #e3f5ec;
+}
+.slidevault[data-theme="dark"] {
+  color-scheme: dark;
+  --sv-brand: #ff5a2c; --sv-brand-strong: #ff7048; --sv-brand-tint: rgba(255,63,10,0.16);
+  --sv-bg: #0b0c0f; --sv-surface: #191a1e; --sv-surface-sunken: rgba(255,255,255,0.08); --sv-surface-muted: rgba(255,255,255,0.12);
+  --sv-text: #f4f4f4; --sv-text-secondary: #a9a9ac;
+  --sv-border: rgba(255,255,255,0.14); --sv-border-strong: rgba(255,255,255,0.23);
+  --sv-action-bg: #fafafa; --sv-action-fg: #0b0b0d;
+  --sv-success: #34c77d; --sv-warning: #e0a33c; --sv-danger: #f0685a;
+  --sv-frame: #26272c; --sv-placeholder: #a9a9ac; --sv-link: #ff8a67; --sv-focus: #ff7048; --sv-control-border: #83848a;
+  --sv-shadow-card: 0 1px 0 rgba(255,255,255,0.04), 0 12px 30px -20px rgba(0,0,0,0.90);
+  --sv-shadow-panel: 0 30px 70px -30px rgba(0,0,0,0.65), 0 6px 18px -12px rgba(0,0,0,0.40);
+  --sv-shadow-popover: 0 12px 30px -10px rgba(0,0,0,0.60);
+  --svp-danger-text: #ff9a8f; --svp-warning-tint: rgba(224,163,60,0.16); --svp-danger-tint: rgba(240,104,90,0.16); --svp-success-tint: rgba(52,199,125,0.14);
+}
+@media (prefers-reduced-motion: reduce) {
+  .slidevault { --sv-duration-fast: 0ms; --sv-duration: 0ms; --sv-duration-slow: 0ms; }
+}
+
+/* ------------------------------------------------------------------
+   Base (scoped to .slidevault)
+------------------------------------------------------------------- */
+.slidevault { font-family: var(--sv-font-sans); font-size: var(--sv-text-body); line-height: var(--sv-leading-body); color: var(--sv-text); }
+.slidevault *, .slidevault *::before, .slidevault *::after { box-sizing: border-box; }
+.slidevault :where(h1, h2, h3, p, dl, dd, figure) { margin: 0; }
+.slidevault :where(h1, h2, h3) { line-height: var(--sv-leading-heading); font-weight: 600; }
+.slidevault :where(button, input, select, textarea) { font: inherit; color: inherit; }
+.slidevault :where(a) { color: var(--sv-link); }
+.slidevault :focus-visible { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
+.slidevault [tabindex="-1"]:focus { outline: none; }
+.slidevault .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.slidevault .ic { width: 18px; height: 18px; flex: none; }
+.slidevault .ic-sm { width: 14px; height: 14px; }
+.sv-app { background: var(--sv-bg); min-height: 100vh; display: flex; flex-direction: column; }
+.sv-wrap { width: 100%; max-width: 1320px; margin: 0 auto; padding: 0 40px; }
+@media (max-width: 900px) { .sv-wrap { padding: 0 20px; } }
+@media (max-width: 480px) { .sv-wrap { padding: 0 16px; } }
+.sv-main { flex: 1; padding: 24px 0 120px; outline: none; }
+.meta { font-size: var(--sv-text-meta); color: var(--sv-text-secondary); }
+.muted { color: var(--sv-text-secondary); }
+.stack > * + * { margin-top: 12px; }
+.row-flex { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.spacer { flex: 1; }
+.h1 { font-size: 30px; }
+.h2 { font-size: var(--sv-text-subheading); }
+@media (max-width: 480px) { .h1 { font-size: 24px; } }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--sv-text-secondary); }
+
+/* Skip link */
+.skip { position: absolute; left: 12px; top: -60px; z-index: 100; background: var(--sv-action-bg); color: var(--sv-action-fg); border: 0; border-radius: var(--sv-radius-control); padding: 10px 14px; font-weight: 600; cursor: pointer; }
+.skip:focus { top: 12px; }
+
+/* ------------------------------------------------------------------
+   Buttons, fields, chips
+------------------------------------------------------------------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: var(--sv-radius-control); border: 1px solid var(--sv-control-border); background: var(--sv-surface); color: var(--sv-text); font-size: var(--sv-text-small); font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background-color var(--sv-duration-fast) var(--sv-ease-out); }
+.btn:hover { background: var(--sv-surface-sunken); }
+.btn-primary { background: var(--sv-action-bg); color: var(--sv-action-fg); border-color: var(--sv-action-bg); }
+.btn-primary:hover { background: var(--sv-action-bg); opacity: .86; }
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover { background: var(--sv-surface-sunken); }
+.btn-danger { color: var(--svp-danger-text); border-color: var(--sv-danger); }
+.btn-sm { min-height: 36px; padding: 0 12px; }
+.btn-icon { width: 40px; padding: 0; }
+.btn-icon.btn-sm { width: 36px; }
+.btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.btn[aria-pressed="true"] { border-color: var(--sv-brand); box-shadow: inset 0 0 0 1px var(--sv-brand); }
+.btn-link { background: none; border: 0; padding: 4px 2px; color: var(--sv-link); font-weight: 600; font-size: var(--sv-text-small); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > label, .field > .label, .legend { font-size: var(--sv-text-small); font-weight: 600; }
+.hint { font-size: var(--sv-text-meta); color: var(--sv-text-secondary); }
+.err { font-size: var(--sv-text-meta); color: var(--svp-danger-text); font-weight: 600; display: flex; gap: 6px; align-items: center; }
+.input, .select { min-height: 40px; border: 1px solid var(--sv-control-border); border-radius: var(--sv-radius-control); background: var(--sv-surface); padding: 0 12px; width: 100%; min-width: 0; }
+.input::placeholder { color: var(--sv-placeholder); opacity: 1; }
+.input[aria-invalid="true"], .select[aria-invalid="true"] { border-color: var(--sv-danger); box-shadow: inset 0 0 0 1px var(--sv-danger); }
+.select-sm { min-height: 36px; font-size: var(--sv-text-small); width: auto; }
+.badge { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; padding: 0 9px; border-radius: var(--sv-radius-pill); font-size: 12px; font-weight: 600; background: var(--sv-surface-sunken); color: var(--sv-text); border: 1px solid var(--sv-border); white-space: nowrap; line-height: 1.2; }
+.badge .ic { width: 13px; height: 13px; }
+.badge.cls-canonical { background: var(--sv-brand-tint); border-color: transparent; }
+.badge.warn { background: var(--svp-warning-tint); border-color: transparent; }
+.badge.danger { background: var(--svp-danger-tint); border-color: transparent; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.dot-approved { background: var(--sv-success); }
+.dot-draft { background: var(--sv-warning); }
+.dot-retired { background: transparent; border: 1.5px solid var(--sv-text-secondary); }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: var(--sv-radius-pill); border: 1px solid var(--sv-border-strong); background: var(--sv-surface); color: var(--sv-text); font-size: var(--sv-text-small); cursor: pointer; text-decoration: none; }
+.chip-btn:hover { background: var(--sv-surface-sunken); }
+.chip-btn[aria-pressed="true"], .chip-btn[aria-selected="true"] { background: var(--sv-action-bg); color: var(--sv-action-fg); border-color: var(--sv-action-bg); }
+
+/* Tooltips for disabled controls */
+.tipw { position: relative; display: inline-flex; }
+.tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12.5px; font-weight: 500; line-height: 1.4; padding: 6px 10px; border-radius: 8px; width: max-content; max-width: 240px; white-space: normal; z-index: 40; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity var(--sv-duration-fast); text-align: left; }
+.tipw:hover .tip, .tipw:focus-within .tip { opacity: 1; visibility: visible; }
+.tip.tip-end { left: auto; right: 0; transform: none; }
+.tip.tip-start { left: 0; transform: none; }
+.tip.tip-below { bottom: auto; top: calc(100% + 8px); }
+
+/* Banners and states */
+.banner { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--sv-border); background: var(--sv-surface); font-size: var(--sv-text-small); }
+.banner .ic { margin-top: 1px; }
+.banner.sim { background: var(--svp-warning-tint); border-color: transparent; }
+.banner.danger { background: var(--svp-danger-tint); border-color: transparent; }
+.banner.ok { background: var(--svp-success-tint); border-color: transparent; }
+.banner.info { background: var(--sv-surface-sunken); border-color: transparent; }
+.sim-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; letter-spacing: .03em; padding: 2px 7px; border-radius: 6px; background: var(--svp-warning-tint); color: var(--sv-text); white-space: nowrap; }
+.state { text-align: center; padding: 48px 20px; border: 1px dashed var(--sv-border-strong); border-radius: var(--sv-radius-card); background: var(--sv-surface); }
+.state .ic-big { width: 36px; height: 36px; color: var(--sv-text-secondary); }
+.state h2 { font-size: 18px; margin: 10px 0 6px; }
+.state p { color: var(--sv-text-secondary); max-width: 520px; margin: 0 auto 16px; }
+.state.error { border-style: solid; border-color: var(--sv-danger); }
+.skel { background: var(--sv-surface-sunken); border-radius: 8px; position: relative; overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .skel::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); animation: sv-shimmer 1.1s var(--sv-ease-out) 3; }
+  .spin { animation: sv-spin 1s linear infinite; }
+}
+@keyframes sv-shimmer { to { transform: translateX(100%); } }
+@keyframes sv-spin { to { transform: rotate(360deg); } }
+/* Breadcrumbs */
+.crumbs { margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.crumbs ol { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 0; padding: 0; font-size: var(--sv-text-small); min-width: 0; }
+.crumbs li { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
+.crumbs li + li::before { content: "›"; color: var(--sv-text-secondary); padding: 0 6px; }
+.crumbs a { color: var(--sv-text); text-decoration: underline; text-decoration-color: var(--sv-border-strong); text-underline-offset: 3px; }
+.crumbs a:hover { text-decoration-color: currentColor; }
+.crumbs [aria-current] { font-weight: 600; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.back-link { font-size: var(--sv-text-small); }
+
+/* ------------------------------------------------------------------
+   Cards, thumbnails
+------------------------------------------------------------------- */
+.card { background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: var(--sv-radius-card); box-shadow: var(--sv-shadow-card); overflow: hidden; display: flex; flex-direction: column; min-width: 0; position: relative; }
+.card.is-selected { border-color: var(--sv-brand); box-shadow: 0 0 0 1px var(--sv-brand), var(--sv-shadow-card); }
+.thumb { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--sv-surface-sunken); border: 0; padding: 0; margin: 0; cursor: zoom-in; position: relative; overflow: hidden; }
+.thumb svg { width: 100%; height: 100%; display: block; }
+.thumb .zoom { position: absolute; right: 8px; bottom: 8px; width: 30px; height: 30px; border-radius: 8px; background: rgba(0,0,0,.6); color: #fff; display: grid; place-items: center; opacity: 0; transition: opacity var(--sv-duration-fast); }
+.thumb:hover .zoom, .thumb:focus-visible .zoom { opacity: 1; }
+.thumb:focus-visible { outline-offset: -3px; }
+.card-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.card-title { font-weight: 600; font-size: 14.5px; color: var(--sv-text); text-decoration: none; line-height: 1.35; overflow-wrap: anywhere; }
+.slidevault a.card-title { color: var(--sv-text); }
+.card-title:hover { text-decoration: underline; }
+.matched { font-size: var(--sv-text-meta); color: var(--sv-text); background: var(--sv-surface-sunken); border-radius: 6px; padding: 3px 8px; overflow-wrap: anywhere; }
+.matched b { display: flex; align-items: center; gap: 5px; font-weight: 600; margin-bottom: 2px; }
+.card-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; }
+.cmp-check { display: inline-flex; align-items: center; gap: 6px; font-size: var(--sv-text-small); font-weight: 600; cursor: pointer; min-height: 36px; padding: 0 10px 0 8px; border-radius: var(--sv-radius-control); border: 1px solid var(--sv-control-border); background: var(--sv-surface); }
+.cmp-check input { width: 18px; height: 18px; accent-color: var(--sv-brand-strong); margin: 0; }
+.cmp-check:has(input:checked) { border-color: var(--sv-brand); box-shadow: inset 0 0 0 1px var(--sv-brand); }
+.card-top { position: absolute; top: 8px; left: 8px; z-index: 2; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.slidevault a:has(> .mosaic) { text-decoration: none; display: block; }
+.mosaic { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; aspect-ratio: 16/9; background: var(--sv-surface-sunken); padding: 3px; }
+.mosaic > * { min-height: 0; overflow: hidden; border-radius: 3px; }
+.mosaic svg { width: 100%; height: 100%; display: block; }
+.mosaic .ph { border: 1.5px dashed var(--sv-control-border); display: grid; place-items: center; font-size: 10px; color: var(--sv-text-secondary); text-align: center; }
+
+.row { margin-top: 32px; }
+.row-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.row-head h2 { font-size: 18px; }
+.row-head .sub { font-size: var(--sv-text-meta); color: var(--sv-text-secondary); }
+.row-scroller { display: grid; grid-auto-flow: column; grid-auto-columns: 250px; gap: 16px; overflow-x: auto; scroll-snap-type: x proximity; padding: 4px 2px 14px; margin: 0 -2px; list-style: none; scrollbar-width: thin; }
+.row-scroller > li { scroll-snap-align: start; display: flex; min-width: 0; }
+.row-scroller > li > .card { width: 100%; }
+@media (max-width: 480px) { .row-scroller { grid-auto-columns: 78%; } }
+@media (prefers-reduced-motion: no-preference) { .row-scroller { scroll-behavior: smooth; } }
+.row-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+/* Detail screens */
+.detail { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 28px; align-items: start; }
+.slide-detail { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 900px) { .detail, .slide-detail { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--sv-surface); border: 1px solid var(--sv-border); border-radius: var(--sv-radius-card); padding: 20px; box-shadow: var(--sv-shadow-card); min-width: 0; }
+.panel h2 { font-size: 15px; margin-bottom: 10px; }
+.trust { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; font-size: var(--sv-text-small); }
+.trust dt { color: var(--sv-text-secondary); }
+.trust dd { font-weight: 500; overflow-wrap: anywhere; }
+.unknown { font-style: italic; color: var(--sv-text-secondary); font-weight: 400; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--sv-surface-sunken); }
+.big-preview { border-radius: var(--sv-radius-card); overflow: hidden; border: 1px solid var(--sv-border); }
+.divider { border: 0; border-top: 1px solid var(--sv-border); margin: 16px 0; }
+.slide-text { font-size: var(--sv-text-small); background: var(--sv-surface-sunken); border-radius: 10px; padding: 12px 14px; }
+
+/* Toasts */
+.toasts { position: fixed; right: 16px; bottom: 16px; z-index: 60; display: flex; flex-direction: column; gap: 8px; max-width: min(420px, calc(100vw - 32px)); }
+.toasts.lift { bottom: 100px; }
+.toast { background: var(--sv-action-bg); color: var(--sv-action-fg); border-radius: 12px; padding: 10px 10px 10px 14px; box-shadow: var(--sv-shadow-popover); display: flex; gap: 10px; align-items: center; font-size: var(--sv-text-small); }
+.toast .msg { flex: 1; }
+.toast button { background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 8px; min-height: 32px; padding: 0 10px; font-weight: 600; cursor: pointer; font-size: 12.5px; }
+.toast .x { border: 0; width: 32px; padding: 0; display: grid; place-items: center; }
+
+/* Dialogs */
+dialog.sv-dialog { border: 1px solid var(--sv-border); padding: 0; border-radius: var(--sv-radius-panel); background: var(--sv-surface); color: var(--sv-text); box-shadow: var(--sv-shadow-panel); width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 32px); }
+dialog.sv-dialog[open] { display: flex; flex-direction: column; }
+dialog.sv-dialog::backdrop { background: rgba(10,10,14,.6); }
+dialog.sv-dialog.wide { width: min(1120px, calc(100vw - 24px)); }
+.dlg-head { padding: 18px 20px 10px 24px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.dlg-head h2 { font-size: 18px; }
+.dlg-body { padding: 4px 24px 16px; overflow: auto; min-height: 0; }
+.dlg-foot { padding: 12px 24px 20px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--sv-border); }
+.lb-stage { position: relative; background: var(--sv-surface-sunken); border-radius: 14px; overflow: hidden; aspect-ratio: 16/9; max-height: 66vh; margin: 0 auto; }
+.lb-stage svg { width: 100%; height: 100%; display: block; }
+.lb-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; border-radius: 50%; width: 44px; height: 44px; padding: 0; background: var(--sv-surface); box-shadow: var(--sv-shadow-popover); }
+.lb-prev { left: 10px; } .lb-next { right: 10px; }
+.lb-caption { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-top: 12px; }
+.counter { font-variant-numeric: tabular-nums; font-size: var(--sv-text-small); font-weight: 600; }
+
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.steps li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; }
+.steps li.now { background: var(--sv-surface-sunken); font-weight: 700; }
+.steps li .st { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--sv-control-border); flex: none; }
+.steps li.done .st { background: var(--sv-success); border-color: var(--sv-success); color: #fff; }
+.steps li.fail .st { background: var(--sv-danger); border-color: var(--sv-danger); color: #fff; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.stat { background: var(--sv-surface-sunken); border-radius: 12px; padding: 12px 14px; }
+.stat b { display: block; font-size: 20px; }
+.prov { width: 100%; border-collapse: collapse; font-size: var(--sv-text-small); }
+.prov th, .prov td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--sv-border); vertical-align: top; }
+.prov th { font-size: 12px; color: var(--sv-text-secondary); font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+.upload-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .upload-grid { grid-template-columns: minmax(0, 1fr); } }
+.dropzone { border: 2px dashed var(--sv-control-border); border-radius: var(--sv-radius-card); padding: 28px 20px; text-align: center; background: var(--sv-surface); }
+.dropzone.over { border-color: var(--sv-brand); background: var(--sv-brand-tint); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
+.form-grid .full { grid-column: 1 / -1; }
+.radio-row { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.radio-row label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--sv-text-small); min-height: 32px; cursor: pointer; }
+.radio-row input { accent-color: var(--sv-brand-strong); width: 16px; height: 16px; margin: 0; }
+.queue { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.queue li { border: 1px solid var(--sv-border); border-radius: 12px; padding: 12px 14px; background: var(--sv-surface); }
+.qsteps { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; margin-top: 6px; }
+.qsteps span { display: inline-flex; align-items: center; gap: 5px; color: var(--sv-text-secondary); }
+.qsteps span.done { color: var(--sv-text); }
+.qsteps span.done .ic { color: var(--sv-success); }
+.qsteps span.now { color: var(--sv-text); font-weight: 700; }
+.btn-xs { min-height: 28px; min-width: 28px; padding: 0 6px; border-radius: 8px; }
+.slidevault[data-role="viewer"] [data-editor-only] { display: none; }
+
+/* Tooltips (hover and keyboard focus) */
+.slidevault [data-tip] { position: relative; }
+.slidevault [data-tip]::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--sv-action-bg); color: var(--sv-action-fg); font-size: 12.5px; font-weight: 500; line-height: 1.4; padding: 6px 10px; border-radius: 8px; width: max-content; max-width: 240px; white-space: normal; text-align: left; z-index: 70; pointer-events: none; display: none; }
+.slidevault [data-tip]:hover::after, .slidevault [data-tip]:focus-visible::after, .slidevault .tipbox:focus-within::after { display: block; }
+.slidevault [data-tip-pos~="end"]::after { left: auto; right: 0; transform: none; }
+.slidevault [data-tip-pos~="start"]::after { left: 0; transform: none; }
+.slidevault [data-tip-pos~="up"]::after { top: auto; bottom: calc(100% + 8px); }
+.slidevault [data-tip-pos~="left"]::after { top: 50%; left: auto; right: calc(100% + 8px); transform: translateY(-50%); }
+@media (max-width: 700px) { .sv-nav [data-tip]::after { display: none; } }
+/* Navigation bar: back / forward and breadcrumbs */
+.navbar { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; padding-top: 12px; padding-bottom: 8px; }
+.hist { display: flex; gap: 6px; }
+.navbar .crumbs { margin: 0; }
+.back-results { font-size: var(--sv-text-small); }
+/* Access control: one clean 40px frame, same size as the theme button */
+.slidevault .role-sw { position: relative; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 3px 0 14px; border: 1px solid var(--sv-control-border); border-radius: var(--sv-radius-control); background: var(--sv-surface); box-shadow: none; }
+.slidevault .role-sw:hover { background: var(--sv-surface-sunken); }
+.slidevault .role-sw:focus-within { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
+.slidevault .role-sw label { font-size: 13px; font-weight: 500; color: var(--sv-text-secondary); white-space: nowrap; }
+.slidevault .role-select { appearance: none; -webkit-appearance: none; border: 0; background: transparent; font-size: 14px; font-weight: 700; color: var(--sv-text); height: 38px; padding: 0 22px 0 0; cursor: pointer; outline: none; min-width: 58px; }
+.slidevault .role-pick { position: relative; display: flex; align-items: center; }
+.slidevault .role-info { width: 34px; min-height: 0; height: 32px; padding: 0; border: 0; border-left: 1px solid var(--sv-border); border-radius: 0 8px 8px 0; color: var(--sv-text-secondary); }
+.slidevault .role-info:hover { color: var(--sv-text); background: var(--sv-surface-sunken); }
+.slidevault .role-chev { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--sv-text-secondary); display: grid; }
+.slidevault .role-chev .ic { width: 16px; height: 16px; }
+@media (max-width: 480px) { .slidevault .role-sw { padding-left: 10px; } .slidevault .role-sw label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
+
+/* ------------------------------------------------------------------
+   v3: Library is home. One slim header, compact search top right.
+------------------------------------------------------------------- */
+.dot-suggested { background: var(--sv-warning); }
+.sv-top { position: sticky; top: 0; z-index: 30; background: var(--sv-surface); border-bottom: 1px solid var(--sv-border); box-shadow: 0 6px 16px -12px rgba(20,20,20,.35); }
+.sv-brandrow { display: flex; align-items: center; gap: 8px 14px; padding: 10px 0; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--sv-text); margin-right: 10px; flex: none; }
+.brand-mark { width: 34px; height: 34px; border-radius: 10px; background: var(--sv-surface-sunken); display: grid; place-items: center; }
+.brand-mark svg { width: 20px; height: 20px; }
+.brand-name { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+.sv-nav { min-width: 0; }
+.sv-nav ul { list-style: none; display: flex; gap: 2px; margin: 0; padding: 0; }
+.sv-nav a { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--sv-text-secondary); text-decoration: none; font-weight: 600; font-size: 15px; white-space: nowrap; }
+.sv-nav a .ic { width: 19px; height: 19px; }
+.sv-nav a:hover { color: var(--sv-text); background: var(--sv-surface-sunken); }
+.sv-nav a[aria-current="page"] { color: var(--sv-text); background: var(--sv-surface-sunken); }
+.sv-nav a[aria-current="page"] .ic { color: var(--sv-brand); }
+.tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.navrow { padding-top: 10px; padding-bottom: 2px; }
+.navgroup { display: flex; align-items: center; gap: 8px 12px; min-width: 0; }
+.navgroup .hist { display: flex; gap: 6px; flex: none; }
+.navgroup .crumbs { margin: 0; min-width: 0; flex: 1 1 0; overflow: hidden; }
+.navgroup .crumbs nav { min-width: 0; max-width: 100%; }
+.navgroup .crumbs ol { flex-wrap: nowrap; overflow: hidden; }
+.navgroup .crumbs li { white-space: nowrap; }
+.navgroup .crumbs li:last-child { min-width: 0; }
+.navgroup .crumbs [aria-current] { display: block; overflow: hidden; text-overflow: ellipsis; max-width: 46ch; }
+.back-results { white-space: nowrap; flex: none; }
+.slidevault[data-role="viewer"] [data-editor-only] { display: none; }
+@media (max-width: 900px) {
+  .brand { order: 1; margin-right: 0; }
+  .tools { order: 2; margin-left: auto; }
+  .sv-nav { order: 4; flex-basis: 100%; }
+  .sv-nav ul { overflow-x: auto; }
+  .sv-nav a { min-height: 38px; }
+}
+@media (max-width: 900px) { .sv-top { position: static; } }
+@media (max-width: 480px) { .sv-nav a .ic { display: none; } }
+
+.sv-main { padding: 12px 0 48px; }
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+.page-head .lede { color: var(--sv-text-secondary); margin-top: 4px; }
+.try { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.try .meta { margin-right: 2px; }
+.try .chip-btn { background: var(--sv-surface-sunken); border-color: transparent; }
+
+/* Netflix-style rows */
+.row { margin-top: 26px; }
+.row-head { align-items: center; }
+.row-head h2 { font-size: 20px; }
+.row-head .acts { display: flex; gap: 4px; align-items: center; }
+.row-scroller { grid-auto-columns: 262px; padding-top: 10px; }
+.vcard { transition: transform var(--sv-duration) var(--sv-ease-out), box-shadow var(--sv-duration) var(--sv-ease-out); }
+@media (hover: hover) { .vcard:hover { transform: translateY(-3px); box-shadow: var(--sv-shadow-panel); } }
+.thumbwrap { position: relative; }
+.pick { position: absolute; top: 8px; left: 8px; z-index: 2; width: 28px; height: 28px; cursor: pointer; opacity: 0; transition: opacity var(--sv-duration-fast); }
+.vcard:hover .pick, .pick:focus-within, .vcard.is-selected .pick { opacity: 1; }
+@media (hover: none) { .pick { opacity: 1; } }
+.pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.pick .box { width: 28px; height: 28px; border-radius: 8px; border: 2px solid #fff; background: rgba(0,0,0,.5); color: #fff; display: grid; place-items: center; }
+.pick .box .ic { width: 16px; height: 16px; opacity: 0; }
+.pick input:checked + .box { background: var(--sv-brand); border-color: var(--sv-brand); }
+.pick input:checked + .box .ic { opacity: 1; }
+.pick input:focus-visible + .box { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
+.thumb-badge { position: absolute; top: 8px; right: 8px; z-index: 2; }
+.thumb-badge .badge { background: var(--sv-surface); }
+.card-body .meta.clip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.also { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--sv-border-strong); background: var(--sv-surface); font-size: 12px; font-weight: 600; cursor: pointer; }
+.also:hover { background: var(--sv-surface-sunken); }
+.tiles { display: flex; gap: 10px; overflow-x: auto; padding: 6px 2px 12px; scrollbar-width: thin; }
+.tile { flex: none; min-width: 176px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--sv-border); background: var(--sv-surface); color: var(--sv-text); text-decoration: none; display: flex; flex-direction: column; gap: 2px; box-shadow: var(--sv-shadow-card); }
+.slidevault a.tile { color: var(--sv-text); }
+.tile:hover { background: var(--sv-surface-sunken); }
+.tile b { font-size: 15px; }
+.row-note { font-size: var(--sv-text-meta); color: var(--sv-text-secondary); }
+
+/* Search results */
+.interp { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 4px; }
+.interp .meta { display: inline-flex; align-items: center; gap: 6px; }
+.chip-x { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 8px 0 12px; border-radius: var(--sv-radius-pill); background: var(--sv-surface); border: 1px solid var(--sv-border-strong); font-size: 13px; cursor: pointer; text-decoration: none; }
+.chip-x:hover { background: var(--sv-surface-sunken); }
+.chip-x .k { color: var(--sv-text-secondary); }
+.slidevault a.chip-x { color: var(--sv-text); }
+.chip-x .ic { width: 14px; height: 14px; color: var(--sv-text-secondary); }
+.refine { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 14px 0 6px; }
+.refine label { font-size: var(--sv-text-small); font-weight: 600; display: inline-flex; gap: 8px; align-items: center; }
+.refine .spacer { flex: 1; }
+.summary { font-size: var(--sv-text-small); color: var(--sv-text-secondary); margin: 6px 0 14px; }
+.grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.how { margin-top: 28px; padding: 14px 18px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); }
+.how ol { margin: 8px 0 0 18px; padding: 0; font-size: var(--sv-text-small); color: var(--sv-text-secondary); display: grid; gap: 4px; }
+.skel-card { height: 250px; border-radius: 16px; }
+.thinking { display: flex; align-items: center; gap: 10px; font-size: var(--sv-text-small); font-weight: 600; margin: 14px 0; }
+
+/* Slide and deck detail */
+.src { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--sv-text-secondary); margin-left: 8px; white-space: nowrap; }
+.src .ic { width: 12px; height: 12px; }
+.tag.ai { border: 1px dashed var(--sv-control-border); background: transparent; }
+.stack-panels > * + * { margin-top: 16px; }
+.also-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.also-list li { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 12px; align-items: center; }
+.also-list .t { aspect-ratio: 16/9; border-radius: 5px; overflow: hidden; border: 1px solid var(--sv-border); }
+.also-list .t svg { width: 100%; height: 100%; display: block; }
+.notice { display: flex; gap: 10px; align-items: flex-start; font-size: var(--sv-text-small); padding: 10px 14px; border-radius: 12px; background: var(--svp-warning-tint); margin: 12px 0; }
+.notice.danger { background: var(--svp-danger-tint); }
+.notice.info { background: var(--sv-surface-sunken); }
+
+/* Selection bar */
+.sel-bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 40; width: min(900px, calc(100vw - 24px)); background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius-card); box-shadow: var(--sv-shadow-panel); padding: 10px 12px; display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; }
+.sel-thumbs { display: flex; gap: 6px; align-items: center; }
+.sel-thumbs .t { width: 54px; aspect-ratio: 16/9; border-radius: 5px; overflow: hidden; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); }
+.sel-thumbs .t svg { width: 100%; height: 100%; display: block; }
+.sel-thumbs .more { font-size: 12px; font-weight: 700; color: var(--sv-text-secondary); }
+.sel-bar .txt { flex: 1; min-width: 200px; font-size: var(--sv-text-small); }
+@media (max-width: 560px) { .sel-thumbs { display: none; } }
+
+/* Dialogs */
+.dl-files { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.dl-files li { display: flex; gap: 10px; align-items: center; font-size: var(--sv-text-small); padding: 8px 12px; border: 1px solid var(--sv-border); border-radius: 10px; }
+.tier-table { width: 100%; border-collapse: collapse; font-size: var(--sv-text-small); }
+.tier-table th, .tier-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--sv-border); vertical-align: top; }
+.tier-table th { font-size: 12px; color: var(--sv-text-secondary); }
+
+/* Create placeholder */
+.ph-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 18px; max-width: 760px; }
+.ph-cards .card { padding: 18px; gap: 8px; border-style: dashed; box-shadow: none; }
+.ph-cards .card .ic-big { width: 28px; height: 28px; color: var(--sv-text-secondary); }
+
+.sv-foot { border-top: 1px solid var(--sv-border); padding: 14px 0 18px; margin-top: auto; }
+.upload-wrap { max-width: 860px; }
+
+/* ------------------------------------------------------------------
+   v3 three-column layout: filters + search (left), content, cart (right)
+------------------------------------------------------------------- */
+.sv-top .sv-wrap { max-width: 1560px; padding: 0 28px; }
+.sv-shell { width: 100%; max-width: 1560px; margin: 0 auto; padding: 0 28px; flex: 1; display: grid; grid-template-columns: 272px minmax(0, 1fr) 248px; gap: 24px; align-items: start; }
+.sv-shell .sv-wrap { max-width: none; padding: 0; }
+.rail, .cart-col { position: sticky; top: 61px; margin-top: 0; min-height: calc(100vh - 61px); max-height: calc(100vh - 61px); overflow-y: auto; overflow-x: hidden; padding: 24px 22px 24px 0; border-radius: 0; scrollbar-width: thin; }
+/* full-bleed: the colour runs to the window edge behind the column */
+.sv-shell { --gut: max(28px, calc((100vw - 1560px) / 2 + 28px)); }
+.rail { background: var(--rail-bg); margin-left: calc(-1 * var(--gut)); padding-left: var(--gut); --rail-bg: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); --rail-line: color-mix(in srgb, var(--sv-brand) 28%, transparent); }
+.cart-col { background: var(--cart-bg); margin-right: calc(-1 * var(--gut)); padding: 24px var(--gut) 24px 22px; --cart-bg: var(--sv-surface-sunken); }
+.rail { display: flex; flex-direction: column; gap: 18px; }
+.center { min-width: 0; }
+.sv-shell .navrow { padding-top: 16px; }
+.sv-shell .navrow[hidden] { display: none; }
+.sv-shell .center > .sv-main { padding-top: 24px; }
+
+.top-search { display: flex; align-items: center; gap: 6px; }
+.top-search .sbox { position: relative; flex: 1; min-width: 0; }
+.top-search .sbox .ic { width: 22px; height: 22px; position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--sv-text-secondary); pointer-events: none; }
+.top-search input { padding-left: 44px; padding-right: 42px; min-height: 48px; font-size: 16px; font-weight: 500; border-radius: var(--sv-radius-composer); background: var(--sv-surface); border: 2px solid var(--sv-border-strong); box-shadow: var(--sv-shadow-card); }
+.top-search input:focus { border-color: var(--sv-brand); }
+.mic { flex: none; width: 48px; height: 48px; border-radius: var(--sv-radius-composer); padding: 0; }
+.top-search input::-webkit-search-cancel-button { display: none; }
+.sclear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--sv-surface-sunken); color: var(--sv-text); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.sclear[hidden] { display: none; }
+.sclear .ic { width: 15px; height: 15px; }
+.sclear:hover { background: var(--sv-surface-muted); }
+
+.filters > summary, .f-head { display: flex; align-items: center; justify-content: space-between; }
+.filters > summary { list-style: none; cursor: default; margin-top: 8px; }
+.filters > summary::-webkit-details-marker { display: none; }
+.f-title { font-size: 20px; font-weight: 700; letter-spacing: -.01em; color: var(--sv-text); margin: 0; }
+.f-clear { font-size: 12.5px; }
+.fg { border: 0; margin: 0; padding: 18px 0 16px; min-width: 0; position: relative; }
+.fg::before { content: ""; position: absolute; top: 0; left: 0; right: 0; border-top: 1px solid var(--rail-line); }
+.f-body > .fg:first-child::before { display: none; }
+.f-body > .fg:first-child { padding-top: 16px; }
+.helpdot { text-transform: none; letter-spacing: 0; font-weight: 500; display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 6px; padding: 0; border: 0; background: none; color: var(--sv-text-secondary); cursor: help; vertical-align: middle; border-radius: 50%; }
+.helpdot .ic { width: 16px; height: 16px; }
+.helpdot:hover { color: var(--sv-text); }
+.fg > legend, .fg > summary, .fg-l { font-size: 11.5px !important; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.slidevault .fg .helpdot[data-tip] { position: static; }
+.slidevault .fg .helpdot[data-tip]::after { left: 0; right: 0; width: auto; max-width: none; transform: none; top: 38px; white-space: pre-line; padding: 10px 12px; }
+.fg > legend { float: left; width: 100%; padding: 0; margin: 0 0 10px; }
+.fg > legend ~ * { clear: both; }
+.fg > legend, .fg > summary { font-size: 14px; font-weight: 700; padding: 0; margin-bottom: 8px; }
+.fg > summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; list-style: none; margin-bottom: 0; min-height: 28px; }
+.fg > summary::-webkit-details-marker { display: none; }
+.fg > summary::after { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--sv-text-secondary); border-bottom: 2px solid var(--sv-text-secondary); transform: rotate(45deg); margin-right: 3px; transition: transform var(--sv-duration-fast); }
+.fg[open] > summary::after { transform: rotate(-135deg); }
+.fg .n { font-weight: 600; color: var(--sv-brand); font-size: 12px; margin-left: 6px; }
+.fchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fchip { position: relative; }
+.fchip input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.fchip span { display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--sv-border-strong); background: var(--sv-surface); font-size: 13px; font-weight: 600; }
+.fchip input:checked + span { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); }
+.fchip input:focus-visible + span { outline: 2px solid var(--sv-focus); outline-offset: 2px; }
+.fg-l { display: block; font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.combo { position: relative; }
+.combo .input { min-height: 38px; font-size: 14px; }
+.combo-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20; list-style: none; margin: 0; padding: 4px; background: var(--sv-surface); border: 1px solid var(--sv-border-strong); border-radius: 12px; box-shadow: var(--sv-shadow-panel); max-height: 208px; overflow-y: auto; }
+.combo-list[hidden] { display: none; }
+.combo-list li { display: flex; justify-content: space-between; gap: 8px; align-items: center; min-height: 34px; padding: 0 10px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+.combo-list li:hover, .combo-list li.act { background: var(--sv-surface-sunken); }
+.combo-list li.none { cursor: default; color: var(--sv-text-secondary); }
+.combo-list .meta { font-size: 12px; }
+.picked { margin-top: 8px; }
+.y-link { display: inline-block; margin-top: 10px; font-size: 13px; background: none; border: 0; padding: 0; cursor: pointer; }
+.yr { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.yr .select { flex: 1; min-width: 0; }
+.pchip { min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--sv-border-strong); background: var(--sv-surface); color: var(--sv-text); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.pchip[aria-pressed="true"] { background: var(--sv-action-bg); border-color: var(--sv-action-bg); color: var(--sv-action-fg); }
+.pchip:hover { background: var(--sv-surface-sunken); }
+.pchip[aria-pressed="true"]:hover { background: var(--sv-action-bg); }
+.rail.combo-open { padding-bottom: 240px; }
+.pickchip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 8px 0 12px; border-radius: 999px; border: 1px solid var(--sv-brand); background: var(--sv-surface); color: var(--sv-text); font: 600 13px var(--sv-font-sans); cursor: pointer; }
+.pickchip .ic { width: 14px; height: 14px; color: var(--sv-text-secondary); }
+.pickchip:hover { background: var(--sv-surface-sunken); }
+.flist { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; max-height: 212px; overflow-y: auto; scrollbar-width: thin; }
+.flist label { display: flex; align-items: center; gap: 9px; min-height: 30px; font-size: 13.5px; cursor: pointer; padding: 0 2px; border-radius: 6px; }
+.flist label:hover { background: var(--sv-surface-sunken); }
+.flist input { accent-color: var(--sv-brand); width: 16px; height: 16px; margin: 0; flex: none; }
+.flist .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flist .meta { font-size: 12px; }
+.f-note { font-size: var(--sv-text-small); color: var(--sv-text-secondary); margin: 12px 0 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Cart: thin and quiet */
+.cart { display: flex; flex-direction: column; gap: 10px; }
+.cart-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cart-h { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--sv-text-secondary); margin: 0; }
+.cart-h .count { margin-left: 6px; color: var(--sv-text); }
+.cart-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: calc(100vh - 340px); overflow-y: auto; scrollbar-width: thin; }
+.ci { display: grid; grid-template-columns: 14px 16px 46px minmax(0, 1fr) 28px; gap: 6px; align-items: center; position: relative; cursor: grab; }
+.ci.dragging { opacity: .35; }
+.ci.drop-before::before, .ci.drop-after::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: var(--sv-brand); }
+.ci.drop-before::before { top: -6px; }
+.ci.drop-after::after { bottom: -6px; }
+.grip { width: 14px; height: 28px; padding: 0; border: 0; background: none; color: var(--sv-text-secondary); cursor: grab; display: grid; place-items: center; border-radius: 4px; }
+.grip .ic { width: 14px; height: 14px; }
+.grip:hover { color: var(--sv-text); }
+.ci .t { position: relative; }
+.ci-n { position: absolute; left: 2px; top: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px; background: var(--sv-action-bg); color: var(--sv-action-fg); font: 700 10px/15px var(--sv-font-sans); text-align: center; }
+.cart-items { padding: 6px 0; }
+.ci-hint { margin: -2px 0 0; font-size: 12px; color: var(--sv-text-secondary); }
+.ci.off { opacity: .55; }
+.ci input { accent-color: var(--sv-brand); width: 16px; height: 16px; margin: 0; }
+.ci .t { aspect-ratio: 16/9; border-radius: 4px; overflow: hidden; border: 1px solid var(--sv-border); background: var(--sv-surface-sunken); }
+.ci .t svg { width: 100%; height: 100%; display: block; }
+.ci-txt { min-width: 0; display: flex; flex-direction: column; }
+.ci-txt a, .ci-txt .meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; line-height: 1.3; }
+.slidevault .ci-txt a { font-weight: 600; color: var(--sv-text); text-decoration: none; }
+.slidevault .ci-txt a:hover { text-decoration: underline; }
+.ci .btn { width: 28px; min-height: 28px; height: 28px; }
+.cart .txt { font-size: 12.5px; color: var(--sv-text-secondary); margin: 0; }
+.cart .txt strong { color: var(--sv-text); }
+.cart-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.cart-acts .btn-primary { flex: 1 1 100%; order: -1; }
+.cart-empty .meta { font-size: 12.5px; }
+.cart-empty-body { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 36px 8px 0; }
+.ce-ic { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--sv-surface); border: 1px dashed var(--sv-border-strong); color: var(--sv-text-secondary); margin-bottom: 6px; }
+.ce-ic .ic { width: 26px; height: 26px; }
+.ce-t { font-size: 14.5px; font-weight: 600; color: var(--sv-text); margin: 0; }
+.cart-tools { display: flex; align-items: center; gap: 2px; }
+.mini-open { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; padding: 8px 0 10px; border: 0; background: none; color: var(--sv-text); border-radius: var(--sv-radius-control); cursor: pointer; font: inherit; }
+.mini-open:hover { background: var(--sv-surface-muted); }
+.mini-open .ic { width: 18px; height: 18px; color: var(--sv-text-secondary); }
+.mini-open .mini-ic .ic { width: 22px; height: 22px; color: var(--sv-text); }
+.mini-t { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.cart-mini { display: none; flex-direction: column; align-items: center; gap: 14px; }
+.mini-ic { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--sv-surface); border: 1px solid var(--sv-border); color: var(--sv-text); }
+.mini-ic .ic { width: 22px; height: 22px; }
+.mini-n { position: absolute; top: -5px; right: -5px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--sv-brand); color: #fff; font: 700 11px var(--sv-font-sans); display: grid; place-items: center; }
+.sv-shell { transition: grid-template-columns var(--sv-duration) var(--sv-ease-out); }
+.sv-shell.cart-min { grid-template-columns: 272px minmax(0, 1fr) 72px; }
+.sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 248px; }
+.sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; }
+.no-rail .rail { display: none; }
+.narrow .center { padding: 0 24px; }
+.narrow .center > .sv-main { padding-top: 40px; }
+.sv-shell.narrow .center .sv-main .sv-wrap { max-width: 720px; margin: 0 auto; }
+.narrow .ph-cards, .narrow .notice { max-width: none !important; }
+.sv-shell.narrow .center .sv-main .sv-wrap.upload-wrap { max-width: 720px; }
+.deep-search { padding-top: 18px; max-width: 520px; }
+.deep-search[hidden] { display: none; }
+@media (max-width: 960px) { .narrow .center { padding: 0; } .narrow .center > .sv-main { padding-top: 20px; } }
+.cart-min .cart { display: none; }
+.cart-min .cart-mini { display: flex; }
+.cart-min .cart-col { padding-left: 14px; }
+.toasts.lift { bottom: 16px; }
+
+@media (max-width: 1100px) { .sv-shell { --gut: 20px; grid-template-columns: 220px minmax(0, 1fr) 220px; gap: 20px; padding: 0 20px; } .sv-shell.cart-min { grid-template-columns: 220px minmax(0, 1fr) 72px; } .sv-shell.no-rail { grid-template-columns: minmax(0, 1fr) 220px; } .sv-shell.no-rail.cart-min { grid-template-columns: minmax(0, 1fr) 72px; } .sv-top .sv-wrap { padding: 0 20px; } }
+@media (max-width: 960px) {
+  .sv-shell { display: block; padding: 0 20px; }
+  .rail, .cart-col { position: static; min-height: 0; max-height: none; overflow: visible; }
+  .rail { margin: 12px -20px 0; padding: 16px 20px; }
+  .rail { padding-top: 12px; gap: 10px; }
+  .filters:not([open]) > .f-body { display: none; }
+  .filters > summary { min-height: 40px; padding: 0 2px; cursor: pointer; }
+  .filters > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--sv-text-secondary); border-bottom: 2px solid var(--sv-text-secondary); transform: rotate(45deg); margin: 0 4px 4px auto; }
+  .filters[open] > summary::after { transform: rotate(-135deg); margin-bottom: 0; }
+  .f-clear { margin-left: auto; }
+  .cart-col:has(.cart-empty) { display: none; }
+  .cart-col { position: fixed; top: auto; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 40; width: min(700px, calc(100vw - 24px)); max-height: none; padding: 0; background: none; margin: 0; }
+  .cart { border: 1px solid var(--sv-border-strong); border-radius: var(--sv-radius-card); background: var(--sv-surface); box-shadow: var(--sv-shadow-panel); padding: 10px 12px; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .cart-items { display: none; }
+  .cart-min .cart { display: flex; }
+  .cart-mini, .cart-min .cart-mini { display: none; }
+  .cart-tg { display: none; }
+  .cart-top { order: 1; }
+  .cart .txt { order: 2; flex: 1; min-width: 150px; }
+  .cart-acts { order: 3; flex-wrap: nowrap; }
+  .cart-acts .btn-primary { flex: none; order: 0; }
+  .sv-main { padding-bottom: 110px; }
+  .toasts.lift { bottom: 96px; }
+}
+@media (max-width: 480px) { .rail { margin-left: -16px; margin-right: -16px; padding: 16px; } .sv-shell { padding: 0 16px; } .sv-top .sv-wrap { padding: 0 16px; } }
+
+/* ------------------------------------------------------------------
+   v3 polish: colour, contrast, hierarchy
+------------------------------------------------------------------- */
+/* orange accents (selection, focus and small brand marks only) */
+.brand-mark { background: var(--sv-brand); color: #fff; }
+.sv-nav a[aria-current="page"] { background: transparent; border-radius: 0; box-shadow: inset 0 -3px 0 var(--sv-brand); }
+.row-head h2::before { content: ""; display: inline-block; width: 4px; height: .85em; background: var(--sv-brand); border-radius: 2px; margin-right: 10px; vertical-align: -1px; }
+.interp .meta .ic, .matched .ic { color: var(--sv-brand-strong); }
+.chip-x { background: color-mix(in srgb, var(--sv-brand) 9%, var(--sv-surface)); border-color: color-mix(in srgb, var(--sv-brand) 40%, transparent); }
+.chip-x:hover { background: color-mix(in srgb, var(--sv-brand) 16%, var(--sv-surface)); }
+.matched { background: color-mix(in srgb, var(--sv-brand) 8%, var(--sv-surface)); border-left: 3px solid var(--sv-brand); border-radius: 4px 8px 8px 4px; }
+.fchip input:checked + span, .pchip[aria-pressed="true"], .pchip[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); border-color: var(--sv-brand); color: var(--sv-text); }
+.fchip input:checked + span::before, .pchip[aria-pressed="true"]::before { content: ""; width: 5px; height: 9px; border: solid var(--sv-brand-strong); border-width: 0 2px 2px 0; transform: rotate(45deg); margin: -3px 8px 0 0; display: inline-block; }
+.cart-col { border-top: 3px solid var(--sv-brand); }
+.cdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+.cdot-canonical { background: var(--sv-brand); }
+.cdot-reusable { background: #6b7a90; }
+.cdot-oneoff { background: transparent; border: 1.5px solid var(--sv-text-secondary); }
+.try .chip-btn { background: var(--sv-surface); border: 1px solid var(--sv-border-strong); }
+
+/* contrast */
+.rail { --sv-text-secondary: color-mix(in srgb, var(--sv-text) 84%, transparent); --sv-placeholder: color-mix(in srgb, var(--sv-text) 72%, transparent); }
+.mini-n { background: var(--sv-brand-strong); }
+.fg > legend, .fg > summary, .fg-l { font-size: 12.5px !important; }
+.f-title { font-weight: 600; }
+.brand-name { font-weight: 600; }
+
+/* hierarchy and rhythm */
+.sv-shell .center > .sv-main { padding-top: 16px; }
+.page-head .lede { margin-top: 2px; }
+.row { margin-top: 22px; }
+.try { margin-top: 10px; }
+.row-scroller { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); }
+.row-scroller.at-end { -webkit-mask-image: none; mask-image: none; }
+
+@media (max-width: 960px) { .cart-col { border-top: 0; } }
+/* Try asking: directly under the search box */
+.rail-try { margin: -4px 0 18px; }
+.try-h { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 10px; }
+.try-h .ic { color: var(--sv-brand-strong); width: 15px; height: 15px; }
+.ai-tag { margin-left: 2px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--sv-brand); color: var(--sv-brand-strong); font-size: 10.5px; letter-spacing: .06em; background: color-mix(in srgb, var(--sv-brand) 8%, var(--sv-surface)); }
+.try-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.slidevault a.try-chip { display: inline-flex; align-items: center; padding: 5px 9px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--sv-brand) 65%, transparent); background: var(--sv-surface); color: var(--sv-text); font-size: 12.25px; line-height: 1.35; text-decoration: none; }
+.slidevault a.try-chip:hover { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 10%, var(--sv-surface)); }
+.slidevault a.try-chip[aria-current="true"] { border-color: var(--sv-brand); background: color-mix(in srgb, var(--sv-brand) 14%, var(--sv-surface)); font-weight: 600; }
+.tile-n { font-size: 14px; font-weight: 600; margin-top: 2px; }
+@media (max-width: 960px) { .try-list { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; } .try-list li { flex: none; max-width: 260px; } }
+/* touch: 44px targets */
+@media (pointer: coarse) {
+  .fchip span, .pchip { min-height: 44px; }
+  .pick { width: 44px; height: 44px; top: 2px; left: 2px; display: grid; place-items: center; }
+  .flist label { min-height: 44px; }
+  .ci .btn, .ci input { min-height: 44px; }
+  .sclear { width: 36px; height: 36px; }
+}
+</style>
+</head>
+<body>
+<div class="slidevault sv-app" id="sv-root" data-theme="light">
+  <button type="button" class="skip" id="skip">Skip to content</button>
+  <header class="sv-top" id="sv-top">
+    <div class="sv-wrap">
+      <div class="sv-brandrow">
+        <a class="brand" href="#/" aria-label="SlideVault, Home">
+          <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10.3 5 7.7 4.4 3.5 4.5v13c4.2-.1 6.8.5 8.5 2 1.7-1.5 4.3-2.1 8.5-2v-13c-4.2-.1-6.8.5-8.5 2z"/><path d="M12 6.5V19.5"/><path d="M15 8.5c1.2-.5 2.6-.7 3.6-.7"/></svg></span>
+          <span class="brand-name">SlideVault</span>
+        </a>
+        <nav class="sv-nav" aria-label="Main">
+          <ul>
+            <li><a href="#/" data-nav="library" data-tip="Browse and search every slide"><span data-icon="library"></span>Home</a></li>
+            <li><a href="#/create" data-nav="create" data-tip="Build and My decks will live here later"><span data-icon="layers"></span>Create</a></li>
+            <li data-editor-only><a href="#/upload" data-nav="upload" data-tip="Add decks. AI suggests the labels."><span data-icon="upload"></span>Upload</a></li>
+          </ul>
+        </nav>
+        <div class="tools">
+          <button type="button" class="btn btn-icon" id="theme-btn" aria-label="Switch to dark theme" data-tip="Light or dark" data-tip-pos="end"><span data-icon="moon"></span></button>
+          <div class="role-sw">
+            <label for="role">Access</label>
+            <span class="role-pick">
+              <select id="role" class="role-select">
+                <option value="viewer">Viewer</option>
+                <option value="editor">Editor</option>
+                <option value="curator">Curator</option>
+              </select>
+              <span class="role-chev" data-icon="down"></span>
+            </span>
+            <button type="button" class="btn btn-ghost role-info" id="role-info" aria-label="What each access tier can see" data-tip="What each tier can see" data-tip-pos="end"><span data-icon="info"></span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div class="sv-shell">
+    <aside class="rail" id="rail" aria-label="Search and filters">
+    <form class="top-search" role="search" id="top-search">
+      <div class="sbox">
+        <label for="top-q" class="sr-only">Search slides</label>
+        <span data-icon="search"></span>
+        <input id="top-q" class="input" type="search" placeholder="Search slides" autocomplete="off" enterkeyhint="search">
+        <button type="button" class="sclear" id="top-clear" aria-label="Clear search" hidden><span data-icon="x"></span></button>
+      </div>
+<button type="button" class="btn btn-icon mic" id="mic-btn" aria-disabled="true" aria-label="Voice search, planned for later" data-reason="Voice search: later, if time allows." data-tip="Voice search: later, if time allows" data-tip-pos="start"><span data-icon="mic"></span></button>
+    </form>
+      <div id="rail-filters"></div>
+    </aside>
+    <div class="center">
+      <div class="deep-search" id="deep-search" hidden></div>
+      <div class="sv-wrap navrow"><div id="navbar-wrap" class="navgroup"></div></div>
+      <main class="sv-main" id="main" tabindex="-1"></main>
+    </div>
+    <aside class="cart-col" id="sel-wrap" aria-label="Cart"></aside>
+  </div>
+  <footer class="sv-foot">
+    <div class="sv-wrap"><span class="sim-tag">PROTOTYPE</span></div>
+  </footer>
+  <div class="toasts" id="toasts" aria-live="polite" aria-relevant="additions"></div>
+  <div class="sr-only" id="sv-live" aria-live="polite"></div>
+</div>
+<dialog class="slidevault sv-dialog" id="dlg" data-theme="light" aria-labelledby="dlg-title"></dialog>
+
+<script>
+(function () {
+'use strict';
+
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+var uidN = 0;
+function uid(p) { return p + Date.now().toString(36) + (uidN++).toString(36); }
+var REF_TODAY = new Date('2026-10-08T00:00:00');
+function fmtDate(iso) { return iso ? new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null; }
+function ago(ts) {
+  var s = (Date.now() - ts) / 1000;
+  if (s < 45) return 'just now';
+  var m = Math.round(s / 60); if (m < 60) return m + ' min ago';
+  var h = Math.round(m / 60); if (h < 24) return h + ' h ago';
+  var d = Math.round(h / 24); if (d < 14) return d + (d === 1 ? ' day ago' : ' days ago');
+  return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+function overdue(iso) { return !iso || (REF_TODAY - new Date(iso + 'T00:00:00')) / 86400000 > 365; }
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+function norm(s) { return String(s || '').toLowerCase().replace(/iz/g, 'is').replace(/[’']/g, ''); }
+function hashStr(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function rng(seed) { var x = seed || 1; return function () { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) % 1000) / 1000; }; }
+
+/* Icons: inline outline SVGs (Lucide-style); no icon font. */
+var ICONS = {
+  home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+  cart: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+  library: '<path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/>',
+  layers: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+  search: '<circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.3-4.3"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  right: '<path d="m9 18 6-6-6-6"/>',
+  left: '<path d="m15 18-6-6 6-6"/>',
+  down: '<path d="m6 9 6 6 6-6"/>',
+  back: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+  dn: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+  plus: '<path d="M5 12h14M12 5v14"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  pencil: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  grip: '<circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>',
+  columns: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/>',
+  lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  sliders: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  star: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  oneoff: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  copy: '<rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  expand: '<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>',
+  swap: '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>',
+  spinner: '<path d="M21 12a9 9 0 1 1-6.22-8.56"/>',
+  sparkle: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>',
+  minus: '<path d="M5 12h14"/>'
+};
+function ic(name, cls) {
+  return '<svg class="ic ' + (cls || '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[name] || '') + '</svg>';
+}
+
+var DOC_TYPES = ['Past submission', 'Case study / project profile', 'Capabilities / About Us', 'Team bios and resumes', 'Service-line deck', 'Reference letter', 'Diagram or framework', 'Master deck', 'Other'];
+var SERVICES = ['Workplace strategy', 'Interior design', 'Architecture', 'Project management', 'Multiple service lines'];
+var PTYPES = ['HQ', 'Fit-out', 'Relocation', 'Consolidation'];
+var STAGES = ['Opening', 'Context', 'Proposal', 'Proof', 'Close'];
+var PURPOSES = ['Cover', 'Define problem', 'Define scope', 'Introduce solution', 'Present options', 'Show process', 'Provide evidence', 'Quantify economics', 'Demonstrate credibility', 'Introduce team', 'Recommend decision'];
+var PALETTES = [
+  ['#1E2A3A', '#F5F2EC', '#E9A23B', '#5B6B7F'],
+  ['#F5F2EC', '#1E2A3A', '#2E7D6B', '#B6BCC4'],
+  ['#FFFFFF', '#222222', '#FF3F0A', '#C4C8CE'],
+  ['#23352F', '#EEF2EC', '#9CC5A1', '#5F7A70'],
+  ['#F1EEF7', '#2B2340', '#7A5AC8', '#C2BDD3'],
+  ['#2C2C2C', '#F2F2F2', '#F2C14E', '#6A6A6A'],
+  ['#EAF2F8', '#16324F', '#2F80C0', '#A9BFD2'],
+  ['#F7EDE6', '#3B2416', '#C2643A', '#CDB9AC']
+];
+
+var DECKS = [
+  { id: 'd1', title: 'Client A: HQ consolidation proposal', client: 'Client A (fictional)', docType: 'Past submission', cls: 'Reusable', status: 'Approved', service: 'Workplace strategy', sector: 'Financial services', ptype: 'Consolidation', office: 'New York', year: 2025, owner: 'R. Alvarez', approver: 'S. Chen', reviewed: '2026-08-14', conf: 'Client-confidential: remove client name before reuse', version: 'v3', pal: 0, used: 41, usedMonth: 6, lastUsed: '2026-10-02', tags: ['consolidation', 'utilisation', 'business case'], summary: 'Sample submission: consolidating four leases into one headquarters, with stacking options and a ten-year cost comparison.' },
+  { id: 'd2', title: 'Firm capabilities 2026', client: 'Internal', docType: 'Capabilities / About Us', cls: 'Canonical', status: 'Approved', service: 'Multiple service lines', sector: 'Cross-sector', ptype: null, office: 'Global', year: 2026, owner: 'L. Novak', approver: 'K. Ito', reviewed: '2026-09-20', conf: 'Internal: approved for client use', version: 'v7 (current)', pal: 2, used: 128, usedMonth: 19, lastUsed: '2026-10-07', tags: ['about us', 'services', 'offices'], summary: 'Sample canonical capabilities deck: who we are, services, global reach and how we work.' },
+  { id: 'd3', title: 'Client C: R&D campus fit-out', client: 'Client C (fictional)', docType: 'Past submission', cls: 'Reusable', status: 'Approved', service: 'Interior design', sector: 'Life sciences', ptype: 'Fit-out', office: 'Singapore', year: 2024, owner: 'M. Okafor', approver: 'S. Chen', reviewed: '2026-03-02', conf: 'Client-confidential: remove client name before reuse', version: 'v2', pal: 1, used: 33, usedMonth: 4, lastUsed: '2026-09-28', tags: ['lab', 'wellbeing', 'phasing'], summary: 'Sample submission for a research campus fit-out with lab and office adjacencies and a phased programme.' },
+  { id: 'd4', title: 'Client D: regional office relocation', client: 'Client D (fictional)', docType: 'Case study / project profile', cls: 'Reusable', status: 'Approved', service: 'Project management', sector: 'Logistics', ptype: 'Relocation', office: 'London', year: 2023, owner: 'J. Mensah', approver: 'K. Ito', reviewed: '2025-07-11', conf: 'Public: client approved case study', version: 'v1', pal: 6, used: 22, usedMonth: 3, lastUsed: '2026-09-12', tags: ['relocation', 'case study', 'move management'], summary: 'Sample project profile of a 900-person relocation delivered over one weekend.' },
+  { id: 'd5', title: 'Team bios: workplace strategy group', client: 'Internal', docType: 'Team bios and resumes', cls: 'Canonical', status: 'Approved', service: 'Workplace strategy', sector: 'Cross-sector', ptype: null, office: 'Global', year: 2026, owner: 'L. Novak', approver: 'K. Ito', reviewed: '2026-09-02', conf: 'Internal: approved for client use', version: 'v4 (current)', pal: 4, used: 76, usedMonth: 12, lastUsed: '2026-10-06', tags: ['team', 'bios', 'leadership'], summary: 'Sample canonical bios and team structure slides for the workplace strategy group.' },
+  { id: 'd6', title: 'Client B: workplace strategy study', client: 'Client B (fictional)', docType: 'Past submission', cls: 'One-off', status: 'Approved', service: 'Workplace strategy', sector: 'Insurance', ptype: 'HQ', office: 'Hong Kong', year: 2022, owner: 'R. Alvarez', approver: 'S. Chen', reviewed: '2024-11-19', conf: 'Client-confidential: do not reuse without approval', version: 'v1', pal: 5, used: 9, usedMonth: 1, lastUsed: '2026-06-30', tags: ['utilisation', 'hybrid', 'survey'], summary: 'Sample one-off study of how people use an insurer’s headquarters, with hybrid work principles.' },
+  { id: 'd7', title: 'Service line deck: Interior design', client: 'Internal', docType: 'Service-line deck', cls: 'Canonical', status: 'Approved', service: 'Interior design', sector: 'Cross-sector', ptype: null, office: 'Global', year: 2026, owner: 'A. Ruiz', approver: 'K. Ito', reviewed: '2026-07-30', conf: 'Internal: approved for client use', version: 'v5 (current)', pal: 7, used: 64, usedMonth: 9, lastUsed: '2026-10-05', tags: ['approach', 'materials', 'portfolio'], summary: 'Sample canonical service-line deck describing the interior design approach, materials and review gates.' },
+  { id: 'd8', title: 'Client E: studio campus concept', client: 'Client E (fictional)', docType: 'Past submission', cls: 'One-off', status: 'Suggested', service: 'Architecture', sector: 'Media', ptype: 'HQ', office: 'Los Angeles', year: 2026, owner: 'D. Patel', approver: null, reviewed: null, conf: 'Client-confidential: do not reuse without approval', version: 'v1 (draft)', pal: 3, used: 2, usedMonth: 2, lastUsed: '2026-10-01', tags: ['campus', 'zoning', 'concept'], summary: 'Sample draft submission for a studio campus concept. Not yet reviewed.' },
+  { id: 'd9', title: 'Reference letters: selected clients', client: 'Various (fictional)', docType: 'Reference letter', cls: 'Reusable', status: 'Approved', service: 'Project management', sector: 'Cross-sector', ptype: null, office: 'Global', year: 2025, owner: 'J. Mensah', approver: 'S. Chen', reviewed: '2026-01-15', conf: 'Client-confidential: check consent before each use', version: 'v2', pal: 1, used: 28, usedMonth: 5, lastUsed: '2026-10-03', tags: ['reference', 'testimonial'], summary: 'Sample reference letters set as quote slides.' },
+  { id: 'd10', title: 'Diagrams and frameworks kit', client: 'Internal', docType: 'Diagram or framework', cls: 'Reusable', status: 'Approved', service: 'Workplace strategy', sector: 'Cross-sector', ptype: null, office: 'Global', year: 2025, owner: 'M. Okafor', approver: 'K. Ito', reviewed: '2026-05-21', conf: 'Internal: approved for client use', version: 'v3', pal: 2, used: 97, usedMonth: 15, lastUsed: '2026-10-07', tags: ['framework', 'diagram', 'change management'], summary: 'Sample kit of reusable diagrams: strategy framework, work settings, change journey and benchmarks.' },
+  { id: 'd11', title: 'Master deck 2021 (4:3, legacy)', client: 'Internal', docType: 'Master deck', cls: 'Canonical', status: 'Retired', service: 'Multiple service lines', sector: 'Cross-sector', ptype: null, office: 'Global', year: 2021, owner: 'L. Novak', approver: 'K. Ito', reviewed: '2023-02-01', conf: 'Internal', version: 'v9 (superseded)', pal: 5, used: 210, usedMonth: 1, lastUsed: '2026-09-18', tags: ['template', 'fees', 'legacy'], summary: 'Sample retired master deck in 4:3. Kept for provenance; superseded by Firm capabilities 2026.' },
+  { id: 'd12', title: 'Client F: HQ refresh', client: 'Client F (fictional)', docType: 'Case study / project profile', cls: 'Reusable', status: 'Suggested', service: 'Interior design', sector: 'Hospitality', ptype: 'HQ', office: 'Shanghai', year: 2026, owner: 'A. Ruiz', approver: null, reviewed: null, conf: null, version: 'v1 (draft)', pal: 7, used: 0, usedMonth: 0, lastUsed: null, tags: ['hospitality', 'concept', 'fees'], summary: 'Sample draft case study awaiting review. Confidentiality not yet set.' }
+];
+
+/* [id, deck, position, title, purpose, stage, layout, tags, text, usedMonth, usedTotal, featured, extra] */
+var SLIDE_ROWS = [
+  ['s1', 'd1', 1, 'Client A: one address for New York', 'Cover', 'Opening', 'cover', ['cover'], 'One address for New York. Workplace strategy and consolidation proposal. Sample text.', 2, 11],
+  ['s2', 'd1', 2, 'Four leases, one fragmented portfolio', 'Define problem', 'Context', 'stat', ['utilisation', 'portfolio'], 'Peak desk use is 38% across four leases. Teams are split across three buildings. Sample figures.', 5, 19, false, { stat: '38%' }],
+  ['s3', 'd1', 3, 'Consolidation options compared', 'Present options', 'Proposal', 'table', ['options', 'phasing'], 'Option A: stay and refurbish. Option B: consolidate into one tower. Option C: hub and spoke. Sample text.', 3, 14],
+  ['s4', 'd1', 4, 'Team neighbourhoods stacking plan', 'Introduce solution', 'Proposal', 'plan', ['stacking', 'neighbourhoods'], 'Neighbourhoods by team, with shared amenity floors at 12 and 20. Sample text.', 6, 25, true],
+  ['s5', 'd1', 5, 'Ten-year cost comparison', 'Quantify economics', 'Proof', 'chart', ['business case', 'cost'], 'Ten-year cost of each option against doing nothing. Sample figures only.', 4, 17],
+  ['s6', 'd2', 1, 'Who we are: an integrated workplace firm', 'Cover', 'Opening', 'cover', ['about us'], 'Strategy, design and delivery under one roof. Sample text.', 12, 88],
+  ['s7', 'd2', 2, 'Our services at a glance', 'Demonstrate credibility', 'Context', 'diagram', ['services', 'about us'], 'Workplace strategy, interior design, architecture and project management. Sample text.', 14, 95, true],
+  ['s8', 'd2', 3, 'Global offices and delivery reach', 'Demonstrate credibility', 'Proof', 'image', ['offices', 'global'], 'Sample office network map and headcount by region.', 7, 61],
+  ['s9', 'd2', 4, 'How we work: from strategy to move-in', 'Show process', 'Proposal', 'timeline', ['process', 'about us'], 'Discover, define, design, deliver, move in. Sample text.', 11, 70],
+  ['s10', 'd3', 1, 'Client C R&D campus: scope summary', 'Define scope', 'Context', 'bullets', ['scope', 'lab'], 'Two buildings, lab and office floors, phased handover. Sample text.', 1, 8],
+  ['s11', 'd3', 2, 'Lab and office adjacency concept', 'Introduce solution', 'Proposal', 'diagram', ['adjacency', 'lab'], 'Lab, write-up and collaboration zones arranged around a shared spine. Sample text.', 4, 21, true],
+  ['s12', 'd3', 3, 'Fit-out programme and phasing', 'Show process', 'Proposal', 'timeline', ['phasing', 'programme'], 'Three phases over fourteen months. Sample figures.', 2, 12],
+  ['s13', 'd3', 4, 'Wellbeing and biophilic design approach', 'Introduce solution', 'Proposal', 'image', ['wellbeing', 'biophilic'], 'Daylight, planting and material choices that support wellbeing. Sample text.', 5, 27, true],
+  ['s14', 'd4', 1, 'Client D relocation at a glance', 'Provide evidence', 'Proof', 'stat', ['relocation', 'case study'], '900 people moved over one weekend with no lost working days. Sample figures.', 3, 15, false, { stat: '900' }],
+  ['s15', 'd4', 2, 'Move-day sequencing plan', 'Show process', 'Proof', 'timeline', ['move management'], 'Friday pack, Saturday move, Sunday test, Monday open. Sample text.', 1, 7],
+  ['s16', 'd4', 3, 'Outcomes after twelve months', 'Provide evidence', 'Proof', 'chart', ['outcomes', 'post-occupancy'], 'Satisfaction and utilisation after one year. Sample figures.', 2, 9],
+  ['s17', 'd5', 1, 'Workplace strategy leadership', 'Introduce team', 'Proof', 'team', ['team', 'leadership'], 'Four sample leaders with fictional names and roles.', 9, 52, true],
+  ['s18', 'd5', 2, 'Project team structure', 'Introduce team', 'Proposal', 'diagram', ['team', 'governance'], 'Client lead, strategy lead, design lead and delivery lead. Sample text.', 6, 38],
+  ['s19', 'd5', 3, 'Bio: sample strategist profile', 'Introduce team', 'Proof', 'team', ['bio'], 'Fictional strategist profile with sample experience.', 4, 30],
+  ['s20', 'd6', 1, 'How people use the office today', 'Define problem', 'Context', 'chart', ['utilisation', 'survey'], 'Observation study: desk use peaks mid-week. Sample figures.', 3, 12],
+  ['s21', 'd6', 2, 'Hybrid work principles', 'Introduce solution', 'Proposal', 'bullets', ['hybrid', 'principles'], 'Five principles for a hybrid headquarters. Sample text.', 2, 10],
+  ['s22', 'd6', 3, 'Recommended next steps', 'Recommend decision', 'Close', 'bullets', ['next steps'], 'Pilot floor, measure, then roll out. Sample text.', 1, 6],
+  ['s23', 'd7', 1, 'Interior design: our approach', 'Introduce solution', 'Context', 'image', ['approach', 'design'], 'Brief, concept, detail, deliver. Sample text.', 8, 47, true],
+  ['s24', 'd7', 2, 'Material and finishes palette', 'Provide evidence', 'Proposal', 'swatch', ['materials', 'sustainability'], 'Sample palette of low-carbon finishes.', 4, 26],
+  ['s25', 'd7', 3, 'Design review gates', 'Show process', 'Proposal', 'timeline', ['governance', 'process'], 'Four review gates with client sign-off. Sample text.', 3, 19],
+  ['s26', 'd7', 4, 'Selected interiors portfolio', 'Demonstrate credibility', 'Proof', 'image', ['portfolio', 'case study'], 'Six fictional projects shown as image placeholders.', 6, 40],
+  ['s27', 'd8', 1, 'Client E studio campus: site concept', 'Introduce solution', 'Proposal', 'plan', ['campus', 'concept'], 'Studios, offices and a central courtyard. Sample text.', 1, 1],
+  ['s28', 'd8', 2, 'Production and office zoning', 'Present options', 'Proposal', 'diagram', ['zoning'], 'Two zoning options for production and office. Sample text.', 1, 1],
+  ['s29', 'd8', 3, 'Concept cost range', 'Quantify economics', 'Proof', 'chart', ['cost'], 'Indicative cost range. Sample figures only.', 0, 0],
+  ['s30', 'd9', 1, 'Reference: fictional financial services client', 'Provide evidence', 'Proof', 'quote', ['reference', 'testimonial'], '“They kept 2,000 people working through the move.” Fictional quote.', 3, 16, true],
+  ['s31', 'd9', 2, 'Reference: fictional hospitality client', 'Provide evidence', 'Proof', 'quote', ['reference', 'testimonial'], '“The new office feels like our hotels.” Fictional quote.', 2, 12],
+  ['s32', 'd10', 1, 'Workplace strategy framework', 'Show process', 'Context', 'diagram', ['framework'], 'People, place, technology and culture. Sample framework.', 9, 60, true],
+  ['s33', 'd10', 2, 'Activity-based work settings', 'Introduce solution', 'Proposal', 'plan', ['settings', 'hybrid'], 'Focus, collaborate, learn and socialise settings. Sample text.', 7, 44],
+  ['s34', 'd10', 3, 'Change management journey', 'Show process', 'Proposal', 'timeline', ['change management'], 'Engage, prepare, move, sustain. Sample text.', 5, 33],
+  ['s35', 'd10', 4, 'Space utilisation benchmark', 'Provide evidence', 'Proof', 'chart', ['utilisation', 'benchmark'], 'Sample benchmark of desk use by sector.', 10, 58, true],
+  ['s36', 'd11', 1, 'Cover template (2021)', 'Cover', 'Opening', 'cover', ['template', 'legacy'], 'Legacy cover layout. Sample text.', 0, 120, false, { ratio: '4:3' }],
+  ['s37', 'd11', 2, 'Fee table template (2021 rates)', 'Quantify economics', 'Close', 'table', ['fees', 'legacy'], 'Legacy fee table with 2021 rates. Sample figures.', 1, 90, false, { ratio: '4:3' }],
+  ['s38', 'd12', 1, 'Client F: HQ refresh brief', 'Define problem', 'Context', 'bullets', ['brief', 'hospitality'], 'Refresh a headquarters to reflect the hotel brand. Sample text.', 0, 0],
+  ['s39', 'd12', 2, 'Guest-inspired workplace concept', 'Introduce solution', 'Proposal', 'image', ['concept', 'hospitality'], 'Lobby-style arrival and lounge settings. Sample text.', 0, 0],
+  ['s40', 'd12', 3, 'Fee proposal structure', 'Quantify economics', 'Close', 'table', ['fees'], 'Fixed fee for strategy, percentage fee for design. Sample structure.', 0, 0],
+  /* Near-identical copies of the same slide in other decks (see DUPG below) */
+  ['s41', 'd1', 6, 'Our services at a glance', 'Demonstrate credibility', 'Context', 'diagram', ['services', 'about us'], 'Workplace strategy, interior design, architecture and project management. Sample text.', 2, 11],
+  ['s42', 'd3', 5, 'Our services at a glance', 'Demonstrate credibility', 'Context', 'diagram', ['services', 'about us'], 'Workplace strategy, interior design, architecture and project management. Sample text.', 1, 8],
+  ['s43', 'd6', 4, 'Our services at a glance (2022)', 'Demonstrate credibility', 'Context', 'diagram', ['services', 'about us'], 'Workplace strategy, interior design and architecture. Sample text.', 0, 5],
+  ['s44', 'd4', 4, 'Workplace strategy leadership', 'Introduce team', 'Proof', 'team', ['team', 'leadership'], 'Four sample leaders with fictional names and roles.', 2, 9],
+  ['s45', 'd12', 4, 'Workplace strategy leadership', 'Introduce team', 'Proof', 'team', ['team', 'leadership'], 'Four sample leaders with fictional names and roles.', 0, 0],
+  ['s46', 'd3', 6, 'Who we are: an integrated workplace firm', 'Cover', 'Opening', 'cover', ['about us'], 'Strategy, design and delivery under one roof. Sample text.', 3, 21],
+  ['s47', 'd6', 5, 'Who we are', 'Cover', 'Opening', 'cover', ['about us'], 'Strategy, design and delivery. Sample text.', 0, 4],
+  ['s48', 'd6', 6, 'Workplace strategy framework', 'Show process', 'Context', 'diagram', ['framework'], 'People, place and technology. Sample framework (older version).', 1, 7],
+  ['s49', 'd2', 5, 'Our values and how we work together', 'Demonstrate credibility', 'Context', 'bullets', ['values', 'about us', 'culture'], 'Five values that guide every project: curiosity, candour, craft, care and accountability. Sample text.', 8, 52, true],
+  ['s50', 'd11', 3, 'Our values (2021 wording)', 'Demonstrate credibility', 'Context', 'bullets', ['values', 'culture', 'legacy'], 'Legacy wording of the firm values. Sample text.', 0, 44, false, { ratio: '4:3' }],
+  ['s51', 'd4', 5, 'Our values and how we work together', 'Demonstrate credibility', 'Context', 'bullets', ['values', 'about us', 'culture'], 'Five values that guide every project. Sample text.', 1, 10]
+];
+var SLIDES = SLIDE_ROWS.map(function (r) {
+  var o = { id: r[0], deckId: r[1], pos: r[2], title: r[3], purpose: r[4], stage: r[5], layout: r[6], tags: r[7], text: r[8], usedMonth: r[9], used: r[10], featured: !!r[11] };
+  var extra = r[12] || {};
+  Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
+  return o;
+});
+
+
+ICONS.mic = '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/>';
+ICONS.folder = '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z"/>';
+
+/* Near-identical slides found in more than one deck: slide id -> group id */
+var DUPG = { s7: 'g1', s41: 'g1', s42: 'g1', s43: 'g1', s17: 'g2', s44: 'g2', s45: 'g2', s6: 'g3', s46: 'g3', s47: 'g3', s32: 'g4', s48: 'g4', s49: 'g5', s50: 'g5', s51: 'g5' };
+var DECK_MAP = {}, SLIDE_MAP = {}, DECK_SLIDES = {}, GROUPS = {};
+function reindex() {
+  DECK_MAP = {}; DECKS.forEach(function (d) { DECK_MAP[d.id] = d; });
+  SLIDE_MAP = {}; DECK_SLIDES = {}; GROUPS = {};
+  SLIDES.forEach(function (s) {
+    SLIDE_MAP[s.id] = s; (DECK_SLIDES[s.deckId] = DECK_SLIDES[s.deckId] || []).push(s.id);
+    var g = DUPG[s.id]; if (g) (GROUPS[g] = GROUPS[g] || []).push(s.id);
+  });
+}
+reindex();
+
+/* =================================================================
+   State
+================================================================= */
+var STORE_KEY = 'slidevault-v3-prototype';
+var S = { cartMin: true, f: { status: [], cls: [], client: [], type: [], yfrom: '', yto: '' }, fopen: { client: true }, off: {}, role: 'editor', theme: 'light', sel: [], edits: {}, searchDone: {}, lastResults: null, fromResults: false, uploads: [], uploadN: 0, sample: 'a' };
+function persist() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ v: 1, role: S.role, theme: S.theme })); } catch (e) { /* ignore */ } }
+function load() {
+  var d = null;
+  try { d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { d = null; }
+  if (d && d.v === 1) {
+    if (['viewer', 'editor', 'curator'].indexOf(d.role) >= 0) S.role = d.role;
+    if (d.theme === 'dark' || d.theme === 'light') S.theme = d.theme;
+  } else S.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+/* =================================================================
+   Accessors and access tiers (Suggested, Approved, Retired)
+================================================================= */
+function clientName(d) { return d.client.replace(' (fictional)', ''); }
+function folderOf(d) { return 'Best of the Best / ' + d.year + ' / ' + clientName(d); }
+function slide(id) {
+  var s = SLIDE_MAP[id]; if (!s) return null;
+  var d = DECK_MAP[s.deckId], e = S.edits[id] || {}, o = Object.assign({}, s);
+  o.deck = d; o.status = e.status || d.status; o.client = clientName(d); o.year = d.year; o.sector = d.sector; o.cls = d.cls;
+  o.deckTitle = d.title; o.ratio = s.ratio || '16:9'; o.group = DUPG[id] || null;
+  return o;
+}
+function canSee(st) { return S.role === 'curator' || st === 'Approved' || (S.role === 'editor' && st === 'Suggested'); }
+function can(cap) { return cap === 'upload' ? S.role !== 'viewer' : cap === 'review' ? S.role === 'curator' : true; }
+var FG = [['status', 'Status'], ['cls', 'Content class'], ['client', 'Client'], ['type', 'Slide type']];
+var NOW_Y = 2026, FIRST_Y = 1981;
+function yOK(y) { return (!S.f.yfrom || y >= +S.f.yfrom) && (!S.f.yto || y <= +S.f.yto); }
+function facet(id, g) { var s = slide(id); return g === 'type' ? s.purpose : String(s[g]); }
+function fCount() { return FG.reduce(function (n, g) { return n + S.f[g[0]].length; }, 0) + (S.f.yfrom || S.f.yto ? 1 : 0); }
+function fOK(id) { return yOK(slide(id).year) && FG.every(function (g) { var a = S.f[g[0]]; return !a.length || a.indexOf(facet(id, g[0])) >= 0; }); }
+function deckOK(d) {
+  return (!S.f.status.length || S.f.status.indexOf(d.status) >= 0) && yOK(d.year) && (!S.f.cls.length || S.f.cls.indexOf(d.cls) >= 0) && (!S.f.client.length || S.f.client.indexOf(clientName(d)) >= 0);
+}
+function fvis() { return visibleIds().filter(fOK); }
+function visibleIds() { return SLIDES.filter(function (s) { return canSee(slide(s.id).status); }).map(function (s) { return s.id; }); }
+function alsoIn(id) {
+  var g = DUPG[id]; if (!g) return [];
+  var seen = {}; seen[SLIDE_MAP[id].deckId] = 1; var out = [];
+  GROUPS[g].forEach(function (o) {
+    var d = SLIDE_MAP[o].deckId;
+    if (o === id || seen[d] || !canSee(slide(o).status)) return;
+    seen[d] = 1; out.push(o);
+  });
+  return out;
+}
+function rank(ids) {
+  return ids.slice().sort(function (a, b) {
+    var sa = slide(a), sb = slide(b);
+    if ((sa.status === 'Approved') !== (sb.status === 'Approved')) return sa.status === 'Approved' ? -1 : 1;
+    return sb.used - sa.used;
+  });
+}
+function dedupe(ids) {
+  var seen = {}, out = [];
+  ids.forEach(function (id) { var g = DUPG[id]; if (g) { if (seen[g]) return; seen[g] = 1; } out.push(id); });
+  return out;
+}
+var PAL = [
+  { bg: '#ffffff', ink: '#1a1a1a', acc: '#ff3f0a', soft: '#ffe6dc', cov: '#1a1a1a', covInk: '#ffffff' },
+  { bg: '#f3f6fb', ink: '#0f2a43', acc: '#2b59c3', soft: '#dfe7f7', cov: '#0f2a43', covInk: '#ffffff' },
+  { bg: '#f6f1e8', ink: '#2b2b2b', acc: '#1f7a6d', soft: '#d8e6e1', cov: '#1f7a6d', covInk: '#ffffff' },
+  { bg: '#fffdf6', ink: '#222222', acc: '#c9930c', soft: '#f7ecc9', cov: '#222222', covInk: '#ffffff' },
+  { bg: '#eef5f0', ink: '#17352b', acc: '#34a373', soft: '#cfe6d9', cov: '#17352b', covInk: '#ffffff' },
+  { bg: '#fbf2f4', ink: '#3a1f2b', acc: '#b83b5e', soft: '#f3d6de', cov: '#b83b5e', covInk: '#ffffff' }
+];
+/* Prototype only: a simple drawing per slide layout, so the library looks like real slides. */
+function thumbSVG(id) {
+  var s = SLIDE_MAP[id], d = DECK_MAP[s.deckId], W = s.ratio === '4:3' ? 120 : 160, H = 90, m = 10;
+  var P = PAL[d.client === 'Internal' ? 0 : 1 + hashStr(d.id) % 5], R = rng(hashStr(id) || 7), o = '', L = s.layout, i, x, y;
+  function rc(x, y, w, h, f, rx, op) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + (rx || 0) + '" fill="' + f + '"' + (op ? ' opacity="' + op + '"' : '') + '/>'; }
+  function ci(cx, cy, rr, f, op) { return '<circle cx="' + cx + '" cy="' + cy + '" r="' + rr + '" fill="' + f + '"' + (op ? ' opacity="' + op + '"' : '') + '/>'; }
+  if (L === 'cover') {
+    o += rc(0, 0, W, H, P.cov) + ci(W - 22, H - 18, 36, P.acc, .92) + ci(W - 6, 8, 16, P.covInk, .12) + rc(m, m, 18, 4, P.acc, 2) +
+      rc(m, 34, W * .56, 8, P.covInk, 2) + rc(m, 46, W * .4, 8, P.covInk, 2, .85) + rc(m, 64, W * .3, 3, P.covInk, 1.5, .5);
+  } else {
+    o += rc(0, 0, W, H, P.bg) + rc(m, m, W * .5, 6, P.ink, 2) + rc(m, m + 10, 18, 2.5, P.acc, 1);
+    if (L === 'stat') {
+      o += rc(m, 34, W * .34, 22, P.acc, 3) + rc(m, 62, W * .34, 3, P.ink, 1.5, .4) + rc(m, 69, W * .24, 3, P.ink, 1.5, .25);
+      for (i = 0; i < 3; i++) o += rc(W * .5, 32 + i * 17, W * .5 - m, 13, P.soft, 3) + rc(W * .5 + 5, 36 + i * 17, W * .2, 5, P.ink, 2, .5);
+    } else if (L === 'diagram') {
+      for (i = 0; i < 3; i++) { x = m + i * ((W - 2 * m - 30) / 2); o += '<rect x="' + x + '" y="38" width="30" height="20" rx="4" fill="' + P.soft + '" stroke="' + P.acc + '" stroke-width="1.2"/>' + rc(x + 6, 45, 18, 3, P.ink, 1.5, .5) + (i < 2 ? rc(x + 30, 47.5, (W - 2 * m - 30) / 2 - 30, 1.5, P.acc) : ''); }
+      o += rc(m, 68, W * .55, 3, P.ink, 1.5, .3);
+    } else if (L === 'team') {
+      for (i = 0; i < 4; i++) { x = m + 12 + i * ((W - 2 * m - 24) / 3); o += ci(x, 42, 9, i % 2 ? P.soft : P.acc, i % 2 ? 1 : .85) + rc(x - 11, 58, 22, 3, P.ink, 1.5, .6) + rc(x - 8, 64, 16, 2.5, P.ink, 1.2, .3); }
+    } else if (L === 'plan') {
+      o += '<rect x="' + m + '" y="30" width="' + (W - 2 * m) + '" height="' + (H - 40) + '" fill="none" stroke="' + P.ink + '" stroke-width="1.4"/>' + rc(W * .45, 30, 1.4, H - 40, P.ink) + rc(m, 56, W * .45 - m, 1.4, P.ink) +
+        rc(W * .45 + 2, 32, W * .55 - m - 4, 22, P.soft);
+      for (i = 0; i < 6; i++) o += rc(m + 6 + (i % 3) * 13, 36 + Math.floor(i / 3) * 10, 9, 5, P.acc, 1, .85);
+    } else if (L === 'chart') {
+      o += rc(m, H - 14, W - 2 * m, 1, P.ink, 0, .4);
+      for (i = 0; i < 6; i++) { var h = 14 + Math.round(R() * 30); o += rc(m + 4 + i * ((W - 2 * m - 8) / 6), H - 14 - h, (W - 2 * m - 8) / 6 - 5, h, i % 3 === 1 ? P.soft : P.acc, 1.5); }
+    } else if (L === 'table') {
+      o += rc(m, 32, W - 2 * m, 9, P.acc, 2);
+      for (i = 0; i < 4; i++) o += rc(m, 43 + i * 10, W - 2 * m, 8, i % 2 ? 'none' : P.soft, 2) + rc(m + 4, 45.5 + i * 10, 18, 3, P.ink, 1.5, .5) + rc(W * .5, 45.5 + i * 10, 14 + R() * 20, 3, P.ink, 1.5, .35);
+    } else if (L === 'timeline') {
+      o += rc(m, 54, W - 2 * m, 1.6, P.ink, 0, .5);
+      for (i = 0; i < 4; i++) { x = m + 10 + i * ((W - 2 * m - 20) / 3); o += ci(x, 54.8, 3.6, P.acc) + rc(x - 10, i % 2 ? 38 : 62, 20, 3, P.ink, 1.5, .55) + rc(x - 7, i % 2 ? 44 : 68, 14, 2.5, P.ink, 1.2, .3); }
+    } else if (L === 'quote') {
+      o += '<text x="' + m + '" y="62" font-size="46" font-family="Georgia, serif" fill="' + P.acc + '">&#8220;</text>' + rc(m + 24, 36, W - 2 * m - 30, 5, P.ink, 2, .6) + rc(m + 24, 46, W - 2 * m - 40, 5, P.ink, 2, .5) + rc(m + 24, 56, W - 2 * m - 56, 5, P.ink, 2, .4) + rc(m + 24, 68, 26, 3, P.acc, 1.5);
+    } else if (L === 'image') {
+      o += rc(m, 28, W - 2 * m, H - 44, P.soft, 2) + ci(W - 36, 42, 7, P.acc, .8) + '<polygon points="' + m + ',' + (H - 16) + ' ' + (W * .35) + ',44 ' + (W * .55) + ',' + (H - 16) + '" fill="' + P.acc + '" opacity=".55"/><polygon points="' + (W * .42) + ',' + (H - 16) + ' ' + (W * .68) + ',50 ' + (W - m) + ',' + (H - 16) + '" fill="' + P.ink + '" opacity=".35"/>' + rc(m, H - 11, W * .4, 3, P.ink, 1.5, .4);
+    } else if (L === 'swatch') {
+      var cs = [P.acc, P.ink, P.soft, P.cov, P.bg]; for (i = 0; i < 5; i++) { x = m + i * ((W - 2 * m) / 5); o += '<rect x="' + x + '" y="34" width="' + ((W - 2 * m) / 5 - 4) + '" height="30" rx="3" fill="' + cs[i] + '" stroke="rgba(20,20,20,.15)" stroke-width=".8"/>' + rc(x, 68, 16, 2.5, P.ink, 1.2, .4); }
+    } else {
+      for (i = 0; i < 4; i++) { y = 34 + i * 13; o += ci(m + 2, y + 2, 2.2, P.acc) + rc(m + 9, y, (W - 2 * m - 9) * (.5 + R() * .45), 4, P.ink, 2, .35); }
+    }
+  }
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">' + o + '<rect x=".4" y=".4" width="' + (W - .8) + '" height="' + (H - .8) + '" fill="none" stroke="rgba(20,20,20,.14)" stroke-width=".8"/></svg>';
+}
+function deckMosaic(id) {
+  var ids = DECK_SLIDES[id].slice(0, 4), cells = ids.map(function (x) { return '<div>' + thumbSVG(x) + '</div>'; });
+  while (cells.length < 4) cells.push('<div class="ph"></div>');
+  return '<div class="mosaic" aria-hidden="true">' + cells.join('') + '</div>';
+}
+
+/* =================================================================
+   Small UI helpers
+================================================================= */
+var tipN = 0;
+function attrs(o) {
+  var a = '';
+  if (o.data) Object.keys(o.data).forEach(function (k) { a += ' data-' + k + '="' + esc(o.data[k]) + '"'; });
+  if (o.aria) a += ' aria-label="' + esc(o.aria) + '"' + (o.label || o.hint ? '' : ' title="' + esc(o.aria) + '"');
+  if (o.hint) a += ' data-tip="' + esc(o.hint) + '"' + (o.hintPos ? ' data-tip-pos="' + o.hintPos + '"' : '');
+  if (o.pressed != null) a += ' aria-pressed="' + o.pressed + '"';
+  return a;
+}
+function btn(o) {
+  var cls = 'btn ' + (o.cls || '');
+  var inner = (o.icon && !o.iconAfter ? ic(o.icon) : '') + (o.label ? '<span>' + esc(o.label) + '</span>' : '') + (o.icon && o.iconAfter ? ic(o.icon) : '');
+  if (o.disabled) {
+    var id = 'tip' + (tipN++);
+    return '<span class="tipw"><button type="button" class="' + cls + '" aria-disabled="true" aria-describedby="' + id + '" data-reason="' + esc(o.disabled) + '"' + attrs(o).replace(/ title="[^"]*"/, '') + '>' + inner + '</button><span class="tip ' + (o.tip || '') + '" role="tooltip" id="' + id + '">' + esc(o.disabled) + '</span></span>';
+  }
+  if (o.href) return '<a class="' + cls + '" href="' + esc(o.href) + '"' + (o.action ? ' data-action="' + o.action + '"' : '') + attrs(o) + '>' + inner + '</a>';
+  return '<button type="button" class="' + cls + '"' + (o.action ? ' data-action="' + o.action + '"' : '') + attrs(o) + '>' + inner + '</button>';
+}
+var TIER_TEXT = {
+  Approved: 'Approved: checked by a person and cleared for client use.',
+  Suggested: 'Suggested: added or labelled by AI. Not yet checked by a person.',
+  Retired: 'Retired: kept for records only. Can’t be downloaded.'
+};
+function statusBadge(st) { return '<span class="badge" title="' + esc(TIER_TEXT[st] || st) + '"><span class="sr-only">Status: </span><span class="dot dot-' + esc(st.toLowerCase()) + '" aria-hidden="true"></span>' + esc(st) + '</span>'; }
+function crumbsHTML(items) {
+  return '<div class="crumbs"><nav aria-label="Breadcrumb"><ol>' + items.map(function (it, i) {
+    return i === items.length - 1 || !it.href ? '<li><span aria-current="page">' + esc(it.label) + '</span></li>' : '<li><a href="' + esc(it.href) + '">' + esc(it.label) + '</a></li>';
+  }).join('') + '</ol></nav></div>';
+}
+var LISTS = {}, listN = 0;
+function regList(ids) { var k = 'L' + (listN++); LISTS[k] = ids.slice(); return k; }
+function stateBlock(icon, title, text, actions) {
+  return '<div class="state"><span class="ic-big">' + ic(icon, 'ic-big') + '</span><h2>' + esc(title) + '</h2><p>' + esc(text) + '</p>' + (actions || '') + '</div>';
+}
+
+/* Slide card: preview, select, status, "also in N other decks", why it fits */
+function slideCard(id, o) {
+  o = o || {};
+  var s = slide(id), sel = S.sel.indexOf(id) >= 0, also = alsoIn(id), ret = s.status === 'Retired';
+  var list = regList(o.list || [id]);
+  return '<article class="card vcard' + (sel ? ' is-selected' : '') + '" data-card="' + id + '">' +
+    '<div class="thumbwrap"><button type="button" class="thumb" data-action="preview" data-id="' + id + '" data-list="' + list + '" aria-label="Preview: ' + esc(s.title) + '">' + thumbSVG(id) + '<span class="zoom" aria-hidden="true">' + ic('expand', 'ic-sm') + '</span></button>' +
+    (ret ? '' : '<label class="pick" title="Select this slide to download"><input type="checkbox" data-action="sel-toggle" data-id="' + id + '"' + (sel ? ' checked' : '') + ' aria-label="Select: ' + esc(s.title) + '"><span class="box" aria-hidden="true">' + ic('check') + '</span></label>') +
+    (s.status !== 'Approved' ? '<span class="thumb-badge">' + statusBadge(s.status) + '</span>' : '') + '</div>' +
+    '<div class="card-body"><a class="card-title" href="#/slide/' + id + '">' + esc(s.title) + '</a>' +
+    '<div class="meta clip">' + esc(s.client) + ' · ' + s.year + ' · <span class="cdot cdot-' + esc(String(s.cls).toLowerCase().replace(/[^a-z]/g, '')) + '" aria-hidden="true"></span>' + esc(s.cls) + '</div>' +
+    '<div class="meta clip" title="' + esc(s.deckTitle) + '">Slide ' + s.pos + ' of ' + esc(s.deckTitle) + '</div>' +
+    (also.length ? '<button type="button" class="also" data-action="also" data-id="' + id + '" title="This slide, or one almost identical, is also in other decks">' + ic('copy', 'ic-sm') + 'Also in ' + plural(also.length, 'other deck') + '</button>' : '') +
+    (o.why ? '<div class="matched"><b>' + ic('sparkle', 'ic-sm') + 'Why it fits</b>' + esc(o.why) + '</div>' : '') +
+    '</div></article>';
+}
+function deckCard(id) {
+  var d = DECK_MAP[id], n = DECK_SLIDES[id].length;
+  return '<article class="card vcard" data-deck="' + id + '"><a href="#/deck/' + id + '" tabindex="-1" aria-hidden="true" style="text-decoration:none">' + deckMosaic(id) + '</a>' +
+    '<div class="card-body"><a class="card-title" href="#/deck/' + id + '">' + esc(d.title) + '</a>' +
+    '<div class="meta clip">Deck · ' + plural(n, 'slide') + ' · ' + d.year + '</div>' +
+    '<div class="meta clip" title="' + esc(folderOf(d)) + '">' + ic('folder', 'ic-sm') + ' ' + esc(folderOf(d)) + '</div>' +
+    '<div class="badges">' + statusBadge(d.status) + '</div></div></article>';
+}
+
+/* =================================================================
+   Smart search (simulated): a word list stands in for the AI layer
+================================================================= */
+var STOP = ('intro a an the for to of and or show me find need needs want looking look slide slides deck decks about from our we with in on that this is are any some please give get something one into by at my us i can you what which how do does work works have has had was were it its be using use large introduce pitch project').split(' ');
+var CONCEPTS = [
+  { id: 'about', label: 'About the firm', words: ['about us', 'who we are', 'capabilities', 'capability', 'company', 'firm', 'overview', 'what we do'], purposes: ['Demonstrate credibility', 'Cover'], tags: ['about us', 'services', 'offices', 'global'] },
+  { id: 'values', label: 'Values and culture', words: ['values', 'culture', 'mission', 'principles'], purposes: [], tags: ['values', 'culture', 'principles'] },
+  { id: 'team', label: 'Team and people', words: ['team', 'teams', 'bio', 'bios', 'people', 'leadership', 'leaders', 'staff', 'resume', 'resumes'], purposes: ['Introduce team'], tags: ['team', 'bio', 'leadership', 'governance'] },
+  { id: 'cost', label: 'Cost and fees', words: ['cost', 'costs', 'price', 'pricing', 'budget', 'fee', 'fees', 'economics', 'financial', 'business case', 'roi', 'commercial'], purposes: ['Quantify economics'], tags: ['cost', 'fees', 'business case'] },
+  { id: 'process', label: 'Process and approach', words: ['process', 'how we work', 'approach', 'method', 'methodology', 'steps', 'timeline', 'programme', 'program', 'phasing', 'schedule'], purposes: ['Show process'], tags: ['process', 'phasing', 'programme', 'governance', 'change management', 'move management'] },
+  { id: 'proof', label: 'Proof and references', words: ['reference', 'references', 'testimonial', 'quote', 'proof', 'evidence', 'results', 'outcomes', 'case study', 'case studies', 'track record', 'experience'], purposes: ['Provide evidence'], tags: ['reference', 'testimonial', 'case study', 'outcomes'] },
+  { id: 'problem', label: 'The problem', words: ['problem', 'challenge', 'challenges', 'issue', 'current state', 'today'], purposes: ['Define problem'], tags: [] },
+  { id: 'options', label: 'Options compared', words: ['option', 'options', 'compare', 'comparison', 'alternatives', 'scenarios'], purposes: ['Present options'], tags: ['options'] },
+  { id: 'solution', label: 'Concept and solution', words: ['concept', 'solution', 'idea', 'vision'], purposes: ['Introduce solution'], tags: ['concept'] },
+  { id: 'next', label: 'Recommendation', words: ['recommend', 'recommendation', 'next steps', 'decision', 'closing', 'conclusion'], purposes: ['Recommend decision'], tags: ['next steps'] },
+  { id: 'scope', label: 'Scope and brief', words: ['scope', 'brief', 'requirements'], purposes: ['Define scope'], tags: ['scope', 'brief'] },
+  { id: 'cover', label: 'Cover and headings', words: ['cover', 'title slide', 'opening', 'heading', 'headings'], purposes: ['Cover'], tags: ['cover'] },
+  { id: 'hybrid', label: 'Hybrid work', words: ['hybrid', 'remote', 'flexible', 'work from home', 'utilisation', 'utilization', 'occupancy', 'desk use', 'attendance'], purposes: [], tags: ['hybrid', 'utilisation', 'survey', 'benchmark'] },
+  { id: 'move', label: 'Relocation', words: ['relocation', 'relocate', 'relocated', 'move', 'moved', 'moving', 'consolidation', 'consolidate'], purposes: [], tags: ['relocation', 'move management', 'consolidation', 'portfolio'] },
+  { id: 'wellbeing', label: 'Wellbeing', words: ['wellbeing', 'well-being', 'health', 'biophilic', 'daylight', 'nature'], purposes: [], tags: ['wellbeing', 'biophilic'] },
+  { id: 'lab', label: 'Labs and research', words: ['lab', 'labs', 'research', 'science'], purposes: [], tags: ['lab'] },
+  { id: 'portfolio', label: 'Portfolio', words: ['portfolio', 'projects', 'showcase', 'gallery'], purposes: [], tags: ['portfolio'] },
+  { id: 'framework', label: 'Frameworks and diagrams', words: ['framework', 'frameworks', 'diagram', 'diagrams', 'model'], purposes: [], tags: ['framework', 'diagram'] }
+];
+var SECTORS = [
+  { label: 'Financial services', words: ['bank', 'banks', 'banking', 'finance', 'insurer', 'insurance'], sectors: ['Financial services', 'Insurance'] },
+  { label: 'Life sciences', words: ['pharma', 'pharmaceutical', 'life sciences'], sectors: ['Life sciences'] },
+  { label: 'Logistics', words: ['logistics', 'warehouse', 'supply chain'], sectors: ['Logistics'] },
+  { label: 'Media', words: ['media', 'studio', 'broadcast'], sectors: ['Media'] },
+  { label: 'Hospitality', words: ['hotel', 'hotels', 'hospitality'], sectors: ['Hospitality'] }
+];
+var TRY_QUERIES = ['consolidation costs', 'hybrid work 2022', 'team intro for a bank pitch', 'large office move proof', 'about us and values'];
+
+function wordRe(w) { return new RegExp(' ' + w.replace(/-/g, '[- ]') + ' '); }
+function parseQuery(q, over) {
+  over = over || {};
+  var no = over.no || [];
+  var nq = ' ' + norm(q).replace(/[^a-z0-9\- ]/g, ' ').replace(/\s+/g, ' ').trim() + ' ', rest = nq;
+  var P = { q: q, concepts: [], client: null, year: null, sector: null, recent: false, tokens: [], chips: [] };
+  function strip(w) { rest = rest.replace(new RegExp(' ' + w.replace(/-/g, '[- ]') + ' ', 'g'), '  '); }
+  CONCEPTS.forEach(function (c) {
+    var hit = c.words.filter(function (w) { return wordRe(w).test(nq); });
+    if (!hit.length) return;
+    hit.sort(function (a, b) { return b.length - a.length; }).forEach(strip);
+    if (no.indexOf('k:' + c.id) >= 0) return;
+    P.concepts.push(c); P.chips.push({ key: 'k:' + c.id, kind: 'Topic', label: c.label });
+  });
+  var names = DECKS.map(clientName).filter(function (n, i, a) { return n !== 'Internal' && n.indexOf('Various') < 0 && a.indexOf(n) === i; });
+  names.forEach(function (n) {
+    var full = norm(n);
+    if (wordRe(full).test(nq)) { strip(full); if (no.indexOf('client') < 0 && !P.client) { P.client = n; } }
+  });
+  var ym = nq.match(/ (20\d\d) /); if (ym) { strip(ym[1]); if (no.indexOf('year') < 0) P.year = +ym[1]; }
+  SECTORS.forEach(function (sec) {
+    var hit = sec.words.filter(function (w) { return wordRe(w).test(nq); });
+    if (hit.length) { hit.forEach(strip); if (no.indexOf('sector') < 0 && !P.sector) P.sector = sec; }
+  });
+  if (/ (recent|latest|newest|newer) /.test(nq)) { strip('recent'); strip('latest'); strip('newest'); strip('newer'); if (no.indexOf('recent') < 0) P.recent = true; }
+  if (over.client && no.indexOf('client') < 0) P.client = over.client;
+  if (over.year && no.indexOf('year') < 0) P.year = +over.year;
+  rest.split(' ').forEach(function (w) {
+    if (w.length < 3 || STOP.indexOf(w) >= 0 || /^20\d\d$/.test(w)) return;
+    var t = w.length > 4 ? w.replace(/(es|s)$/, '') : w;
+    if (P.tokens.indexOf(t) < 0) P.tokens.push(t);
+  });
+  if (P.client) P.chips.push({ key: 'client', kind: 'Client', label: P.client });
+  if (P.year) P.chips.push({ key: 'year', kind: 'Year', label: String(P.year) });
+  if (P.sector) P.chips.push({ key: 'sector', kind: 'Sector', label: P.sector.label });
+  if (P.recent) P.chips.push({ key: 'recent', kind: 'Newest', label: 'Recent work' });
+  P.hasTerms = P.concepts.length > 0 || P.tokens.length > 0;
+  return P;
+}
+var PURPOSE_PLAIN = { 'Cover': 'opens a deck', 'Define problem': 'sets out the problem', 'Define scope': 'defines the scope', 'Demonstrate credibility': 'shows who we are', 'Introduce solution': 'introduces the solution', 'Introduce team': 'introduces the team', 'Present options': 'lays out the options', 'Provide evidence': 'gives proof', 'Quantify economics': 'puts numbers on costs', 'Recommend decision': 'recommends a next step', 'Show process': 'explains how we work' };
+function scoreSlide(s, P) {
+  var why = [], sc = 0, pHit = false;
+  var title = norm(s.title), hay = norm([s.title, s.text, s.tags.join(' '), s.deckTitle].join(' '));
+  P.concepts.forEach(function (c) {
+    if (c.purposes.indexOf(s.purpose) >= 0) { sc += 3; pHit = true; why.push(PURPOSE_PLAIN[s.purpose] || 'fits the slide type'); }
+    var tg = c.tags.filter(function (t) { return s.tags.indexOf(t) >= 0; });
+    if (tg.length) { sc += 2 * Math.min(2, tg.length); why.push('covers ' + tg[0]); }
+    else {
+      var w = c.words.filter(function (x) { return hay.indexOf(norm(x)) >= 0; })[0];
+      if (w) { sc += 1.5; why.push('mentions “' + w + '”'); }
+    }
+  });
+  P.tokens.forEach(function (t) {
+    if (title.indexOf(t) >= 0) { sc += 2; why.push('has “' + t + '” in its title'); }
+    else if (hay.indexOf(t) >= 0) { sc += 1; why.push('mentions “' + t + '”'); }
+  });
+  if (!P.hasTerms) { sc = 1; if (!P.client && !P.year) why.push('matches your filters'); }
+  var lead = '';
+  if (sc > 0) {
+    if (P.client && P.year) lead = 'From ' + P.client + ', made in ' + P.year + '.';
+    else if (P.client) lead = 'From ' + P.client + '.';
+    else if (P.year) lead = 'Made in ' + P.year + '.';
+    if (P.sector && pHit && P.sector.sectors.indexOf(s.sector) >= 0) { sc += 1.5; why.push('suits ' + s.sector.toLowerCase() + ' work'); }
+    if (P.recent && s.year >= 2025) sc += 1;
+    if (s.status === 'Suggested') sc -= 0.4;
+    sc += s.used / 400;
+  }
+  var seen = {}, out = [];
+  why.forEach(function (w) { if (!seen[w]) { seen[w] = 1; out.push(w); } });
+  out = out.filter(function (w, i) {
+    if (w.indexOf('covers ') !== 0) return true;
+    var topic = w.slice(7).replace(/s$/, '');
+    return !out.some(function (o, j) { return j !== i && o.indexOf('covers ') !== 0 && o.indexOf(topic) >= 0; });
+  }).slice(0, 3);
+  var cov = out.filter(function (w) { return w.indexOf('covers ') === 0; });
+  if (cov.length > 1) { var ci0 = out.indexOf(cov[0]); out = out.filter(function (w) { return w.indexOf('covers ') !== 0; }); out.splice(Math.min(ci0, out.length), 0, 'covers ' + cov.map(function (w) { return w.slice(7); }).join(' and ')); }
+  var body = out.length > 1 ? out.slice(0, -1).join(', ') + ' and ' + out[out.length - 1] : out[0] || '';
+  if (body) body = body.charAt(0).toUpperCase() + body.slice(1) + '.';
+  return { score: sc, why: [lead, body].filter(Boolean).join(' ') };
+}
+function runSearch(P, sort) {
+  var res = [];
+  visibleIds().forEach(function (id) {
+    var s = slide(id);
+    if (P.client && s.client !== P.client) return;
+    if (P.year && s.year !== P.year) return;
+    var r = scoreSlide(s, P);
+    if (r.score > 0) res.push({ id: id, score: r.score, why: r.why });
+  });
+  var top = res.reduce(function (m, x) { return Math.max(m, x.score); }, 0), cut = Math.max(1, top * 0.4);
+  res = res.filter(function (x) { return x.score >= cut; });
+  res = res.filter(function (x) { return fOK(x.id); });
+  res.sort(function (a, b) {
+    if (sort === 'popular') return slide(b.id).used - slide(a.id).used;
+    if (sort === 'newest') return slide(b.id).year - slide(a.id).year || b.score - a.score;
+    return b.score - a.score;
+  });
+  var seen = {}, shown = [];
+  res.forEach(function (r) { var g = DUPG[r.id]; if (g) { if (seen[g]) return; seen[g] = 1; } shown.push(r); });
+  return { all: res, shown: shown, hidden: res.length - shown.length };
+}
+function searchHref(qs) {
+  var p = [];
+  ['q', 'sort', 'client', 'year', 'no'].forEach(function (k) { if (qs[k]) p.push(k + '=' + encodeURIComponent(qs[k])); });
+  return '#/search?' + p.join('&');
+}
+function qsOf(r) { var o = {}; ['q', 'sort', 'client', 'year', 'no'].forEach(function (k) { o[k] = r.q.get(k) || ''; }); return o; }
+
+/* =================================================================
+   Library (Netflix-style home)
+================================================================= */
+function clientCounts() {
+  var m = {}; visibleIds().forEach(function (id) { var c = slide(id).client; m[c] = (m[c] || 0) + 1; });
+  return m;
+}
+function yearCounts() {
+  var m = {}; visibleIds().forEach(function (id) { var y = slide(id).year; m[y] = (m[y] || 0) + 1; });
+  return m;
+}
+function browseIds(key) {
+  var vis = fvis(), parts = key.split(':'), k = parts[0], v = parts.slice(1).join(':');
+  function st(x) { return slide(x).status; }
+  if (k === 'best') return dedupe(rank(vis.filter(function (id) { return SLIDE_MAP[id].featured && st(id) === 'Approved'; })));
+  if (k === 'popular') return dedupe(vis.filter(function (id) { return st(id) !== 'Retired'; }).sort(function (a, b) { return slide(b).usedMonth - slide(a).usedMonth || slide(b).used - slide(a).used; }));
+  if (k === 'recent') return dedupe(rank(vis.filter(function (id) { return st(id) === 'Approved'; })).sort(function (a, b) { return slide(b).year - slide(a).year; }));
+  if (k === 'suggested') return vis.filter(function (id) { return st(id) === 'Suggested'; });
+  if (k === 'retired') return vis.filter(function (id) { return st(id) === 'Retired'; });
+  if (k === 'client') return dedupe(rank(vis.filter(function (id) { return slide(id).client === v; })));
+  if (k === 'year') return dedupe(rank(vis.filter(function (id) { return String(slide(id).year) === v; })));
+  return [];
+}
+var ROW_INFO = {
+  best: ['Best of the Best', 'Hand-picked slides. Row names TBD.'],
+  popular: ['Most downloaded', 'Sample counts for now.'],
+  recent: ['Recently added', 'Newest approved slides first.'],
+  suggested: ['Suggested: waiting for a person to check', 'AI added or labelled these. Only Editors and Curators see them.'],
+  retired: ['Retired', 'Kept for records. Not downloadable. Curators only.']
+};
+function browseTitle(key) {
+  var p = key.split(':');
+  if (p[0] === 'client') return 'Client: ' + p.slice(1).join(':');
+  if (p[0] === 'year') return 'Year: ' + p[1];
+  if (p[0] === 'decks') return 'Decks';
+  return ROW_INFO[p[0]] ? ROW_INFO[p[0]][0] : 'Browse';
+}
+function rowHTML(key, ids, opts) {
+  opts = opts || {};
+  if (!ids.length && !opts.tiles) return '';
+  var info = ROW_INFO[key] || [opts.title, opts.sub], list = ids.slice(0, 12), rid = 'row-' + key;
+  var h = '<section class="row" aria-labelledby="' + rid + '"><div class="row-head"><div><h2 id="' + rid + '">' + esc(info[0]) + '</h2>' + (info[1] ? '<div class="sub">' + esc(info[1]) + '</div>' : '') + '</div>' +
+    '<div class="acts">' + (opts.seeAll === false ? '' : '<a class="btn-link" href="#/browse/' + encodeURIComponent(key) + '">See all ' + ids.length + '</a>') +
+    btn({ icon: 'left', cls: 'btn-ghost btn-icon btn-sm', action: 'row-scroll', data: { dir: '-1' }, aria: 'Scroll ' + info[0] + ' left' }) +
+    btn({ icon: 'right', cls: 'btn-ghost btn-icon btn-sm', action: 'row-scroll', data: { dir: '1' }, aria: 'Scroll ' + info[0] + ' right' }) + '</div></div>';
+  h += '<ul class="row-scroller">' + list.map(function (id) { return '<li>' + (opts.decks ? deckCard(id) : slideCard(id, { list: list })) + '</li>'; }).join('') + '</ul></section>';
+  return h;
+}
+function fNote() {
+  return fCount() ? '<p class="f-note">' + ic('check', 'ic-sm') + 'Filters on: only matching slides are shown. ' + btn({ label: 'Clear filters', cls: 'btn-ghost btn-sm', action: 'f-clear' }) + '</p>' : '';
+}
+function viewLibrary() {
+  var h = '<div class="sv-wrap"><div class="page-head"><div><h1 class="h1" tabindex="-1">Home</h1><p class="lede">Browse trusted slides, or use the search box. Tick slides to add them to your cart.</p></div></div>';
+  h += fNote();
+  var rows0 = h.length;
+  h += rowHTML('best', browseIds('best'));
+  h += rowHTML('popular', browseIds('popular'));
+  h += rowHTML('recent', browseIds('recent'));
+  if (S.role !== 'viewer') h += rowHTML('suggested', browseIds('suggested'));
+  var decks = DECKS.filter(function (d) { return canSee(d.status) && d.status !== 'Retired' && deckOK(d); }).map(function (d) { return d.id; });
+  h += rowHTML('decks', decks, { title: 'Decks in Best of the Best', sub: 'Arranged by client and year. Folder names TBD.', decks: true, seeAll: false });
+  var cc = clientCounts(), yc = yearCounts(), dcC = {}, dcY = {};
+  DECKS.forEach(function (d) { if (!canSee(d.status) || d.status === 'Retired') return; var c = clientName(d); dcC[c] = (dcC[c] || 0) + 1; dcY[d.year] = (dcY[d.year] || 0) + 1; });
+  h += '<section class="row" aria-labelledby="row-clients"><div class="row-head"><div><h2 id="row-clients">Browse by client</h2><div class="sub">Straight from folder names.</div></div></div><div class="tiles">' +
+    Object.keys(cc).sort().map(function (c) { return '<a class="tile" href="#/browse/' + encodeURIComponent('client:' + c) + '"><b>' + esc(c) + '</b><span class="tile-n">' + plural(dcC[c] || 0, 'deck') + '</span><span class="meta">' + plural(cc[c], 'slide') + '</span></a>'; }).join('') + '</div></section>';
+  h += '<section class="row" aria-labelledby="row-years"><div class="row-head"><div><h2 id="row-years">Browse by year</h2></div></div><div class="tiles">' +
+    Object.keys(yc).sort().reverse().map(function (y) { return '<a class="tile" href="#/browse/' + encodeURIComponent('year:' + y) + '"><b>' + y + '</b><span class="tile-n">' + plural(dcY[y] || 0, 'deck') + '</span><span class="meta">' + plural(yc[y], 'slide') + '</span></a>'; }).join('') + '</div></section>';
+  if (S.role === 'curator') h += rowHTML('retired', browseIds('retired'));
+  if (fCount() && h.indexOf('row-scroller') < 0) h += stateBlock('search', 'No slides match these filters', 'Try removing one, or clear them all.', btn({ label: 'Clear filters', action: 'f-clear' }));
+  return h + '</div>';
+}
+function viewBrowse(r) {
+  var key = r.id || '', title = browseTitle(key), h = '<div class="sv-wrap"><div class="page-head"><div><h1 class="h1" tabindex="-1">' + esc(title) + '</h1>';
+  if (key === 'decks') {
+    var decks = DECKS.filter(function (d) { return canSee(d.status) && deckOK(d); }).map(function (d) { return d.id; });
+    return h + '</div></div><div class="grid" style="margin-top:16px">' + decks.map(deckCard).join('') + '</div></div>';
+  }
+  var ids = browseIds(key), info = ROW_INFO[key.split(':')[0]];
+  h += '<p class="lede">' + (info ? esc(info[1]) + ' ' : '') + plural(ids.length, 'slide') + '.</p></div>' +
+    (ids.length ? btn({ label: 'Select all', icon: 'check', cls: 'btn-sm', action: 'sel-all', data: { list: regList(ids) } }) : '') + '</div>' + fNote();
+  if (!ids.length) return h + stateBlock('search', 'Nothing here at your access level', 'Try a different row, or switch Access to see more.', '<a class="btn" href="#/">Back to Home</a>') + '</div>';
+  return h + '<div class="grid" style="margin-top:16px">' + ids.map(function (id) { return slideCard(id, { list: ids }); }).join('') + '</div></div>';
+}
+
+/* =================================================================
+   Search results
+================================================================= */
+function viewSearch(r) {
+  var qs = qsOf(r), q = qs.q.trim(), key = location.hash;
+  var h = '<div class="sv-wrap">';
+  if (!q) {
+    return h + '<h1 class="h1" tabindex="-1">Search</h1>' + stateBlock('search', 'Type what you need in the search box', 'Describe the slide in your own words, for example “cost comparison for a consolidation project”.', '<div class="try" style="justify-content:center">' + TRY_QUERIES.map(function (t) { return '<a class="chip-btn" href="' + searchHref({ q: t }) + '">' + esc(t) + '</a>'; }).join('') + '</div>') + '</div>';
+  }
+  h += '<div class="page-head"><h1 class="h1" tabindex="-1">Results for “' + esc(q) + '”</h1></div>';
+  if (!S.searchDone[key]) {
+    setTimeout(function () { S.searchDone[key] = true; if (location.hash === key) render(); }, 700);
+    return h + '<p class="thinking">' + ic('spinner', 'spin') + 'Reading your request, matching slides, checking why each one fits…</p><div class="grid">' + [1, 2, 3, 4].map(function () { return '<div class="skel skel-card"></div>'; }).join('') + '</div></div>';
+  }
+  var no = qs.no ? qs.no.split(',') : [];
+  var P = parseQuery(q, { no: no, client: qs.client, year: qs.year });
+  var res = runSearch(P, qs.sort || 'best'), ids = res.shown.map(function (x) { return x.id; });
+  S.lastResults = key;
+  /* How we read the request */
+  h += '<div class="interp"><span class="meta" data-tip="Simulated for now. The real build uses an AI model." data-tip-pos="start">' + ic('sparkle', 'ic-sm') + 'We read this as:</span>';
+  if (P.chips.length) h += P.chips.map(function (c) {
+    var href = searchHref(Object.assign({}, qs, { no: no.concat([c.key]).join(',') }));
+    return '<a class="chip-x" href="' + esc(href) + '" aria-label="Remove ' + esc(c.kind + ': ' + c.label) + '"><span class="k">' + esc(c.kind) + ':</span> ' + esc(c.label) + ic('x') + '</a>';
+  }).join('');
+  if (P.tokens.length) h += '<span class="meta">and the words ' + P.tokens.map(function (t) { return '“' + esc(t) + '”'; }).join(', ') + '</span>';
+  if (!P.chips.length && !P.tokens.length) h += '<span class="meta">no specific topic, showing what fits your filters</span>';
+  h += '</div>';
+  /* Refine */
+  function opt(v, label, cur) { return '<option value="' + esc(v) + '"' + (String(cur) === String(v) ? ' selected' : '') + '>' + esc(label) + '</option>'; }
+  h += '<form class="refine" id="refine" data-q="' + esc(q) + '" data-no="' + esc(qs.no) + '" data-client="' + esc(qs.client) + '" data-year="' + esc(qs.year) + '"><label>Sort <select class="select select-sm" name="sort">' + opt('best', 'Best match', qs.sort || 'best') + opt('popular', 'Most downloaded', qs.sort) + opt('newest', 'Newest first', qs.sort) + '</select></label><span class="spacer"></span>' +
+    (ids.length ? btn({ label: S.sel.length && ids.every(function (i) { return S.sel.indexOf(i) >= 0 || slide(i).status === 'Retired'; }) ? 'Clear selection' : 'Select all ' + ids.length, icon: 'check', cls: 'btn-sm', action: 'sel-all', data: { list: regList(ids) } }) : '') + '</form>' + fNote();
+  if (!ids.length) {
+    h += stateBlock('search', 'No slides match that yet', 'Try fewer words, remove a chip above, or clear the filters on the left. Slides may also be hidden at your access level.', '<div class="try" style="justify-content:center">' + TRY_QUERIES.slice(0, 3).map(function (t) { return '<a class="chip-btn" href="' + searchHref({ q: t }) + '">' + esc(t) + '</a>'; }).join('') + '</div>');
+  } else {
+    var decks = {}; ids.forEach(function (i) { decks[SLIDE_MAP[i].deckId] = 1; });
+    h += '<p class="summary"><strong>' + plural(ids.length, 'slide') + '</strong> from ' + plural(Object.keys(decks).length, 'deck') + '. Best matches first.' + (res.hidden ? ' ' + plural(res.hidden, 'near-identical copy', 'near-identical copies') + ' grouped under “Also in…”.' : '') + '</p>';
+    h += '<div class="grid">' + res.shown.map(function (x) { return slideCard(x.id, { why: x.why, list: ids }); }).join('') + '</div>';
+  }
+  var dm = DECKS.filter(function (d) { return canSee(d.status) && ((P.client && clientName(d) === P.client) || P.tokens.some(function (t) { return norm(d.title).indexOf(t) >= 0; })); });
+  if (dm.length) h += '<p class="summary" style="margin-top:20px">Decks that also match: ' + dm.map(function (d) { return '<a href="#/deck/' + d.id + '">' + esc(d.title) + '</a>'; }).join(' · ') + '</p>';
+  h += '<details class="how"><summary>How does this search work?</summary><ol><li>Your request is read and turned into filters (client, year, sector) and topics.</li><li>Slides are matched on those filters, then on meaning (the real build uses text search plus embeddings in Postgres).</li><li>Each result says why it fits. Near-identical slides are grouped, never deleted.</li></ol><p class="meta" style="margin-top:8px">Steps 1 and 2 are simulated here. Results are samples.</p></details></div>';
+  return h;
+}
+
+/* =================================================================
+   Deck and slide pages
+================================================================= */
+function noAccess(what, st) {
+  return '<div class="sv-wrap">' + stateBlock('lock', 'This ' + what + ' isn’t visible at your access level', st === 'Retired' ? 'Retired items are kept for records and shown to Curators only.' : 'It is Suggested: AI added it and a person hasn’t checked it yet. Editors and Curators can see it. Switch Access in the top right.', '<a class="btn" href="#/">Back to Home</a>') + '</div>';
+}
+function viewDeck(id) {
+  var d = DECK_MAP[id];
+  if (!d) return '<div class="sv-wrap">' + stateBlock('search', 'Deck not found', 'It may have been removed.', '<a class="btn" href="#/">Back to Home</a>') + '</div>';
+  if (!canSee(d.status)) return noAccess('deck', d.status);
+  var ids = DECK_SLIDES[id].filter(function (x) { return canSee(slide(x).status); });
+  var h = '<div class="sv-wrap"><div class="page-head"><div><h1 class="h1" tabindex="-1">' + esc(d.title) + '</h1><div class="badges" style="margin-top:8px">' + statusBadge(d.status) + '<span class="badge">' + esc(d.docType) + '</span><span class="badge">' + ic('folder') + esc(folderOf(d)) + '</span></div><p class="lede">' + esc(d.summary) + '</p></div>' +
+    '<div class="row-flex">' + btn({ label: 'Select all ' + ids.length, icon: 'check', cls: 'btn-sm', action: 'sel-all', data: { list: regList(ids) } }) + btn({ label: 'Download whole deck', icon: 'download', cls: 'btn-sm btn-primary', action: 'dl-deck', data: { id: id } }) + '</div></div>';
+  if (d.status === 'Suggested') h += '<div class="notice">' + ic('alert') + '<span>This deck is <strong>Suggested</strong>. Its labels came from AI and nobody has checked them yet.</span></div>';
+  if (d.status === 'Retired') h += '<div class="notice danger">' + ic('alert') + '<span>This deck is <strong>Retired</strong>. It is kept for records and can’t be downloaded.</span></div>';
+  return h + '<div class="grid" style="margin-top:16px">' + ids.map(function (x) { return slideCard(x, { list: ids }); }).join('') + '</div></div>';
+}
+function srcTag(kind, ok) {
+  return kind === 'folder' ? '<span class="src" title="This came from the folder name, so it is reliable.">' + ic('folder') + 'From folder</span>' :
+    '<span class="src" title="' + (ok ? 'Suggested by AI, then approved by a person.' : 'Suggested by AI. Not yet checked by a person.') + '">' + ic('sparkle') + (ok ? 'AI-suggested, approved' : 'AI-suggested') + '</span>';
+}
+function viewSlide(id) {
+  var s = slide(id);
+  if (!s) return '<div class="sv-wrap">' + stateBlock('search', 'Slide not found', 'It may have been removed.', '<a class="btn" href="#/">Back to Home</a>') + '</div>';
+  if (!canSee(s.status)) return noAccess('slide', s.status);
+  var d = s.deck, ok = s.status === 'Approved', ret = s.status === 'Retired', sel = S.sel.indexOf(id) >= 0, also = alsoIn(id);
+  var sibs = DECK_SLIDES[d.id].filter(function (x) { return canSee(slide(x).status); }), i = sibs.indexOf(id);
+  var h = '<div class="sv-wrap"><div class="slide-detail"><div>';
+  h += '<h1 class="h1" tabindex="-1" style="margin-bottom:12px">' + esc(s.title) + '</h1><button type="button" class="big-preview" style="display:block;width:100%;padding:0;cursor:zoom-in;background:none" data-action="preview" data-id="' + id + '" data-list="' + regList([id]) + '" aria-label="Open a larger preview">' + thumbSVG(id) + '</button>';
+  h += '<div class="row-flex" style="margin-top:12px;justify-content:center;gap:14px">' + (i > 0 ? '<a class="btn btn-sm btn-icon" href="#/slide/' + sibs[i - 1] + '" aria-label="Previous slide in this deck" title="Previous slide">' + ic('left') + '</a>' : '<span class="btn-icon" style="width:36px"></span>') + '<span class="meta">Slide ' + s.pos + ' of ' + DECK_SLIDES[d.id].length + ' in this deck</span>' + (i < sibs.length - 1 ? '<a class="btn btn-sm btn-icon" href="#/slide/' + sibs[i + 1] + '" aria-label="Next slide in this deck" title="Next slide">' + ic('right') + '</a>' : '<span class="btn-icon" style="width:36px"></span>') + '</div>';
+  h += '<section class="panel" style="margin-top:16px"><h2>Text found on the slide</h2><p class="slide-text">' + esc(s.text) + '</p><p class="meta" style="margin-top:8px">Search reads this text. The picture is a sample drawing for now.</p></section></div>';
+  h += '<div class="stack-panels">';
+  h += '<section class="panel"><h2>Use this slide</h2>' + (ret ? '<div class="notice danger">' + ic('alert') + '<span>Retired. Kept for records and can’t be downloaded.</span></div>' : '') +
+    '<div class="row-flex">' + (ret ? '' : btn({ label: sel ? 'Selected' : 'Select', icon: 'check', cls: 'btn-sm', action: 'sel-one', data: { id: id }, pressed: sel }) + btn({ label: 'Download only this slide', icon: 'download', cls: 'btn-sm btn-primary', action: 'dl-one', data: { id: id } })) + btn({ label: 'Open deck', cls: 'btn-sm', href: '#/deck/' + d.id }) + '</div>' +
+    (s.status === 'Suggested' ? '<div class="notice" style="margin-bottom:0">' + ic('alert') + '<span><strong>Suggested.</strong> Labels are from AI and unchecked. Check with a Curator before sending to a client.</span></div>' : '') + '</section>';
+  h += '<section class="panel"><h2>Labels</h2><dl class="trust">' +
+    '<dt>Status</dt><dd>' + statusBadge(s.status) + '</dd>' +
+    '<dt>Folder</dt><dd>' + esc(folderOf(d)) + srcTag('folder') + '</dd>' +
+    '<dt>Client</dt><dd>' + esc(s.client) + srcTag('folder') + '</dd>' +
+    '<dt>Year</dt><dd>' + s.year + srcTag('folder') + '</dd>' +
+    '<dt>Slide type</dt><dd>' + esc(s.purpose) + srcTag('ai', ok) + '</dd>' +
+    '<dt>Topics</dt><dd><span class="tags">' + s.tags.map(function (t) { return '<span class="tag ai">' + esc(t) + '</span>'; }).join('') + '</span>' + srcTag('ai', ok) + '</dd></dl>' +
+    (can('review') ? '<hr class="divider"><div class="row-flex">' + (s.status !== 'Approved' ? btn({ label: 'Approve labels', icon: 'shield', cls: 'btn-sm', action: 'set-status', data: { id: id, status: 'Approved' } }) : '') + (s.status !== 'Retired' ? btn({ label: 'Retire slide', icon: 'minus', cls: 'btn-sm btn-danger', action: 'set-status', data: { id: id, status: 'Retired' } }) : btn({ label: 'Restore as Suggested', cls: 'btn-sm', action: 'set-status', data: { id: id, status: 'Suggested' } })) + '</div><p class="meta" style="margin-top:8px">Curator tools. A full review screen comes later.</p>' : '') + '</section>';
+  if (also.length) h += '<section class="panel"><h2>Also in ' + plural(also.length, 'other deck') + '</h2><p class="meta" style="margin-bottom:8px">Near-identical slides. Nothing is deleted.</p><ul class="also-list">' + also.map(function (o) { var so = slide(o); return '<li><a class="t" href="#/slide/' + o + '" aria-hidden="true" tabindex="-1">' + thumbSVG(o) + '</a><div><a href="#/slide/' + o + '"><strong>' + esc(so.deckTitle) + '</strong></a><div class="meta">Slide ' + so.pos + ' · ' + so.year + (so.title !== s.title ? ' · titled “' + esc(so.title) + '”' : '') + '</div></div></li>'; }).join('') + '</ul></section>';
+  h += '</div></div>';
+  var more = dedupe(visibleIds().filter(function (x) { return x !== id && slide(x).purpose === s.purpose && slide(x).status !== 'Retired' && (!DUPG[id] || DUPG[x] !== DUPG[id]); })).slice(0, 10);
+  if (more.length) h += '<section class="row"><div class="row-head"><div><h2>More slides of this type: ' + esc(s.purpose) + '</h2></div></div><ul class="row-scroller">' + more.map(function (x) { return '<li>' + slideCard(x, { list: more }) + '</li>'; }).join('') + '</ul></section>';
+  return h + '</div>';
+}
+
+/* =================================================================
+   Create (placeholder) and Upload
+================================================================= */
+function viewCreate() {
+  return '<div class="sv-wrap"><h1 class="h1" tabindex="-1">Create</h1><p class="lede muted" style="margin-top:4px;max-width:60ch">Planned feature. Deck building will be added in the next phase.</p>' +
+    '<div class="ph-cards"><div class="card"><span class="ic-big">' + ic('plus', 'ic-big') + '</span><h2 class="h2">Build</h2><p class="meta">Start a new deck and fill it with slides from Home.</p><span class="badge" style="align-self:flex-start">Planned</span></div>' +
+    '<div class="card"><span class="ic-big">' + ic('layers', 'ic-big') + '</span><h2 class="h2">My decks</h2><p class="meta">Your saved drafts, to arrange and export.</p><span class="badge" style="align-self:flex-start">Planned</span></div></div>' +
+    '<div class="notice info" style="max-width:760px;margin-top:20px">' + ic('info') + '<span>For now, select slides on Home and download them. Slides from one deck come as one file. Slides from several decks come as a zip.</span></div></div>';
+}
+var SAMPLES = {
+  a: { name: 'Client G: regional expansion pitch', client: 'Client G (fictional)', slides: [['Client G: one network, three regions', 'Cover', 'cover', ['cover'], 'Regional expansion proposal. Sample text.'], ['Why regional teams feel disconnected', 'Define problem', 'bullets', ['problem'], 'Teams are split across offices and tools. Sample text.'], ['Hub and neighbourhood concept', 'Introduce solution', 'plan', ['concept', 'neighbourhoods'], 'A hub with satellite neighbourhoods. Sample text.'], ['Phased cost summary', 'Quantify economics', 'chart', ['cost', 'phasing'], 'Cost by phase over three years. Sample figures.'], ['Workplace strategy leadership', 'Introduce team', 'team', ['team', 'leadership'], 'Four sample leaders with fictional names and roles.', 'g2']] },
+  b: { name: 'Client H: store support office fit-out', client: 'Client H (fictional)', slides: [['Client H support office: scope summary', 'Define scope', 'bullets', ['scope'], 'Two floors, open plan and meeting rooms. Sample text.'], ['Our services at a glance', 'Demonstrate credibility', 'diagram', ['services', 'about us'], 'Workplace strategy, interior design, architecture and project management. Sample text.', 'g1'], ['Programme and handover', 'Show process', 'timeline', ['programme'], 'Eight months from design to handover. Sample text.'], ['Fee proposal structure', 'Quantify economics', 'table', ['fees'], 'Fixed fee for design, percentage fee for delivery. Sample structure.']] }
+};
+var UP_STAGES = ['Uploaded', 'Splitting into slides', 'Creating thumbnails', 'Suggesting labels (AI)', 'Grouping near-duplicates', 'Ready for review'];
+function viewUpload() {
+  if (!can('upload')) return '<div class="sv-wrap">' + stateBlock('lock', 'Only Editors and Curators can upload', 'Switch Access in the top right to try it.', '<a class="btn" href="#/">Back to Home</a>') + '</div>';
+  return '<div class="sv-wrap upload-wrap"><h1 class="h1" tabindex="-1">Upload</h1><p class="lede muted" style="margin-top:4px">Add a deck. SlideVault splits it into slides, makes thumbnails, suggests labels and groups near-duplicates. Everything arrives as <strong>Suggested</strong> until a Curator approves it.</p>' +
+    '<div class="notice" style="margin-top:14px">' + ic('info') + '<span>Simulated: no file is read. Pick a sample deck to see the steps.</span></div>' +
+    '<div class="dropzone" style="margin-top:14px">' + ic('upload', 'ic-big') + '<p style="margin:8px 0 12px"><strong>Drop a .pptx here</strong> or pick a sample</p><div class="row-flex" style="justify-content:center"><select id="sample" class="select select-sm" aria-label="Sample deck"><option value="a"' + (S.sample === 'a' ? ' selected' : '') + '>' + esc(SAMPLES.a.name) + '</option><option value="b"' + (S.sample === 'b' ? ' selected' : '') + '>' + esc(SAMPLES.b.name) + '</option></select>' + btn({ label: 'Upload sample', icon: 'upload', cls: 'btn-primary', action: 'upload-run' }) + '</div></div>' +
+    '<h2 class="h2" style="margin:24px 0 10px">Queue</h2><ul class="queue" id="queue">' + queueHTML() + '</ul></div>';
+}
+function queueHTML() {
+  if (!S.uploads.length) return '<li class="meta">Nothing uploaded yet.</li>';
+  return S.uploads.slice().reverse().map(function (u) {
+    return '<li><strong>' + esc(u.name) + '</strong><div class="qsteps">' + UP_STAGES.map(function (st, i) {
+      var cls = i < u.step ? 'done' : (i === u.step && !u.done ? 'now' : '');
+      return '<span class="' + cls + '">' + (i < u.step || u.done ? ic('check', 'ic-sm') : '') + esc(st) + '</span>';
+    }).join('') + '</div>' + (u.done ? '<p class="meta" style="margin-top:8px">' + plural(u.n, 'slide') + ' added as Suggested' + (u.grouped ? ', ' + plural(u.grouped, 'slide') + ' grouped with near-identical slides already in the library' : '') + '. <a href="#/deck/' + u.deckId + '">Open the deck</a> or <a href="#/browse/suggested">see all Suggested</a>.</p>' : '') + '</li>';
+  }).join('');
+}
+function runUpload() {
+  var sm = SAMPLES[S.sample], u = { id: 'up' + (++S.uploadN), name: sm.name, step: 0, done: false, key: S.sample };
+  S.uploads.push(u); $('#queue').innerHTML = queueHTML();
+  var t = setInterval(function () {
+    u.step++;
+    if (u.step >= UP_STAGES.length - 1) { clearInterval(t); finishUpload(u); }
+    var q = $('#queue'); if (q) q.innerHTML = queueHTML();
+  }, 800);
+}
+function finishUpload(u) {
+  var sm = SAMPLES[u.key], did = 'u' + u.id, grouped = 0;
+  DECKS.push({ id: did, title: sm.name, client: sm.client, docType: 'Past submission', cls: 'Reusable', status: 'Suggested', service: 'Multiple service lines', sector: 'Cross-sector', ptype: null, office: 'Global', year: 2026, owner: 'You', approver: null, reviewed: null, conf: null, version: 'v1 (new)', pal: 0, used: 0, usedMonth: 0, lastUsed: null, tags: [], summary: 'Sample deck you just uploaded. Labels are AI suggestions that nobody has checked yet.' });
+  sm.slides.forEach(function (r, i) {
+    var sid = did + 's' + (i + 1);
+    SLIDES.push({ id: sid, deckId: did, pos: i + 1, title: r[0], purpose: r[1], stage: 'Proposal', layout: r[2], tags: r[3], text: r[4], usedMonth: 0, used: 0, featured: false });
+    if (r[5]) { DUPG[sid] = r[5]; grouped++; }
+  });
+  reindex(); u.done = true; u.step = UP_STAGES.length; u.deckId = did; u.n = sm.slides.length; u.grouped = grouped;
+  toast('Upload finished. ' + plural(u.n, 'slide') + ' added as Suggested.', { label: 'Open deck', href: '#/deck/' + did });
+}
+
+/* =================================================================
+   Dialogs: preview, also-in, download, tiers
+================================================================= */
+var dlg = $('#dlg'), DLG = { timer: null };
+function openDialog(html, wide) {
+  dlg.className = 'slidevault sv-dialog' + (wide ? ' wide' : ''); dlg.setAttribute('data-theme', S.theme); dlg.innerHTML = html;
+  if (!dlg.open) dlg.showModal();
+}
+function closeDialog() { if (dlg.open) dlg.close(); }
+function dlgHead(title, sub) {
+  return '<div class="dlg-head"><div><h2 id="dlg-title">' + esc(title) + '</h2>' + (sub ? '<p class="meta">' + esc(sub) + '</p>' : '') + '</div>' + btn({ icon: 'x', cls: 'btn-icon btn-ghost', action: 'dlg-close', aria: 'Close' }) + '</div>';
+}
+dlg.addEventListener('click', function (e) { if (e.target === dlg) closeDialog(); });
+dlg.addEventListener('close', function () { clearInterval(DLG.timer); LB.open = false; });
+dlg.addEventListener('keydown', function (e) { if (LB.open && e.key === 'ArrowLeft') { e.preventDefault(); lbMove(-1); } else if (LB.open && e.key === 'ArrowRight') { e.preventDefault(); lbMove(1); } });
+
+var LB = { ids: [], i: 0, open: false };
+function openLB(ids, i) { LB.ids = ids; LB.i = i; LB.open = true; renderLB(); }
+function lbMove(dir) { var n = LB.ids.length; if (n < 2) return; LB.i = (LB.i + dir + n) % n; renderLB(dir > 0 ? 'lb-next' : 'lb-prev'); }
+function renderLB(focus) {
+  var id = LB.ids[LB.i], s = slide(id), n = LB.ids.length, sel = S.sel.indexOf(id) >= 0, ret = s.status === 'Retired';
+  openDialog(dlgHead(s.title, s.client + ' · ' + s.year + ' · slide ' + s.pos + ' of ' + s.deckTitle) +
+    '<div class="dlg-body"><div class="lb-stage" style="' + (s.ratio === '4:3' ? 'aspect-ratio:4/3;max-width:70%' : '') + '">' + thumbSVG(id) +
+    (n > 1 ? btn({ icon: 'left', cls: 'lb-nav lb-prev', action: 'lb-prev', aria: 'Previous slide' }) + btn({ icon: 'right', cls: 'lb-nav lb-next', action: 'lb-next', aria: 'Next slide' }) : '') + '</div>' +
+    '<div class="lb-caption"><div class="badges">' + statusBadge(s.status) + '<span class="badge">' + ic('folder') + esc(folderOf(s.deck)) + '</span>' + (alsoIn(id).length ? '<span class="badge">' + ic('copy') + 'Also in ' + plural(alsoIn(id).length, 'other deck') + '</span>' : '') + '</div>' + (n > 1 ? '<span class="counter">' + (LB.i + 1) + ' of ' + n + '</span>' : '') + '</div></div>' +
+    '<div class="dlg-foot"><a class="btn btn-sm" href="#/slide/' + id + '" data-action="dlg-close">Open slide page</a>' +
+    (ret ? '' : btn({ label: sel ? 'Selected' : 'Select', icon: 'check', cls: 'btn-sm', action: 'lb-select', pressed: sel }) + btn({ label: 'Download only this slide', icon: 'download', cls: 'btn-sm btn-primary', action: 'lb-download' })) + '</div>', true);
+  var f = focus && dlg.querySelector('[data-action="' + focus + '"]'); if (f) f.focus();
+}
+function openAlso(id) {
+  var s = slide(id), also = alsoIn(id);
+  openDialog(dlgHead('Also in ' + plural(also.length, 'other deck'), 'This slide, or one almost identical, appears in other decks. Nothing is deleted.') +
+    '<div class="dlg-body"><ul class="also-list">' + [id].concat(also).map(function (o) { var so = slide(o); return '<li><a class="t" href="#/slide/' + o + '" data-action="dlg-close" tabindex="-1" aria-hidden="true">' + thumbSVG(o) + '</a><div><a href="#/slide/' + o + '" data-action="dlg-close"><strong>' + esc(so.deckTitle) + '</strong></a>' + (o === id ? ' <span class="badge">Shown</span>' : '') + '<div class="meta">Slide ' + so.pos + ' · ' + so.year + ' · ' + so.status + '</div></div></li>'; }).join('') + '</ul></div>' +
+    '<div class="dlg-foot">' + btn({ label: 'Close', action: 'dlg-close' }) + '</div>');
+}
+function dlPlan(ids) {
+  var ok = [], skip = [], by = {}, order = [];
+  ids.forEach(function (id) { (slide(id).status === 'Retired' ? skip : ok).push(id); });
+  ok.forEach(function (id) { var d = SLIDE_MAP[id].deckId; if (!by[d]) { by[d] = []; order.push(d); } by[d].push(id); });
+  var files = order.map(function (d) { return { deckId: d, n: by[d].length, name: DECK_MAP[d].title.replace(/[:\/]/g, '-') + ' (' + plural(by[d].length, 'slide') + ').pptx' }; });
+  return { ok: ok, skip: skip, files: files, zip: files.length > 1, suggested: ok.filter(function (id) { return slide(id).status === 'Suggested'; }).length };
+}
+function dlSummary(p) { return !p.ok.length ? 'nothing to download' : p.zip ? 'a zip of ' + p.files.length + ' editable .pptx files (one per deck)' : 'one editable .pptx'; }
+var DL_STEPS = ['Checking access and approval', 'Collecting the source slides', 'Building editable PowerPoint', 'Checking nothing is left from slides you did not pick'];
+function openDownload(ids) {
+  var p = dlPlan(ids);
+  if (!p.ok.length) { toast('Retired slides can’t be downloaded.'); return; }
+  DLG.p = p; DLG.step = 0; renderDL(); clearInterval(DLG.timer);
+  DLG.timer = setInterval(function () { DLG.step++; if (DLG.step >= DL_STEPS.length) clearInterval(DLG.timer); renderDL(); }, 650);
+}
+function renderDL() {
+  var p = DLG.p, done = DLG.step >= DL_STEPS.length, name = p.zip ? 'SlideVault-' + p.ok.length + '-slides.zip' : p.files[0].name;
+  openDialog(dlgHead('Download ' + plural(p.ok.length, 'slide'), 'You get ' + dlSummary(p) + '. Slides stay editable.') +
+    '<div class="dlg-body"><ul class="steps">' + DL_STEPS.map(function (t, i) { var c = i < DLG.step ? 'done' : (i === DLG.step ? 'now' : ''); return '<li class="' + c + '"><span class="st">' + (i < DLG.step ? ic('check', 'ic-sm') : i === DLG.step ? ic('spinner', 'ic-sm spin') : '') + '</span>' + esc(t) + '</li>'; }).join('') + '</ul>' +
+    (done ? '<h3 class="h2" style="margin-top:14px">' + (p.zip ? esc(name) : 'Your file') + '</h3><ul class="dl-files">' + p.files.map(function (f) { return '<li>' + ic('file') + '<span style="flex:1;min-width:0;overflow-wrap:anywhere">' + esc(f.name) + '</span><span class="meta">' + plural(f.n, 'slide') + '</span></li>'; }).join('') + '</ul>' +
+      (p.suggested ? '<div class="notice" style="margin-bottom:0">' + ic('alert') + '<span>' + plural(p.suggested, 'slide') + ' ' + (p.suggested === 1 ? 'is' : 'are') + ' <strong>Suggested</strong> (not yet checked). Check before sending to a client.</span></div>' : '') +
+      (p.skip.length ? '<div class="notice danger" style="margin-bottom:0">' + ic('alert') + '<span>' + plural(p.skip.length, 'Retired slide') + ' left out. Retired slides can’t be downloaded.</span></div>' : '') +
+      '<p class="meta" style="margin-top:10px">Simulated: no file is created. Real files hold only the slides you picked.</p>' : '') + '</div>' +
+    '<div class="dlg-foot">' + btn({ label: done ? 'Done' : 'Cancel', cls: done ? 'btn-primary' : '', action: 'dlg-close' }) + '</div>');
+}
+function openRoleInfo() {
+  openDialog(dlgHead('What each tier can see', 'Assumed for now. To confirm.') +
+    '<div class="dlg-body"><table class="tier-table"><thead><tr><th>Access</th><th>Sees</th><th>Can do</th></tr></thead><tbody>' +
+    '<tr><td><strong>Viewer</strong></td><td>Approved slides</td><td>Search, preview, download</td></tr>' +
+    '<tr><td><strong>Editor</strong></td><td>Approved and Suggested</td><td>Also upload decks</td></tr>' +
+    '<tr><td><strong>Curator</strong></td><td>Approved, Suggested and Retired</td><td>Also approve labels and retire slides</td></tr></tbody></table>' +
+    '<p class="meta" style="margin-top:12px">Login and access keys come from the host platform. This switch stands in for them.</p></div>' +
+    '<div class="dlg-foot">' + btn({ label: 'Close', action: 'dlg-close' }) + '</div>');
+}
+
+/* =================================================================
+   Selection bar, toasts
+================================================================= */
+function cartIds() { return S.sel.filter(function (id) { return !S.off[id]; }); }
+function cartToggleBtn(min) {
+  return btn({ icon: min ? 'left' : 'right', cls: 'btn-ghost btn-icon btn-sm cart-tg', action: 'cart-toggle', aria: min ? 'Expand cart' : 'Collapse cart to a thin rail' });
+}
+function cartMini() {
+  var n = S.sel.length, inc = cartIds();
+  return '<div class="cart-mini"><button type="button" class="mini-open" data-action="cart-toggle" aria-label="Expand cart, ' + plural(n, 'slide') + '">' + ic('left') +
+    '<span class="mini-ic" aria-hidden="true">' + ic('cart') + (n ? '<span class="mini-n">' + n + '</span>' : '') + '</span><span class="mini-t">Cart</span></button>' +
+    (inc.length ? btn({ icon: 'download', cls: 'btn-primary btn-icon btn-sm', action: 'sel-download', aria: 'Download ' + plural(inc.length, 'slide') + ' as pptx' }) : '') + '</div>';
+}
+function selBarHTML() {
+  var n = S.sel.length;
+  if (!n) return '<div class="cart cart-empty"><div class="cart-top"><h2 class="cart-h">Cart</h2><span class="cart-tools">' + cartToggleBtn(false) + '</span></div><div class="cart-empty-body"><span class="ce-ic" aria-hidden="true">' + ic('cart') + '</span><p class="ce-t">Your cart is empty</p><p class="meta">Tick the box on any slide to add it. Download them together from here.</p></div></div>' + cartMini();
+  var inc = cartIds(), p = dlPlan(inc), decks = {}; inc.forEach(function (id) { decks[SLIDE_MAP[id].deckId] = 1; });
+  var items = S.sel.map(function (id, idx) {
+    var s = slide(id), off = !!S.off[id];
+    return '<li class="ci' + (off ? ' off' : '') + '" draggable="true" data-id="' + esc(id) + '"><button type="button" class="grip" data-id="' + esc(id) + '" aria-label="Reorder: ' + esc(s.title) + ', position ' + (idx + 1) + ' of ' + n + '. Press up or down arrow to move." title="Drag to reorder">' + ic('grip') + '</button><input type="checkbox" data-action="cart-inc" data-id="' + esc(id) + '"' + (off ? '' : ' checked') + ' aria-label="Include in download: ' + esc(s.title) + '"><div class="t">' + thumbSVG(id) + '<span class="ci-n" aria-hidden="true">' + (idx + 1) + '</span></div><div class="ci-txt"><a href="#/slide/' + esc(id) + '">' + esc(s.title) + '</a><span class="meta">' + esc(s.deckTitle) + '</span></div>' +
+      btn({ icon: 'x', cls: 'btn-ghost btn-icon btn-sm', action: 'cart-rm', data: { id: id }, aria: 'Remove from cart: ' + s.title }) + '</li>';
+  }).join('');
+  var none = 'Tick at least one slide in the cart.';
+  return '<div class="cart" role="region" aria-label="Cart"><div class="cart-top"><h2 class="cart-h">Cart<span class="count">' + n + '</span></h2><span class="cart-tools">' + btn({ label: 'Clear', cls: 'btn-ghost btn-sm', action: 'sel-clear' }) + cartToggleBtn(false) + '</span></div>' +
+    '<ul class="cart-items" id="cart-list">' + items + '</ul>' + (n > 1 ? '<p class="ci-hint">Drag to reorder. Slides download in this order.</p>' : '') +
+    '<p class="txt"><strong>' + inc.length + ' of ' + plural(n, 'slide') + '</strong> in the download' + (inc.length ? ' · ' + plural(Object.keys(decks).length, 'deck') + '. Downloads as ' + dlSummary(p) + '.' : '.') + '</p>' +
+    '<div class="cart-acts">' + btn({ label: 'Preview', icon: 'eye', cls: 'btn-sm', action: 'sel-preview', disabled: inc.length ? null : none }) + btn({ label: 'Download as pptx', icon: 'download', cls: 'btn-sm btn-primary', action: 'sel-download', disabled: inc.length ? null : none }) + '</div></div>' + cartMini();
+}
+function applyCartMin() { $('.sv-shell').classList.toggle('cart-min', !!S.cartMin); }
+var cartPrev = 0;
+var dragId = null;
+function dropPos(ul, y) {
+  var items = $$('.ci', ul).filter(function (li) { return li.getAttribute('data-id') !== dragId; });
+  for (var i = 0; i < items.length; i++) { var b = items[i].getBoundingClientRect(); if (y < b.top + b.height / 2) return { i: i, el: items[i], after: false }; }
+  return { i: items.length, el: items[items.length - 1] || null, after: true };
+}
+function markDrop(ul, pos) {
+  $$('.drop-before, .drop-after', ul).forEach(function (el) { el.classList.remove('drop-before', 'drop-after'); });
+  if (pos.el) pos.el.classList.add(pos.after ? 'drop-after' : 'drop-before');
+}
+function moveInCart(id, to) {
+  var order = S.sel.filter(function (x) { return x !== id; }); to = Math.max(0, Math.min(order.length, to));
+  order.splice(to, 0, id); S.sel = order;
+  $('#sel-wrap').innerHTML = selBarHTML();
+  announce(slide(id).title + ' moved to position ' + (to + 1) + ' of ' + S.sel.length);
+}
+$('#sv-root').addEventListener('dragstart', function (e) {
+  var li = e.target.closest && e.target.closest('.ci'); if (!li) return;
+  dragId = li.getAttribute('data-id'); e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', dragId); } catch (x) { /* ignore */ }
+  setTimeout(function () { li.classList.add('dragging'); }, 0);
+});
+$('#sv-root').addEventListener('dragover', function (e) {
+  if (!dragId) return; var ul = e.target.closest && e.target.closest('.cart-items'); if (!ul) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move'; markDrop(ul, dropPos(ul, e.clientY));
+});
+$('#sv-root').addEventListener('drop', function (e) {
+  if (!dragId) return; var ul = e.target.closest && e.target.closest('.cart-items'); if (!ul) return;
+  e.preventDefault(); var id = dragId; dragId = null; moveInCart(id, dropPos(ul, e.clientY).i);
+  var g = $('#sel-wrap .grip[data-id="' + id + '"]'); if (g) g.focus();
+});
+$('#sv-root').addEventListener('dragend', function () { if (dragId) { dragId = null; $('#sel-wrap').innerHTML = selBarHTML(); } });
+$('#sv-root').addEventListener('keydown', function (e) {
+  var g = e.target.closest && e.target.closest('.grip'); if (!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  e.preventDefault(); var id = g.getAttribute('data-id'), i = S.sel.indexOf(id), to = e.key === 'ArrowUp' ? i - 1 : i + 1;
+  if (to < 0 || to >= S.sel.length) return; moveInCart(id, to);
+  var g2 = $('#sel-wrap .grip[data-id="' + id + '"]'); if (g2) g2.focus();
+});
+function updateSelUI() {
+  if (cartPrev === 0 && S.sel.length > 0 && S.cartMin) { S.cartMin = false; applyCartMin(); }
+  cartPrev = S.sel.length;
+  $$('[data-card]', main).forEach(function (c) {
+    var on = S.sel.indexOf(c.getAttribute('data-card')) >= 0; c.classList.toggle('is-selected', on);
+    var cb = c.querySelector('input[data-action="sel-toggle"]'); if (cb) cb.checked = on;
+  });
+  $('#sel-wrap').innerHTML = selBarHTML();
+  toastsEl.classList.toggle('lift', S.sel.length > 0);
+  var sa = $('[data-action="sel-one"]', main); if (sa) { sa.setAttribute('aria-pressed', S.sel.indexOf(sa.getAttribute('data-id')) >= 0); sa.querySelector('span').textContent = S.sel.indexOf(sa.getAttribute('data-id')) >= 0 ? 'Selected' : 'Select'; }
+  var all = $('#refine [data-action="sel-all"]');
+  if (all) { var ids = LISTS[all.getAttribute('data-list')] || []; all.querySelector('span').textContent = ids.length && ids.every(function (i) { return S.sel.indexOf(i) >= 0 || slide(i).status === 'Retired'; }) ? 'Clear selection' : 'Select all ' + ids.length; }
+}
+function setSel(id, on) {
+  var i = S.sel.indexOf(id);
+  if (on && i < 0) S.sel.push(id); else if (!on && i >= 0) { S.sel.splice(i, 1); delete S.off[id]; }
+  updateSelUI();
+}
+var toastsEl = $('#toasts'), liveEl = $('#sv-live');
+function toast(msg, action) {
+  var t = document.createElement('div'); t.className = 'toast';
+  t.innerHTML = '<span class="msg">' + esc(msg) + '</span>' + (action ? '<button type="button" class="ta">' + esc(action.label) + '</button>' : '') + '<button type="button" class="x" aria-label="Dismiss message">' + ic('x') + '</button>';
+  toastsEl.appendChild(t);
+  var timer;
+  function close() { clearTimeout(timer); if (t.parentNode) t.parentNode.removeChild(t); }
+  function arm() { clearTimeout(timer); timer = setTimeout(close, action ? 10000 : 5000); }
+  arm();
+  t.addEventListener('mouseenter', function () { clearTimeout(timer); }); t.addEventListener('mouseleave', arm);
+  t.querySelector('.x').addEventListener('click', close);
+  if (action) t.querySelector('.ta').addEventListener('click', function () { close(); if (action.fn) action.fn(); if (action.href) location.hash = action.href; });
+  while (toastsEl.children.length > 3) toastsEl.removeChild(toastsEl.firstChild);
+}
+function announce(msg) { liveEl.textContent = ''; setTimeout(function () { liveEl.textContent = msg; }, 40); }
+
+/* =================================================================
+   Router, navigation bar and render
+================================================================= */
+var root = $('#sv-root'), main = $('#main');
+function route() {
+  var h = location.hash.replace(/^#/, '') || '/', qi = h.indexOf('?');
+  var path = qi >= 0 ? h.slice(0, qi) : h, qs = new URLSearchParams(qi >= 0 ? h.slice(qi + 1) : '');
+  var parts = path.split('/').filter(Boolean);
+  var name = parts[0] || 'library';
+  if (['library', 'search', 'browse', 'deck', 'slide', 'create', 'upload'].indexOf(name) < 0) name = 'notfound';
+  return { name: name, id: parts[1] ? decodeURIComponent(parts[1]) : null, q: qs };
+}
+var VIEWS = {
+  library: viewLibrary, search: viewSearch, browse: viewBrowse, create: viewCreate, upload: viewUpload,
+  deck: function (r) { return viewDeck(r.id); }, slide: function (r) { return viewSlide(r.id); },
+  notfound: function () { return '<div class="sv-wrap">' + stateBlock('search', 'Page not found', 'That address doesn’t exist.', '<a class="btn" href="#/">Back to Home</a>') + '</div>'; }
+};
+var TITLES = { library: 'Home', search: 'Search', browse: 'Browse', create: 'Create', upload: 'Upload', deck: 'Deck', slide: 'Slide', notfound: 'Not found' };
+var TOP = { library: 'library', search: 'library', browse: 'library', deck: 'library', slide: 'library', create: 'create', upload: 'upload' };
+var H = { cur: 0, max: 0, started: false };
+function trackHistory() {
+  var st = history.state;
+  if (st && typeof st.i === 'number') { H.cur = st.i; if (H.cur > H.max) H.max = H.cur; }
+  else { H.cur = H.started ? H.cur + 1 : 0; H.max = H.cur; try { history.replaceState({ i: H.cur }, ''); } catch (e) { /* ignore */ } }
+  H.started = true;
+}
+function crumbItems(r) {
+  var d, s;
+  switch (r.name) {
+    case 'library': return [{ label: 'Home' }];
+    case 'search': return [{ label: 'Home', href: '#/' }, { label: 'Search: “' + (r.q.get('q') || '') + '”' }];
+    case 'browse': return [{ label: 'Home', href: '#/' }, { label: browseTitle(r.id || '') }];
+    case 'deck': d = DECK_MAP[r.id]; return [{ label: 'Home', href: '#/' }, { label: d ? d.title : 'Deck' }];
+    case 'slide': s = SLIDE_MAP[r.id]; return s ? [{ label: 'Home', href: '#/' }, { label: DECK_MAP[s.deckId].title, href: '#/deck/' + s.deckId }, { label: 'Slide ' + s.pos }] : [{ label: 'Home', href: '#/' }, { label: 'Slide' }];
+    case 'create': return [{ label: 'Create' }];
+    case 'upload': return [{ label: 'Upload' }];
+  }
+  return [{ label: 'Home', href: '#/' }, { label: 'Not found' }];
+}
+function navbarHTML(r) {
+  if (['library', 'create', 'upload'].indexOf(r.name) >= 0) return '';
+  var back = ['deck', 'slide'].indexOf(r.name) >= 0 && S.fromResults && S.lastResults ? S.lastResults : null;
+  return crumbsHTML(crumbItems(r)) + (back ? '<a class="back-results btn-link" href="' + esc(back) + '">' + ic('back', 'ic-sm') + 'Back to results</a>' : '');
+}
+var lastKey = null, prevName = null;
+function updFade(el) { el.classList.toggle('at-end', el.scrollLeft + el.clientWidth >= el.scrollWidth - 6); }
+root.addEventListener('scroll', function (e) { if (e.target.classList && e.target.classList.contains('row-scroller')) updFade(e.target); }, true);
+window.addEventListener('resize', function () { $$('.row-scroller').forEach(updFade); });
+function render() {
+  var r = route(), key = r.name + '/' + (r.id || '') + '?' + (r.name === 'search' ? r.q.toString() : '');
+  var ae = document.activeElement, inDlg = dlg.contains(ae), same = key === lastKey;
+  LISTS = {}; listN = 0; tipN = 0;
+  if (['deck', 'slide'].indexOf(r.name) >= 0) { if (['search', 'browse'].indexOf(prevName) >= 0) S.fromResults = true; else if (['deck', 'slide'].indexOf(prevName) < 0) S.fromResults = false; }
+  else if (['search', 'browse'].indexOf(r.name) < 0) S.fromResults = false;
+  if (r.name === 'browse') S.lastResults = location.hash;
+  prevName = r.name;
+  var scroll = same ? window.scrollY : 0;
+  main.innerHTML = (VIEWS[r.name] || VIEWS.notfound)(r);
+  renderChrome(r);
+  $$('.row-scroller', main).forEach(updFade);
+  var tb = r.name === 'deck' && DECK_MAP[r.id] ? DECK_MAP[r.id].title : r.name === 'slide' && SLIDE_MAP[r.id] ? SLIDE_MAP[r.id].title : r.name === 'search' ? (r.q.get('q') || 'Search') : TITLES[r.name];
+  document.title = tb + ' · SlideVault v3 prototype';
+  if (!inDlg) {
+    if (!same && lastKey !== null) { var h1 = main.querySelector('h1'); if (h1) h1.focus({ preventScroll: true }); window.scrollTo(0, 0); }
+    else if (same) window.scrollTo(0, scroll);
+  }
+  lastKey = key;
+}
+function railFiltersHTML(r) {
+  if (['library', 'search', 'browse'].indexOf(r.name) < 0) return '';
+  var vis = visibleIds(), n = fCount();
+  var tiers = S.role === 'viewer' ? [] : S.role === 'editor' ? ['Approved', 'Suggested'] : ['Approved', 'Suggested', 'Retired'];
+  function counts(g) { var m = {}; vis.forEach(function (id) { var v = facet(id, g); m[v] = (m[v] || 0) + 1; }); return m; }
+  function chips(g, label, vals, tips, help) {
+    return '<fieldset class="fg"><legend>' + label + (S.f[g].length ? '<span class="n">' + S.f[g].length + '</span>' : '') + (help ? '<button type="button" class="helpdot" aria-label="What is content class? ' + esc(help.replace(/\s+/g, ' ')) + '" data-tip="' + esc(help) + '" data-tip-pos="start">' + ic('info') + '</button>' : '') + '</legend><div class="fchips">' + vals.map(function (v) {
+      return '<label class="fchip"' + (tips && tips[v] ? ' title="' + esc(tips[v]) + '"' : '') + '><input type="checkbox" data-f="' + g + '" value="' + esc(v) + '"' + (S.f[g].indexOf(v) >= 0 ? ' checked' : '') + '><span>' + esc(v) + '</span></label>';
+    }).join('') + '</div></fieldset>';
+  }
+  function list(g, label, vals, cm) {
+    var c = S.f[g].length;
+    return '<details class="fg" data-fg="' + g + '"' + (S.fopen[g] || c ? ' open' : '') + '><summary>' + label + (c ? '<span class="n">' + c + '</span>' : '') + '</summary><ul class="flist">' + vals.map(function (v) {
+      return '<li><label><input type="checkbox" data-f="' + g + '" value="' + esc(v) + '"' + (S.f[g].indexOf(v) >= 0 ? ' checked' : '') + '><span class="lbl">' + esc(v) + '</span><span class="meta">' + (cm[v] || 0) + '</span></label></li>';
+    }).join('') + '</ul></details>';
+  }
+  var cc = counts('client'), tc = counts('type');
+  var h = '<details class="filters"' + (window.innerWidth > 960 || S.fAll ? ' open' : '') + '><summary><h2 class="f-title">Filters' + (n ? ' · ' + n : '') + '</h2>' + (n ? '<button type="button" class="btn-link f-clear" data-action="f-clear">Clear all</button>' : '') + '</summary><div class="f-body">';
+  if (tiers.length) h += chips('status', 'Status', tiers);
+  h += chips('cls', 'Content class', ['Canonical', 'Reusable', 'One-off'], { 'Canonical': 'The official, approved source: company overview, services, bios.', 'Reusable': 'Strong slides worth adapting: diagrams, experience, past submissions.', 'One-off': 'Client-specific work, kept apart from the approved library.' }, 'What kind of slide it is.\n\nCanonical: the official approved version (company overview, services, bios).\n\nReusable: good slides to adapt (diagrams, past projects).\n\nOne-off: made for one client, kept apart from the approved library.');
+  var yopts = function (cur, any) { var o = '<option value="">' + any + '</option>'; for (var y = NOW_Y; y >= FIRST_Y; y--) o += '<option value="' + y + '"' + (String(cur) === String(y) ? ' selected' : '') + '>' + y + '</option>'; return o; };
+  var pre = [[2, 'Last 2 years'], [5, 'Last 5 years'], [10, 'Last 10 years']];
+  var isPre = !S.f.yto && pre.some(function (x) { return +S.f.yfrom === NOW_Y - x[0] + 1; });
+  var showYr = S.yCustom || !!S.f.yto || (!!S.f.yfrom && !isPre);
+  h += '<fieldset class="fg"><legend>Year' + (S.f.yfrom || S.f.yto ? '<span class="n">on</span>' : '') + '</legend><div class="fchips">' + pre.map(function (x) { var on = +S.f.yfrom === NOW_Y - x[0] + 1 && !S.f.yto; return '<button type="button" class="pchip" data-action="y-preset" data-id="' + x[0] + '" aria-pressed="' + on + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+    '<button type="button" class="btn-link y-link" data-action="y-custom" aria-expanded="' + showYr + '">' + (showYr ? 'Hide custom range' : 'Custom range') + '</button>' + (showYr ? '<div class="yr"><label class="sr-only" for="y-from">From year</label><select id="y-from" class="select select-sm" data-yr="yfrom">' + yopts(S.f.yfrom, 'From') + '</select><span class="meta" aria-hidden="true">to</span><label class="sr-only" for="y-to">To year</label><select id="y-to" class="select select-sm" data-yr="yto">' + yopts(S.f.yto, 'To') + '</select></div>' : '') + '</fieldset>';
+  h += '<div class="fg"><label class="fg-l" for="cf-q">Client' + (S.f.client.length ? '<span class="n">' + S.f.client.length + '</span>' : '') + '</label><div class="combo"><input id="cf-q" class="input" type="text" role="combobox" aria-expanded="false" aria-controls="cf-list" aria-autocomplete="list" placeholder="Search clients" autocomplete="off"><ul id="cf-list" class="combo-list" role="listbox" aria-label="Clients" hidden></ul></div>' +
+    (S.f.client.length ? '<div class="fchips picked">' + S.f.client.map(function (v) { return '<button type="button" class="pickchip" data-action="f-rm" data-id="' + esc(v) + '" aria-label="Remove client filter: ' + esc(v) + '">' + esc(v) + ic('x') + '</button>'; }).join('') + '</div>' : '') + '</div>';
+  h += list('type', 'Slide type', Object.keys(tc).sort(), tc);
+  return h + '</div></details>';
+}
+function comboOpts(q) {
+  var cc = {}; visibleIds().forEach(function (id) { var c = slide(id).client; cc[c] = (cc[c] || 0) + 1; });
+  var nq = norm(q.trim());
+  return Object.keys(cc).sort().filter(function (v) { return S.f.client.indexOf(v) < 0 && norm(v).indexOf(nq) >= 0; }).map(function (v) { return [v, cc[v]]; });
+}
+var cAct = -1;
+function comboFill() {
+  var inp = $('#cf-q'), ul = $('#cf-list'); if (!inp) return;
+  var opts = comboOpts(inp.value); cAct = -1; inp.removeAttribute('aria-activedescendant');
+  ul.innerHTML = opts.length ? opts.map(function (o, i) { return '<li role="option" id="cf-o' + i + '" data-v="' + esc(o[0]) + '"><span>' + esc(o[0]) + '</span><span class="meta">' + o[1] + '</span></li>'; }).join('') : '<li class="none" role="presentation">No client matches</li>';
+  ul.hidden = false; inp.setAttribute('aria-expanded', 'true'); $('#rail').classList.add('combo-open');
+}
+function comboClose() { var inp = $('#cf-q'), ul = $('#cf-list'); $('#rail').classList.remove('combo-open'); if (ul) ul.hidden = true; if (inp) inp.setAttribute('aria-expanded', 'false'); cAct = -1; }
+function comboMove(d) {
+  var items = $$('#cf-list [role="option"]'); if (!items.length) return;
+  cAct = (cAct + d + items.length) % items.length;
+  items.forEach(function (li, i) { li.classList.toggle('act', i === cAct); li.setAttribute('aria-selected', i === cAct); });
+  $('#cf-q').setAttribute('aria-activedescendant', items[cAct].id); items[cAct].scrollIntoView({ block: 'nearest' });
+}
+function comboPick(v) { if (S.f.client.indexOf(v) < 0) S.f.client.push(v); render(); var i = $('#cf-q'); if (i) { i.focus(); comboClose(); } announce('Client filter added: ' + v); }
+root.addEventListener('input', function (e) { if (e.target.id === 'cf-q') comboFill(); });
+root.addEventListener('focusin', function (e) { if (e.target.id === 'cf-q') comboFill(); });
+root.addEventListener('focusout', function (e) { if (e.target.id === 'cf-q') setTimeout(function () { if (document.activeElement !== $('#cf-q')) comboClose(); }, 120); });
+root.addEventListener('mousedown', function (e) { var li = e.target.closest && e.target.closest('#cf-list [data-v]'); if (li) { e.preventDefault(); comboPick(li.getAttribute('data-v')); } else if (e.target.closest && e.target.closest('#cf-list')) e.preventDefault(); });
+root.addEventListener('keydown', function (e) {
+  if (e.target.id !== 'cf-q') return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); if ($('#cf-list').hidden) comboFill(); comboMove(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); comboMove(-1); }
+  else if (e.key === 'Enter') { var items = $$('#cf-list [role="option"]'); e.preventDefault(); if (items.length) comboPick(items[cAct >= 0 ? cAct : 0].getAttribute('data-v')); }
+  else if (e.key === 'Escape') { e.stopPropagation(); comboClose(); }
+});
+function railTryHTML(r) {
+  if (['library', 'search', 'browse'].indexOf(r.name) < 0) return '';
+  var cur = r.name === 'search' ? (r.q.get('q') || '') : '';
+  return '<section class="rail-try" aria-labelledby="try-h"><h2 id="try-h" class="try-h">' + ic('sparkle', 'ic-sm') + 'Try asking<span class="ai-tag">AI</span></h2><ul class="try-list">' + TRY_QUERIES.slice(0, 4).map(function (q) {
+    return '<li><a class="try-chip" href="' + esc(searchHref({ q: q })) + '"' + (q === cur ? ' aria-current="true"' : '') + '>' + esc(q) + '</a></li>';
+  }).join('') + '</ul></section>';
+}
+function renderRail(r) {
+  var ae = document.activeElement, key = ae && ae.getAttribute && ae.getAttribute('data-f') ? [ae.getAttribute('data-f'), ae.value] : null;
+  $('#rail-filters').innerHTML = railTryHTML(r) + railFiltersHTML(r);
+  if (key) { var el = $('#rail-filters input[data-f="' + key[0] + '"][value="' + key[1].replace(/"/g, '\\"') + '"]'); if (el) el.focus(); }
+}
+root.addEventListener('toggle', function (e) {
+  var d = e.target;
+  if (d.getAttribute && d.getAttribute('data-fg')) S.fopen[d.getAttribute('data-fg')] = d.open;
+  else if (d.classList && d.classList.contains('filters')) S.fAll = d.open;
+}, true);
+function renderChrome(r) {
+  var top = TOP[r.name];
+  $$('.sv-nav a').forEach(function (a) { if (a.getAttribute('data-nav') === top) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  var tq = $('#top-q'); if (document.activeElement !== tq) tq.value = r.name === 'search' ? (r.q.get('q') || '') : ''; syncClear();
+  $('#role').value = S.role;
+  root.setAttribute('data-route', r.name); root.setAttribute('data-role', S.role);
+  var nb = navbarHTML(r); $('#navbar-wrap').innerHTML = nb; $('#navbar-wrap').parentNode.hidden = !nb;
+  renderRail(r);
+  applyCartMin();
+  var deep = r.name === 'deck' || r.name === 'slide', shell = $('.sv-shell'), sform = $('#top-search');
+  if (deep && sform.parentNode.id !== 'deep-search') $('#deep-search').appendChild(sform);
+  else if (!deep && sform.parentNode.id === 'deep-search') $('#rail').insertBefore(sform, $('#rail').firstChild);
+  $('#deep-search').hidden = !deep;
+  shell.classList.toggle('narrow', r.name === 'create' || r.name === 'upload');
+  shell.classList.toggle('no-rail', r.name === 'create' || r.name === 'upload' || deep);
+  $('#sel-wrap').innerHTML = selBarHTML();
+  toastsEl.classList.toggle('lift', S.sel.length > 0);
+}
+function applyTheme() {
+  $$('.slidevault').forEach(function (el) { el.setAttribute('data-theme', S.theme); });
+  document.body.classList.toggle('sv-body-dark', S.theme === 'dark');
+  var b = $('#theme-btn'), dark = S.theme === 'dark';
+  b.innerHTML = ic(dark ? 'sun' : 'moon');
+  b.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme'); b.title = b.getAttribute('aria-label');
+}
+
+/* =================================================================
+   Events
+================================================================= */
+function selectedOrAll(ids) { return ids.filter(function (i) { return slide(i).status !== 'Retired'; }); }
+function onClick(e) {
+  if (window.innerWidth > 960 && e.target.closest && e.target.closest('.filters > summary')) e.preventDefault();
+  var dis = e.target.closest('[aria-disabled="true"]');
+  if (dis) { e.preventDefault(); toast(dis.getAttribute('data-reason') || 'Not available.'); return; }
+  var a = e.target.closest('[data-action]'); if (!a) return;
+  var act = a.getAttribute('data-action'), id = a.getAttribute('data-id'), list;
+  switch (act) {
+    case 'sel-toggle': return;
+    case 'preview': list = LISTS[a.getAttribute('data-list')] || [id]; openLB(list, Math.max(0, list.indexOf(id))); break;
+    case 'also': openAlso(id); break;
+    case 'dlg-close': closeDialog(); break;
+    case 'lb-prev': lbMove(-1); break;
+    case 'lb-next': lbMove(1); break;
+    case 'lb-select': setSel(LB.ids[LB.i], S.sel.indexOf(LB.ids[LB.i]) < 0); renderLB('lb-select'); break;
+    case 'lb-download': openDownload([LB.ids[LB.i]]); break;
+    case 'sel-clear': S.sel = []; S.off = {}; updateSelUI(); announce('Cart cleared'); break;
+    case 'cart-toggle': S.cartMin = !S.cartMin; applyCartMin(); var tg = $('#sel-wrap ' + (S.cartMin ? '.cart-mini' : '.cart') + ' [data-action="cart-toggle"]'); if (tg) tg.focus(); announce(S.cartMin ? 'Cart collapsed' : 'Cart expanded'); break;
+    case 'cart-rm': setSel(id, false); announce('Removed from cart'); break;
+    case 'f-rm': S.f.client = S.f.client.filter(function (v) { return v !== id; }); render(); var ci = $('#cf-q'); if (ci) ci.focus(); comboClose(); break;
+    case 'y-preset': S.yCustom = false; var nn = +id; if (+S.f.yfrom === NOW_Y - nn + 1 && !S.f.yto) S.f.yfrom = ''; else { S.f.yfrom = String(NOW_Y - nn + 1); S.f.yto = ''; } render(); break;
+    case 'y-custom': S.yCustom = !(S.yCustom || !!S.f.yto || (!!S.f.yfrom && ![2, 5, 10].some(function (n) { return +S.f.yfrom === NOW_Y - n + 1; }))); if (!S.yCustom) { S.f.yfrom = ''; S.f.yto = ''; } render(); var yl = $('[data-action="y-custom"]'); if (yl) yl.focus(); break;
+    case 'f-clear': S.f = { status: [], cls: [], client: [], type: [], yfrom: '', yto: '' }; S.yCustom = false; render(); announce('Filters cleared'); break;
+    case 'sel-preview': if (cartIds().length) openLB(cartIds(), 0); break;
+    case 'sel-download': if (cartIds().length) openDownload(cartIds()); break;
+    case 'sel-one': setSel(id, S.sel.indexOf(id) < 0); break;
+    case 'dl-one': openDownload([id]); break;
+    case 'dl-deck': openDownload(selectedOrAll(DECK_SLIDES[id].filter(function (x) { return canSee(slide(x).status); }))); break;
+    case 'sel-all':
+      list = selectedOrAll(LISTS[a.getAttribute('data-list')] || []);
+      var allOn = list.length && list.every(function (i) { return S.sel.indexOf(i) >= 0; });
+      list.forEach(function (i) { var k = S.sel.indexOf(i); if (allOn && k >= 0) S.sel.splice(k, 1); else if (!allOn && k < 0) S.sel.push(i); });
+      updateSelUI(); break;
+    case 'row-scroll': var sc = a.closest('.row').querySelector('.row-scroller'); sc.scrollBy({ left: sc.clientWidth * 0.8 * +a.getAttribute('data-dir'), behavior: 'smooth' }); break;
+    case 'hist-back': history.back(); break;
+    case 'hist-fwd': history.forward(); break;
+    case 'set-status':
+      S.edits[id] = Object.assign({}, S.edits[id], { status: a.getAttribute('data-status') }); render();
+      toast(a.getAttribute('data-status') === 'Approved' ? 'Labels approved. This slide is now visible to Viewers.' : a.getAttribute('data-status') === 'Retired' ? 'Slide retired. It is kept for records and can’t be downloaded.' : 'Restored as Suggested.'); break;
+    case 'upload-run': runUpload(); break;
+  }
+}
+function onChange(e) {
+  var t = e.target;
+  if (t.getAttribute && t.getAttribute('data-action') === 'sel-toggle') { setSel(t.getAttribute('data-id'), t.checked); return; }
+  if (t.getAttribute && t.getAttribute('data-action') === 'cart-inc') {
+    var cid = t.getAttribute('data-id'); if (t.checked) delete S.off[cid]; else S.off[cid] = true;
+    $('#sel-wrap').innerHTML = selBarHTML();
+    var again = $('#sel-wrap input[data-id="' + cid + '"]'); if (again) again.focus(); return;
+  }
+  if (t.getAttribute && t.getAttribute('data-yr')) {
+    S.f[t.getAttribute('data-yr')] = t.value;
+    if (S.f.yfrom && S.f.yto && +S.f.yfrom > +S.f.yto) { var sw = S.f.yfrom; S.f.yfrom = S.f.yto; S.f.yto = sw; }
+    render(); var ys = $('#' + (t.id)); if (ys) ys.focus(); return;
+  }
+  if (t.getAttribute && t.getAttribute('data-f')) {
+    var g = t.getAttribute('data-f'), v = t.value, arr = S.f[g], k = arr.indexOf(v);
+    if (t.checked && k < 0) arr.push(v); else if (!t.checked && k >= 0) arr.splice(k, 1);
+    render(); return;
+  }
+  if (t.id === 'sample') { S.sample = t.value; return; }
+  var f = t.closest && t.closest('#refine');
+  if (f) {
+    var qs = { q: f.getAttribute('data-q'), no: f.getAttribute('data-no'), sort: f.sort.value, client: f.getAttribute('data-client'), year: f.getAttribute('data-year') };
+    if (qs.sort === 'best') qs.sort = '';
+    var key = searchHref(qs); S.searchDone[key] = true; location.hash = key;
+  }
+}
+root.addEventListener('click', onClick);
+root.addEventListener('change', onChange);
+dlg.addEventListener('click', onClick);
+var tq0 = $('#top-q'), tclr = $('#top-clear');
+function syncClear() { tclr.hidden = !tq0.value; }
+tq0.addEventListener('input', syncClear);
+tclr.addEventListener('click', function () { tq0.value = ''; syncClear(); tq0.focus(); });
+$('#top-search').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var q = $('#top-q').value.trim(); if (!q) return;
+  location.hash = searchHref({ q: q }); $('#top-q').blur();
+});
+document.addEventListener('keydown', function (e) {
+  var tg = e.target, typing = tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.tagName === 'SELECT');
+  if (e.key === '/' && !typing && !dlg.open) { e.preventDefault(); $('#top-q').focus(); }
+  else if (e.key === 'Escape' && tg === $('#top-q')) { tg.blur(); }
+});
+$('#role').addEventListener('change', function (e) {
+  S.role = e.target.value; persist();
+  S.sel = S.sel.filter(function (id) { return SLIDE_MAP[id] && canSee(slide(id).status); });
+  var r = route();
+  if (r.name === 'upload' && !can('upload')) location.hash = '#/'; else render();
+  $('#role').focus();
+  toast('Access: ' + S.role.charAt(0).toUpperCase() + S.role.slice(1) + '. ' + ({ viewer: 'You see Approved slides.', editor: 'You see Approved and Suggested slides, and can upload.', curator: 'You see everything and can approve or retire.' })[S.role]);
+});
+$('#role-info').addEventListener('click', openRoleInfo);
+$('#theme-btn').addEventListener('click', function () { S.theme = S.theme === 'dark' ? 'light' : 'dark'; persist(); applyTheme(); render(); $('#theme-btn').focus(); });
+$('#skip').addEventListener('click', function () { var h = main.querySelector('h1') || main; h.setAttribute('tabindex', '-1'); h.focus(); });
+
+/* Init */
+$$('[data-icon]').forEach(function (el) { el.outerHTML = ic(el.getAttribute('data-icon')); });
+load();
+applyTheme();
+window.addEventListener('hashchange', function () { trackHistory(); render(); });
+trackHistory();
+render();
+})();
+</script>
+</body>
+</html>

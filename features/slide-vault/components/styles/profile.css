@@ -1,0 +1,54 @@
+/* My decks, Settings, Activity (ProfileView.tsx, SettingsView.tsx)
+   Working drafts, saved slides, settings rows, activity list.
+*/
+
+/*
+ * Profile dashboard (saved row + simple activity record) and the avatar nav tab that reaches it.
+ */
+.slidevault .profile-wrap .page-head { align-items: center; }
+.slidevault .activity-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-width: 70ch; }
+.slidevault .activity-list li { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--sv-border); color: var(--sv-text-secondary); }
+.slidevault .activity-list .ic-sm { flex: none; color: var(--sv-text-secondary); }
+.slidevault .activity-label { flex: 1; min-width: 0; font-size: 14px; color: var(--sv-text); }
+.slidevault .activity-label strong { font-weight: 600; }
+.slidevault .activity-time { font-size: 12.5px; color: var(--sv-text-secondary); flex: none; }
+
+/* ---- Working drafts list on My decks ---- */
+.slidevault .draft-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--sv-surface-sunken); color: var(--sv-text-secondary); flex: none; }
+.slidevault .draft-txt { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.slidevault .draft-acts { display: flex; gap: 6px; flex: none; }
+/* container width: compact */
+.slidevault .sv-app[data-size="compact"] .draft-txt { flex: 1 1 0; }
+.slidevault .sv-app[data-size="compact"] .draft-acts { flex: 1 1 100%; }
+
+/* ---- Phone pass 13: working drafts swipe to delete; tap areas; viewer loading ---- */
+.slidevault .draft-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; overflow-x: clip; }
+.slidevault .draft-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--sv-border); border-radius: 14px; background: var(--sv-surface); position: relative; touch-action: pan-y; }
+.slidevault .draft-item[data-swiping]::after { content: "Delete"; position: absolute; left: calc(100% + 8px); top: 0; bottom: 0; width: 120px; display: grid; place-items: center; border-radius: 14px; background: #b42318; color: #fff; font-weight: 700; font-size: 14px; }
+/* Create: the two cards side by side, and My decks: working drafts in two columns, on a phone on its side and on tablets. */
+.slidevault .sv-app[data-size="medium"] .draft-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .draft-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Working drafts in two columns: the buttons sit under the name, left aligned with it (not under the folder icon). */
+.slidevault .sv-app[data-size="medium"] .draft-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 12px; row-gap: 8px; align-items: center; }
+.slidevault .sv-app[data-size="medium"] .draft-acts { grid-column: 1 / -1; grid-row: 2; }
+.slidevault .sv-app[data-size="medium"] .draft-acts > .btn { flex: 1 1 0; min-width: 0; justify-content: center; }
+/* Working drafts on a portrait phone too: the buttons sit under the name, left aligned with it. */
+.slidevault .sv-app[data-size="compact"] .draft-item { flex-wrap: wrap; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 12px; row-gap: 8px; align-items: center; }
+.slidevault .sv-app[data-size="compact"] .draft-acts { grid-column: 1 / -1; grid-row: 2; flex-wrap: wrap; }
+.slidevault .sv-app[data-size="compact"] .draft-acts > .btn { flex: 1 1 auto; justify-content: center; }
+/* The trash icon sits at the right end of the first row of the card, on every screen. */
+.slidevault .sv-app:is([data-size="compact"], [data-size="medium"]) .draft-del { grid-column: 3; grid-row: 1; }
+/* Phone on its side: the narrow pages (Settings, Create, Upload) line up with every other page's left edge instead of floating in the middle. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .profile-wrap { margin-left: 0; margin-right: 0; } }
+/* Let a sideways swipe on the preview picture reach the page, and keep the mouse from selecting the picture while dragging. */
+.slidevault .sv-app[data-size="medium"] .profile-wrap { margin-left: 0; margin-right: 0; }
+
+/* Settings and Profile: a narrower centred column on an upright tablet and on a phone on its side, so text and boxes do not run edge to edge. */
+.slidevault .sv-app[data-size="medium"] .sv-shell.narrow .center .sv-main .sv-wrap.profile-wrap { margin-left: auto; margin-right: auto; }
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1000px) {
+.slidevault .sv-app[data-size="compact"] .sv-shell.narrow .center .sv-main .sv-wrap.profile-wrap { max-width: 560px; margin-left: auto; margin-right: auto; } }
+/* ...and on an upright tablet they are the same width. */
+.slidevault .sv-app[data-size="medium"] .sv-shell.narrow .center .sv-main .sv-wrap.profile-wrap { max-width: 660px; }
